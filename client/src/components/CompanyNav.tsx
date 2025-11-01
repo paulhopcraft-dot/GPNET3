@@ -1,11 +1,11 @@
 import type { CompanyName } from "@shared/schema";
 
 interface CompanyNavProps {
-  selectedCompany: CompanyName | null;
-  onSelectCompany: (company: CompanyName | null) => void;
+  selectedCompany: string | null;
+  onSelectCompany: (company: string | null) => void;
 }
 
-const companies: CompanyName[] = [
+const companies: string[] = [
   "Symmetry",
   "Allied Health",
   "Apex Labour",

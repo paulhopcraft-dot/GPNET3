@@ -19,7 +19,7 @@ export interface CaseAttachment {
 export interface WorkerCase {
   id: string;
   workerName: string;
-  company: CompanyName;
+  company: string; // Allow any company name from Freshdesk, not just predefined ones
   dateOfInjury: string;
   riskLevel: RiskLevel;
   workStatus: WorkStatus;

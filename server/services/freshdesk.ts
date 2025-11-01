@@ -1,4 +1,4 @@
-import type { WorkerCase } from "@/shared/schema";
+import type { WorkerCase, CompanyName, ComplianceIndicator, WorkStatus } from "@shared/schema";
 
 interface FreshdeskTicket {
   id: number;
@@ -32,16 +32,22 @@ export class FreshdeskService {
   private baseUrl: string;
 
   constructor() {
-    const domain = process.env.FRESHDESK_DOMAIN;
+    let domain = process.env.FRESHDESK_DOMAIN;
     const apiKey = process.env.FRESHDESK_API_KEY;
 
     if (!domain || !apiKey) {
       throw new Error("FRESHDESK_DOMAIN and FRESHDESK_API_KEY must be set");
     }
 
+    // Clean up domain - remove protocol and .freshdesk.com suffix if present
+    domain = domain.replace(/^https?:\/\//, '');
+    domain = domain.replace(/\.freshdesk\.com.*$/, '');
+
     this.domain = domain;
     this.apiKey = apiKey;
     this.baseUrl = `https://${domain}.freshdesk.com/api/v2`;
+    
+    console.log(`Freshdesk service initialized with domain: ${this.domain}`);
   }
 
   private getAuthHeader(): string {
@@ -108,7 +114,7 @@ export class FreshdeskService {
     }
   }
 
-  private mapStatusToWorkStatus(status: number): string {
+  private mapStatusToWorkStatus(status: number): WorkStatus {
     // Freshdesk status codes: 2=Open, 3=Pending, 4=Resolved, 5=Closed
     switch (status) {
       case 4: // Resolved
@@ -153,18 +159,31 @@ export class FreshdeskService {
   async transformTicketsToWorkerCases(tickets: FreshdeskTicket[]): Promise<Partial<WorkerCase>[]> {
     const workerCases: Partial<WorkerCase>[] = [];
     const companyCache = new Map<number, FreshdeskCompany | null>();
+    const validCompanies: CompanyName[] = ["Symmetry", "Allied Health", "Apex Labour", "SafeWorks", "Core Industrial"];
+
+    // Batch fetch all unique company IDs in parallel
+    const uniqueCompanyIds = Array.from(new Set(tickets.map(t => t.company_id).filter(id => id != null))) as number[];
+    await Promise.all(
+      uniqueCompanyIds.map(async (companyId) => {
+        const company = await this.fetchCompany(companyId);
+        companyCache.set(companyId, company);
+      })
+    );
 
     for (const ticket of tickets) {
-      let companyName = "Unknown Company";
+      let companyName: CompanyName | string = "Unknown Company";
       
       if (ticket.company_id) {
-        if (!companyCache.has(ticket.company_id)) {
-          const company = await this.fetchCompany(ticket.company_id);
-          companyCache.set(ticket.company_id, company);
-        }
         const company = companyCache.get(ticket.company_id);
         if (company) {
-          companyName = company.name;
+          // Use actual company name if it matches our valid companies, otherwise preserve the actual name
+          if (validCompanies.includes(company.name as CompanyName)) {
+            companyName = company.name as CompanyName;
+          } else {
+            // For companies outside the predefined list, still preserve the actual name
+            // but we'll need to handle this in the database layer
+            companyName = company.name;
+          }
         }
       }
 
@@ -180,25 +199,28 @@ export class FreshdeskService {
         ? new Date(ticket.due_by).toLocaleDateString()
         : "TBD";
 
+      const compliance = this.calculateComplianceIndicator(ticket);
+      const complianceIndicator: ComplianceIndicator = 
+        compliance === "On track" ? "Low" :
+        compliance === "At risk" ? "Medium" : "High";
+
       workerCases.push({
         id: `FD-${ticket.id}`,
         workerName,
         company: companyName,
-        dateOfInjury,
+        dateOfInjury: dateOfInjury.toISOString().split('T')[0],
         riskLevel: this.mapPriorityToRiskLevel(ticket.priority),
         workStatus: this.mapStatusToWorkStatus(ticket.status),
         hasCertificate: ticket.tags?.includes('has_certificate') || false,
-        certificateUrl: ticket.custom_fields?.certificate_url || null,
-        complianceIndicator: this.calculateComplianceIndicator(ticket),
+        certificateUrl: ticket.custom_fields?.certificate_url || undefined,
+        complianceIndicator,
         currentStatus: ticket.description_text || "No description",
         nextStep: ticket.custom_fields?.next_step || "Review case",
         owner: "CLC Team",
         dueDate,
         summary: ticket.subject,
-        clcLastFollowUp: ticket.custom_fields?.last_follow_up || null,
-        clcNextFollowUp: ticket.custom_fields?.next_follow_up || null,
-        createdAt: new Date(ticket.created_at),
-        updatedAt: new Date(ticket.updated_at)
+        clcLastFollowUp: ticket.custom_fields?.last_follow_up || undefined,
+        clcNextFollowUp: ticket.custom_fields?.next_follow_up || undefined,
       });
     }
 

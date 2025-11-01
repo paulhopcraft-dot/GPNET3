@@ -61,11 +61,15 @@ class DbStorage implements IStorage {
       .where(eq(workerCases.id, caseData.id))
       .limit(1);
 
+    const dateOfInjury = caseData.dateOfInjury 
+      ? (typeof caseData.dateOfInjury === 'string' ? new Date(caseData.dateOfInjury) : caseData.dateOfInjury)
+      : new Date();
+
     const dbData = {
       id: caseData.id,
       workerName: caseData.workerName || "Unknown",
       company: caseData.company || "Unknown",
-      dateOfInjury: caseData.dateOfInjury || new Date(),
+      dateOfInjury,
       riskLevel: caseData.riskLevel || "Low",
       workStatus: caseData.workStatus || "Off work",
       hasCertificate: caseData.hasCertificate || false,
@@ -87,10 +91,7 @@ class DbStorage implements IStorage {
         .set(dbData)
         .where(eq(workerCases.id, caseData.id));
     } else {
-      await db.insert(workerCases).values({
-        ...dbData,
-        createdAt: new Date(),
-      });
+      await db.insert(workerCases).values(dbData);
     }
   }
 

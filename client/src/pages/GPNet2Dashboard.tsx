@@ -8,10 +8,10 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { CompanyName, WorkerCase } from "@shared/schema";
+import type { WorkerCase } from "@shared/schema";
 
 export default function GPNet2Dashboard() {
-  const [selectedCompany, setSelectedCompany] = useState<CompanyName | null>(null);
+  const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   const { toast } = useToast();
@@ -23,9 +23,16 @@ export default function GPNet2Dashboard() {
 
   const syncMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest("/api/freshdesk/sync", {
+      const response = await fetch("/api/freshdesk/sync", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
       });
+      if (!response.ok) {
+        throw new Error("Failed to sync with Freshdesk");
+      }
+      return await response.json();
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/gpnet2/cases"] });
@@ -45,6 +52,7 @@ export default function GPNet2Dashboard() {
 
   useEffect(() => {
     syncMutation.mutate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filteredCases = useMemo(() => {
