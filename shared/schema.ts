@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -20,6 +20,7 @@ export interface WorkerCase {
   id: string;
   workerName: string;
   company: CompanyName;
+  dateOfInjury: string;
   riskLevel: RiskLevel;
   workStatus: WorkStatus;
   hasCertificate: boolean;
@@ -35,33 +36,49 @@ export interface WorkerCase {
   clcNextFollowUp?: string;
 }
 
-export const cases = pgTable("cases", {
+// Database tables
+export const workerCases = pgTable("worker_cases", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  companyName: text("company_name").notNull(),
   workerName: text("worker_name").notNull(),
-  injuryDate: timestamp("injury_date").notNull(),
-  latestCertificate: text("latest_certificate").notNull(),
-  status: text("status").notNull(),
+  company: text("company").notNull(),
+  dateOfInjury: timestamp("date_of_injury").notNull(),
   riskLevel: text("risk_level").notNull(),
-  notes: text("notes"),
+  workStatus: text("work_status").notNull(),
+  hasCertificate: boolean("has_certificate").notNull().default(false),
+  certificateUrl: text("certificate_url"),
+  complianceIndicator: text("compliance_indicator").notNull(),
+  currentStatus: text("current_status").notNull(),
+  nextStep: text("next_step").notNull(),
+  owner: text("owner").notNull(),
+  dueDate: text("due_date").notNull(),
+  summary: text("summary").notNull(),
+  clcLastFollowUp: text("clc_last_follow_up"),
+  clcNextFollowUp: text("clc_next_follow_up"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const certificates = pgTable("certificates", {
+export const caseAttachments = pgTable("case_attachments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  caseId: varchar("case_id").notNull().references(() => cases.id),
+  caseId: varchar("case_id").notNull().references(() => workerCases.id),
+  name: text("name").notNull(),
   type: text("type").notNull(),
-  expiry: timestamp("expiry").notNull(),
+  url: text("url").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const insertCaseSchema = createInsertSchema(cases).omit({
+export const insertWorkerCaseSchema = createInsertSchema(workerCases).omit({
   id: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
-export const insertCertificateSchema = createInsertSchema(certificates).omit({
+export const insertCaseAttachmentSchema = createInsertSchema(caseAttachments).omit({
   id: true,
+  createdAt: true,
 });
 
-export type InsertCase = z.infer<typeof insertCaseSchema>;
-export type Case = typeof cases.$inferSelect;
-export type InsertCertificate = z.infer<typeof insertCertificateSchema>;
-export type Certificate = typeof certificates.$inferSelect;
+export type InsertWorkerCase = z.infer<typeof insertWorkerCaseSchema>;
+export type WorkerCaseDB = typeof workerCases.$inferSelect;
+export type InsertCaseAttachment = z.infer<typeof insertCaseAttachmentSchema>;
+export type CaseAttachmentDB = typeof caseAttachments.$inferSelect;
