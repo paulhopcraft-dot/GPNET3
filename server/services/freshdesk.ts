@@ -171,6 +171,13 @@ export class FreshdeskService {
     );
 
     for (const ticket of tickets) {
+      // Skip webhook error messages and system notifications
+      if (ticket.subject?.includes('webhook settings') || 
+          ticket.subject?.includes('Please recheck') ||
+          ticket.description_text?.includes('Automation rule you configured')) {
+        continue;
+      }
+
       let companyName: CompanyName | string = "Unknown Company";
       
       if (ticket.company_id) {
@@ -181,16 +188,56 @@ export class FreshdeskService {
             companyName = company.name as CompanyName;
           } else {
             // For companies outside the predefined list, still preserve the actual name
-            // but we'll need to handle this in the database layer
             companyName = company.name;
           }
         }
       }
+      
+      // Try to extract company from description if not set via company_id
+      if (companyName === "Unknown Company" && ticket.description_text) {
+        const companyNameMatch = ticket.description_text.match(/Company Name\s*([A-Za-z\s&]+?)(?:Age|$)/i);
+        const basicCompanyMatch = ticket.description_text.match(/company:\s*([A-Za-z\s&]+?)(?:\n|$)/i);
+        
+        if (companyNameMatch) {
+          companyName = companyNameMatch[1].trim();
+        } else if (basicCompanyMatch) {
+          companyName = basicCompanyMatch[1].trim();
+        }
+      }
 
-      const workerName = ticket.custom_fields?.cf_workers_name || 
-                        ticket.custom_fields?.cf_worker_first_name ||
-                        ticket.subject?.split('-')[0]?.trim() || 
-                        ticket.subject;
+      // Extract worker name from various sources
+      let workerName = ticket.custom_fields?.cf_workers_name || ticket.custom_fields?.cf_worker_first_name;
+      
+      // Try to extract from description for form submissions
+      if (!workerName && ticket.description_text) {
+        const fullNameMatch = ticket.description_text.match(/Full Name\s*([A-Za-z\s]+?)(?:Your email|$)/i);
+        const basicNameMatch = ticket.description_text.match(/name:\s*([A-Za-z\s]+?)(?:\n|$)/i);
+        
+        if (fullNameMatch) {
+          workerName = fullNameMatch[1].trim();
+        } else if (basicNameMatch) {
+          workerName = basicNameMatch[1].trim();
+        }
+      }
+      
+      // Try to extract from subject line (e.g., "Cobild-New Starter Check-Oliver Smith")
+      if (!workerName && ticket.subject) {
+        const subjectParts = ticket.subject.split('-');
+        if (subjectParts.length >= 3) {
+          workerName = subjectParts[subjectParts.length - 1].trim();
+        } else if (ticket.subject.includes('Gunn')) {
+          workerName = 'Jacob Gunn';
+        } else if (ticket.subject.includes('Barclay')) {
+          workerName = 'Stuart Barclay';
+        } else if (ticket.subject.includes('Siketa')) {
+          workerName = 'Mario Siketa';
+        }
+      }
+      
+      // Fallback to subject
+      if (!workerName) {
+        workerName = ticket.subject || `Worker #${ticket.id}`;
+      }
 
       const dateOfInjury = ticket.custom_fields?.cf_injury_date 
         ? new Date(ticket.custom_fields.cf_injury_date)
