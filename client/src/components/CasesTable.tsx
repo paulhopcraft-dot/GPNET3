@@ -36,14 +36,13 @@ export function CasesTable({ cases, selectedCaseId, onCaseClick }: CasesTablePro
             </th>
             <th className="px-4 py-3 font-medium text-muted-foreground">Latest Certificate</th>
             <th className="px-4 py-3 font-medium text-muted-foreground">Compliance Indicator</th>
-            <th className="px-4 py-3 font-medium text-muted-foreground">Where are we at?</th>
             <th className="px-4 py-3 font-medium text-muted-foreground">Next Step + Owner + Due</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
           {filteredCases.length === 0 ? (
             <tr>
-              <td colSpan={9} className="px-4 py-8 text-center text-muted-foreground">
+              <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
                 No cases found
               </td>
             </tr>
@@ -87,7 +86,6 @@ export function CasesTable({ cases, selectedCaseId, onCaseClick }: CasesTablePro
                   <td className="px-4 py-3">
                     <RiskBadge level={workerCase.complianceIndicator} type="compliance" />
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">{workerCase.currentStatus}</td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {workerCase.nextStep} - {workerCase.owner} - {workerCase.dueDate}
                   </td>
