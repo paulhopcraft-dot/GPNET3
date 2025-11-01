@@ -1,22 +1,51 @@
-import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useMemo, useEffect } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { CompanyNav } from "@/components/CompanyNav";
 import { SearchBar } from "@/components/SearchBar";
 import { CasesTable } from "@/components/CasesTable";
 import { CaseDetailPanel } from "@/components/CaseDetailPanel";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { CompanyName, WorkerCase } from "@shared/schema";
 
 export default function GPNet2Dashboard() {
   const [selectedCompany, setSelectedCompany] = useState<CompanyName | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const { data: cases = [], isLoading } = useQuery<WorkerCase[]>({
     queryKey: ["/api/gpnet2/cases"],
     refetchInterval: 30000,
   });
+
+  const syncMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("/api/freshdesk/sync", {
+        method: "POST",
+      });
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/gpnet2/cases"] });
+      toast({
+        title: "Sync Complete",
+        description: `Successfully synced ${data.synced} cases from Freshdesk`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Sync Failed",
+        description: error.message || "Failed to sync with Freshdesk",
+        variant: "destructive",
+      });
+    },
+  });
+
+  useEffect(() => {
+    syncMutation.mutate();
+  }, []);
 
   const filteredCases = useMemo(() => {
     return cases.filter((c) => {
@@ -66,9 +95,17 @@ export default function GPNet2Dashboard() {
           <div className="flex justify-between items-center gap-4 mb-6">
             <SearchBar value={searchQuery} onChange={setSearchQuery} />
             <div className="flex items-center gap-2">
-              <Button disabled data-testid="button-add-case">
-                <span className="material-symbols-outlined text-base">add</span>
-                <span className="font-bold">Add Case</span>
+              <Button 
+                onClick={() => syncMutation.mutate()}
+                disabled={syncMutation.isPending}
+                data-testid="button-sync-freshdesk"
+              >
+                <span className="material-symbols-outlined text-base">
+                  {syncMutation.isPending ? "sync" : "refresh"}
+                </span>
+                <span className="font-bold">
+                  {syncMutation.isPending ? "Syncing..." : "Sync Freshdesk"}
+                </span>
               </Button>
               <ThemeToggle />
             </div>
