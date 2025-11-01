@@ -86,10 +86,13 @@ Preferred communication style: Simple, everyday language.
 ### External Dependencies
 
 **Freshdesk Integration**
-- REST API integration for syncing support tickets as worker cases
+- REST API integration for syncing support tickets as worker cases (November 2025)
 - Custom transformation layer (`FreshdeskService`) to map Freshdesk tickets to internal case structure
 - Handles ticket status, priority, custom fields, and company associations
-- Manual sync trigger via POST endpoint (future: webhook support)
+- Parallel company fetching for performance (~9-10s sync time for 100 tickets)
+- Preserves actual Freshdesk company names (not collapsed to predefined list)
+- Manual sync trigger via POST endpoint (`/api/freshdesk/sync`) with automatic sync on dashboard load
+- Environment variables: `FRESHDESK_DOMAIN` and `FRESHDESK_API_KEY` stored as Replit Secrets
 
 **Neon Database**
 - Serverless PostgreSQL provider with WebSocket connections
