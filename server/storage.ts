@@ -5,6 +5,8 @@ import { eq } from "drizzle-orm";
 
 export interface IStorage {
   getGPNet2Cases(): Promise<WorkerCase[]>;
+  syncWorkerCaseFromFreshdesk(caseData: Partial<WorkerCase>): Promise<void>;
+  clearAllWorkerCases(): Promise<void>;
 }
 
 class DbStorage implements IStorage {
@@ -46,6 +48,55 @@ class DbStorage implements IStorage {
     );
 
     return casesWithAttachments;
+  }
+
+  async syncWorkerCaseFromFreshdesk(caseData: Partial<WorkerCase>): Promise<void> {
+    if (!caseData.id) {
+      throw new Error("Case ID is required for sync");
+    }
+
+    const existingCase = await db
+      .select()
+      .from(workerCases)
+      .where(eq(workerCases.id, caseData.id))
+      .limit(1);
+
+    const dbData = {
+      id: caseData.id,
+      workerName: caseData.workerName || "Unknown",
+      company: caseData.company || "Unknown",
+      dateOfInjury: caseData.dateOfInjury || new Date(),
+      riskLevel: caseData.riskLevel || "Low",
+      workStatus: caseData.workStatus || "Off work",
+      hasCertificate: caseData.hasCertificate || false,
+      certificateUrl: caseData.certificateUrl || null,
+      complianceIndicator: caseData.complianceIndicator || "On track",
+      currentStatus: caseData.currentStatus || "New case",
+      nextStep: caseData.nextStep || "Review",
+      owner: caseData.owner || "CLC Team",
+      dueDate: caseData.dueDate || "TBD",
+      summary: caseData.summary || "",
+      clcLastFollowUp: caseData.clcLastFollowUp || null,
+      clcNextFollowUp: caseData.clcNextFollowUp || null,
+      updatedAt: new Date(),
+    };
+
+    if (existingCase.length > 0) {
+      await db
+        .update(workerCases)
+        .set(dbData)
+        .where(eq(workerCases.id, caseData.id));
+    } else {
+      await db.insert(workerCases).values({
+        ...dbData,
+        createdAt: new Date(),
+      });
+    }
+  }
+
+  async clearAllWorkerCases(): Promise<void> {
+    await db.delete(caseAttachments);
+    await db.delete(workerCases);
   }
 }
 
