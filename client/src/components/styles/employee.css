@@ -1,0 +1,58 @@
+.crumbs {
+  margin-bottom: 1rem;
+}
+
+.crumbs a {
+  color: #007bff;
+  text-decoration: none;
+}
+
+.crumbs a:hover {
+  text-decoration: underline;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.card {
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.card h2 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #212529;
+  font-size: 1.25rem;
+}
+
+.card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.card li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.card li:last-child {
+  border-bottom: none;
+}
+
+.steps {
+  padding-left: 1.5rem;
+  margin: 0;
+}
+
+.steps li {
+  padding: 0.5rem 0;
+  color: #495057;
+}
