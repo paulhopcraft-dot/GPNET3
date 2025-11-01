@@ -1,111 +1,91 @@
-import type { InsertCase, Case, InsertCertificate, Certificate } from "@shared/schema";
+import type { WorkerCase } from "@shared/schema";
 
 export interface IStorage {
-  getCases(): Promise<Case[]>;
-  getCaseById(id: string): Promise<Case | undefined>;
-  insertCase(case_: InsertCase): Promise<Case>;
-  getCertificatesByCaseId(caseId: string): Promise<Certificate[]>;
-  insertCertificate(certificate: InsertCertificate): Promise<Certificate>;
+  getGPNet2Cases(): Promise<WorkerCase[]>;
 }
 
 class MemStorage implements IStorage {
-  private cases: Case[] = [];
-  private certificates: Certificate[] = [];
-
-  constructor() {
-    // Initialize with mock data
-    this.cases = [
+  async getGPNet2Cases(): Promise<WorkerCase[]> {
+    return [
       {
         id: "1",
-        companyName: "Acme Corp",
-        workerName: "John Smith",
-        injuryDate: new Date("2024-01-15"),
-        latestCertificate: "Fit for work",
-        status: "Open",
+        workerName: "Sarah Johnson",
+        company: "Symmetry",
         riskLevel: "Low",
-        notes: "Minor workplace injury",
+        workStatus: "At work",
+        hasCertificate: true,
+        certificateUrl: "/certificates/sarah-johnson.pdf",
+        complianceIndicator: "Very High",
+        currentStatus: "Employee has completed all pre-employment health assessments",
+        nextStep: "Final clearance review",
+        owner: "Dr. Smith",
+        dueDate: "2025-11-15",
+        summary: "All medical assessments completed. No restrictions identified. Cleared for full duties.",
       },
       {
         id: "2",
-        companyName: "Tech Industries",
-        workerName: "Sarah Johnson",
-        injuryDate: new Date("2024-02-20"),
-        latestCertificate: "Modified duties",
-        status: "Pending",
+        workerName: "Michael Chen",
+        company: "Allied Health",
         riskLevel: "Medium",
-        notes: "Follow-up required",
+        workStatus: "At work",
+        hasCertificate: true,
+        certificateUrl: "/certificates/michael-chen.pdf",
+        complianceIndicator: "High",
+        currentStatus: "Minor restrictions identified - modified duties plan in place",
+        nextStep: "Follow-up assessment in 30 days",
+        owner: "Dr. Williams",
+        dueDate: "2025-12-01",
+        summary: "Employee cleared for work with minor lifting restrictions. Modified duties plan implemented.",
+        clcLastFollowUp: "2025-10-15",
+        clcNextFollowUp: "2025-11-15",
       },
       {
         id: "3",
-        companyName: "Global Manufacturing",
-        workerName: "Mike Davis",
-        injuryDate: new Date("2024-03-10"),
-        latestCertificate: "Unfit for work",
-        status: "Open",
+        workerName: "Emma Brown",
+        company: "Apex Labour",
         riskLevel: "High",
-        notes: "Serious injury - ongoing treatment",
+        workStatus: "Off work",
+        hasCertificate: false,
+        complianceIndicator: "Low",
+        currentStatus: "Awaiting specialist assessment results",
+        nextStep: "Obtain specialist medical report",
+        owner: "Dr. Jones",
+        dueDate: "2025-11-08",
+        summary: "Pre-existing condition identified. Specialist assessment required before clearance can be issued.",
       },
       {
         id: "4",
-        companyName: "Retail Solutions",
-        workerName: "Emma Wilson",
-        injuryDate: new Date("2024-01-05"),
-        latestCertificate: "Fit for work",
-        status: "Closed",
+        workerName: "David Wilson",
+        company: "SafeWorks",
         riskLevel: "Low",
-        notes: "Fully recovered",
+        workStatus: "At work",
+        hasCertificate: true,
+        certificateUrl: "/certificates/david-wilson.pdf",
+        complianceIndicator: "Very High",
+        currentStatus: "All assessments complete - fully cleared",
+        nextStep: "Annual review",
+        owner: "Dr. Davis",
+        dueDate: "2026-11-01",
+        summary: "Comprehensive medical assessment completed. No restrictions. Employee cleared for all duties.",
       },
       {
         id: "5",
-        companyName: "Construction Ltd",
-        workerName: "David Brown",
-        injuryDate: new Date("2024-02-28"),
-        latestCertificate: "Capacity certificate",
-        status: "Open",
+        workerName: "Lisa Anderson",
+        company: "Core Industrial",
         riskLevel: "Medium",
-        notes: "Return to work plan in progress",
+        workStatus: "At work",
+        hasCertificate: true,
+        certificateUrl: "/certificates/lisa-anderson.pdf",
+        complianceIndicator: "Medium",
+        currentStatus: "Temporary restrictions in place - monitoring required",
+        nextStep: "Review modified duties effectiveness",
+        owner: "Dr. Taylor",
+        dueDate: "2025-11-20",
+        summary: "Employee on modified duties due to recent injury recovery. Regular monitoring required.",
+        clcLastFollowUp: "2025-10-28",
+        clcNextFollowUp: "2025-11-10",
       },
     ];
-
-    this.certificates = [
-      { id: "c1", caseId: "1", type: "Fit for work", expiry: new Date("2024-06-15") },
-      { id: "c2", caseId: "2", type: "Modified duties", expiry: new Date("2024-05-20") },
-      { id: "c3", caseId: "2", type: "Capacity certificate", expiry: new Date("2024-04-15") },
-      { id: "c4", caseId: "3", type: "Unfit for work", expiry: new Date("2024-04-30") },
-      { id: "c5", caseId: "3", type: "Medical certificate", expiry: new Date("2024-03-25") },
-      { id: "c6", caseId: "5", type: "Capacity certificate", expiry: new Date("2024-05-10") },
-    ];
-  }
-
-  async getCases(): Promise<Case[]> {
-    return this.cases;
-  }
-
-  async getCaseById(id: string): Promise<Case | undefined> {
-    return this.cases.find(c => c.id === id);
-  }
-
-  async insertCase(case_: InsertCase): Promise<Case> {
-    const newCase: Case = {
-      id: String(this.cases.length + 1),
-      ...case_,
-      notes: case_.notes ?? null,
-    };
-    this.cases.push(newCase);
-    return newCase;
-  }
-
-  async getCertificatesByCaseId(caseId: string): Promise<Certificate[]> {
-    return this.certificates.filter(c => c.caseId === caseId);
-  }
-
-  async insertCertificate(certificate: InsertCertificate): Promise<Certificate> {
-    const newCert: Certificate = {
-      id: String(this.certificates.length + 1),
-      ...certificate,
-    };
-    this.certificates.push(newCert);
-    return newCert;
   }
 }
 
