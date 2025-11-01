@@ -187,12 +187,13 @@ export class FreshdeskService {
         }
       }
 
-      const workerName = ticket.custom_fields?.worker_name || 
+      const workerName = ticket.custom_fields?.cf_workers_name || 
+                        ticket.custom_fields?.cf_worker_first_name ||
                         ticket.subject?.split('-')[0]?.trim() || 
-                        `Worker #${ticket.id}`;
+                        ticket.subject;
 
-      const dateOfInjury = ticket.custom_fields?.date_of_injury 
-        ? new Date(ticket.custom_fields.date_of_injury)
+      const dateOfInjury = ticket.custom_fields?.cf_injury_date 
+        ? new Date(ticket.custom_fields.cf_injury_date)
         : new Date(ticket.created_at);
 
       const dueDate = ticket.due_by 
@@ -211,16 +212,16 @@ export class FreshdeskService {
         dateOfInjury: dateOfInjury.toISOString().split('T')[0],
         riskLevel: this.mapPriorityToRiskLevel(ticket.priority),
         workStatus: this.mapStatusToWorkStatus(ticket.status),
-        hasCertificate: ticket.tags?.includes('has_certificate') || false,
-        certificateUrl: ticket.custom_fields?.certificate_url || undefined,
+        hasCertificate: !!ticket.custom_fields?.cf_latest_medical_certificate || ticket.tags?.includes('has_certificate') || false,
+        certificateUrl: ticket.custom_fields?.cf_latest_medical_certificate || ticket.custom_fields?.cf_url || undefined,
         complianceIndicator,
-        currentStatus: ticket.description_text || "No description",
-        nextStep: ticket.custom_fields?.next_step || "Review case",
-        owner: "CLC Team",
+        currentStatus: ticket.custom_fields?.cf_check_status || ticket.description_text || "Pending review",
+        nextStep: ticket.custom_fields?.cf_injury_and_action_plan || "Review case details",
+        owner: ticket.custom_fields?.cf_case_manager_name || ticket.custom_fields?.cf_consultant || "CLC Team",
         dueDate,
         summary: ticket.subject,
-        clcLastFollowUp: ticket.custom_fields?.last_follow_up || undefined,
-        clcNextFollowUp: ticket.custom_fields?.next_follow_up || undefined,
+        clcLastFollowUp: ticket.custom_fields?.cf_full_medical_report_date || undefined,
+        clcNextFollowUp: ticket.custom_fields?.cf_valid_until || undefined,
       });
     }
 
