@@ -229,10 +229,10 @@ export class FreshdeskService {
         }
       }
 
-      // SKIP tickets with no company (webhooks and tickets without company assignment)
-      if (companyName === "Unknown Company") {
-        continue;
-      }
+      // TEMPORARILY DISABLED - Keep Unknown Company to find Princes Group
+      // if (companyName === "Unknown Company") {
+      //   continue;
+      // }
 
       // Extract worker name from various sources
       let workerName = ticket.custom_fields?.cf_workers_name || ticket.custom_fields?.cf_worker_first_name;
