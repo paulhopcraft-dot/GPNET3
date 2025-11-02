@@ -55,6 +55,19 @@ export default function GPNet2Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Get unique companies from actual data, sorted by worker count
+  const companies = useMemo(() => {
+    const companyMap = new Map<string, number>();
+    cases.forEach((c) => {
+      if (c.company !== "Unknown Company") {
+        companyMap.set(c.company, (companyMap.get(c.company) || 0) + 1);
+      }
+    });
+    return Array.from(companyMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([company]) => company);
+  }, [cases]);
+
   const filteredCases = useMemo(() => {
     return cases.filter((c) => {
       const matchesCompany = !selectedCompany || c.company === selectedCompany;
@@ -95,7 +108,11 @@ export default function GPNet2Dashboard() {
           </div>
           <h1 className="text-sidebar-foreground text-xl font-bold">GPNet 2</h1>
         </div>
-        <CompanyNav selectedCompany={selectedCompany} onSelectCompany={setSelectedCompany} />
+        <CompanyNav 
+          selectedCompany={selectedCompany} 
+          onSelectCompany={setSelectedCompany}
+          companies={companies}
+        />
       </aside>
 
       <main className="flex-1 flex overflow-hidden">

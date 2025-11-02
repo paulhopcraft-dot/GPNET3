@@ -64,7 +64,12 @@ export class FreshdeskService {
       console.log('Fetching ALL tickets from Freshdesk with pagination...');
 
       while (hasMore) {
-        const response = await fetch(`${this.baseUrl}/tickets?per_page=${perPage}&page=${page}&include=description`, {
+        // Fetch ALL tickets using updated_since parameter (90 days ago to get all recent tickets including closed ones)
+        const ninetyDaysAgo = new Date();
+        ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+        const updatedSince = ninetyDaysAgo.toISOString();
+        
+        const response = await fetch(`${this.baseUrl}/tickets?per_page=${perPage}&page=${page}&include=description&updated_since=${updatedSince}`, {
           headers: {
             'Authorization': this.getAuthHeader(),
             'Content-Type': 'application/json'
@@ -268,9 +273,15 @@ export class FreshdeskService {
         workerName = ticket.subject || `Worker #${ticket.id}`;
       }
 
-      const dateOfInjury = ticket.custom_fields?.cf_injury_date 
+      // Parse date with validation
+      let dateOfInjury = ticket.custom_fields?.cf_injury_date 
         ? new Date(ticket.custom_fields.cf_injury_date)
         : new Date(ticket.created_at);
+      
+      // Fallback to current date if invalid
+      if (isNaN(dateOfInjury.getTime())) {
+        dateOfInjury = new Date();
+      }
 
       const dueDate = ticket.due_by 
         ? new Date(ticket.due_by).toLocaleDateString()

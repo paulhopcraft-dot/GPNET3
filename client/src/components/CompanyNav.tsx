@@ -3,17 +3,10 @@ import type { CompanyName } from "@shared/schema";
 interface CompanyNavProps {
   selectedCompany: string | null;
   onSelectCompany: (company: string | null) => void;
+  companies: string[];
 }
 
-const companies: string[] = [
-  "Symmetry",
-  "Allied Health",
-  "Apex Labour",
-  "SafeWorks",
-  "Core Industrial",
-];
-
-export function CompanyNav({ selectedCompany, onSelectCompany }: CompanyNavProps) {
+export function CompanyNav({ selectedCompany, onSelectCompany, companies }: CompanyNavProps) {
   return (
     <nav className="space-y-1">
       <button
