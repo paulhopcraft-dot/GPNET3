@@ -56,18 +56,42 @@ export class FreshdeskService {
 
   async fetchTickets(): Promise<FreshdeskTicket[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/tickets?per_page=100&include=description`, {
-        headers: {
-          'Authorization': this.getAuthHeader(),
-          'Content-Type': 'application/json'
-        }
-      });
+      let allTickets: FreshdeskTicket[] = [];
+      let page = 1;
+      const perPage = 100;
+      let hasMore = true;
 
-      if (!response.ok) {
-        throw new Error(`Freshdesk API error: ${response.status} ${response.statusText}`);
+      console.log('Fetching ALL tickets from Freshdesk with pagination...');
+
+      while (hasMore) {
+        const response = await fetch(`${this.baseUrl}/tickets?per_page=${perPage}&page=${page}&include=description`, {
+          headers: {
+            'Authorization': this.getAuthHeader(),
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`Freshdesk API error: ${response.status} ${response.statusText}`);
+        }
+
+        const tickets: FreshdeskTicket[] = await response.json();
+        console.log(`Fetched page ${page}: ${tickets.length} tickets`);
+        
+        allTickets = allTickets.concat(tickets);
+        
+        // If we got fewer tickets than requested, we've reached the last page
+        hasMore = tickets.length === perPage;
+        page++;
+
+        // Small delay to respect rate limits
+        if (hasMore) {
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
       }
 
-      return await response.json();
+      console.log(`Total tickets fetched: ${allTickets.length}`);
+      return allTickets;
     } catch (error) {
       console.error('Error fetching Freshdesk tickets:', error);
       throw error;
