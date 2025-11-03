@@ -12,9 +12,11 @@ interface CasesTableProps {
 export function CasesTable({ cases, selectedCaseId, onCaseClick }: CasesTableProps) {
   const [workStatusFilter, setWorkStatusFilter] = useState<WorkStatus | "All">("All");
 
-  const filteredCases = cases.filter((c) =>
-    workStatusFilter === "All" || c.workStatus === workStatusFilter
-  );
+  const riskOrder = { "High": 0, "Medium": 1, "Low": 2 };
+
+  const filteredCases = cases
+    .filter((c) => workStatusFilter === "All" || c.workStatus === workStatusFilter)
+    .sort((a, b) => riskOrder[a.riskLevel] - riskOrder[b.riskLevel]);
 
   return (
     <div className="flex-1 overflow-x-auto bg-card rounded-xl border border-border">
