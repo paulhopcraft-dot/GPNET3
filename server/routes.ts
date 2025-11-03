@@ -1,9 +1,13 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
-import { FreshdeskService } from "./services/freshdesk";
+import { storage } from "./storage.js";
+import { FreshdeskService } from "./services/freshdesk.js";
+import complianceRouter from "./src/routes/compliance.js";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // AI Compliance routes
+  app.use("/api/compliance", complianceRouter);
+
   // GPNet 2 Dashboard - Get all cases
   app.get("/api/gpnet2/cases", async (req, res) => {
     try {

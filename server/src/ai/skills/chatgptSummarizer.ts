@@ -1,5 +1,12 @@
 import OpenAI from "openai";
-import { getTicket } from "../freshdeskClient";
+import { getTicket } from "../freshdeskClient.js";
+
+/*
+Follow these instructions when using this blueprint:
+1. Note that the newest OpenAI model is "gpt-5", not "gpt-4o" or "gpt-4". gpt-5 was released on August 7, 2025.
+   Always prefer using gpt-5 as it is the latest model.
+2. gpt-5 doesn't support temperature parameter, do not use it with gpt-5.
+*/
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -19,8 +26,8 @@ export async function summarizeTicket(ticketId: number) {
   `;
 
   const completion = await client.chat.completions.create({
-    model: "gpt-4o-mini", // fast & low-cost summarizer
-    temperature: 0.2,
+    // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
+    model: "gpt-5",
     messages: [
       {
         role: "system",

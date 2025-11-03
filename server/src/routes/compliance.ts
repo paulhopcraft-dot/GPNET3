@@ -1,5 +1,5 @@
 import express from "express";
-import { claudeComplianceSkill } from "../ai/skills/claudeComplianceSkill";
+import { claudeComplianceSkill } from "../ai/skills/claudeComplianceSkill.js";
 
 const router = express.Router();
 

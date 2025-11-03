@@ -1,9 +1,16 @@
 // server/src/ai/skills/claudeComplianceSkill.ts
 
-import { summarizeTicket } from "./chatgptSummarizer";
-import { queryDocs } from "../rag_docs";
-import { queryDB } from "../interrogate_sub";
+import { summarizeTicket } from "./chatgptSummarizer.js";
+import { queryDocs } from "../rag_docs.js";
+import { queryDB } from "../interrogate_sub.js";
 import { Anthropic } from "@anthropic-ai/sdk";
+
+/*
+<important_code_snippet_instructions>
+The newest Anthropic model is "claude-sonnet-4-20250514", not "claude-3-7-sonnet-20250219", "claude-3-5-sonnet-20241022" nor "claude-3-sonnet-20240229". 
+If the user doesn't specify a model, always prefer using "claude-sonnet-4-20250514" as it is the latest model.
+</important_code_snippet_instructions>
+*/
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -63,8 +70,9 @@ Respond ONLY in valid JSON with this format:
 `;
 
     // Step 4: Send to Claude
+    // Using claude-sonnet-4-20250514 (latest model)
     const completion = await client.messages.create({
-      model: "claude-3-opus-20240229",
+      model: "claude-sonnet-4-20250514",
       max_tokens: 800,
       temperature: 0,
       messages: [{ role: "user", content: prompt }],
