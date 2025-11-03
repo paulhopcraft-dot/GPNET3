@@ -1,61 +1,55 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { FileText, Clock, CheckCircle2, AlertTriangle, TrendingUp, TrendingDown } from "lucide-react";
 
 interface StatCardProps {
   title: string;
-  value: string;
-  icon: React.ElementType;
-  trend?: {
-    value: string;
-    isPositive: boolean;
-  };
+  value: number;
+  icon: string;
 }
 
-function StatCard({ title, value, icon: Icon, trend }: StatCardProps) {
+function StatCard({ title, value, icon }: StatCardProps) {
   return (
     <Card data-testid={`card-stat-${title.toLowerCase().replace(/\s+/g, '-')}`}>
       <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
         <p className="text-sm font-medium text-muted-foreground">{title}</p>
-        <Icon className="h-4 w-4 text-muted-foreground" />
+        <span className="material-symbols-outlined text-muted-foreground">{icon}</span>
       </CardHeader>
       <CardContent>
-        <div className="text-3xl font-semibold" data-testid={`text-value-${title.toLowerCase().replace(/\s+/g, '-')}`}>{value}</div>
-        {trend && (
-          <div className={`flex items-center gap-1 text-xs mt-2 ${trend.isPositive ? 'text-green-600 dark:text-green-500' : 'text-red-600 dark:text-red-500'}`}>
-            {trend.isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-            <span>{trend.value} from last month</span>
-          </div>
-        )}
+        <div className="text-3xl font-semibold" data-testid={`text-value-${title.toLowerCase().replace(/\s+/g, '-')}`}>
+          {value.toLocaleString()}
+        </div>
       </CardContent>
     </Card>
   );
 }
 
-export function DashboardStats() {
+interface DashboardStatsProps {
+  totalCases: number;
+  pendingCases: number;
+  completedCases: number;
+  highRiskCases: number;
+}
+
+export function DashboardStats({ totalCases, pendingCases, completedCases, highRiskCases }: DashboardStatsProps) {
   const stats = [
     {
       title: "Total Cases",
-      value: "1,284",
-      icon: FileText,
-      trend: { value: "+12.3%", isPositive: true },
+      value: totalCases,
+      icon: "folder_open",
     },
     {
       title: "Pending Reviews",
-      value: "47",
-      icon: Clock,
-      trend: { value: "-8.1%", isPositive: true },
+      value: pendingCases,
+      icon: "schedule",
     },
     {
       title: "Completed",
-      value: "1,156",
-      icon: CheckCircle2,
-      trend: { value: "+15.2%", isPositive: true },
+      value: completedCases,
+      icon: "check_circle",
     },
     {
       title: "High Risk",
-      value: "23",
-      icon: AlertTriangle,
-      trend: { value: "+4.2%", isPositive: false },
+      value: highRiskCases,
+      icon: "warning",
     },
   ];
 

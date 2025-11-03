@@ -4,6 +4,7 @@ import { CompanyNav } from "@/components/CompanyNav";
 import { SearchBar } from "@/components/SearchBar";
 import { CasesTable } from "@/components/CasesTable";
 import { CaseDetailPanel } from "@/components/CaseDetailPanel";
+import { DashboardStats } from "@/components/dashboard-stats";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -55,6 +56,20 @@ export default function GPNet2Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const stats = useMemo(() => {
+    const total = cases.length;
+    const pending = cases.filter(c => c.status === 'open' || c.status === 'pending').length;
+    const completed = cases.filter(c => c.status === 'closed' || c.status === 'resolved').length;
+    const highRisk = cases.filter(c => c.riskLevel === 'high').length;
+    
+    return {
+      totalCases: total,
+      pendingCases: pending,
+      completedCases: completed,
+      highRiskCases: highRisk,
+    };
+  }, [cases]);
+
   const filteredCases = useMemo(() => {
     return cases.filter((c) => {
       const matchesCompany = !selectedCompany || c.company === selectedCompany;
@@ -99,30 +114,40 @@ export default function GPNet2Dashboard() {
       </aside>
 
       <main className="flex-1 flex overflow-hidden">
-        <div className="flex-1 flex flex-col p-6 overflow-y-auto">
-          <div className="flex justify-between items-center gap-4 mb-6">
-            <SearchBar value={searchQuery} onChange={setSearchQuery} />
-            <div className="flex items-center gap-2">
-              <Button 
-                onClick={() => syncMutation.mutate()}
-                disabled={syncMutation.isPending}
-                data-testid="button-sync-freshdesk"
-              >
-                <span className="material-symbols-outlined text-base">
-                  {syncMutation.isPending ? "sync" : "refresh"}
-                </span>
-                <span className="font-bold">
-                  {syncMutation.isPending ? "Syncing..." : "Sync Freshdesk"}
-                </span>
-              </Button>
-              <ThemeToggle />
+        <div className="flex-1 flex flex-col overflow-y-auto">
+          <div className="p-6 space-y-6">
+            <div className="flex justify-between items-center gap-4">
+              <SearchBar value={searchQuery} onChange={setSearchQuery} />
+              <div className="flex items-center gap-2">
+                <Button 
+                  onClick={() => syncMutation.mutate()}
+                  disabled={syncMutation.isPending}
+                  data-testid="button-sync-freshdesk"
+                >
+                  <span className="material-symbols-outlined text-base">
+                    {syncMutation.isPending ? "sync" : "refresh"}
+                  </span>
+                  <span className="font-bold">
+                    {syncMutation.isPending ? "Syncing..." : "Sync Freshdesk"}
+                  </span>
+                </Button>
+                <ThemeToggle />
+              </div>
             </div>
+
+            <DashboardStats
+              totalCases={stats.totalCases}
+              pendingCases={stats.pendingCases}
+              completedCases={stats.completedCases}
+              highRiskCases={stats.highRiskCases}
+            />
+
+            <CasesTable
+              cases={filteredCases}
+              selectedCaseId={selectedCaseId}
+              onCaseClick={handleCaseClick}
+            />
           </div>
-          <CasesTable
-            cases={filteredCases}
-            selectedCaseId={selectedCaseId}
-            onCaseClick={handleCaseClick}
-          />
         </div>
 
         {selectedCase && (
