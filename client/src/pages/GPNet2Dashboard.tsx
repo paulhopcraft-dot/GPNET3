@@ -6,6 +6,7 @@ import { CasesTable } from "@/components/CasesTable";
 import { CaseDetailPanel } from "@/components/CaseDetailPanel";
 import { DashboardStats } from "@/components/dashboard-stats";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { AIAssistant } from "@/components/ai-assistant";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -165,6 +166,8 @@ export default function GPNet2Dashboard() {
           <CaseDetailPanel workerCase={selectedCase} onClose={handleClosePanel} />
         )}
       </main>
+      
+      <AIAssistant />
     </div>
   );
 }
