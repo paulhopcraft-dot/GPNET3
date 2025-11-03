@@ -1,6 +1,6 @@
-import type { WorkerCase, WorkerCaseDB } from "@shared/schema";
+import type { WorkerCase, WorkerCaseDB } from "../shared/schema"; // ✅ fixed path
 import { db } from "./db";
-import { workerCases, caseAttachments } from "@shared/schema";
+import { workerCases, caseAttachments } from "../shared/schema"; // ✅ fixed path
 import { eq } from "drizzle-orm";
 
 export interface IStorage {
@@ -12,7 +12,7 @@ export interface IStorage {
 class DbStorage implements IStorage {
   async getGPNet2Cases(): Promise<WorkerCase[]> {
     const dbCases = await db.select().from(workerCases);
-    
+
     const casesWithAttachments = await Promise.all(
       dbCases.map(async (dbCase: WorkerCaseDB) => {
         const attachments = await db
@@ -24,7 +24,7 @@ class DbStorage implements IStorage {
           id: dbCase.id,
           workerName: dbCase.workerName,
           company: dbCase.company as any,
-          dateOfInjury: dbCase.dateOfInjury.toISOString().split('T')[0],
+          dateOfInjury: dbCase.dateOfInjury.toISOString().split("T")[0],
           riskLevel: dbCase.riskLevel as any,
           workStatus: dbCase.workStatus as any,
           hasCertificate: dbCase.hasCertificate,
@@ -44,13 +44,15 @@ class DbStorage implements IStorage {
             url: att.url,
           })),
         };
-      })
+      }),
     );
 
     return casesWithAttachments;
   }
 
-  async syncWorkerCaseFromFreshdesk(caseData: Partial<WorkerCase>): Promise<void> {
+  async syncWorkerCaseFromFreshdesk(
+    caseData: Partial<WorkerCase>,
+  ): Promise<void> {
     if (!caseData.id) {
       throw new Error("Case ID is required for sync");
     }
@@ -61,8 +63,10 @@ class DbStorage implements IStorage {
       .where(eq(workerCases.id, caseData.id))
       .limit(1);
 
-    const dateOfInjury = caseData.dateOfInjury 
-      ? (typeof caseData.dateOfInjury === 'string' ? new Date(caseData.dateOfInjury) : caseData.dateOfInjury)
+    const dateOfInjury = caseData.dateOfInjury
+      ? typeof caseData.dateOfInjury === "string"
+        ? new Date(caseData.dateOfInjury)
+        : caseData.dateOfInjury
       : new Date();
 
     const dbData = {
