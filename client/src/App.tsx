@@ -1,35 +1,39 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useEffect, useState } from "react";
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function App() {
+  const [cases, setCases] = useState([]);
+
+  useEffect(() => {
+    fetch("/api/gpnet2/cases?page=1&limit=10")
+      .then((res) => res.json())
+      .then(setCases)
+      .catch((err) => console.error(err));
+  }, []);
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <div style={{ padding: "2rem", fontFamily: "sans-serif" }}>
+      <h1>🩺 GPNet Case Management</h1>
+      <p>Live compliance and recovery dashboard</p>
+      <table border="1" cellPadding="6" cellSpacing="0">
+        <thead>
+          <tr>
+            <th>Worker</th>
+            <th>Status</th>
+            <th>Risk</th>
+            <th>WorkCover</th>
+          </tr>
+        </thead>
+        <tbody>
+          {cases.map((c: any) => (
+            <tr key={c.id}>
+              <td>{c.workerName}</td>
+              <td>{c.status}</td>
+              <td>{c.riskLevel}</td>
+              <td>{c.workcover ? "✅" : "❌"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 }
-
-export default App
