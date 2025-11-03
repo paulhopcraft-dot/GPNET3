@@ -1,6 +1,7 @@
 {
   "name": "server",
   "version": "1.0.0",
+  "type": "module",
   "description": "GPNet3 Express backend",
   "main": "index.ts",
   "scripts": {
