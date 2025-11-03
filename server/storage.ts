@@ -57,12 +57,6 @@ class DbStorage implements IStorage {
       throw new Error("Case ID is required for sync");
     }
 
-    const existingCase = await db
-      .select()
-      .from(workerCases)
-      .where(eq(workerCases.id, caseData.id))
-      .limit(1);
-
     const dateOfInjury = caseData.dateOfInjury
       ? typeof caseData.dateOfInjury === "string"
         ? new Date(caseData.dateOfInjury)
@@ -89,14 +83,14 @@ class DbStorage implements IStorage {
       updatedAt: new Date(),
     };
 
-    if (existingCase.length > 0) {
-      await db
-        .update(workerCases)
-        .set(dbData)
-        .where(eq(workerCases.id, caseData.id));
-    } else {
-      await db.insert(workerCases).values(dbData);
-    }
+    // Use UPSERT (ON CONFLICT DO UPDATE) to handle duplicates atomically
+    await db
+      .insert(workerCases)
+      .values(dbData)
+      .onConflictDoUpdate({
+        target: workerCases.id,
+        set: dbData,
+      });
   }
 
   async clearAllWorkerCases(): Promise<void> {
