@@ -283,8 +283,16 @@ export class FreshdeskService {
         dateOfInjury = new Date();
       }
 
+      // Format date as M/D/YY (e.g., 11/9/25)
+      const formatDate = (date: Date): string => {
+        const month = date.getMonth() + 1;
+        const day = date.getDate();
+        const year = date.getFullYear().toString().slice(-2);
+        return `${month}/${day}/${year}`;
+      };
+
       const dueDate = ticket.due_by 
-        ? new Date(ticket.due_by).toLocaleDateString()
+        ? formatDate(new Date(ticket.due_by))
         : "TBD";
 
       const compliance = this.calculateComplianceIndicator(ticket);
@@ -296,7 +304,7 @@ export class FreshdeskService {
         id: `FD-${ticket.id}`,
         workerName,
         company: companyName,
-        dateOfInjury: dateOfInjury.toISOString().split('T')[0],
+        dateOfInjury: formatDate(dateOfInjury),
         riskLevel: this.mapPriorityToRiskLevel(ticket.priority),
         workStatus: this.mapStatusToWorkStatus(ticket.status),
         hasCertificate: !!ticket.custom_fields?.cf_latest_medical_certificate || ticket.tags?.includes('has_certificate') || false,
@@ -307,8 +315,12 @@ export class FreshdeskService {
         owner: ticket.custom_fields?.cf_case_manager_name || ticket.custom_fields?.cf_consultant || "CLC Team",
         dueDate,
         summary: ticket.subject,
-        clcLastFollowUp: ticket.custom_fields?.cf_full_medical_report_date || undefined,
-        clcNextFollowUp: ticket.custom_fields?.cf_valid_until || undefined,
+        clcLastFollowUp: ticket.custom_fields?.cf_full_medical_report_date 
+          ? formatDate(new Date(ticket.custom_fields.cf_full_medical_report_date))
+          : undefined,
+        clcNextFollowUp: ticket.custom_fields?.cf_valid_until
+          ? formatDate(new Date(ticket.custom_fields.cf_valid_until))
+          : undefined,
       });
     }
 
