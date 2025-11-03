@@ -1,5 +1,3 @@
-import React from "react";
-
 type Point = { x: number; y: number };
 type Props = {
   expected: Point[]; // 0..1 normalized

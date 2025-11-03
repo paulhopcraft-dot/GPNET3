@@ -1,6 +1,7 @@
 import type { WorkerCase } from "@shared/schema";
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
+import RecoveryChart from "./RecoveryChart";
 
 interface CaseDetailPanelProps {
   workerCase: WorkerCase;
@@ -8,6 +9,26 @@ interface CaseDetailPanelProps {
 }
 
 export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
+  // Generate recovery timeline data based on case information
+  const generateRecoveryTimeline = () => {
+    // Expected recovery curve (smooth progression)
+    const expected = Array.from({ length: 5 }, (_, i) => ({
+      x: i / 4,
+      y: i / 4,
+    }));
+    
+    // Actual recovery (varies based on work status)
+    const progressFactor = workerCase.workStatus === "At work" ? 0.9 : 0.5;
+    const actual = Array.from({ length: 5 }, (_, i) => ({
+      x: i / 4,
+      y: (i / 4) * progressFactor,
+    }));
+    
+    return { expected, actual };
+  };
+
+  const { expected, actual } = generateRecoveryTimeline();
+
   return (
     <aside 
       className="w-96 flex-shrink-0 bg-card border-l border-border p-6"
@@ -22,6 +43,12 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
 
       <ScrollArea className="h-[calc(100vh-8rem)]">
         <div className="space-y-6">
+          <div>
+            <h3 className="text-sm font-medium text-muted-foreground mb-3">Anticipated Recovery Timeline</h3>
+            <div className="bg-background rounded-md p-4 border border-border">
+              <RecoveryChart expected={expected} actual={actual} width={320} height={180} />
+            </div>
+          </div>
           <div>
             <h3 className="text-sm font-medium text-muted-foreground mb-2">Company</h3>
             <p className="text-card-foreground">{workerCase.company}</p>
