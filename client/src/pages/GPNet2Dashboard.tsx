@@ -56,6 +56,13 @@ export default function GPNet2Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const uniqueCompanies = useMemo(() => {
+    const companies = Array.from(new Set(cases.map(c => c.company)))
+      .filter(c => c && c !== 'Unknown' && c !== 'Unknown Company')
+      .sort();
+    return companies;
+  }, [cases]);
+
   const stats = useMemo(() => {
     const total = cases.length;
     const pending = cases.filter(c => c.status === 'open' || c.status === 'pending').length;
@@ -110,7 +117,11 @@ export default function GPNet2Dashboard() {
           </div>
           <h1 className="text-sidebar-foreground text-xl font-bold">GPNet 2</h1>
         </div>
-        <CompanyNav selectedCompany={selectedCompany} onSelectCompany={setSelectedCompany} />
+        <CompanyNav 
+          companies={uniqueCompanies}
+          selectedCompany={selectedCompany} 
+          onSelectCompany={setSelectedCompany} 
+        />
       </aside>
 
       <main className="flex-1 flex overflow-hidden">
