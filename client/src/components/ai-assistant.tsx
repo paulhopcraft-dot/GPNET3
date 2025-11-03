@@ -44,15 +44,12 @@ export function AIAssistant() {
 
     try {
       // Call the Claude compliance API
-      const response = await apiRequest<{
+      const res = await apiRequest("POST", "/api/compliance", { text: input });
+      const response: {
         compliance_status: string;
         summary: string;
         references: string[];
-      }>("/api/compliance", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: input }),
-      });
+      } = await res.json();
 
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
