@@ -9,7 +9,10 @@ interface CaseDetailPanelProps {
 
 export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
   return (
-    <aside className="w-96 flex-shrink-0 bg-card border-l border-border p-6">
+    <aside 
+      className="w-96 flex-shrink-0 bg-card border-l border-border p-6"
+      data-testid="panel-case-detail"
+    >
       <div className="flex justify-between items-start mb-6">
         <h2 className="text-xl font-bold text-card-foreground">{workerCase.workerName}</h2>
         <Button variant="ghost" size="icon" onClick={onClose} data-testid="button-close-panel">
