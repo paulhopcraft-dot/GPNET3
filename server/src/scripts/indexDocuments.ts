@@ -1,0 +1,1 @@
+// indexDocuments script placeholder
