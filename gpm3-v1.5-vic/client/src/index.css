@@ -1,0 +1,12 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: light dark; }
+body { @apply bg-white text-gray-900; }
+.container { @apply max-w-6xl mx-auto px-4; }
+.card { @apply bg-white rounded-2xl shadow p-6 border border-gray-100; }
+.badge { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-medium; }
+.badge-high { @apply bg-red-100 text-red-800; }
+.badge-medium { @apply bg-yellow-100 text-yellow-800; }
+.badge-low { @apply bg-green-100 text-green-800; }
