@@ -90,7 +90,7 @@ export default function GPNet2Dashboard() {
 
   return (
     <div className="flex h-screen">
-      <aside className="w-64 flex-shrink-0 bg-sidebar p-4 border-r border-sidebar-border">
+      <aside className="hidden lg:block w-64 flex-shrink-0 bg-sidebar p-4 border-r border-sidebar-border">
         <div className="mb-8">
           <div className="flex items-center gap-3">
             <div className="bg-primary/20 rounded-full size-10 flex items-center justify-center">
@@ -106,23 +106,41 @@ export default function GPNet2Dashboard() {
       </aside>
 
       <main className="flex-1 flex overflow-hidden">
-        <div className="flex-1 flex flex-col p-6 overflow-y-auto">
-          <div className="flex justify-between items-center gap-4 mb-6">
+        <div className="flex-1 flex flex-col p-3 sm:p-6 overflow-y-auto">
+          <div className="lg:hidden mb-4 pb-3 border-b border-border">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="bg-primary/20 rounded-full size-8 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-primary text-lg">corporate_fare</span>
+                </div>
+                <div>
+                  <h1 className="text-lg font-bold">GPNet 2</h1>
+                  <div className="text-xs text-muted-foreground">
+                    {cases.length} cases loaded
+                  </div>
+                </div>
+              </div>
+              <ThemeToggle />
+            </div>
+          </div>
+          
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
             <SearchBar value={searchQuery} onChange={setSearchQuery} />
             <div className="flex items-center gap-2">
               <Button 
                 onClick={() => syncMutation.mutate()}
                 disabled={syncMutation.isPending}
                 data-testid="button-sync-freshdesk"
+                size="sm"
               >
                 <span className="material-symbols-outlined text-base">
                   {syncMutation.isPending ? "sync" : "refresh"}
                 </span>
-                <span className="font-bold">
+                <span className="font-bold hidden sm:inline">
                   {syncMutation.isPending ? "Syncing..." : "Sync Freshdesk"}
                 </span>
               </Button>
-              <ThemeToggle />
+              <ThemeToggle className="hidden lg:block" />
             </div>
           </div>
           
