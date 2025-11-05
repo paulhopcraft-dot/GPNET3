@@ -4,6 +4,7 @@ import { CompanyNav } from "@/components/CompanyNav";
 import { SearchBar } from "@/components/SearchBar";
 import { CasesTable } from "@/components/CasesTable";
 import { CaseDetailPanel } from "@/components/CaseDetailPanel";
+import { DashboardStats } from "@/components/dashboard-stats";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -118,6 +119,11 @@ export default function GPNet2Dashboard() {
               <ThemeToggle />
             </div>
           </div>
+          
+          <div className="mb-6">
+            <DashboardStats cases={cases} />
+          </div>
+          
           <CasesTable
             cases={filteredCases}
             selectedCaseId={selectedCaseId}

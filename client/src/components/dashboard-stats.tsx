@@ -28,8 +28,8 @@ interface DashboardStatsProps {
 
 export function DashboardStats({ cases }: DashboardStatsProps) {
   const totalCases = cases.length;
-  const pendingCases = cases.filter(c => c.workStatus === 'Off Work').length;
-  const completedCases = cases.filter(c => c.workStatus === 'Returned to Work').length;
+  const offWorkCases = cases.filter(c => c.workStatus === 'Off work').length;
+  const atWorkCases = cases.filter(c => c.workStatus === 'At work').length;
   const highRiskCases = cases.filter(c => c.complianceIndicator === 'High').length;
 
   const stats = [
@@ -40,12 +40,12 @@ export function DashboardStats({ cases }: DashboardStatsProps) {
     },
     {
       title: "Off Work",
-      value: pendingCases.toString(),
+      value: offWorkCases.toString(),
       icon: Clock,
     },
     {
-      title: "Returned to Work",
-      value: completedCases.toString(),
+      title: "At Work",
+      value: atWorkCases.toString(),
       icon: CheckCircle2,
     },
     {
