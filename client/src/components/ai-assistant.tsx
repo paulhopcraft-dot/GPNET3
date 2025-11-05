@@ -17,18 +17,18 @@ interface Message {
 export function AIAssistant() {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
-  // TODO: remove mock functionality
+  const [isLoading, setIsLoading] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
       role: "assistant",
-      content: "Hello! I'm your GPNet AI assistant. I can help you with case analysis, risk assessments, and answering questions about pre-employment checks. How can I assist you today?",
+      content: "Hello! I'm your GPNet AI compliance assistant powered by Claude. I can help you analyze worker cases for compliance with Worksafe Victoria policies. How can I assist you today?",
       timestamp: new Date().toISOString(),
     },
   ]);
 
-  const handleSend = () => {
-    if (!input.trim()) return;
+  const handleSend = async () => {
+    if (!input.trim() || isLoading) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -37,21 +37,48 @@ export function AIAssistant() {
       timestamp: new Date().toISOString(),
     };
 
-    setMessages([...messages, userMessage]);
+    setMessages(prev => [...prev, userMessage]);
+    const messageText = input;
     setInput("");
+    setIsLoading(true);
 
-    // Simulate AI response
-    setTimeout(() => {
+    try {
+      const response = await fetch("/api/compliance", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ message: messageText }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to get compliance response");
+      }
+
+      const data = await response.json();
+      
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: "I understand your question. Let me analyze that for you...",
+        content: data.response || "I apologize, but I couldn't process that request.",
         timestamp: new Date().toISOString(),
       };
+      
       setMessages(prev => [...prev, aiMessage]);
-    }, 1000);
-
-    console.log("Sending message:", input);
+    } catch (error) {
+      console.error("Error calling Claude API:", error);
+      
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: "I'm sorry, I encountered an error processing your request. Please try again.",
+        timestamp: new Date().toISOString(),
+      };
+      
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (!isOpen) {
@@ -116,32 +143,38 @@ export function AIAssistant() {
         <div className="p-4 border-t">
           <div className="flex gap-2">
             <Input
-              placeholder="Ask me anything..."
+              placeholder={isLoading ? "Thinking..." : "Ask me anything..."}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSend()}
+              onKeyDown={(e) => e.key === "Enter" && !isLoading && handleSend()}
+              disabled={isLoading}
               data-testid="input-ai-message"
             />
-            <Button onClick={handleSend} size="icon" data-testid="button-send-message">
+            <Button 
+              onClick={handleSend} 
+              size="icon" 
+              disabled={isLoading || !input.trim()}
+              data-testid="button-send-message"
+            >
               <Send className="h-4 w-4" />
             </Button>
           </div>
           <div className="flex gap-2 mt-2 flex-wrap">
             <Badge 
               variant="outline" 
-              className="cursor-pointer hover-elevate" 
-              onClick={() => setInput("What is the average risk score?")}
-              data-testid="button-quick-action-risk"
+              className={`cursor-pointer ${!isLoading ? 'hover-elevate' : 'opacity-50 cursor-not-allowed'}`}
+              onClick={() => !isLoading && setInput("What compliance issues should I watch for with off-work cases?")}
+              data-testid="button-quick-action-compliance"
             >
-              Average risk score
+              Compliance tips
             </Badge>
             <Badge 
               variant="outline" 
-              className="cursor-pointer hover-elevate" 
-              onClick={() => setInput("Show pending cases")}
-              data-testid="button-quick-action-pending"
+              className={`cursor-pointer ${!isLoading ? 'hover-elevate' : 'opacity-50 cursor-not-allowed'}`}
+              onClick={() => !isLoading && setInput("What are the key indicators of a high-risk case?")}
+              data-testid="button-quick-action-risk"
             >
-              Pending cases
+              High risk indicators
             </Badge>
           </div>
         </div>
