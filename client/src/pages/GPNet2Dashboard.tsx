@@ -124,7 +124,7 @@ export default function GPNet2Dashboard() {
             </div>
           </div>
           
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
             <SearchBar value={searchQuery} onChange={setSearchQuery} />
             <div className="flex items-center gap-2">
               <Button 
@@ -142,10 +142,6 @@ export default function GPNet2Dashboard() {
               </Button>
               <ThemeToggle className="hidden lg:block" />
             </div>
-          </div>
-          
-          <div className="mb-6">
-            <DashboardStats cases={cases} />
           </div>
           
           <CasesTable
