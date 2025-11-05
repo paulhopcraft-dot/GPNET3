@@ -1,17 +1,14 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { FileText, Clock, CheckCircle2, AlertTriangle, TrendingUp, TrendingDown } from "lucide-react";
+import { FileText, Clock, CheckCircle2, AlertTriangle } from "lucide-react";
+import type { WorkerCase } from "@shared/schema";
 
 interface StatCardProps {
   title: string;
   value: string;
   icon: React.ElementType;
-  trend?: {
-    value: string;
-    isPositive: boolean;
-  };
 }
 
-function StatCard({ title, value, icon: Icon, trend }: StatCardProps) {
+function StatCard({ title, value, icon: Icon }: StatCardProps) {
   return (
     <Card data-testid={`card-stat-${title.toLowerCase().replace(/\s+/g, '-')}`}>
       <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
@@ -20,42 +17,41 @@ function StatCard({ title, value, icon: Icon, trend }: StatCardProps) {
       </CardHeader>
       <CardContent>
         <div className="text-3xl font-semibold" data-testid={`text-value-${title.toLowerCase().replace(/\s+/g, '-')}`}>{value}</div>
-        {trend && (
-          <div className={`flex items-center gap-1 text-xs mt-2 ${trend.isPositive ? 'text-green-600 dark:text-green-500' : 'text-red-600 dark:text-red-500'}`}>
-            {trend.isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-            <span>{trend.value} from last month</span>
-          </div>
-        )}
       </CardContent>
     </Card>
   );
 }
 
-export function DashboardStats() {
+interface DashboardStatsProps {
+  cases: WorkerCase[];
+}
+
+export function DashboardStats({ cases }: DashboardStatsProps) {
+  const totalCases = cases.length;
+  const pendingCases = cases.filter(c => c.workStatus === 'Off Work').length;
+  const completedCases = cases.filter(c => c.workStatus === 'Returned to Work').length;
+  const highRiskCases = cases.filter(c => c.complianceIndicator === 'High').length;
+
   const stats = [
     {
       title: "Total Cases",
-      value: "1,284",
+      value: totalCases.toString(),
       icon: FileText,
-      trend: { value: "+12.3%", isPositive: true },
     },
     {
-      title: "Pending Reviews",
-      value: "47",
+      title: "Off Work",
+      value: pendingCases.toString(),
       icon: Clock,
-      trend: { value: "-8.1%", isPositive: true },
     },
     {
-      title: "Completed",
-      value: "1,156",
+      title: "Returned to Work",
+      value: completedCases.toString(),
       icon: CheckCircle2,
-      trend: { value: "+15.2%", isPositive: true },
     },
     {
       title: "High Risk",
-      value: "23",
+      value: highRiskCases.toString(),
       icon: AlertTriangle,
-      trend: { value: "+4.2%", isPositive: false },
     },
   ];
 
