@@ -98,6 +98,23 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
             </div>
           )}
 
+          <div>
+            <h3 className="text-sm font-medium text-muted-foreground mb-3">Recovery Timeline</h3>
+            <div className="bg-background rounded-lg p-4 border border-border" data-testid="recovery-timeline-chart">
+              <RecoveryChart expected={expected} actual={actual} width={320} height={200} />
+              <div className="flex items-center justify-center gap-6 mt-3 text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-0.5 border-t-2 border-dashed border-muted-foreground"></div>
+                  <span className="text-muted-foreground">Expected</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-0.5 bg-emerald-600"></div>
+                  <span className="text-muted-foreground">Actual</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {workerCase.attachments && workerCase.attachments.length > 0 && (
             <div>
               <h3 className="text-sm font-medium text-muted-foreground mb-2">Attachments</h3>
