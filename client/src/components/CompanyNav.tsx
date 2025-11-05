@@ -1,10 +1,19 @@
+import type { CompanyName } from "@shared/schema";
+
 interface CompanyNavProps {
-  companies: string[];
   selectedCompany: string | null;
   onSelectCompany: (company: string | null) => void;
 }
 
-export function CompanyNav({ companies, selectedCompany, onSelectCompany }: CompanyNavProps) {
+const companies: string[] = [
+  "Symmetry",
+  "Allied Health",
+  "Apex Labour",
+  "SafeWorks",
+  "Core Industrial",
+];
+
+export function CompanyNav({ selectedCompany, onSelectCompany }: CompanyNavProps) {
   return (
     <nav className="space-y-1">
       <button

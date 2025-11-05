@@ -351,5 +351,8 @@
   "author": "",
   "license": "ISC",
   "description": "",
-  "type": "module"
+  "type": "module",
+  "devDependencies": {
+    "@replit/vite-plugin-cartographer": "false"
+  }
 }
