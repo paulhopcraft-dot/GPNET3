@@ -27,9 +27,10 @@ Preferred communication style: Simple, everyday language.
 
 **Component Organization**
 - Reusable UI components in `client/src/components/ui/` following shadcn conventions
-- Feature-specific components in `client/src/components/` (CasesTable, CaseDetailPanel, etc.)
+- Feature-specific components in `client/src/components/` (CasesTable, CaseDetailPanel, DashboardStats, etc.)
 - Page-level components in `client/src/pages/`
 - Path aliases configured for clean imports (@/, @shared/, @assets/)
+- DashboardStats component displays real-time statistics: total cases, off work count, at work count, and high risk count
 
 **State Management**
 - React Query for server state with infinite stale time and disabled automatic refetching (manual control)
