@@ -27,18 +27,17 @@ export function AIAssistant() {
     },
   ]);
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+  const sendMessage = async (messageText: string) => {
+    if (!messageText.trim() || isLoading) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
-      content: input,
+      content: messageText,
       timestamp: new Date().toISOString(),
     };
 
     setMessages(prev => [...prev, userMessage]);
-    const messageText = input;
     setInput("");
     setIsLoading(true);
 
@@ -79,6 +78,10 @@ export function AIAssistant() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSend = () => {
+    sendMessage(input);
   };
 
   if (!isOpen) {
@@ -163,7 +166,7 @@ export function AIAssistant() {
             <Badge 
               variant="outline" 
               className={`cursor-pointer ${!isLoading ? 'hover-elevate' : 'opacity-50 cursor-not-allowed'}`}
-              onClick={() => !isLoading && setInput("What compliance issues should I watch for with off-work cases?")}
+              onClick={() => !isLoading && sendMessage("What compliance issues should I watch for with off-work cases?")}
               data-testid="button-quick-action-compliance"
             >
               Compliance tips
@@ -171,7 +174,7 @@ export function AIAssistant() {
             <Badge 
               variant="outline" 
               className={`cursor-pointer ${!isLoading ? 'hover-elevate' : 'opacity-50 cursor-not-allowed'}`}
-              onClick={() => !isLoading && setInput("What are the key indicators of a high-risk case?")}
+              onClick={() => !isLoading && sendMessage("What are the key indicators of a high-risk case?")}
               data-testid="button-quick-action-risk"
             >
               High risk indicators
