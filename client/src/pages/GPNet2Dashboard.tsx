@@ -91,11 +91,16 @@ export default function GPNet2Dashboard() {
   return (
     <div className="flex h-screen">
       <aside className="w-64 flex-shrink-0 bg-sidebar p-4 border-r border-sidebar-border">
-        <div className="flex items-center gap-3 mb-8">
-          <div className="bg-primary/20 rounded-full size-10 flex items-center justify-center">
-            <span className="material-symbols-outlined text-primary">corporate_fare</span>
+        <div className="mb-8">
+          <div className="flex items-center gap-3">
+            <div className="bg-primary/20 rounded-full size-10 flex items-center justify-center">
+              <span className="material-symbols-outlined text-primary">corporate_fare</span>
+            </div>
+            <h1 className="text-sidebar-foreground text-xl font-bold">GPNet 2</h1>
           </div>
-          <h1 className="text-sidebar-foreground text-xl font-bold">GPNet 2</h1>
+          <div className="mt-1 ml-13 text-xs text-sidebar-foreground/60">
+            v2024.11.05 • {cases.length} cases loaded
+          </div>
         </div>
         <CompanyNav selectedCompany={selectedCompany} onSelectCompany={setSelectedCompany} />
       </aside>
