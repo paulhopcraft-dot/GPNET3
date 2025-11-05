@@ -1,8 +1,8 @@
-import express from "express";
+import express, { type Request, type Response } from "express";
 const router = express.Router();
 
 // simple test route so the server can start
-router.get("/", (req, res) => {
+router.get("/", (_req: Request, res: Response) => {
   res.json([
     {
       id: 1,

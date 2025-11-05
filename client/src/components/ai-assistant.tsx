@@ -148,8 +148,8 @@ export function AIAssistant() {
             <Input
               placeholder={isLoading ? "Thinking..." : "Ask me anything..."}
               value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && !isLoading && handleSend()}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInput(e.target.value)}
+              onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => e.key === "Enter" && !isLoading && handleSend()}
               disabled={isLoading}
               data-testid="input-ai-message"
             />

@@ -67,7 +67,7 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
             <div>
               <h3 className="text-sm font-medium text-muted-foreground mb-2">Attachments</h3>
               <div className="space-y-2">
-                {workerCase.attachments.map((attachment) => (
+                {workerCase.attachments.map((attachment: any) => (
                   <a
                     key={attachment.id}
                     href={attachment.url}
