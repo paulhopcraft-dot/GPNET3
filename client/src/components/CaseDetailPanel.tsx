@@ -11,30 +11,31 @@ interface CaseDetailPanelProps {
 function generateRecoveryData(dateOfInjury: string) {
   const injuryDate = new Date(dateOfInjury);
   const now = new Date();
-  const daysSinceInjury = Math.floor((now.getTime() - injuryDate.getTime()) / (1000 * 60 * 60 * 24));
-  const weeksElapsed = daysSinceInjury / 7;
+  const daysSinceInjury = Math.max(Math.floor((now.getTime() - injuryDate.getTime()) / (1000 * 60 * 60 * 24)), 1);
+  const weeksElapsed = Math.max(daysSinceInjury / 7, 0.5);
   const expectedWeeks = 12;
   
-  const normalizeWeek = (week: number) => Math.min(week / expectedWeeks, 1);
+  const normalizeWeek = (week: number) => Math.max(0, Math.min(week / expectedWeeks, 1));
   
   const expected = [];
   for (let i = 0; i <= expectedWeeks; i += 2) {
     expected.push({ 
       x: normalizeWeek(i), 
-      y: i / expectedWeeks
+      y: Math.max(0, Math.min(i / expectedWeeks, 1))
     });
   }
   
   const actual = [];
   const currentProgress = Math.min(weeksElapsed / expectedWeeks, 0.85);
-  const steps = Math.min(Math.ceil(weeksElapsed / 2), 6);
+  const steps = Math.max(Math.min(Math.ceil(weeksElapsed / 2), 6), 2);
   
   for (let i = 0; i <= steps; i++) {
     const weekPoint = (i / steps) * weeksElapsed;
     const progressVariation = 0.9 + Math.random() * 0.2;
+    const yValue = (i / steps) * currentProgress * progressVariation;
     actual.push({
       x: normalizeWeek(weekPoint),
-      y: Math.min((i / steps) * currentProgress * progressVariation, 1)
+      y: Math.max(0, Math.min(yValue, 1))
     });
   }
   
