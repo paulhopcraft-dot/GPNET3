@@ -1,13 +1,48 @@
 import type { WorkerCase } from "@shared/schema";
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
+import RecoveryChart from "./RecoveryChart";
 
 interface CaseDetailPanelProps {
   workerCase: WorkerCase;
   onClose: () => void;
 }
 
+function generateRecoveryData(dateOfInjury: string) {
+  const injuryDate = new Date(dateOfInjury);
+  const now = new Date();
+  const daysSinceInjury = Math.floor((now.getTime() - injuryDate.getTime()) / (1000 * 60 * 60 * 24));
+  const weeksElapsed = daysSinceInjury / 7;
+  const expectedWeeks = 12;
+  
+  const normalizeWeek = (week: number) => Math.min(week / expectedWeeks, 1);
+  
+  const expected = [];
+  for (let i = 0; i <= expectedWeeks; i += 2) {
+    expected.push({ 
+      x: normalizeWeek(i), 
+      y: i / expectedWeeks
+    });
+  }
+  
+  const actual = [];
+  const currentProgress = Math.min(weeksElapsed / expectedWeeks, 0.85);
+  const steps = Math.min(Math.ceil(weeksElapsed / 2), 6);
+  
+  for (let i = 0; i <= steps; i++) {
+    const weekPoint = (i / steps) * weeksElapsed;
+    const progressVariation = 0.9 + Math.random() * 0.2;
+    actual.push({
+      x: normalizeWeek(weekPoint),
+      y: Math.min((i / steps) * currentProgress * progressVariation, 1)
+    });
+  }
+  
+  return { expected, actual };
+}
+
 export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
+  const { expected, actual } = generateRecoveryData(workerCase.dateOfInjury);
   return (
     <aside className="w-96 flex-shrink-0 bg-card border-l border-border p-6">
       <div className="flex justify-between items-start mb-6">
