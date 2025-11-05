@@ -30,11 +30,6 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
           </div>
 
           <div>
-            <h3 className="text-sm font-medium text-muted-foreground mb-2">Summary</h3>
-            <p className="text-sm text-card-foreground leading-relaxed">{workerCase.summary}</p>
-          </div>
-
-          <div>
             <h3 className="text-sm font-medium text-muted-foreground mb-2">Current Status</h3>
             <p className="text-card-foreground">{workerCase.currentStatus}</p>
           </div>

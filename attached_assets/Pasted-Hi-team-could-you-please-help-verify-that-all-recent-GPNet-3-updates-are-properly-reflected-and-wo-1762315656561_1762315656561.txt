@@ -1,0 +1,28 @@
+Hi team — could you please help verify that all recent GPNet 3 updates are properly reflected and working inside this workspace?
+
+Over the past few days we’ve applied multiple backend and frontend changes, and we just want to confirm everything is correctly wired before continuing development.
+
+Here’s what we need you to check and confirm:
+	1.	Backend (Express + API endpoints)
+	•	The /api/cases route is running from the new server/routes/cases.ts file and returns case data including compliance_level, risk_level, next_step_owner, and expected_recovery_date.
+	•	The /api/voice placeholder route loads correctly without errors.
+	•	index.ts correctly imports the routes using explicit .js extensions (import casesRoute from "./routes/cases.js" etc.).
+	•	The server runs successfully on port 5000 with no missing-module or ESM path errors.
+	2.	Frontend (Vite + React)
+	•	The Vite dev server correctly locates and loads /client/src/main.tsx.
+	•	The app renders without [replit-cartographer] traverse is not a function errors or PostCSS “from option” warnings.
+	•	If Cartographer is still active, please ensure it’s compatible with this build or disabled in favor of our custom vite.config.ts.
+	3.	Compliance System Integration
+	•	The Claude-powered compliance scoring logic is present and accessible via the /api/cases output.
+	•	The system can compute compliance dynamically based on case data (certificate recency, update frequency, employer response, etc.).
+	•	Confirm that Claude Skills are properly referenced and that the workspace can later ingest the WorkSafe manuals for deeper reasoning.
+	4.	Timeline Graph
+	•	The frontend includes a horizontal (weeks) × vertical (capacity %) recovery timeline graph showing both expected and actual recovery.
+	•	Verify the graph renders correctly and updates with new data from the API.
+	5.	AI Summary Chat Panel
+	•	Confirm that the “Smart AI Summary Chat” interface is active — it should allow natural language interrogation of a worker’s case (“How compliant is [Name]?”, “What’s blocking their return to work?”).
+	6.	UI Adjustments
+	•	The redundant summary lines have been removed from case cards.
+	•	The eight-column layout (Worker, Employer, Injury Type, Claim Status, Compliance, Risk Level, Next Step Owner, Timeline) is visible.
+
+If any of these modules fail to load or are missing, please let us know which components are not linked so we can re-sync the codebase.
