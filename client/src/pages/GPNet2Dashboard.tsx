@@ -4,7 +4,6 @@ import { CompanyNav } from "@/components/CompanyNav";
 import { SearchBar } from "@/components/SearchBar";
 import { CasesTable } from "@/components/CasesTable";
 import { CaseDetailPanel } from "@/components/CaseDetailPanel";
-import { DashboardStats } from "@/components/dashboard-stats";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AIAssistant } from "@/components/ai-assistant";
 import { Button } from "@/components/ui/button";
@@ -146,13 +145,6 @@ export default function GPNet2Dashboard() {
                 <ThemeToggle />
               </div>
             </div>
-
-            <DashboardStats
-              totalCases={stats.totalCases}
-              pendingCases={stats.pendingCases}
-              completedCases={stats.completedCases}
-              highRiskCases={stats.highRiskCases}
-            />
 
             <CasesTable
               cases={filteredCases}
