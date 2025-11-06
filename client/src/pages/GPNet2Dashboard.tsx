@@ -4,7 +4,6 @@ import { CompanyNav } from "@/components/CompanyNav";
 import { SearchBar } from "@/components/SearchBar";
 import { CasesTable } from "@/components/CasesTable";
 import { CaseDetailPanel } from "@/components/CaseDetailPanel";
-import { DashboardStats } from "@/components/dashboard-stats";
 import { AIAssistant } from "@/components/ai-assistant";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";

@@ -1,37 +1,161 @@
 import React from "react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  ReferenceLine,
+} from "recharts";
 
-type Point = { x: number; y: number };
-type Props = {
-  expected: Point[]; // 0..1 normalized
-  actual: Point[];   // 0..1 normalized
-  width?: number;
-  height?: number;
-};
+interface Certificate {
+  date: string;
+  capacity_percent: number;
+}
 
-export default function RecoveryChart({ expected, actual, width = 600, height = 240 }: Props) {
-  const pad = 24;
-  const X = (x: number) => pad + x * (width - 2 * pad);
-  const Y = (y: number) => height - pad - y * (height - 2 * pad);
+interface RecoveryChartProps {
+  injuryDate: string;
+  expectedRecoveryDate: string;
+  latestCertificate?: Certificate;
+}
 
-  const line = (pts: Point[]) => pts.map((p, i) => `${i ? "L" : "M"} ${X(p.x)} ${Y(p.y)}`).join(" ");
+export const RecoveryChart: React.FC<RecoveryChartProps> = ({
+  injuryDate,
+  expectedRecoveryDate,
+  latestCertificate,
+}) => {
+  if (!injuryDate || !expectedRecoveryDate) {
+    return (
+      <div className="text-sm text-gray-500 italic">
+        No recovery data available.
+      </div>
+    );
+  }
+
+  const injury = new Date(injuryDate);
+  const expected = new Date(expectedRecoveryDate);
+  const now = new Date();
+  const MS_PER_WEEK = 1000 * 60 * 60 * 24 * 7;
+
+  // Calculate weeks since injury and total recovery period
+  const totalWeeks = Math.max(
+    1,
+    Math.round((expected.getTime() - injury.getTime()) / MS_PER_WEEK)
+  );
+  const currentWeek = Math.max(
+    0,
+    Math.round((now.getTime() - injury.getTime()) / MS_PER_WEEK)
+  );
+
+  // Expected linear recovery (0 → 100%)
+  const expectedLine = Array.from({ length: totalWeeks + 1 }).map((_, i) => ({
+    week: i,
+    expected: Math.min(100, Math.round((i / totalWeeks) * 100)),
+  }));
+
+  // Actual recovery — uses latest certificate if available, otherwise flat
+  let actualLine: { week: number; actual: number }[] = [{ week: 0, actual: 0 }];
+
+  if (latestCertificate && latestCertificate.date) {
+    const certWeek = Math.round(
+      (new Date(latestCertificate.date).getTime() - injury.getTime()) /
+        MS_PER_WEEK
+    );
+    actualLine.push({
+      week: certWeek,
+      actual: latestCertificate.capacity_percent,
+    });
+  }
+
+  // Always add an endpoint at expected recovery (flat or interpolated)
+  actualLine.push({
+    week: totalWeeks,
+    actual:
+      latestCertificate?.capacity_percent &&
+      latestCertificate.capacity_percent < 100
+        ? Math.min(100, latestCertificate.capacity_percent + 20)
+        : 100,
+  });
+
+  // Merge datasets
+  const chartData = expectedLine.map((e) => {
+    const match = actualLine.find((a) => a.week === e.week);
+    return {
+      week: e.week,
+      expected: e.expected,
+      actual: match ? match.actual : null,
+    };
+  });
 
   return (
-    <svg width={width} height={height} role="img" aria-label="Recovery timeline chart">
-      <rect x={0} y={0} width={width} height={height} fill="none" stroke="#999" />
-      {/* axes */}
-      <line x1={pad} y1={pad} x2={pad} y2={height - pad} stroke="#999" />
-      <line x1={pad} y1={height - pad} x2={width - pad} y2={height - pad} stroke="#999" />
-      <text x={pad} y={pad - 6} fontSize="10">Progress</text>
-      <text x={width - pad - 40} y={height - 6} fontSize="10">Time</text>
+    <div className="w-full h-64 mt-4">
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={chartData} margin={{ top: 5, right: 20, bottom: 20, left: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis
+            dataKey="week"
+            tickFormatter={(w) => `W${w}`}
+            label={{
+              value: "Weeks Since Injury",
+              position: "insideBottom",
+              offset: -2,
+            }}
+          />
+          <YAxis
+            domain={[0, 100]}
+            label={{
+              value: "Capacity (%)",
+              angle: -90,
+              position: "insideLeft",
+            }}
+          />
+          <Tooltip
+            formatter={(value: number, name: string) =>
+              `${value}% (${name})`
+            }
+            labelFormatter={(label: number) => `Week ${label}`}
+          />
+          <Legend />
+          {/* Expected line */}
+          <Line
+            type="monotone"
+            dataKey="expected"
+            stroke="#4CAF50"
+            strokeDasharray="5 5"
+            name="Expected Recovery"
+            dot={false}
+          />
+          {/* Actual line */}
+          <Line
+            type="monotone"
+            dataKey="actual"
+            stroke="#2196F3"
+            name="Actual Recovery"
+            dot={{ r: 4 }}
+          />
+          {/* Current week vertical marker */}
+          {currentWeek <= totalWeeks && (
+            <ReferenceLine
+              x={currentWeek}
+              stroke="#FF9800"
+              strokeDasharray="3 3"
+              label={{
+                value: `Now (W${currentWeek})`,
+                position: "top",
+                fill: "#FF9800",
+                fontSize: 10,
+              }}
+            />
+          )}
+        </LineChart>
+      </ResponsiveContainer>
 
-      {/* expected */}
-      <path d={line(expected)} fill="none" stroke="#444" strokeDasharray="4 4" strokeWidth={2} />
-      {/* actual */}
-      <path d={line(actual)} fill="none" stroke="#0a7" strokeWidth={2} />
-
-      <g>
-        <circle cx={X(actual[actual.length-1].x)} cy={Y(actual[actual.length-1].y)} r={3} fill="#0a7" />
-      </g>
-    </svg>
+      <div className="text-xs text-gray-500 mt-2 text-center">
+        Current week: {currentWeek} of {totalWeeks} — based on injury date
+      </div>
+    </div>
   );
-}
+};
