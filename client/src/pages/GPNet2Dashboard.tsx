@@ -8,7 +8,7 @@ import { AIAssistant } from "@/components/ai-assistant";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 import type { WorkerCase } from "@shared/schema";
 
 export default function GPNet2Dashboard() {
