@@ -1,7 +1,7 @@
 import type { WorkerCase } from "@shared/schema";
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
-import RecoveryChart from "./RecoveryChart";
+import { RecoveryChart } from "./RecoveryChart";
 
 interface CaseDetailPanelProps {
   workerCase: WorkerCase;
