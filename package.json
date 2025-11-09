@@ -74,6 +74,7 @@
     "d3-time-format": "^4.1.0",
     "d3-timer": "^3.0.1",
     "date-fns": "^3.6.0",
+    "dayjs": "^1.11.19",
     "debug": "^4.3.7",
     "decimal.js-light": "^2.5.1",
     "define-data-property": "^1.1.4",

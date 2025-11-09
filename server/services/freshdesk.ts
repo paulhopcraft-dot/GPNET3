@@ -1,5 +1,7 @@
 import type { WorkerCase, CompanyName, ComplianceIndicator, WorkStatus, CaseCompliance } from "@shared/schema";
 import { isValidCompany, isLegitimateCase } from "@shared/schema";
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 
 interface FreshdeskTicket {
   id: number;
@@ -26,6 +28,9 @@ interface FreshdeskContact {
   name: string;
   email: string;
 }
+
+// Enable dayjs UTC plugin
+dayjs.extend(utc);
 
 export class FreshdeskService {
   private domain: string;
@@ -172,56 +177,47 @@ export class FreshdeskService {
   }
 
   private calculateComplianceIndicator(ticket: FreshdeskTicket): CaseCompliance {
-    // If no due date, check if ticket is closed
-    if (!ticket.due_by) {
-      const isClosed = ticket.status === 4 || ticket.status === 5; // Resolved or Closed
-      return {
-        indicator: isClosed ? 'Very High' : 'High',
-        reason: isClosed ? 'Case resolved - no outstanding deadlines' : 'No due date set',
-        source: 'freshdesk',
-        lastChecked: new Date().toISOString()
-      };
-    }
-
-    // Use UTC-normalized date math to prevent timezone issues
-    const dueDate = new Date(ticket.due_by);
-    const now = new Date();
-    
-    // Calculate days difference using UTC timestamps
-    const msPerDay = 1000 * 60 * 60 * 24;
-    const dueDateUTC = Date.UTC(dueDate.getUTCFullYear(), dueDate.getUTCMonth(), dueDate.getUTCDate());
-    const nowUTC = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-    const daysUntilDue = Math.floor((dueDateUTC - nowUTC) / msPerDay);
+    const now = dayjs().utc();
+    const due = ticket.due_by ? dayjs(ticket.due_by).utc() : null;
 
     let indicator: ComplianceIndicator;
-    let reason: string;
+    let reason = "";
 
-    if (daysUntilDue < 0) {
-      const daysOverdue = Math.abs(daysUntilDue);
-      indicator = 'Very Low';
-      reason = `Overdue by ${daysOverdue} day${daysOverdue !== 1 ? 's' : ''}`;
-    } else if (daysUntilDue === 0) {
-      indicator = 'Low';
-      reason = 'Due today';
-    } else if (daysUntilDue === 1) {
-      indicator = 'Low';
-      reason = 'Due tomorrow';
-    } else if (daysUntilDue <= 3) {
-      indicator = 'Medium';
-      reason = `Due in ${daysUntilDue} days`;
-    } else if (daysUntilDue <= 7) {
-      indicator = 'High';
-      reason = `Due in ${daysUntilDue} days`;
+    // Check for resolved/closed status FIRST - these are always "Very High" regardless of due date
+    if (ticket.status === 4 || ticket.status === 5) { // Resolved or Closed
+      indicator = "Very High";
+      reason = "Case resolved – no outstanding deadlines";
+    } else if (!due) {
+      // No due date for active tickets
+      indicator = "Medium";
+      reason = "No due date found";
     } else {
-      indicator = 'Very High';
-      reason = `On track (due in ${daysUntilDue} days)`;
+      // Calculate days until due (positive = future, negative = overdue)
+      const diffDays = due.diff(now, "day");
+      
+      if (diffDays > 7) {
+        indicator = "Very High";
+        reason = `Due in ${diffDays} days (on track)`;
+      } else if (diffDays > 3) {
+        indicator = "High";
+        reason = `Due in ${diffDays} days`;
+      } else if (diffDays >= 1) {
+        indicator = "Medium";
+        reason = `Due in ${diffDays} days (needs attention soon)`;
+      } else if (diffDays >= 0) {
+        indicator = "Low";
+        reason = "Due today or tomorrow";
+      } else {
+        indicator = "Very Low";
+        reason = `Overdue by ${Math.abs(diffDays)} days`;
+      }
     }
 
     return {
       indicator,
       reason,
-      source: 'freshdesk',
-      lastChecked: new Date().toISOString()
+      source: "freshdesk",
+      lastChecked: new Date().toISOString(),
     };
   }
 
