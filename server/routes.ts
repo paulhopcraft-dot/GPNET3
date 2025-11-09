@@ -2,8 +2,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { FreshdeskService } from "./services/freshdesk";
+import { summaryService } from "./services/summary";
 import Anthropic from "@anthropic-ai/sdk";
-import { generateCaseSummary } from "./src/ai/case_summary";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Claude compliance assistant
@@ -82,17 +82,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // AI Case Summary endpoint
+  // GET /api/cases/:id/summary - Returns cached summary without triggering generation
   app.get("/api/cases/:id/summary", async (req, res) => {
     try {
-      // Check for Anthropic API key
-      if (!process.env.ANTHROPIC_API_KEY) {
-        return res.status(503).json({ 
-          error: "AI summary service unavailable",
-          details: "Anthropic API key not configured"
-        });
-      }
-
       const caseId = req.params.id;
       const workerCase = await storage.getGPNet2CaseById(caseId);
 
@@ -100,25 +92,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Case not found" });
       }
 
-      // Generate AI summary with real case data
-      const summary = await generateCaseSummary({
-        id: workerCase.id,
-        worker_name: workerCase.workerName,
-        employer_name: workerCase.company,
-        injury_type: workerCase.injuryType,
-        injury_date: workerCase.dateOfInjury,
-        status: workerCase.currentStatus,
-        next_step: workerCase.nextStep,
-        next_step_owner: workerCase.owner,
-        compliance_indicator: workerCase.complianceIndicator,
-        risk_level: workerCase.riskLevel,
-        due_date: workerCase.dueDate,
-        expected_recovery_date: workerCase.expectedRecoveryDate,
+      // Return cached summary data
+      res.json({
+        id: caseId,
+        summary: workerCase.aiSummary || null,
+        generatedAt: workerCase.aiSummaryGeneratedAt || null,
+        model: workerCase.aiSummaryModel || null,
+        ticketLastUpdatedAt: workerCase.ticketLastUpdatedAt || null,
+        needsRefresh: await storage.needsSummaryRefresh(caseId),
       });
+    } catch (err) {
+      console.error("Failed to fetch summary:", err);
+      res.status(500).json({ 
+        error: "Failed to fetch summary",
+        details: err instanceof Error ? err.message : "Unknown error"
+      });
+    }
+  });
 
-      res.json({ id: caseId, summary });
+  // POST /api/cases/:id/summary - Validates cache and generates/refreshes summary
+  app.post("/api/cases/:id/summary", async (req, res) => {
+    try {
+      const caseId = req.params.id;
+      const workerCase = await storage.getGPNet2CaseById(caseId);
+
+      if (!workerCase) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      // Generate or fetch cached summary (API key check happens inside service if needed)
+      const result = await summaryService.getCachedOrGenerateSummary(caseId);
+
+      res.json({
+        id: caseId,
+        summary: result.summary,
+        cached: result.cached,
+        generatedAt: result.generatedAt,
+        model: result.model,
+      });
     } catch (err) {
       console.error("Summary generation failed:", err);
+      
+      // Return 503 if API key not configured during generation attempt
+      if (err instanceof Error && err.message.includes("ANTHROPIC_API_KEY")) {
+        return res.status(503).json({ 
+          error: "AI summary service unavailable",
+          details: err.message
+        });
+      }
+      
       res.status(500).json({ 
         error: "Summary generation failed",
         details: err instanceof Error ? err.message : "Unknown error"

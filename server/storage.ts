@@ -8,6 +8,8 @@ export interface IStorage {
   getGPNet2CaseById(id: string): Promise<WorkerCase | null>;
   syncWorkerCaseFromFreshdesk(caseData: Partial<WorkerCase>): Promise<void>;
   clearAllWorkerCases(): Promise<void>;
+  updateAISummary(caseId: string, summary: string, model: string): Promise<void>;
+  needsSummaryRefresh(caseId: string): Promise<boolean>;
 }
 
 class DbStorage implements IStorage {
@@ -121,9 +123,18 @@ class DbStorage implements IStorage {
       ? (typeof caseData.dateOfInjury === 'string' ? new Date(caseData.dateOfInjury) : caseData.dateOfInjury)
       : new Date();
 
-    const ticketLastUpdatedAt = caseData.ticketLastUpdatedAt 
+    const incomingTicketUpdatedAt = caseData.ticketLastUpdatedAt 
       ? (typeof caseData.ticketLastUpdatedAt === 'string' ? new Date(caseData.ticketLastUpdatedAt) : caseData.ticketLastUpdatedAt)
       : null;
+
+    // Only update ticketLastUpdatedAt if incoming timestamp is newer
+    let ticketLastUpdatedAt = incomingTicketUpdatedAt;
+    if (existingCase.length > 0 && existingCase[0].ticketLastUpdatedAt) {
+      const existingTimestamp = existingCase[0].ticketLastUpdatedAt;
+      if (incomingTicketUpdatedAt && existingTimestamp && existingTimestamp > incomingTicketUpdatedAt) {
+        ticketLastUpdatedAt = existingTimestamp; // Keep existing if it's newer
+      }
+    }
 
     const dbData = {
       id: caseData.id,
@@ -149,9 +160,16 @@ class DbStorage implements IStorage {
     };
 
     if (existingCase.length > 0) {
+      // Preserve AI summary fields when updating from Freshdesk
+      const existing = existingCase[0];
       await db
         .update(workerCases)
-        .set(dbData)
+        .set({
+          ...dbData,
+          aiSummary: existing.aiSummary,
+          aiSummaryGeneratedAt: existing.aiSummaryGeneratedAt,
+          aiSummaryModel: existing.aiSummaryModel,
+        })
         .where(eq(workerCases.id, caseData.id));
     } else {
       await db.insert(workerCases).values(dbData);
@@ -161,6 +179,47 @@ class DbStorage implements IStorage {
   async clearAllWorkerCases(): Promise<void> {
     await db.delete(caseAttachments);
     await db.delete(workerCases);
+  }
+
+  async updateAISummary(caseId: string, summary: string, model: string): Promise<void> {
+    await db
+      .update(workerCases)
+      .set({
+        aiSummary: summary,
+        aiSummaryGeneratedAt: new Date(),
+        aiSummaryModel: model,
+        updatedAt: new Date(),
+      })
+      .where(eq(workerCases.id, caseId));
+  }
+
+  async needsSummaryRefresh(caseId: string): Promise<boolean> {
+    const dbCase = await db
+      .select()
+      .from(workerCases)
+      .where(eq(workerCases.id, caseId))
+      .limit(1);
+
+    if (dbCase.length === 0) {
+      return false;
+    }
+
+    const workerCase = dbCase[0];
+
+    // Need refresh if summary doesn't exist
+    if (!workerCase.aiSummary || !workerCase.aiSummaryGeneratedAt) {
+      return true;
+    }
+
+    // Need refresh if ticket was updated after summary was generated
+    // Compare as timestamps (both are Date objects from database)
+    if (workerCase.ticketLastUpdatedAt && workerCase.aiSummaryGeneratedAt) {
+      const ticketTime = workerCase.ticketLastUpdatedAt.getTime();
+      const summaryTime = workerCase.aiSummaryGeneratedAt.getTime();
+      return ticketTime > summaryTime;
+    }
+
+    return false;
   }
 }
 

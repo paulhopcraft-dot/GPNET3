@@ -46,32 +46,84 @@ function generateRecoveryData(dateOfInjury: string) {
 
 export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
   const { expected, actual } = generateRecoveryData(workerCase.dateOfInjury);
-  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [aiSummary, setAiSummary] = useState<string | null>(workerCase.aiSummary || null);
+  const [summaryMeta, setSummaryMeta] = useState<{
+    generatedAt?: string;
+    model?: string;
+    needsRefresh?: boolean;
+    cached?: boolean;
+  }>({
+    generatedAt: workerCase.aiSummaryGeneratedAt,
+    model: workerCase.aiSummaryModel,
+  });
   const [loadingSummary, setLoadingSummary] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const generateSummary = async () => {
-      setLoadingSummary(true);
-      setSummaryError(null);
-      setAiSummary(null);
+  const fetchCachedSummary = async (): Promise<boolean> => {
+    try {
+      const response = await fetch(`/api/cases/${workerCase.id}/summary`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch summary");
+      }
+      const data = await response.json();
       
-      try {
-        const response = await fetch(`/api/cases/${workerCase.id}/summary`);
-        if (!response.ok) {
-          throw new Error("Failed to generate summary");
-        }
-        const data = await response.json();
+      if (data.summary) {
         setAiSummary(data.summary);
-      } catch (error) {
-        console.error("Error generating AI summary:", error);
-        setSummaryError("AI summary temporarily unavailable");
-      } finally {
-        setLoadingSummary(false);
+      }
+      setSummaryMeta({
+        generatedAt: data.generatedAt,
+        model: data.model,
+        needsRefresh: data.needsRefresh,
+      });
+      
+      // Return whether we need to generate a new summary
+      return data.needsRefresh || !data.summary;
+    } catch (error) {
+      console.error("Error fetching summary:", error);
+      return true; // On error, try to generate
+    }
+  };
+
+  const generateSummary = async () => {
+    setLoadingSummary(true);
+    setSummaryError(null);
+    
+    try {
+      const response = await fetch(`/api/cases/${workerCase.id}/summary`, {
+        method: 'POST',
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.details || "Failed to generate summary");
+      }
+      const data = await response.json();
+      setAiSummary(data.summary);
+      setSummaryMeta({
+        generatedAt: data.generatedAt,
+        model: data.model,
+        cached: data.cached,
+        needsRefresh: false,
+      });
+    } catch (error) {
+      console.error("Error generating AI summary:", error);
+      setSummaryError(error instanceof Error ? error.message : "AI summary temporarily unavailable");
+    } finally {
+      setLoadingSummary(false);
+    }
+  };
+
+  useEffect(() => {
+    const initSummary = async () => {
+      // Fetch cached summary metadata on mount
+      const needsGeneration = await fetchCachedSummary();
+      
+      // After fetching, generate if needed
+      if (needsGeneration && !loadingSummary) {
+        generateSummary();
       }
     };
-
-    generateSummary();
+    
+    initSummary();
   }, [workerCase.id]);
 
   return (
@@ -99,10 +151,44 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
           {aiSummary && (
             <Card data-testid="card-ai-summary">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <span className="material-symbols-outlined text-primary">psychology</span>
-                  AI Case Summary
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <span className="material-symbols-outlined text-primary">psychology</span>
+                    AI Case Summary
+                  </CardTitle>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={generateSummary}
+                    disabled={loadingSummary}
+                    data-testid="button-refresh-summary"
+                    className="text-xs"
+                  >
+                    {loadingSummary ? (
+                      <span className="material-symbols-outlined animate-spin text-sm">autorenew</span>
+                    ) : (
+                      <span className="material-symbols-outlined text-sm">refresh</span>
+                    )}
+                    Refresh
+                  </Button>
+                </div>
+                {summaryMeta.generatedAt && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
+                    {summaryMeta.needsRefresh && (
+                      <span className="material-symbols-outlined text-warning text-sm">warning</span>
+                    )}
+                    <span>
+                      {summaryMeta.cached && "Cached • "}
+                      Generated {new Date(summaryMeta.generatedAt).toLocaleString()}
+                      {summaryMeta.model && ` • ${summaryMeta.model}`}
+                    </span>
+                  </div>
+                )}
+                {summaryMeta.needsRefresh && (
+                  <div className="text-xs text-warning mt-1">
+                    Ticket updated since summary generation - click Refresh for latest analysis
+                  </div>
+                )}
               </CardHeader>
               <CardContent>
                 <div className="text-sm whitespace-pre-wrap leading-relaxed">{aiSummary}</div>

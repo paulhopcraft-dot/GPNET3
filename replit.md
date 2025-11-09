@@ -135,6 +135,16 @@ Preferred communication style: Simple, everyday language.
   - System prompt: Specialized in Worksafe Victoria worker's compensation compliance analysis
   - Typical response time: 5-15 seconds for comprehensive policy guidance
   - Environment variable: `ANTHROPIC_API_KEY` stored as Replit Secret
+- **AI Case Summaries with Caching** (November 9, 2025): ✅ **FULLY OPERATIONAL** - Automated case analysis with intelligent caching
+  - **Cache-first architecture**: Summaries persist in database (`aiSummary`, `aiSummaryGeneratedAt`, `aiSummaryModel` fields)
+  - **Smart invalidation**: Only regenerates when `ticketLastUpdatedAt` > `aiSummaryGeneratedAt` (ticket updated after summary)
+  - **API Endpoints**:
+    - GET `/api/cases/:id/summary` - Returns cached summary + metadata without generation
+    - POST `/api/cases/:id/summary` - Validates cache, regenerates if needed or returns cached version
+  - **SummaryService** (`server/services/summary.ts`): Encapsulates cache validation and generation logic
+  - **Frontend integration**: CaseDetailPanel displays cached summaries instantly, shows freshness metadata, manual refresh button
+  - **Performance**: First generation 5-15s, subsequent loads <100ms from cache
+  - **Freshdesk sync preservation**: Preserves existing summaries during ticket updates, only invalidates cache when ticket timestamps advance
 - **AI Assistant Chat Widget**: ✅ **FULLY OPERATIONAL** - Floating chat interface in bottom-right corner of dashboard (`client/src/components/ai-assistant.tsx`)
   - Quick action buttons for instant compliance questions ("Compliance tips", "High risk indicators")
   - Custom message input for specific case queries
