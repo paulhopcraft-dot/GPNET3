@@ -87,6 +87,7 @@ class DbStorage implements IStorage {
       hasCertificate: workerCase.hasCertificate,
       certificateUrl: workerCase.certificateUrl || undefined,
       complianceIndicator: workerCase.complianceIndicator as any,
+      compliance: workerCase.complianceJson as any, // Parse JSONB compliance object
       currentStatus: workerCase.currentStatus,
       nextStep: workerCase.nextStep,
       owner: workerCase.owner,
@@ -153,7 +154,8 @@ class DbStorage implements IStorage {
       workStatus: caseData.workStatus || "Off work",
       hasCertificate: caseData.hasCertificate || false,
       certificateUrl: caseData.certificateUrl || null,
-      complianceIndicator: caseData.complianceIndicator || "On track",
+      complianceIndicator: caseData.complianceIndicator || "Low",
+      complianceJson: caseData.compliance || null, // Store full compliance object as JSONB
       currentStatus: caseData.currentStatus || "New case",
       nextStep: caseData.nextStep || "Review",
       owner: caseData.owner || "CLC Team",

@@ -1,4 +1,4 @@
-import type { WorkerCase, CompanyName, ComplianceIndicator, WorkStatus } from "@shared/schema";
+import type { WorkerCase, CompanyName, ComplianceIndicator, WorkStatus, CaseCompliance } from "@shared/schema";
 import { isValidCompany, isLegitimateCase } from "@shared/schema";
 
 interface FreshdeskTicket {
@@ -171,22 +171,58 @@ export class FreshdeskService {
     }
   }
 
-  private calculateComplianceIndicator(ticket: FreshdeskTicket): "On track" | "At risk" | "Overdue" {
+  private calculateComplianceIndicator(ticket: FreshdeskTicket): CaseCompliance {
+    // If no due date, check if ticket is closed
     if (!ticket.due_by) {
-      return "On track";
+      const isClosed = ticket.status === 4 || ticket.status === 5; // Resolved or Closed
+      return {
+        indicator: isClosed ? 'Very High' : 'High',
+        reason: isClosed ? 'Case resolved - no outstanding deadlines' : 'No due date set',
+        source: 'freshdesk',
+        lastChecked: new Date().toISOString()
+      };
     }
 
+    // Use UTC-normalized date math to prevent timezone issues
     const dueDate = new Date(ticket.due_by);
     const now = new Date();
-    const daysUntilDue = Math.floor((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    
+    // Calculate days difference using UTC timestamps
+    const msPerDay = 1000 * 60 * 60 * 24;
+    const dueDateUTC = Date.UTC(dueDate.getUTCFullYear(), dueDate.getUTCMonth(), dueDate.getUTCDate());
+    const nowUTC = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+    const daysUntilDue = Math.floor((dueDateUTC - nowUTC) / msPerDay);
+
+    let indicator: ComplianceIndicator;
+    let reason: string;
 
     if (daysUntilDue < 0) {
-      return "Overdue";
+      const daysOverdue = Math.abs(daysUntilDue);
+      indicator = 'Very Low';
+      reason = `Overdue by ${daysOverdue} day${daysOverdue !== 1 ? 's' : ''}`;
+    } else if (daysUntilDue === 0) {
+      indicator = 'Low';
+      reason = 'Due today';
+    } else if (daysUntilDue === 1) {
+      indicator = 'Low';
+      reason = 'Due tomorrow';
     } else if (daysUntilDue <= 3) {
-      return "At risk";
+      indicator = 'Medium';
+      reason = `Due in ${daysUntilDue} days`;
+    } else if (daysUntilDue <= 7) {
+      indicator = 'High';
+      reason = `Due in ${daysUntilDue} days`;
     } else {
-      return "On track";
+      indicator = 'Very High';
+      reason = `On track (due in ${daysUntilDue} days)`;
     }
+
+    return {
+      indicator,
+      reason,
+      source: 'freshdesk',
+      lastChecked: new Date().toISOString()
+    };
   }
 
   private determineNextStep(ticket: FreshdeskTicket, workStatus: WorkStatus): string {
@@ -367,15 +403,6 @@ export class FreshdeskService {
         workerName = ticket.subject || `Worker #${ticket.id}`;
       }
 
-      const dateOfInjury = ticket.custom_fields?.cf_injury_date 
-        ? new Date(ticket.custom_fields.cf_injury_date)
-        : new Date(ticket.created_at);
-
-      const dueDate = ticket.due_by 
-        ? new Date(ticket.due_by).toLocaleDateString()
-        : "TBD";
-
-      const compliance = this.calculateComplianceIndicator(ticket);
       // Group tickets by worker name with smart normalization
       const normalizedWorkerName = this.normalizeWorkerName(workerName);
       if (!workerTicketsMap.has(normalizedWorkerName)) {
@@ -491,10 +518,8 @@ export class FreshdeskService {
         }
       }
 
+      // Calculate full compliance object
       const compliance = this.calculateComplianceIndicator(primaryTicket);
-      const complianceIndicator: ComplianceIndicator = 
-        compliance === "On track" ? "Low" :
-        compliance === "At risk" ? "Medium" : "High";
 
       // Create combined summary mentioning multiple tickets if applicable
       let summary = primaryTicket.subject;
@@ -518,7 +543,8 @@ export class FreshdeskService {
         workStatus,
         hasCertificate: !!primaryTicket.custom_fields?.cf_latest_medical_certificate || primaryTicket.tags?.includes('has_certificate') || false,
         certificateUrl: primaryTicket.custom_fields?.cf_latest_medical_certificate || primaryTicket.custom_fields?.cf_url || undefined,
-        complianceIndicator,
+        complianceIndicator: compliance.indicator, // Legacy field - extract from compliance object
+        compliance, // New structured compliance object
         currentStatus: primaryTicket.custom_fields?.cf_check_status || primaryTicket.description_text || "Pending review",
         nextStep: this.determineNextStep(primaryTicket, workStatus),
         owner: primaryTicket.custom_fields?.cf_case_manager_name || primaryTicket.custom_fields?.cf_consultant || "CLC Team",

@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, boolean, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -138,6 +138,7 @@ export const workerCases = pgTable("worker_cases", {
   hasCertificate: boolean("has_certificate").notNull().default(false),
   certificateUrl: text("certificate_url"),
   complianceIndicator: text("compliance_indicator").notNull(),
+  complianceJson: jsonb("compliance_json").$type<CaseCompliance>(),
   currentStatus: text("current_status").notNull(),
   nextStep: text("next_step").notNull(),
   owner: text("owner").notNull(),
