@@ -32,6 +32,8 @@ Preferred communication style: Simple, everyday language.
 - Path aliases configured for clean imports (@/, @shared/, @assets/)
 - DashboardStats component displays real-time statistics: total cases, off work count, at work count, and high risk count
 - CasesTable displays ticket count badges (e.g., "2 tickets") for workers with multiple merged Freshdesk tickets
+- CompanyNav component dynamically populates from live case data (not hardcoded list) with alphabetical sorting
+- UI cleanup (November 9, 2025): Removed "Owner" and "CLC" follow-up field references from all user-facing components
 
 **State Management**
 - React Query for server state with infinite stale time and disabled automatic refetching (manual control)
@@ -91,12 +93,14 @@ Preferred communication style: Simple, everyday language.
 
 **Freshdesk Integration**
 - REST API integration for syncing support tickets as worker cases (November 2025)
-- **Company Association Filtering** (November 9, 2025): Multi-layer defense to exclude cases without valid company associations
-  - Helper function `isValidCompany()` identifies invalid values: "Unknown", "Unknown Company", null, undefined, empty
-  - Primary filter in `transformTicketsToWorkerCases()` skips invalid companies with structured logging
-  - Defensive storage guard prevents persistence of invalid companies from any source
-  - Frontend filtering ensures UI never displays invalid company cases
-  - Audit trail via console logs: `[Freshdesk Sync] Skipping worker case due to invalid company`
+- **Legitimate Case Filtering** (November 9, 2025): Multi-layer defense to filter out generic emails and non-case tickets
+  - Helper function `isLegitimateCase()` validates cases based on:
+    - Worker name must be real (not generic like "Claim 08250027189", "test", "unknown")
+    - Must have either valid company OR date of injury (allows cases with "Unknown Company" if they have injury data)
+    - Filters applied in Freshdesk service, storage layer, and frontend
+  - Audit trail via console logs: `[Freshdesk Sync] Skipping non-case email`
+  - Successfully includes workers like Jacob Gunn (has "Unknown Company" but valid injury date)
+  - Filters out generic claim numbers and test tickets
 - Custom transformation layer (`FreshdeskService`) to map Freshdesk tickets to internal case structure
 - Handles ticket status, priority, custom fields, and company associations
 - **Pagination & Full Ticket Fetch** (November 9, 2025): Fetches ALL tickets including closed/resolved
