@@ -33,6 +33,10 @@ export interface WorkerCase {
   summary: string;
   ticketIds: string[]; // Track all Freshdesk ticket IDs for this worker
   ticketCount: number; // Number of tickets merged into this case
+  aiSummary?: string; // Cached AI-generated summary
+  aiSummaryGeneratedAt?: string; // When AI summary was last generated
+  aiSummaryModel?: string; // AI model used for summary generation
+  ticketLastUpdatedAt?: string; // Most recent updated_at from Freshdesk tickets
   attachments?: CaseAttachment[];
   clcLastFollowUp?: string;
   clcNextFollowUp?: string;
@@ -56,6 +60,10 @@ export const workerCases = pgTable("worker_cases", {
   summary: text("summary").notNull(),
   ticketIds: text("ticket_ids").array().notNull().default(sql`ARRAY[]::text[]`),
   ticketCount: text("ticket_count").notNull().default('1'),
+  aiSummary: text("ai_summary"),
+  aiSummaryGeneratedAt: timestamp("ai_summary_generated_at"),
+  aiSummaryModel: text("ai_summary_model"),
+  ticketLastUpdatedAt: timestamp("ticket_last_updated_at"),
   clcLastFollowUp: text("clc_last_follow_up"),
   clcNextFollowUp: text("clc_next_follow_up"),
   createdAt: timestamp("created_at").defaultNow(),
