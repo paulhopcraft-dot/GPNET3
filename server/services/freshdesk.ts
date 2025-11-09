@@ -56,18 +56,50 @@ export class FreshdeskService {
 
   async fetchTickets(): Promise<FreshdeskTicket[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/tickets?per_page=100&include=description`, {
-        headers: {
-          'Authorization': this.getAuthHeader(),
-          'Content-Type': 'application/json'
+      // Fetch tickets from the past 6 months (includes both open and closed)
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+      const dateFilter = sixMonthsAgo.toISOString();
+      
+      let allTickets: FreshdeskTicket[] = [];
+      let page = 1;
+      const perPage = 100;
+      
+      console.log(`Fetching tickets updated since ${dateFilter}...`);
+      
+      while (true) {
+        const response = await fetch(
+          `${this.baseUrl}/tickets?per_page=${perPage}&page=${page}&include=description&updated_since=${dateFilter}`, 
+          {
+            headers: {
+              'Authorization': this.getAuthHeader(),
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`Freshdesk API error: ${response.status} ${response.statusText}`);
         }
-      });
 
-      if (!response.ok) {
-        throw new Error(`Freshdesk API error: ${response.status} ${response.statusText}`);
+        const tickets: FreshdeskTicket[] = await response.json();
+        
+        if (tickets.length === 0) {
+          break; // No more tickets
+        }
+        
+        allTickets.push(...tickets);
+        console.log(`Fetched page ${page}: ${tickets.length} tickets (total: ${allTickets.length})`);
+        
+        if (tickets.length < perPage) {
+          break; // Last page
+        }
+        
+        page++;
       }
-
-      return await response.json();
+      
+      console.log(`Total tickets fetched: ${allTickets.length}`);
+      return allTickets;
     } catch (error) {
       console.error('Error fetching Freshdesk tickets:', error);
       throw error;
@@ -247,7 +279,15 @@ export class FreshdeskService {
       }
 
       // Extract worker name from various sources
-      let workerName = ticket.custom_fields?.cf_workers_name || ticket.custom_fields?.cf_worker_first_name;
+      // Combine first and last name if both are present
+      let workerName = '';
+      if (ticket.custom_fields?.cf_worker_first_name && ticket.custom_fields?.cf_workers_name) {
+        workerName = `${ticket.custom_fields.cf_worker_first_name} ${ticket.custom_fields.cf_workers_name}`;
+      } else if (ticket.custom_fields?.cf_workers_name) {
+        workerName = ticket.custom_fields.cf_workers_name;
+      } else if (ticket.custom_fields?.cf_worker_first_name) {
+        workerName = ticket.custom_fields.cf_worker_first_name;
+      }
       
       // Try to extract from description for form submissions
       if (!workerName && ticket.description_text) {
@@ -339,8 +379,15 @@ export class FreshdeskService {
         }
       }
 
-      // Extract worker name from primary ticket
-      let workerName = primaryTicket.custom_fields?.cf_workers_name || primaryTicket.custom_fields?.cf_worker_first_name;
+      // Extract worker name from primary ticket (combine first and last name)
+      let workerName = '';
+      if (primaryTicket.custom_fields?.cf_worker_first_name && primaryTicket.custom_fields?.cf_workers_name) {
+        workerName = `${primaryTicket.custom_fields.cf_worker_first_name} ${primaryTicket.custom_fields.cf_workers_name}`;
+      } else if (primaryTicket.custom_fields?.cf_workers_name) {
+        workerName = primaryTicket.custom_fields.cf_workers_name;
+      } else if (primaryTicket.custom_fields?.cf_worker_first_name) {
+        workerName = primaryTicket.custom_fields.cf_worker_first_name;
+      }
       
       if (!workerName && primaryTicket.description_text) {
         const fullNameMatch = primaryTicket.description_text.match(/Full Name\s*([A-Za-z\s]+?)(?:Your email|$)/i);
@@ -383,13 +430,25 @@ export class FreshdeskService {
         .map(word => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ');
 
-      const dateOfInjury = primaryTicket.custom_fields?.cf_injury_date 
-        ? new Date(primaryTicket.custom_fields.cf_injury_date)
-        : new Date(primaryTicket.created_at);
+      // Validate and parse date of injury with fallback
+      let dateOfInjury: Date;
+      if (primaryTicket.custom_fields?.cf_injury_date) {
+        dateOfInjury = new Date(primaryTicket.custom_fields.cf_injury_date);
+        if (isNaN(dateOfInjury.getTime())) {
+          dateOfInjury = new Date(primaryTicket.created_at);
+        }
+      } else {
+        dateOfInjury = new Date(primaryTicket.created_at);
+      }
 
-      const dueDate = primaryTicket.due_by 
-        ? new Date(primaryTicket.due_by).toLocaleDateString()
-        : "TBD";
+      // Validate due date
+      let dueDate = "TBD";
+      if (primaryTicket.due_by) {
+        const dueDateObj = new Date(primaryTicket.due_by);
+        if (!isNaN(dueDateObj.getTime())) {
+          dueDate = dueDateObj.toLocaleDateString();
+        }
+      }
 
       const compliance = this.calculateComplianceIndicator(primaryTicket);
       const complianceIndicator: ComplianceIndicator = 

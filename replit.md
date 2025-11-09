@@ -93,17 +93,25 @@ Preferred communication style: Simple, everyday language.
 - REST API integration for syncing support tickets as worker cases (November 2025)
 - Custom transformation layer (`FreshdeskService`) to map Freshdesk tickets to internal case structure
 - Handles ticket status, priority, custom fields, and company associations
-- Parallel company fetching for performance (~9-10s sync time for 100 tickets)
+- **Pagination & Full Ticket Fetch** (November 9, 2025): Fetches ALL tickets including closed/resolved
+  - Uses 6-month lookback window with `updated_since` date filter to capture recent activity
+  - Implements pagination to fetch all pages (355 tickets across 4 pages vs original 100)
+  - Successfully imports closed tickets previously excluded by Freshdesk API default filters
+- Parallel company fetching for performance
 - Preserves actual Freshdesk company names (not collapsed to predefined list)
 - Manual sync trigger via POST endpoint (`/api/freshdesk/sync`) with automatic sync on dashboard load
 - Environment variables: `FRESHDESK_DOMAIN` and `FRESHDESK_API_KEY` stored as Replit Secrets
+- **Worker Name Extraction** (November 9, 2025): Properly combines first and last name fields
+  - Merges `cf_worker_first_name` + `cf_workers_name` custom fields (e.g., "Gilbert" + "Leary" = "Gilbert Leary")
+  - Fixed duplicate extraction logic in both grouping and display phases
+  - Validates date fields with fallbacks to prevent "Invalid time value" errors
 - **Worker Deduplication** (November 2025): Multiple Freshdesk tickets for the same worker are merged into a single case view
   - Groups tickets by normalized worker name (case-insensitive, trimmed)
   - Uses most recent ticket data as canonical record
   - Tracks all merged ticket IDs in `ticketIds` array field
   - Displays ticket count badge in UI when worker has multiple tickets (e.g., "2 tickets")
-  - Successfully reduces 46 tickets to 43 unique worker cases in production
-  - Known merged workers: Alexander Clinton (FD-46096, FD-45936), Andy Bella (FD-45439, FD-45465)
+  - Successfully syncs 225 unique worker cases from 355 total tickets (63% deduplication rate)
+  - Example merged workers: Gilbert Leary (FD-44540, FD-44550), Alexander Clinton (FD-46096, FD-45936), Andy Bella (FD-45439, FD-45465)
 
 **Neon Database**
 - Serverless PostgreSQL provider with WebSocket connections
