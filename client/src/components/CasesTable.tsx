@@ -1,6 +1,7 @@
 import type { WorkerCase, WorkStatus } from "@shared/schema";
 import { RiskBadge } from "./RiskBadge";
 import { WorkStatusFilter } from "./WorkStatusFilter";
+import { Badge } from "./ui/badge";
 import { useState } from "react";
 
 interface CasesTableProps {
@@ -61,7 +62,14 @@ export function CasesTable({ cases, selectedCaseId, onCaseClick }: CasesTablePro
                   data-testid={`row-case-${workerCase.id}`}
                 >
                   <td className="px-4 py-3 font-medium text-card-foreground">
-                    {workerCase.workerName}
+                    <div className="flex items-center gap-2">
+                      <span>{workerCase.workerName}</span>
+                      {workerCase.ticketCount > 1 && (
+                        <Badge variant="secondary" data-testid={`badge-ticket-count-${workerCase.id}`}>
+                          {workerCase.ticketCount} tickets
+                        </Badge>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{workerCase.company}</td>
                   <td className="px-4 py-3 text-muted-foreground">{workerCase.dateOfInjury}</td>
