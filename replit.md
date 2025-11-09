@@ -31,6 +31,7 @@ Preferred communication style: Simple, everyday language.
 - Page-level components in `client/src/pages/`
 - Path aliases configured for clean imports (@/, @shared/, @assets/)
 - DashboardStats component displays real-time statistics: total cases, off work count, at work count, and high risk count
+- CasesTable displays ticket count badges (e.g., "2 tickets") for workers with multiple merged Freshdesk tickets
 
 **State Management**
 - React Query for server state with infinite stale time and disabled automatic refetching (manual control)
@@ -69,6 +70,8 @@ Preferred communication style: Simple, everyday language.
 
 **Schema Design**
 - `worker_cases` table as the core entity storing case information
+  - `ticket_ids` (text array): Stores all Freshdesk ticket IDs when multiple tickets are merged for same worker
+  - `ticket_count` (text): Count of merged tickets (stored as text for flexibility, coerced to number in TypeScript)
 - `case_attachments` table for file/document references (one-to-many relationship)
 - UUID-based primary keys with `gen_random_uuid()` for secure, collision-resistant identifiers
 - Timestamp fields for date tracking (date of injury, follow-up dates)
@@ -94,6 +97,13 @@ Preferred communication style: Simple, everyday language.
 - Preserves actual Freshdesk company names (not collapsed to predefined list)
 - Manual sync trigger via POST endpoint (`/api/freshdesk/sync`) with automatic sync on dashboard load
 - Environment variables: `FRESHDESK_DOMAIN` and `FRESHDESK_API_KEY` stored as Replit Secrets
+- **Worker Deduplication** (November 2025): Multiple Freshdesk tickets for the same worker are merged into a single case view
+  - Groups tickets by normalized worker name (case-insensitive, trimmed)
+  - Uses most recent ticket data as canonical record
+  - Tracks all merged ticket IDs in `ticketIds` array field
+  - Displays ticket count badge in UI when worker has multiple tickets (e.g., "2 tickets")
+  - Successfully reduces 46 tickets to 43 unique worker cases in production
+  - Known merged workers: Alexander Clinton (FD-46096, FD-45936), Andy Bella (FD-45439, FD-45465)
 
 **Neon Database**
 - Serverless PostgreSQL provider with WebSocket connections
