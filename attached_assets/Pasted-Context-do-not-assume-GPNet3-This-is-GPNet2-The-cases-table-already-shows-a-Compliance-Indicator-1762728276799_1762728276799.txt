@@ -1,0 +1,130 @@
+Context (do not assume GPNet3):
+This is GPNet2. The cases table already shows a Compliance Indicator badge (Very High/High/Medium/Low/Very Low) computed from Freshdesk ticket due dates. We’ve seen a message saying it’s working, but we want a rigorous diagnostic and then a small, safe hardening plus an optional adapter for Claude output if present.
+
+Phase 1 — Diagnostic (No code changes yet)
+
+Report the following in exactly this format:
+
+API includes complianceIndicator: [yes/no, route + file path]
+Computation source: [Freshdesk due dates | other] (file + function)
+Front-end mapping: [file + component + line/selector]
+Badge color map: [enum/object location]
+Live update mechanism: [manual fetch | polling | FD sync job] (file)
+Data sample seen in code: [paste interface/shape]
+Gaps/Risks found: [list]
+
+
+Inspection targets (typical guesses; search and confirm actual paths):
+
+Backend: server/src/routes/cases*.ts, server/src/services/freshdesk*.ts, server/src/sync/*.ts
+
+Frontend: client/src/pages/*Dashboard*.tsx, client/src/components/*CasesTable*.tsx, client/src/lib/badges.ts
+
+Do not proceed to Phase 2 until you’ve printed the above block.
+
+Phase 2 — Hardening (Keep current behavior)
+
+If Phase-1 confirms Freshdesk-derived compliance is in place:
+
+Type safety: Add/confirm a shared type:
+
+export type ComplianceIndicator = 'Very High'|'High'|'Medium'|'Low'|'Very Low';
+export interface CaseCompliance {
+  indicator: ComplianceIndicator;
+  reason?: string;          // e.g., "Overdue by 3 days"
+  source: 'freshdesk'|'claude'|'manual';
+  lastChecked?: string;     // ISO
+}
+
+
+Keep it where both API and UI can import (e.g., shared/types/cases.ts).
+
+Reason plumbing: Ensure the API returns a short reason string (e.g., “Ticket overdue by 3 days” / “Due in 2 days”). If missing, compute alongside current logic. Do not change scoring thresholds.
+
+Null-proofing: In the UI cell renderer, render:
+
+Badge by indicator
+
+Tooltip: reason || 'No details'
+
+Subtext (muted): source and lastChecked if present
+
+Fallback: — with tooltip “Awaiting data” when indicator is null/undefined.
+
+Color map single-source: Centralize the color map in one file (if currently duplicated). Export getComplianceBadgeProps(indicator).
+
+Acceptance test (must pass):
+
+A row with an overdue FD ticket shows High or Very High and a tooltip explaining why.
+
+A row within SLA shows Low/Very Low and a tooltip with due-in info.
+
+No runtime errors when reason or lastChecked is absent.
+
+Phase 3 — Optional Claude Adapter (non-breaking; only if Claude field exists)
+
+If and only if you find any of these in DB/API: compliance_json, compliance_status, claudeComplianceSkill output:
+
+Adapter function (backend):
+
+function mapClaudeToIndicator(json: any): CaseCompliance | null {
+  if (!json || !json.status) return null;
+  // Map Claude status → existing 5-level scale (keep semantics consistent)
+  const status = String(json.status).toLowerCase();
+  let indicator: ComplianceIndicator;
+  if (['non-compliant','critical','overdue'].some(s => status.includes(s))) indicator = 'Very High';
+  else if (['at risk','pending'].some(s => status.includes(s))) indicator = 'High';
+  else if (['monitor','watch'].some(s => status.includes(s))) indicator = 'Medium';
+  else if (['compliant','ok','on track'].some(s => status.includes(s))) indicator = 'Low';
+  else indicator = 'Very Low';
+  return {
+    indicator,
+    reason: json.reason || 'Claude assessment',
+    source: 'claude',
+    lastChecked: json.last_checked || new Date().toISOString(),
+  };
+}
+
+
+Selection rule (backend): Prefer Claude if it’s newer than Freshdesk, else use Freshdesk. Never remove the Freshdesk path.
+
+const fd = buildFreshdeskCompliance(caseRow);
+const cl = mapClaudeToIndicator(caseRow.compliance_json);
+const chosen = chooseByNewest([fd, cl]); // compares lastChecked; null-safe
+
+
+API response: Return the unified CaseCompliance object under case.compliance.
+
+Frontend: Point the Compliance column to row.compliance.indicator, row.compliance.reason, etc. No UI logic change beyond the property path.
+
+Acceptance test:
+
+With only Freshdesk data → behavior unchanged.
+
+With Claude JSON present/newer → badge reflects Claude, tooltip shows Claude reason/source.
+
+Removing Claude JSON → auto-reverts to Freshdesk.
+
+Phase 4 — Minimal Tests
+
+Unit test mapper: Freshdesk → indicators; Claude JSON → indicators.
+
+Contract test: /api/cases includes compliance with type CaseCompliance.
+
+UI test: table renders five levels without throwing on missing fields.
+
+Constraints
+
+Do not introduce websockets or GPNet3 concepts.
+
+Do not remove the Freshdesk logic.
+
+Changes must be additive and backward-compatible.
+
+Deliverables:
+
+The Phase-1 diagnostic block (filled).
+
+PR diff(s) implementing Phases 2–3 (if applicable).
+
+Short test results summary.
