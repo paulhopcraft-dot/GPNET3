@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { WorkerCase } from "@shared/schema";
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
@@ -50,23 +50,27 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
   const [loadingSummary, setLoadingSummary] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
 
-  const handleGenerateSummary = async () => {
-    setLoadingSummary(true);
-    setSummaryError(null);
-    try {
-      const response = await fetch(`/api/cases/${workerCase.id}/summary`);
-      if (!response.ok) {
-        throw new Error("Failed to generate summary");
+  useEffect(() => {
+    const generateSummary = async () => {
+      setLoadingSummary(true);
+      setSummaryError(null);
+      try {
+        const response = await fetch(`/api/cases/${workerCase.id}/summary`);
+        if (!response.ok) {
+          throw new Error("Failed to generate summary");
+        }
+        const data = await response.json();
+        setSummary(data.summary);
+      } catch (error) {
+        console.error("Error generating summary:", error);
+        setSummaryError("AI summary unavailable");
+      } finally {
+        setLoadingSummary(false);
       }
-      const data = await response.json();
-      setSummary(data.summary);
-    } catch (error) {
-      console.error("Error generating summary:", error);
-      setSummaryError("Failed to generate AI summary. Please try again.");
-    } finally {
-      setLoadingSummary(false);
-    }
-  };
+    };
+
+    generateSummary();
+  }, [workerCase.id]);
 
   return (
     <aside className="w-96 flex-shrink-0 bg-card border-l border-border p-6">
@@ -79,24 +83,13 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
 
       <ScrollArea className="h-[calc(100vh-8rem)]">
         <div className="space-y-6">
-          <div>
-            <Button 
-              onClick={handleGenerateSummary}
-              disabled={loadingSummary}
-              className="w-full"
-              data-testid="button-generate-summary"
-            >
-              <span className="material-symbols-outlined text-base mr-2">
-                {loadingSummary ? "autorenew" : "summarize"}
-              </span>
-              {loadingSummary ? "Generating AI Summary..." : "Generate AI Summary"}
-            </Button>
-          </div>
-
-          {summaryError && (
-            <Card className="border-destructive" data-testid="card-summary-error">
+          {loadingSummary && (
+            <Card data-testid="card-summary-loading">
               <CardContent className="p-4">
-                <p className="text-sm text-destructive">{summaryError}</p>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span className="material-symbols-outlined animate-spin">autorenew</span>
+                  Generating AI case summary...
+                </div>
               </CardContent>
             </Card>
           )}
