@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import type { WorkerCase } from "@shared/schema";
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
@@ -46,31 +45,6 @@ function generateRecoveryData(dateOfInjury: string) {
 
 export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
   const { expected, actual } = generateRecoveryData(workerCase.dateOfInjury);
-  const [summary, setSummary] = useState<string | null>(null);
-  const [loadingSummary, setLoadingSummary] = useState(false);
-  const [summaryError, setSummaryError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const generateSummary = async () => {
-      setLoadingSummary(true);
-      setSummaryError(null);
-      try {
-        const response = await fetch(`/api/cases/${workerCase.id}/summary`);
-        if (!response.ok) {
-          throw new Error("Failed to generate summary");
-        }
-        const data = await response.json();
-        setSummary(data.summary);
-      } catch (error) {
-        console.error("Error generating summary:", error);
-        setSummaryError("AI summary unavailable");
-      } finally {
-        setLoadingSummary(false);
-      }
-    };
-
-    generateSummary();
-  }, [workerCase.id]);
 
   return (
     <aside className="w-96 flex-shrink-0 bg-card border-l border-border p-6">
@@ -83,27 +57,16 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
 
       <ScrollArea className="h-[calc(100vh-8rem)]">
         <div className="space-y-6">
-          {loadingSummary && (
-            <Card data-testid="card-summary-loading">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <span className="material-symbols-outlined animate-spin">autorenew</span>
-                  Generating AI case summary...
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {summary && (
-            <Card data-testid="card-ai-summary">
+          {workerCase.summary && (
+            <Card data-testid="card-case-summary">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
-                  <span className="material-symbols-outlined text-primary">psychology</span>
-                  AI Case Summary
+                  <span className="material-symbols-outlined text-primary">description</span>
+                  Case Summary
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-sm whitespace-pre-wrap">{summary}</div>
+                <div className="text-sm whitespace-pre-wrap">{workerCase.summary}</div>
               </CardContent>
             </Card>
           )}
