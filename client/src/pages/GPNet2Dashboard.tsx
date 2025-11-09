@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import type { WorkerCase } from "@shared/schema";
-import { isValidCompany } from "@shared/schema";
+import { isLegitimateCase } from "@shared/schema";
 
 export default function GPNet2Dashboard() {
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
@@ -59,8 +59,8 @@ export default function GPNet2Dashboard() {
 
   const filteredCases = useMemo(() => {
     return cases.filter((c) => {
-      // Filter out cases without valid company associations (defense in depth)
-      if (!isValidCompany(c.company)) {
+      // Filter out non-legitimate cases (generic emails, etc.) - defense in depth
+      if (!isLegitimateCase(c)) {
         return false;
       }
       const matchesCompany = !selectedCompany || c.company === selectedCompany;
@@ -71,6 +71,15 @@ export default function GPNet2Dashboard() {
       return matchesCompany && matchesSearch;
     });
   }, [cases, selectedCompany, searchQuery]);
+
+  const availableCompanies = useMemo(() => {
+    const companySet = new Set(
+      cases
+        .filter((c) => isLegitimateCase(c))
+        .map((c) => c.company)
+    );
+    return Array.from(companySet).sort();
+  }, [cases]);
 
   const selectedCase = useMemo(() => {
     return cases.find((c) => c.id === selectedCaseId) || null;
@@ -106,7 +115,7 @@ export default function GPNet2Dashboard() {
             v2024.11.05 • {cases.length} cases loaded
           </div>
         </div>
-        <CompanyNav selectedCompany={selectedCompany} onSelectCompany={setSelectedCompany} />
+        <CompanyNav companies={availableCompanies} selectedCompany={selectedCompany} onSelectCompany={setSelectedCompany} />
       </aside>
 
       <main className="flex-1 flex overflow-hidden">

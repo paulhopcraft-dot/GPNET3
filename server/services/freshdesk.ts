@@ -1,5 +1,5 @@
 import type { WorkerCase, CompanyName, ComplianceIndicator, WorkStatus } from "@shared/schema";
-import { isValidCompany } from "@shared/schema";
+import { isValidCompany, isLegitimateCase } from "@shared/schema";
 
 interface FreshdeskTicket {
   id: number;
@@ -465,13 +465,8 @@ export class FreshdeskService {
       // Get the most recent updated_at timestamp from all merged tickets (already sorted by updated_at)
       const ticketLastUpdatedAt = primaryTicket.updated_at;
 
-      // Skip cases without valid company associations
-      if (!isValidCompany(companyName)) {
-        console.warn(`[Freshdesk Sync] Skipping worker case due to invalid company: Ticket=${ticketIds[0]}, Worker=${displayName}, Company="${companyName}"`);
-        continue;
-      }
-
-      workerCases.push({
+      // Build the case object first so we can validate it
+      const caseData = {
         id: ticketIds[0], // Use first (most recent) ticket ID as primary ID
         workerName: displayName,
         company: companyName,
@@ -491,7 +486,15 @@ export class FreshdeskService {
         ticketLastUpdatedAt,
         clcLastFollowUp: primaryTicket.custom_fields?.cf_full_medical_report_date || undefined,
         clcNextFollowUp: primaryTicket.custom_fields?.cf_valid_until || undefined,
-      });
+      };
+
+      // Skip if not a legitimate worker injury case (filters out generic emails, claims without names, etc.)
+      if (!isLegitimateCase(caseData)) {
+        console.warn(`[Freshdesk Sync] Skipping non-case email: Ticket=${ticketIds[0]}, Worker="${displayName}", Company="${companyName}"`);
+        continue;
+      }
+
+      workerCases.push(caseData);
     }
 
     return workerCases;

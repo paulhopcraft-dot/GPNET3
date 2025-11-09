@@ -198,28 +198,9 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
           </div>
 
           <div>
-            <h3 className="text-sm font-medium text-muted-foreground mb-2">Owner</h3>
-            <p className="text-card-foreground">{workerCase.owner}</p>
-          </div>
-
-          <div>
             <h3 className="text-sm font-medium text-muted-foreground mb-2">Due Date</h3>
             <p className="text-card-foreground">{workerCase.dueDate}</p>
           </div>
-
-          {workerCase.clcLastFollowUp && (
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground mb-2">Last Follow-up</h3>
-              <p className="text-card-foreground">{workerCase.clcLastFollowUp}</p>
-            </div>
-          )}
-
-          {workerCase.clcNextFollowUp && (
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground mb-2">Next Follow-up</h3>
-              <p className="text-card-foreground">{workerCase.clcNextFollowUp}</p>
-            </div>
-          )}
 
           <div>
             <h3 className="text-sm font-medium text-muted-foreground mb-3">Recovery Timeline</h3>

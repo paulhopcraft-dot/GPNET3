@@ -16,6 +16,37 @@ export function isValidCompany(company: string | null | undefined): boolean {
   return normalized !== "unknown" && normalized !== "unknown company" && normalized !== "";
 }
 
+// Check if a case represents a legitimate worker injury case vs generic email
+export function isLegitimateCase(workerCase: {
+  workerName: string;
+  company: string;
+  dateOfInjury?: string;
+}): boolean {
+  // Must have a worker name
+  if (!workerCase.workerName || workerCase.workerName.trim() === "") {
+    return false;
+  }
+  
+  const normalizedName = workerCase.workerName.trim().toLowerCase();
+  
+  // Filter out generic claim numbers masquerading as names
+  if (normalizedName.startsWith("claim ") || /^claim\s*\d+/.test(normalizedName)) {
+    return false;
+  }
+  
+  // Filter out generic test/placeholder names
+  const genericNames = ["test", "testing", "unknown", "n/a", "none"];
+  if (genericNames.includes(normalizedName)) {
+    return false;
+  }
+  
+  // Must have either a valid company OR a date of injury (some legitimate cases may lack company info)
+  const hasValidCompany = isValidCompany(workerCase.company);
+  const hasInjuryDate = !!workerCase.dateOfInjury && workerCase.dateOfInjury.trim() !== "";
+  
+  return hasValidCompany || hasInjuryDate;
+}
+
 export interface CaseAttachment {
   id: string;
   name: string;

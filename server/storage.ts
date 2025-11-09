@@ -1,6 +1,6 @@
 import type { WorkerCase, WorkerCaseDB } from "@shared/schema";
 import { db } from "./db";
-import { workerCases, caseAttachments, isValidCompany } from "@shared/schema";
+import { workerCases, caseAttachments, isLegitimateCase } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
 export interface IStorage {
@@ -115,9 +115,9 @@ class DbStorage implements IStorage {
       throw new Error("Case ID is required for sync");
     }
 
-    // Defensive guard: Skip syncing if company is invalid
-    if (!isValidCompany(caseData.company)) {
-      console.warn(`[Storage] Skipping sync for case with invalid company: CaseID=${caseData.id}, Worker=${caseData.workerName}, Company="${caseData.company}"`);
+    // Defensive guard: Skip syncing if not a legitimate case (filters out generic emails)
+    if (!isLegitimateCase(caseData as WorkerCase)) {
+      console.warn(`[Storage] Skipping sync for non-legitimate case: CaseID=${caseData.id}, Worker="${caseData.workerName}", Company="${caseData.company}"`);
       return;
     }
 

@@ -37,7 +37,7 @@ export function CasesTable({ cases, selectedCaseId, onCaseClick }: CasesTablePro
             </th>
             <th className="px-4 py-3 font-medium text-muted-foreground">Latest Certificate</th>
             <th className="px-4 py-3 font-medium text-muted-foreground">Compliance Indicator</th>
-            <th className="px-4 py-3 font-medium text-muted-foreground">Next Step + Owner + Due</th>
+            <th className="px-4 py-3 font-medium text-muted-foreground">Next Step + Due</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
@@ -95,7 +95,7 @@ export function CasesTable({ cases, selectedCaseId, onCaseClick }: CasesTablePro
                     <RiskBadge level={workerCase.complianceIndicator} type="compliance" />
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {workerCase.nextStep} - {workerCase.owner} - {workerCase.dueDate}
+                    {workerCase.nextStep} - {workerCase.dueDate}
                   </td>
                 </tr>
               );

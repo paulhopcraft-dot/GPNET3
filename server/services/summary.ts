@@ -174,12 +174,9 @@ Status: [Active/Closed - brief description]
 - Compliance Indicator: ${workerCase.complianceIndicator}
 - Current Status: ${workerCase.currentStatus}
 - Next Step: ${workerCase.nextStep}
-- Owner: ${workerCase.owner}
 - Due Date: ${workerCase.dueDate}
 - Has Certificate: ${workerCase.hasCertificate ? "Yes" : "No"}
 - Ticket Count: ${workerCase.ticketCount} merged ticket(s)
-${workerCase.clcLastFollowUp ? `- CLC Last Follow-up: ${workerCase.clcLastFollowUp}` : ""}
-${workerCase.clcNextFollowUp ? `- CLC Next Follow-up: ${workerCase.clcNextFollowUp}` : ""}
 
 **Case Description:**
 ${workerCase.summary}
