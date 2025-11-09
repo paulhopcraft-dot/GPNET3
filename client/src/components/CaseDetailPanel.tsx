@@ -1,7 +1,9 @@
+import { useState } from "react";
 import type { WorkerCase } from "@shared/schema";
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
 import { RecoveryChart } from "./RecoveryChart";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 
 interface CaseDetailPanelProps {
   workerCase: WorkerCase;
@@ -44,6 +46,28 @@ function generateRecoveryData(dateOfInjury: string) {
 
 export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
   const { expected, actual } = generateRecoveryData(workerCase.dateOfInjury);
+  const [summary, setSummary] = useState<string | null>(null);
+  const [loadingSummary, setLoadingSummary] = useState(false);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+
+  const handleGenerateSummary = async () => {
+    setLoadingSummary(true);
+    setSummaryError(null);
+    try {
+      const response = await fetch(`/api/cases/${workerCase.id}/summary`);
+      if (!response.ok) {
+        throw new Error("Failed to generate summary");
+      }
+      const data = await response.json();
+      setSummary(data.summary);
+    } catch (error) {
+      console.error("Error generating summary:", error);
+      setSummaryError("Failed to generate AI summary. Please try again.");
+    } finally {
+      setLoadingSummary(false);
+    }
+  };
+
   return (
     <aside className="w-96 flex-shrink-0 bg-card border-l border-border p-6">
       <div className="flex justify-between items-start mb-6">
@@ -55,6 +79,42 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
 
       <ScrollArea className="h-[calc(100vh-8rem)]">
         <div className="space-y-6">
+          <div>
+            <Button 
+              onClick={handleGenerateSummary}
+              disabled={loadingSummary}
+              className="w-full"
+              data-testid="button-generate-summary"
+            >
+              <span className="material-symbols-outlined text-base mr-2">
+                {loadingSummary ? "autorenew" : "summarize"}
+              </span>
+              {loadingSummary ? "Generating AI Summary..." : "Generate AI Summary"}
+            </Button>
+          </div>
+
+          {summaryError && (
+            <Card className="border-destructive" data-testid="card-summary-error">
+              <CardContent className="p-4">
+                <p className="text-sm text-destructive">{summaryError}</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {summary && (
+            <Card data-testid="card-ai-summary">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <span className="material-symbols-outlined text-primary">psychology</span>
+                  AI Case Summary
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm whitespace-pre-wrap">{summary}</div>
+              </CardContent>
+            </Card>
+          )}
+
           <div>
             <h3 className="text-sm font-medium text-muted-foreground mb-2">Company</h3>
             <p className="text-card-foreground">{workerCase.company}</p>

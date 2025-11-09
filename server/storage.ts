@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 
 export interface IStorage {
   getGPNet2Cases(): Promise<WorkerCase[]>;
+  getGPNet2CaseById(id: string): Promise<WorkerCase | null>;
   syncWorkerCaseFromFreshdesk(caseData: Partial<WorkerCase>): Promise<void>;
   clearAllWorkerCases(): Promise<void>;
 }
@@ -48,6 +49,51 @@ class DbStorage implements IStorage {
     );
 
     return casesWithAttachments;
+  }
+
+  async getGPNet2CaseById(id: string): Promise<WorkerCase | null> {
+    const dbCase = await db
+      .select()
+      .from(workerCases)
+      .where(eq(workerCases.id, id))
+      .limit(1);
+
+    if (dbCase.length === 0) {
+      return null;
+    }
+
+    const attachments = await db
+      .select()
+      .from(caseAttachments)
+      .where(eq(caseAttachments.caseId, id));
+
+    const workerCase = dbCase[0];
+    return {
+      id: workerCase.id,
+      workerName: workerCase.workerName,
+      company: workerCase.company as any,
+      dateOfInjury: workerCase.dateOfInjury.toISOString().split('T')[0],
+      riskLevel: workerCase.riskLevel as any,
+      workStatus: workerCase.workStatus as any,
+      hasCertificate: workerCase.hasCertificate,
+      certificateUrl: workerCase.certificateUrl || undefined,
+      complianceIndicator: workerCase.complianceIndicator as any,
+      currentStatus: workerCase.currentStatus,
+      nextStep: workerCase.nextStep,
+      owner: workerCase.owner,
+      dueDate: workerCase.dueDate,
+      summary: workerCase.summary,
+      clcLastFollowUp: workerCase.clcLastFollowUp || undefined,
+      clcNextFollowUp: workerCase.clcNextFollowUp || undefined,
+      injuryType: workerCase.injuryType || undefined,
+      expectedRecoveryDate: workerCase.expectedRecoveryDate || undefined,
+      attachments: attachments.map((att) => ({
+        id: att.id,
+        name: att.name,
+        type: att.type,
+        url: att.url,
+      })),
+    };
   }
 
   async syncWorkerCaseFromFreshdesk(caseData: Partial<WorkerCase>): Promise<void> {

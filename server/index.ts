@@ -1,6 +1,4 @@
 import express, { type Request, Response, NextFunction } from "express";
-import casesRoute from "./routes/cases.js"; // 👈 explicit .js for ESM
-import voiceRoute from "./routes/voice.js"; // 👈 placeholder route
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
@@ -74,7 +72,3 @@ app.use((req, res, next) => {
     () => log(`✅ Server running on port ${port}`)
   );
 })();
-
-// Mount custom routes
-app.use("/api/voice", voiceRoute);
-app.use("/api/cases", casesRoute);
