@@ -36,6 +36,7 @@ export interface WorkerCase {
   aiSummary?: string; // Cached AI-generated summary
   aiSummaryGeneratedAt?: string; // When AI summary was last generated
   aiSummaryModel?: string; // AI model used for summary generation
+  aiWorkStatusClassification?: string; // AI-classified work status (At work full hours full duties, etc.)
   ticketLastUpdatedAt?: string; // Most recent updated_at from Freshdesk tickets
   attachments?: CaseAttachment[];
   clcLastFollowUp?: string;
@@ -63,6 +64,7 @@ export const workerCases = pgTable("worker_cases", {
   aiSummary: text("ai_summary"),
   aiSummaryGeneratedAt: timestamp("ai_summary_generated_at"),
   aiSummaryModel: text("ai_summary_model"),
+  aiWorkStatusClassification: text("ai_work_status_classification"),
   ticketLastUpdatedAt: timestamp("ticket_last_updated_at"),
   clcLastFollowUp: text("clc_last_follow_up"),
   clcNextFollowUp: text("clc_next_follow_up"),

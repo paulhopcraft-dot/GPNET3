@@ -135,13 +135,19 @@ Preferred communication style: Simple, everyday language.
   - System prompt: Specialized in Worksafe Victoria worker's compensation compliance analysis
   - Typical response time: 5-15 seconds for comprehensive policy guidance
   - Environment variable: `ANTHROPIC_API_KEY` stored as Replit Secret
-- **AI Case Summaries with Caching** (November 9, 2025): ✅ **FULLY OPERATIONAL** - Automated case analysis with intelligent caching
-  - **Cache-first architecture**: Summaries persist in database (`aiSummary`, `aiSummaryGeneratedAt`, `aiSummaryModel` fields)
+- **AI Case Summaries with Caching** (November 9, 2025): ✅ **FULLY OPERATIONAL** - Automated case analysis with intelligent caching and work status classification
+  - **Cache-first architecture**: Summaries persist in database (`aiSummary`, `aiSummaryGeneratedAt`, `aiSummaryModel`, `aiWorkStatusClassification` fields)
   - **Smart invalidation**: Only regenerates when `ticketLastUpdatedAt` > `aiSummaryGeneratedAt` (ticket updated after summary)
+  - **Work Status Classification**: AI automatically classifies each case as: "At work full hours full duties", "At work full hours modified duties", "At work partial hours, full duties", "At work partial hours, modified duties", "Off Work", or "N/A"
+  - **Structured Summary Format** (inspired by Jacob Gunn case example):
+    - Header: Case Summary – Worker Name, Employer, Injury Type, Status
+    - Where We Are Now: Claim Stage, Medical, Employment/Placement, Documentation
+    - Next Steps / Recommended Actions: For Worker, For Employer, For GPNet, For Claims Manager
+    - Overall Outlook: Expected resolution summary
   - **API Endpoints**:
-    - GET `/api/cases/:id/summary` - Returns cached summary + metadata without generation
-    - POST `/api/cases/:id/summary` - Validates cache, regenerates if needed or returns cached version
-  - **SummaryService** (`server/services/summary.ts`): Encapsulates cache validation and generation logic
+    - GET `/api/cases/:id/summary` - Returns cached summary + metadata + work status classification
+    - POST `/api/cases/:id/summary` - Validates cache, regenerates if needed (add `?force=true` to bypass cache)
+  - **SummaryService** (`server/services/summary.ts`): System+user message prompting, 2048 token budget, structured output parsing
   - **Frontend integration**: CaseDetailPanel displays cached summaries instantly, shows freshness metadata, manual refresh button
   - **Performance**: First generation 5-15s, subsequent loads <100ms from cache
   - **Freshdesk sync preservation**: Preserves existing summaries during ticket updates, only invalidates cache when ticket timestamps advance

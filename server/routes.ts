@@ -98,6 +98,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         summary: workerCase.aiSummary || null,
         generatedAt: workerCase.aiSummaryGeneratedAt || null,
         model: workerCase.aiSummaryModel || null,
+        workStatusClassification: workerCase.aiWorkStatusClassification || null,
         ticketLastUpdatedAt: workerCase.ticketLastUpdatedAt || null,
         needsRefresh: await storage.needsSummaryRefresh(caseId),
       });
@@ -124,14 +125,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If force=true, always regenerate; otherwise use cached if valid
       let result;
       if (force) {
-        // Force regeneration
-        const summary = await summaryService.generateCaseSummary(workerCase);
-        result = {
-          summary: summary.summary,
-          cached: false,
-          generatedAt: summary.generatedAt,
-          model: summary.model,
-        };
+        try {
+          // Force regeneration
+          const generated = await summaryService.generateCaseSummary(workerCase);
+          
+          // Store in database
+          await storage.updateAISummary(caseId, generated.summary, summaryService.model, generated.workStatusClassification);
+          
+          result = {
+            summary: generated.summary,
+            cached: false,
+            generatedAt: new Date().toISOString(),
+            model: summaryService.model,
+            workStatusClassification: generated.workStatusClassification,
+          };
+        } catch (err) {
+          // If generation fails, fall back to cached summary with warning
+          if (workerCase.aiSummary) {
+            result = {
+              summary: workerCase.aiSummary,
+              cached: true,
+              generatedAt: workerCase.aiSummaryGeneratedAt,
+              model: workerCase.aiSummaryModel,
+              workStatusClassification: workerCase.aiWorkStatusClassification,
+            };
+          } else {
+            throw err; // Re-throw if no cached summary exists
+          }
+        }
       } else {
         // Generate or fetch cached summary (API key check happens inside service if needed)
         result = await summaryService.getCachedOrGenerateSummary(caseId);
@@ -143,6 +164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cached: result.cached,
         generatedAt: result.generatedAt,
         model: result.model,
+        workStatusClassification: result.workStatusClassification,
       });
     } catch (err) {
       console.error("Summary generation failed:", err);

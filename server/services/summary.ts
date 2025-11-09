@@ -4,7 +4,7 @@ import type { WorkerCase } from "@shared/schema";
 
 export class SummaryService {
   private anthropic: Anthropic | null = null;
-  private model = "claude-sonnet-4-20250514";
+  public model = "claude-sonnet-4-20250514";
 
   constructor() {
     const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -19,17 +19,22 @@ export class SummaryService {
     }
   }
 
-  async generateCaseSummary(workerCase: WorkerCase): Promise<string> {
+  async generateCaseSummary(workerCase: WorkerCase): Promise<{
+    summary: string;
+    workStatusClassification: string;
+  }> {
     this.ensureConfigured();
-    const prompt = this.buildSummaryPrompt(workerCase);
+    const systemPrompt = this.buildSystemPrompt();
+    const userPrompt = this.buildUserPrompt(workerCase);
     
     const response = await this.anthropic!.messages.create({
       model: this.model,
-      max_tokens: 1024,
+      max_tokens: 2048,
+      system: systemPrompt,
       messages: [
         {
           role: "user",
-          content: prompt,
+          content: userPrompt,
         },
       ],
     });
@@ -39,7 +44,18 @@ export class SummaryService {
       throw new Error("No text content in AI response");
     }
 
-    return textContent.text;
+    // Extract work status classification from the response
+    const fullText = textContent.text;
+    const workStatusMatch = fullText.match(/Work Status Classification:\s*(.+?)(?:\n|$)/);
+    const workStatusClassification = workStatusMatch ? workStatusMatch[1].trim() : "N/A";
+    
+    // Remove the classification line from summary (handles both \n and end-of-string)
+    const summary = fullText.replace(/Work Status Classification:.*?(?:\n|$)/, '').trim();
+
+    return {
+      summary,
+      workStatusClassification,
+    };
   }
 
   async getCachedOrGenerateSummary(caseId: string): Promise<{
@@ -47,6 +63,7 @@ export class SummaryService {
     cached: boolean;
     generatedAt?: string;
     model?: string;
+    workStatusClassification?: string;
   }> {
     const workerCase = await storage.getGPNet2CaseById(caseId);
     
@@ -64,27 +81,91 @@ export class SummaryService {
         cached: true,
         generatedAt: workerCase.aiSummaryGeneratedAt,
         model: workerCase.aiSummaryModel,
+        workStatusClassification: workerCase.aiWorkStatusClassification,
       };
     }
 
     // Generate new summary
-    const summary = await this.generateCaseSummary(workerCase);
+    const result = await this.generateCaseSummary(workerCase);
     
     // Store in database
-    await storage.updateAISummary(caseId, summary, this.model);
+    await storage.updateAISummary(caseId, result.summary, this.model, result.workStatusClassification);
 
     return {
-      summary,
+      summary: result.summary,
       cached: false,
       generatedAt: new Date().toISOString(),
       model: this.model,
+      workStatusClassification: result.workStatusClassification,
     };
   }
 
-  private buildSummaryPrompt(workerCase: WorkerCase): string {
-    return `You are a compliance assistant for Worksafe Victoria worker's compensation cases. Analyze the following case and provide a concise, professional summary focusing on compliance status, risk factors, and recommended actions.
+  private buildSystemPrompt(): string {
+    return `You are a compliance assistant for Worksafe Victoria worker's compensation cases. Generate detailed, structured case summaries following this exact format:
 
-**Case Details:**
+**REQUIRED OUTPUT FORMAT:**
+
+Work Status Classification: [ONE OF: "At work full hours full duties" | "At work full hours modified duties" | "At work partial hours, full duties" | "At work partial hours, modified duties" | "Off Work" | "N/A"]
+
+Case Summary – [Worker Name]
+Worker: [Name]
+Employer: [Company]
+Injury Type: [Type/description]
+Status: [Active/Closed - brief description]
+
+**Where We Are Now**
+
+**Claim Stage:**
+- [Bullet point describing claim status]
+- [Investigation details if applicable]
+- [Investigator/case manager information]
+
+**Medical:**
+- [Current medical status]
+- [Treatments/restrictions]
+- [Medical clearance requirements]
+
+**Employment / Placement:**
+- [Return-to-work planning]
+- [Placement status]
+- [Draft RTW plan status]
+
+**Documentation:**
+- [Required documents status]
+- [Missing items being followed up]
+
+**Next Steps / Recommended Actions**
+
+**For Worker (GPNet to coordinate):**
+- [Action item]
+- [Action item]
+
+**For [Employer Name]:**
+- [Action item]
+- [Action item]
+
+**For GPNet:**
+- [Action item]
+- [Action item]
+
+**For [Claims Manager/System]:**
+- [Action item]
+
+**Overall Outlook**
+[1-2 sentence summary of expected resolution path]
+
+**CRITICAL RULES:**
+1. Start with "Work Status Classification: [classification]" on the first line
+2. Use exact section headers as shown
+3. Write "Insufficient data provided" for any section where information is unavailable
+4. Keep tone professional and action-oriented
+5. Focus on compliance, risk factors, and actionable next steps`;
+  }
+
+  private buildUserPrompt(workerCase: WorkerCase): string {
+    return `Analyze this worker's compensation case and generate a structured summary:
+
+**Case Data:**
 - Worker: ${workerCase.workerName}
 - Company: ${workerCase.company}
 - Date of Injury: ${workerCase.dateOfInjury}
@@ -100,15 +181,10 @@ export class SummaryService {
 ${workerCase.clcLastFollowUp ? `- CLC Last Follow-up: ${workerCase.clcLastFollowUp}` : ""}
 ${workerCase.clcNextFollowUp ? `- CLC Next Follow-up: ${workerCase.clcNextFollowUp}` : ""}
 
-**Case Summary:**
+**Case Description:**
 ${workerCase.summary}
 
-Provide a 2-3 paragraph summary that:
-1. Highlights key compliance concerns and risk factors
-2. Identifies any missing documentation or action items
-3. Recommends next steps to maintain compliance
-
-Keep the tone professional and action-oriented.`;
+Generate the structured case summary following the required format.`;
   }
 }
 

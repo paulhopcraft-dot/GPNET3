@@ -8,7 +8,7 @@ export interface IStorage {
   getGPNet2CaseById(id: string): Promise<WorkerCase | null>;
   syncWorkerCaseFromFreshdesk(caseData: Partial<WorkerCase>): Promise<void>;
   clearAllWorkerCases(): Promise<void>;
-  updateAISummary(caseId: string, summary: string, model: string): Promise<void>;
+  updateAISummary(caseId: string, summary: string, model: string, workStatusClassification?: string): Promise<void>;
   needsSummaryRefresh(caseId: string): Promise<boolean>;
 }
 
@@ -43,6 +43,7 @@ class DbStorage implements IStorage {
           aiSummary: dbCase.aiSummary || undefined,
           aiSummaryGeneratedAt: dbCase.aiSummaryGeneratedAt?.toISOString() || undefined,
           aiSummaryModel: dbCase.aiSummaryModel || undefined,
+          aiWorkStatusClassification: dbCase.aiWorkStatusClassification || undefined,
           ticketLastUpdatedAt: dbCase.ticketLastUpdatedAt?.toISOString() || undefined,
           clcLastFollowUp: dbCase.clcLastFollowUp || undefined,
           clcNextFollowUp: dbCase.clcNextFollowUp || undefined,
@@ -96,6 +97,7 @@ class DbStorage implements IStorage {
       aiSummary: workerCase.aiSummary || undefined,
       aiSummaryGeneratedAt: workerCase.aiSummaryGeneratedAt?.toISOString() || undefined,
       aiSummaryModel: workerCase.aiSummaryModel || undefined,
+      aiWorkStatusClassification: workerCase.aiWorkStatusClassification || undefined,
       ticketLastUpdatedAt: workerCase.ticketLastUpdatedAt?.toISOString() || undefined,
       clcLastFollowUp: workerCase.clcLastFollowUp || undefined,
       clcNextFollowUp: workerCase.clcNextFollowUp || undefined,
@@ -169,6 +171,7 @@ class DbStorage implements IStorage {
           aiSummary: existing.aiSummary,
           aiSummaryGeneratedAt: existing.aiSummaryGeneratedAt,
           aiSummaryModel: existing.aiSummaryModel,
+          aiWorkStatusClassification: existing.aiWorkStatusClassification,
         })
         .where(eq(workerCases.id, caseData.id));
     } else {
@@ -181,13 +184,14 @@ class DbStorage implements IStorage {
     await db.delete(workerCases);
   }
 
-  async updateAISummary(caseId: string, summary: string, model: string): Promise<void> {
+  async updateAISummary(caseId: string, summary: string, model: string, workStatusClassification?: string): Promise<void> {
     await db
       .update(workerCases)
       .set({
         aiSummary: summary,
         aiSummaryGeneratedAt: new Date(),
         aiSummaryModel: model,
+        aiWorkStatusClassification: workStatusClassification,
         updatedAt: new Date(),
       })
       .where(eq(workerCases.id, caseId));
