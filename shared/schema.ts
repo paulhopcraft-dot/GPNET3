@@ -9,6 +9,13 @@ export type WorkStatus = "At work" | "Off work";
 export type RiskLevel = "High" | "Medium" | "Low";
 export type ComplianceIndicator = "Very High" | "High" | "Medium" | "Low" | "Very Low";
 
+// Helper function to check if a company value is valid
+export function isValidCompany(company: string | null | undefined): boolean {
+  if (!company) return false;
+  const normalized = company.trim().toLowerCase();
+  return normalized !== "unknown" && normalized !== "unknown company" && normalized !== "";
+}
+
 export interface CaseAttachment {
   id: string;
   name: string;
