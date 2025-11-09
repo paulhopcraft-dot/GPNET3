@@ -57,7 +57,7 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
 
       <ScrollArea className="h-[calc(100vh-8rem)]">
         <div className="space-y-6">
-          {workerCase.summary && (
+          {workerCase.summary && workerCase.summary.trim() && (
             <Card data-testid="card-case-summary">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
