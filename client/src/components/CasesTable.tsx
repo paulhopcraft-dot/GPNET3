@@ -92,7 +92,11 @@ export function CasesTable({ cases, selectedCaseId, onCaseClick }: CasesTablePro
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    <RiskBadge level={workerCase.complianceIndicator} type="compliance" />
+                    <RiskBadge 
+                      level={workerCase.complianceIndicator} 
+                      type="compliance" 
+                      compliance={workerCase.compliance}
+                    />
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {workerCase.nextStep} - {workerCase.dueDate}

@@ -36,6 +36,12 @@ Preferred communication style: Simple, everyday language.
 - UI cleanup (November 9, 2025): Removed "Owner", "CLC" follow-up field, and "Current Status" references from all user-facing components
 - Surname sorting (November 9, 2025): Workers displayed in surname (last name) alphabetical order within each company by default
 - Smart Next Steps (November 9, 2025): Intelligent next step determination based on ticket status, priority, and context instead of generic "Review case details"
+- **Structured Compliance System** (November 9, 2025): Upgraded compliance tracking with rich tooltip context
+  - RiskBadge component enhanced with tooltip support displaying compliance reason, source, and timestamp
+  - Centralized color system in `shared/complianceColors.ts` with semantically correct mapping (green=best compliance, red=worst)
+  - 5-tier day-based compliance levels: Very High (>7 days), High (4-7 days), Medium (1-3 days), Low (due today/tomorrow), Very Low (overdue)
+  - Full `CaseCompliance` objects with `indicator`, `reason`, `source`, and `lastChecked` fields stored in database and displayed in UI
+  - Maintains backward compatibility with legacy `complianceIndicator` field
 
 **State Management**
 - React Query for server state with infinite stale time and disabled automatic refetching (manual control)
@@ -76,6 +82,8 @@ Preferred communication style: Simple, everyday language.
 - `worker_cases` table as the core entity storing case information
   - `ticket_ids` (text array): Stores all Freshdesk ticket IDs when multiple tickets are merged for same worker
   - `ticket_count` (text): Count of merged tickets (stored as text for flexibility, coerced to number in TypeScript)
+  - `compliance_json` (JSONB): Structured compliance object with indicator, reason, source, lastChecked fields (November 9, 2025)
+  - `compliance_indicator` (text): Legacy compliance field maintained for backward compatibility
 - `case_attachments` table for file/document references (one-to-many relationship)
 - UUID-based primary keys with `gen_random_uuid()` for secure, collision-resistant identifiers
 - Timestamp fields for date tracking (date of injury, follow-up dates)

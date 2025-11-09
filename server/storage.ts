@@ -33,6 +33,7 @@ class DbStorage implements IStorage {
           hasCertificate: dbCase.hasCertificate,
           certificateUrl: dbCase.certificateUrl || undefined,
           complianceIndicator: dbCase.complianceIndicator as any,
+          compliance: dbCase.complianceJson as any, // Parse JSONB compliance object
           currentStatus: dbCase.currentStatus,
           nextStep: dbCase.nextStep,
           owner: dbCase.owner,
