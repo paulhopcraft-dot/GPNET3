@@ -33,7 +33,9 @@ Preferred communication style: Simple, everyday language.
 - DashboardStats component displays real-time statistics: total cases, off work count, at work count, and high risk count
 - CasesTable displays ticket count badges (e.g., "2 tickets") for workers with multiple merged Freshdesk tickets
 - CompanyNav component dynamically populates from live case data (not hardcoded list) with alphabetical sorting
-- UI cleanup (November 9, 2025): Removed "Owner" and "CLC" follow-up field references from all user-facing components
+- UI cleanup (November 9, 2025): Removed "Owner", "CLC" follow-up field, and "Current Status" references from all user-facing components
+- Surname sorting (November 9, 2025): Workers displayed in surname (last name) alphabetical order within each company by default
+- Smart Next Steps (November 9, 2025): Intelligent next step determination based on ticket status, priority, and context instead of generic "Review case details"
 
 **State Management**
 - React Query for server state with infinite stale time and disabled automatic refetching (manual control)
@@ -96,13 +98,25 @@ Preferred communication style: Simple, everyday language.
 - **Legitimate Case Filtering** (November 9, 2025): Multi-layer defense to filter out generic emails and non-case tickets
   - Helper function `isLegitimateCase()` validates cases based on:
     - Worker name must be real (not generic like "Claim 08250027189", "test", "unknown")
+    - Filters out: purely numeric names, names with brackets, names with long digit sequences (7+), placeholder names
+    - Filters out names starting with special characters or numbers
     - Must have either valid company OR date of injury (allows cases with "Unknown Company" if they have injury data)
     - Filters applied in Freshdesk service, storage layer, and frontend
   - Audit trail via console logs: `[Freshdesk Sync] Skipping non-case email`
   - Successfully includes workers like Jacob Gunn (has "Unknown Company" but valid injury date)
-  - Filters out generic claim numbers and test tickets
+  - Filters out: "08250027189", "Melad [2510092]", "[pay 2025", "My Certificate", generic claim numbers and test tickets
+  - Reduces raw Freshdesk data from 355 tickets to ~214 legitimate worker cases
 - Custom transformation layer (`FreshdeskService`) to map Freshdesk tickets to internal case structure
 - Handles ticket status, priority, custom fields, and company associations
+- **Smart Next Step Determination** (November 9, 2025): Context-aware action recommendations
+  - Uses `determineNextStep()` function to generate meaningful next steps based on:
+    - Ticket status (Open, Pending, Resolved, Closed)
+    - Priority level (Low, Medium, High, Urgent)
+    - Whether worker has medical certificate
+    - Work status (At work vs Off work)
+  - Examples: "Request updated medical certificate from worker", "Urgent: Contact worker and obtain medical certificate", "Monitor return to work progress"
+  - Fallback to custom `cf_injury_and_action_plan` field if populated in Freshdesk
+  - Replaces generic "Review case details" placeholder with actionable guidance
 - **Pagination & Full Ticket Fetch** (November 9, 2025): Fetches ALL tickets including closed/resolved
   - Uses 6-month lookback window with `updated_since` date filter to capture recent activity
   - Implements pagination to fetch all pages (355 tickets across 4 pages vs original 100)

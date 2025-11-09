@@ -28,15 +28,42 @@ export function isLegitimateCase(workerCase: {
   }
   
   const normalizedName = workerCase.workerName.trim().toLowerCase();
+  const originalName = workerCase.workerName.trim();
+  
+  // Filter out purely numeric names (e.g., "08250027189", "123456")
+  if (/^\d+$/.test(originalName)) {
+    return false;
+  }
+  
+  // Filter out names containing brackets (e.g., "Melad [2510092]", "[pay 2025")
+  if (originalName.includes('[') || originalName.includes(']')) {
+    return false;
+  }
+  
+  // Filter out names that are mostly numbers (e.g., "Melad 08250027189", "pay 2025")
+  // A real name shouldn't have long sequences of digits
+  if (/\d{7,}/.test(originalName)) {
+    return false;
+  }
   
   // Filter out generic claim numbers masquerading as names
   if (normalizedName.startsWith("claim ") || /^claim\s*\d+/.test(normalizedName)) {
     return false;
   }
   
+  // Filter out single character names or very short placeholder names
+  if (normalizedName.length < 2 || normalizedName === "--" || normalizedName === ".." || normalizedName === "..") {
+    return false;
+  }
+  
   // Filter out generic test/placeholder names
-  const genericNames = ["test", "testing", "unknown", "n/a", "none"];
+  const genericNames = ["test", "testing", "unknown", "n/a", "none", "my certificate"];
   if (genericNames.includes(normalizedName)) {
+    return false;
+  }
+  
+  // Filter out names that start with special characters or numbers
+  if (/^[^a-z]/i.test(originalName)) {
     return false;
   }
   
@@ -45,6 +72,17 @@ export function isLegitimateCase(workerCase: {
   const hasInjuryDate = !!workerCase.dateOfInjury && workerCase.dateOfInjury.trim() !== "";
   
   return hasValidCompany || hasInjuryDate;
+}
+
+// Extract surname (last name) from a worker name for sorting
+export function getSurname(workerName: string): string {
+  if (!workerName || workerName.trim() === "") {
+    return "";
+  }
+  
+  const parts = workerName.trim().split(/\s+/);
+  // Return the last word as the surname
+  return parts[parts.length - 1].toLowerCase();
 }
 
 export interface CaseAttachment {

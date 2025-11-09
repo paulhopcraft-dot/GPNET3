@@ -189,6 +189,46 @@ export class FreshdeskService {
     }
   }
 
+  private determineNextStep(ticket: FreshdeskTicket, workStatus: WorkStatus): string {
+    // If there's a custom action plan, use that
+    if (ticket.custom_fields?.cf_injury_and_action_plan?.trim()) {
+      return ticket.custom_fields.cf_injury_and_action_plan.trim();
+    }
+
+    // Determine next step based on ticket status and context
+    const status = ticket.status;
+    const priority = ticket.priority;
+    const hasCertificate = !!ticket.custom_fields?.cf_latest_medical_certificate;
+
+    // Status codes: 2=Open, 3=Pending, 4=Resolved, 5=Closed
+    switch (status) {
+      case 2: // Open
+        if (priority >= 3) {
+          return "Urgent: Contact worker and obtain medical certificate";
+        }
+        if (!hasCertificate) {
+          return "Request updated medical certificate from worker";
+        }
+        return "Contact worker to assess current status";
+
+      case 3: // Pending
+        if (!hasCertificate) {
+          return "Follow up with worker for medical documentation";
+        }
+        return "Awaiting worker response - follow up if no reply within 48 hours";
+
+      case 4: // Resolved
+      case 5: // Closed
+        if (workStatus === "At work") {
+          return "Monitor return to work progress";
+        }
+        return "Case resolved - archive documentation";
+
+      default:
+        return "Review case and determine appropriate action";
+    }
+  }
+
   private normalizeWorkerName(name: string): string {
     // Remove common prefixes/noise
     let normalized = name.toLowerCase().trim();
@@ -465,6 +505,9 @@ export class FreshdeskService {
       // Get the most recent updated_at timestamp from all merged tickets (already sorted by updated_at)
       const ticketLastUpdatedAt = primaryTicket.updated_at;
 
+      // Determine work status first so we can use it in next step determination
+      const workStatus = this.mapStatusToWorkStatus(primaryTicket.status);
+
       // Build the case object first so we can validate it
       const caseData = {
         id: ticketIds[0], // Use first (most recent) ticket ID as primary ID
@@ -472,12 +515,12 @@ export class FreshdeskService {
         company: companyName,
         dateOfInjury: dateOfInjury.toISOString().split('T')[0],
         riskLevel: this.mapPriorityToRiskLevel(primaryTicket.priority),
-        workStatus: this.mapStatusToWorkStatus(primaryTicket.status),
+        workStatus,
         hasCertificate: !!primaryTicket.custom_fields?.cf_latest_medical_certificate || primaryTicket.tags?.includes('has_certificate') || false,
         certificateUrl: primaryTicket.custom_fields?.cf_latest_medical_certificate || primaryTicket.custom_fields?.cf_url || undefined,
         complianceIndicator,
         currentStatus: primaryTicket.custom_fields?.cf_check_status || primaryTicket.description_text || "Pending review",
-        nextStep: primaryTicket.custom_fields?.cf_injury_and_action_plan || "Review case details",
+        nextStep: this.determineNextStep(primaryTicket, workStatus),
         owner: primaryTicket.custom_fields?.cf_case_manager_name || primaryTicket.custom_fields?.cf_consultant || "CLC Team",
         dueDate,
         summary,

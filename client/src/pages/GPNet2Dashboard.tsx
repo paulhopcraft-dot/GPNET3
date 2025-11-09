@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import type { WorkerCase } from "@shared/schema";
-import { isLegitimateCase } from "@shared/schema";
+import { isLegitimateCase, getSurname } from "@shared/schema";
 
 export default function GPNet2Dashboard() {
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
@@ -58,7 +58,7 @@ export default function GPNet2Dashboard() {
   }, []);
 
   const filteredCases = useMemo(() => {
-    return cases.filter((c) => {
+    const filtered = cases.filter((c) => {
       // Filter out non-legitimate cases (generic emails, etc.) - defense in depth
       if (!isLegitimateCase(c)) {
         return false;
@@ -69,6 +69,13 @@ export default function GPNet2Dashboard() {
         c.workerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         c.company.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesCompany && matchesSearch;
+    });
+    
+    // Sort by surname (last name) within each company
+    return filtered.sort((a, b) => {
+      const surnameA = getSurname(a.workerName);
+      const surnameB = getSurname(b.workerName);
+      return surnameA.localeCompare(surnameB);
     });
   }, [cases, selectedCompany, searchQuery]);
 
