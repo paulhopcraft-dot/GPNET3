@@ -31,6 +31,8 @@ export interface WorkerCase {
   owner: string;
   dueDate: string;
   summary: string;
+  ticketIds: string[]; // Track all Freshdesk ticket IDs for this worker
+  ticketCount: number; // Number of tickets merged into this case
   attachments?: CaseAttachment[];
   clcLastFollowUp?: string;
   clcNextFollowUp?: string;
@@ -52,6 +54,8 @@ export const workerCases = pgTable("worker_cases", {
   owner: text("owner").notNull(),
   dueDate: text("due_date").notNull(),
   summary: text("summary").notNull(),
+  ticketIds: text("ticket_ids").array().notNull().default(sql`ARRAY[]::text[]`),
+  ticketCount: text("ticket_count").notNull().default('1'),
   clcLastFollowUp: text("clc_last_follow_up"),
   clcNextFollowUp: text("clc_next_follow_up"),
   createdAt: timestamp("created_at").defaultNow(),

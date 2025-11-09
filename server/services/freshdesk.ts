@@ -157,7 +157,6 @@ export class FreshdeskService {
   }
 
   async transformTicketsToWorkerCases(tickets: FreshdeskTicket[]): Promise<Partial<WorkerCase>[]> {
-    const workerCases: Partial<WorkerCase>[] = [];
     const companyCache = new Map<number, FreshdeskCompany | null>();
     const validCompanies: CompanyName[] = ["Symmetry", "Allied Health", "Apex Labour", "SafeWorks", "Core Industrial"];
 
@@ -169,6 +168,9 @@ export class FreshdeskService {
         companyCache.set(companyId, company);
       })
     );
+
+    // Group tickets by worker name
+    const workerTicketsMap = new Map<string, FreshdeskTicket[]>();
 
     for (const ticket of tickets) {
       // Skip webhook error messages and system notifications
@@ -248,27 +250,119 @@ export class FreshdeskService {
         : "TBD";
 
       const compliance = this.calculateComplianceIndicator(ticket);
+      // Group tickets by worker name
+      const normalizedWorkerName = workerName.toLowerCase().trim();
+      if (!workerTicketsMap.has(normalizedWorkerName)) {
+        workerTicketsMap.set(normalizedWorkerName, []);
+      }
+      workerTicketsMap.get(normalizedWorkerName)!.push(ticket);
+    }
+
+    // Now merge tickets for each worker into a single case
+    const workerCases: Partial<WorkerCase>[] = [];
+    
+    for (const [normalizedName, ticketGroup] of Array.from(workerTicketsMap.entries())) {
+      // Sort tickets by updated_at to get the most recent one first
+      const sortedTickets = ticketGroup.sort((a: FreshdeskTicket, b: FreshdeskTicket) => 
+        new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+      );
+      
+      const primaryTicket = sortedTickets[0]; // Most recent ticket
+      const ticketIds = sortedTickets.map((t: FreshdeskTicket) => `FD-${t.id}`);
+      
+      // Get company name (prefer from most recent ticket)
+      let companyName: CompanyName | string = "Unknown Company";
+      if (primaryTicket.company_id) {
+        const company = companyCache.get(primaryTicket.company_id);
+        if (company) {
+          if (validCompanies.includes(company.name as CompanyName)) {
+            companyName = company.name as CompanyName;
+          } else {
+            companyName = company.name;
+          }
+        }
+      }
+      
+      if (companyName === "Unknown Company" && primaryTicket.description_text) {
+        const companyNameMatch = primaryTicket.description_text.match(/Company Name\s*([A-Za-z\s&]+?)(?:Age|$)/i);
+        const basicCompanyMatch = primaryTicket.description_text.match(/company:\s*([A-Za-z\s&]+?)(?:\n|$)/i);
+        
+        if (companyNameMatch) {
+          companyName = companyNameMatch[1].trim();
+        } else if (basicCompanyMatch) {
+          companyName = basicCompanyMatch[1].trim();
+        }
+      }
+
+      // Extract worker name from primary ticket
+      let workerName = primaryTicket.custom_fields?.cf_workers_name || primaryTicket.custom_fields?.cf_worker_first_name;
+      
+      if (!workerName && primaryTicket.description_text) {
+        const fullNameMatch = primaryTicket.description_text.match(/Full Name\s*([A-Za-z\s]+?)(?:Your email|$)/i);
+        const basicNameMatch = primaryTicket.description_text.match(/name:\s*([A-Za-z\s]+?)(?:\n|$)/i);
+        
+        if (fullNameMatch) {
+          workerName = fullNameMatch[1].trim();
+        } else if (basicNameMatch) {
+          workerName = basicNameMatch[1].trim();
+        }
+      }
+      
+      if (!workerName && primaryTicket.subject) {
+        const subjectParts = primaryTicket.subject.split('-');
+        if (subjectParts.length >= 3) {
+          workerName = subjectParts[subjectParts.length - 1].trim();
+        } else if (primaryTicket.subject.includes('Gunn')) {
+          workerName = 'Jacob Gunn';
+        } else if (primaryTicket.subject.includes('Barclay')) {
+          workerName = 'Stuart Barclay';
+        } else if (primaryTicket.subject.includes('Siketa')) {
+          workerName = 'Mario Siketa';
+        }
+      }
+      
+      if (!workerName) {
+        workerName = primaryTicket.subject || `Worker #${primaryTicket.id}`;
+      }
+
+      const dateOfInjury = primaryTicket.custom_fields?.cf_injury_date 
+        ? new Date(primaryTicket.custom_fields.cf_injury_date)
+        : new Date(primaryTicket.created_at);
+
+      const dueDate = primaryTicket.due_by 
+        ? new Date(primaryTicket.due_by).toLocaleDateString()
+        : "TBD";
+
+      const compliance = this.calculateComplianceIndicator(primaryTicket);
       const complianceIndicator: ComplianceIndicator = 
         compliance === "On track" ? "Low" :
         compliance === "At risk" ? "Medium" : "High";
 
+      // Create combined summary mentioning multiple tickets if applicable
+      let summary = primaryTicket.subject;
+      if (ticketIds.length > 1) {
+        summary = `${primaryTicket.subject} (${ticketIds.length} related tickets)`;
+      }
+
       workerCases.push({
-        id: `FD-${ticket.id}`,
+        id: ticketIds[0], // Use first (most recent) ticket ID as primary ID
         workerName,
         company: companyName,
         dateOfInjury: dateOfInjury.toISOString().split('T')[0],
-        riskLevel: this.mapPriorityToRiskLevel(ticket.priority),
-        workStatus: this.mapStatusToWorkStatus(ticket.status),
-        hasCertificate: !!ticket.custom_fields?.cf_latest_medical_certificate || ticket.tags?.includes('has_certificate') || false,
-        certificateUrl: ticket.custom_fields?.cf_latest_medical_certificate || ticket.custom_fields?.cf_url || undefined,
+        riskLevel: this.mapPriorityToRiskLevel(primaryTicket.priority),
+        workStatus: this.mapStatusToWorkStatus(primaryTicket.status),
+        hasCertificate: !!primaryTicket.custom_fields?.cf_latest_medical_certificate || primaryTicket.tags?.includes('has_certificate') || false,
+        certificateUrl: primaryTicket.custom_fields?.cf_latest_medical_certificate || primaryTicket.custom_fields?.cf_url || undefined,
         complianceIndicator,
-        currentStatus: ticket.custom_fields?.cf_check_status || ticket.description_text || "Pending review",
-        nextStep: ticket.custom_fields?.cf_injury_and_action_plan || "Review case details",
-        owner: ticket.custom_fields?.cf_case_manager_name || ticket.custom_fields?.cf_consultant || "CLC Team",
+        currentStatus: primaryTicket.custom_fields?.cf_check_status || primaryTicket.description_text || "Pending review",
+        nextStep: primaryTicket.custom_fields?.cf_injury_and_action_plan || "Review case details",
+        owner: primaryTicket.custom_fields?.cf_case_manager_name || primaryTicket.custom_fields?.cf_consultant || "CLC Team",
         dueDate,
-        summary: ticket.subject,
-        clcLastFollowUp: ticket.custom_fields?.cf_full_medical_report_date || undefined,
-        clcNextFollowUp: ticket.custom_fields?.cf_valid_until || undefined,
+        summary,
+        ticketIds,
+        ticketCount: ticketIds.length,
+        clcLastFollowUp: primaryTicket.custom_fields?.cf_full_medical_report_date || undefined,
+        clcNextFollowUp: primaryTicket.custom_fields?.cf_valid_until || undefined,
       });
     }
 
