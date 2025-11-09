@@ -38,6 +38,10 @@ class DbStorage implements IStorage {
           summary: dbCase.summary,
           ticketIds: dbCase.ticketIds || [dbCase.id],
           ticketCount: Number(dbCase.ticketCount) || 1,
+          aiSummary: dbCase.aiSummary || undefined,
+          aiSummaryGeneratedAt: dbCase.aiSummaryGeneratedAt?.toISOString() || undefined,
+          aiSummaryModel: dbCase.aiSummaryModel || undefined,
+          ticketLastUpdatedAt: dbCase.ticketLastUpdatedAt?.toISOString() || undefined,
           clcLastFollowUp: dbCase.clcLastFollowUp || undefined,
           clcNextFollowUp: dbCase.clcNextFollowUp || undefined,
           attachments: attachments.map((att) => ({
@@ -87,10 +91,12 @@ class DbStorage implements IStorage {
       summary: workerCase.summary,
       ticketIds: workerCase.ticketIds || [workerCase.id],
       ticketCount: Number(workerCase.ticketCount) || 1,
+      aiSummary: workerCase.aiSummary || undefined,
+      aiSummaryGeneratedAt: workerCase.aiSummaryGeneratedAt?.toISOString() || undefined,
+      aiSummaryModel: workerCase.aiSummaryModel || undefined,
+      ticketLastUpdatedAt: workerCase.ticketLastUpdatedAt?.toISOString() || undefined,
       clcLastFollowUp: workerCase.clcLastFollowUp || undefined,
       clcNextFollowUp: workerCase.clcNextFollowUp || undefined,
-      injuryType: workerCase.injuryType || undefined,
-      expectedRecoveryDate: workerCase.expectedRecoveryDate || undefined,
       attachments: attachments.map((att) => ({
         id: att.id,
         name: att.name,
@@ -115,6 +121,10 @@ class DbStorage implements IStorage {
       ? (typeof caseData.dateOfInjury === 'string' ? new Date(caseData.dateOfInjury) : caseData.dateOfInjury)
       : new Date();
 
+    const ticketLastUpdatedAt = caseData.ticketLastUpdatedAt 
+      ? (typeof caseData.ticketLastUpdatedAt === 'string' ? new Date(caseData.ticketLastUpdatedAt) : caseData.ticketLastUpdatedAt)
+      : null;
+
     const dbData = {
       id: caseData.id,
       workerName: caseData.workerName || "Unknown",
@@ -132,6 +142,7 @@ class DbStorage implements IStorage {
       summary: caseData.summary || "",
       ticketIds: caseData.ticketIds || [caseData.id],
       ticketCount: String(caseData.ticketCount || 1),
+      ticketLastUpdatedAt,
       clcLastFollowUp: caseData.clcLastFollowUp || null,
       clcNextFollowUp: caseData.clcNextFollowUp || null,
       updatedAt: new Date(),

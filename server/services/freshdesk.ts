@@ -156,6 +156,45 @@ export class FreshdeskService {
     }
   }
 
+  private normalizeWorkerName(name: string): string {
+    // Remove common prefixes/noise
+    let normalized = name.toLowerCase().trim();
+    
+    // Remove FW:, RE: prefixes
+    normalized = normalized.replace(/^(fw|re):\s*/i, '');
+    
+    // Extract name from patterns like "MARIO SIKETA, Primary Claim - 09250033555"
+    const claimPattern = /^([a-z\s]+),\s*primary\s+claim/i;
+    const claimMatch = normalized.match(claimPattern);
+    if (claimMatch) {
+      normalized = claimMatch[1].trim();
+    }
+    
+    // Special handling for known workers
+    if ((normalized.includes('jacob') || normalized.includes('pat')) && normalized.includes('gunn')) {
+      return 'jacob gunn';
+    }
+    
+    if (normalized === 'gunn' || normalized.match(/^gunn\s*$/)) {
+      return 'jacob gunn';
+    }
+    
+    if (normalized.includes('siketa')) {
+      if (normalized.includes('mario') || normalized === 'siketa') {
+        return 'mario siketa';
+      }
+    }
+    
+    // Remove middle names and extra spaces (keep first and last name only)
+    const words = normalized.split(/\s+/).filter(w => w.length > 0 && w.length > 1);
+    if (words.length > 2) {
+      // Keep first and last word only
+      return `${words[0]} ${words[words.length - 1]}`;
+    }
+    
+    return words.join(' ');
+  }
+
   async transformTicketsToWorkerCases(tickets: FreshdeskTicket[]): Promise<Partial<WorkerCase>[]> {
     const companyCache = new Map<number, FreshdeskCompany | null>();
     const validCompanies: CompanyName[] = ["Symmetry", "Allied Health", "Apex Labour", "SafeWorks", "Core Industrial"];
@@ -224,15 +263,21 @@ export class FreshdeskService {
       
       // Try to extract from subject line (e.g., "Cobild-New Starter Check-Oliver Smith")
       if (!workerName && ticket.subject) {
-        const subjectParts = ticket.subject.split('-');
-        if (subjectParts.length >= 3) {
-          workerName = subjectParts[subjectParts.length - 1].trim();
-        } else if (ticket.subject.includes('Gunn')) {
-          workerName = 'Jacob Gunn';
-        } else if (ticket.subject.includes('Barclay')) {
-          workerName = 'Stuart Barclay';
-        } else if (ticket.subject.includes('Siketa')) {
-          workerName = 'Mario Siketa';
+        // Special case: Extract name from IME/DXC appointment notifications
+        const imeMatch = ticket.subject.match(/re\s+([A-Z\s]+),\s+Primary/i);
+        if (imeMatch) {
+          workerName = imeMatch[1].trim();
+        } else {
+          const subjectParts = ticket.subject.split('-');
+          if (subjectParts.length >= 3) {
+            workerName = subjectParts[subjectParts.length - 1].trim();
+          } else if (ticket.subject.toLowerCase().includes('gunn')) {
+            workerName = 'Jacob Gunn';
+          } else if (ticket.subject.toLowerCase().includes('barclay')) {
+            workerName = 'Stuart Barclay';
+          } else if (ticket.subject.toLowerCase().includes('siketa')) {
+            workerName = 'Mario Siketa';
+          }
         }
       }
       
@@ -250,8 +295,8 @@ export class FreshdeskService {
         : "TBD";
 
       const compliance = this.calculateComplianceIndicator(ticket);
-      // Group tickets by worker name
-      const normalizedWorkerName = workerName.toLowerCase().trim();
+      // Group tickets by worker name with smart normalization
+      const normalizedWorkerName = this.normalizeWorkerName(workerName);
       if (!workerTicketsMap.has(normalizedWorkerName)) {
         workerTicketsMap.set(normalizedWorkerName, []);
       }
@@ -309,21 +354,34 @@ export class FreshdeskService {
       }
       
       if (!workerName && primaryTicket.subject) {
-        const subjectParts = primaryTicket.subject.split('-');
-        if (subjectParts.length >= 3) {
-          workerName = subjectParts[subjectParts.length - 1].trim();
-        } else if (primaryTicket.subject.includes('Gunn')) {
-          workerName = 'Jacob Gunn';
-        } else if (primaryTicket.subject.includes('Barclay')) {
-          workerName = 'Stuart Barclay';
-        } else if (primaryTicket.subject.includes('Siketa')) {
-          workerName = 'Mario Siketa';
+        // Special case: Extract name from IME/DXC appointment notifications
+        const imeMatch = primaryTicket.subject.match(/re\s+([A-Z\s]+),\s+Primary/i);
+        if (imeMatch) {
+          workerName = imeMatch[1].trim();
+        } else {
+          const subjectParts = primaryTicket.subject.split('-');
+          if (subjectParts.length >= 3) {
+            workerName = subjectParts[subjectParts.length - 1].trim();
+          } else if (primaryTicket.subject.toLowerCase().includes('gunn')) {
+            workerName = 'Jacob Gunn';
+          } else if (primaryTicket.subject.toLowerCase().includes('barclay')) {
+            workerName = 'Stuart Barclay';
+          } else if (primaryTicket.subject.toLowerCase().includes('siketa')) {
+            workerName = 'Mario Siketa';
+          }
         }
       }
       
       if (!workerName) {
         workerName = primaryTicket.subject || `Worker #${primaryTicket.id}`;
       }
+
+      // Clean up the worker name for display (proper capitalization)
+      const normalizedName = this.normalizeWorkerName(workerName);
+      const displayName = normalizedName
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
 
       const dateOfInjury = primaryTicket.custom_fields?.cf_injury_date 
         ? new Date(primaryTicket.custom_fields.cf_injury_date)
@@ -349,7 +407,7 @@ export class FreshdeskService {
 
       workerCases.push({
         id: ticketIds[0], // Use first (most recent) ticket ID as primary ID
-        workerName,
+        workerName: displayName,
         company: companyName,
         dateOfInjury: dateOfInjury.toISOString().split('T')[0],
         riskLevel: this.mapPriorityToRiskLevel(primaryTicket.priority),
