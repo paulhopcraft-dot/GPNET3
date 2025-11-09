@@ -1,25 +1,28 @@
-import OpenAI from "openai";
+import Anthropic from "@anthropic-ai/sdk";
 
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 export async function generateCaseSummary(caseData: any) {
   const prompt = `
-You are a workplace rehabilitation case manager.
+You are a workplace rehabilitation case manager for GPNet.
 Write a professional, factual summary for this worker's case using these sections:
-1. Case Summary – [Worker Name]
-2. Where We Are Now (Claim Stage, Medical, Employment/Placement, Documentation)
-3. Next Steps / Recommended Actions (group by responsible party)
-4. Overall Outlook
+1. Case Summary – Brief overview of the injury and situation
+2. Where We Are Now – Current recovery status, claim stage, and work capacity
+3. Next Steps / Recommended Actions – Immediate actions needed (group by responsible party)
+4. Overall Outlook – Expected timeline and key compliance considerations
 
 Context:
 ${JSON.stringify(caseData, null, 2)}
+
+Keep it concise and actionable. Use 2-3 sentences per section.
 `;
 
-  const completion = await client.chat.completions.create({
-    model: "gpt-4o",
+  const response = await client.messages.create({
+    model: "claude-sonnet-4-20250514",
+    max_tokens: 1024,
     messages: [{ role: "user", content: prompt }],
-    temperature: 0.3,
   });
 
-  return completion.choices[0].message?.content ?? "Summary unavailable.";
+  const content = response.content[0];
+  return content.type === "text" ? content.text : "Summary unavailable.";
 }

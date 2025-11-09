@@ -85,11 +85,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI Case Summary endpoint
   app.get("/api/cases/:id/summary", async (req, res) => {
     try {
-      // Check for OpenAI API key
-      if (!process.env.OPENAI_API_KEY) {
+      // Check for Anthropic API key
+      if (!process.env.ANTHROPIC_API_KEY) {
         return res.status(503).json({ 
           error: "AI summary service unavailable",
-          details: "OpenAI API key not configured"
+          details: "Anthropic API key not configured"
         });
       }
 

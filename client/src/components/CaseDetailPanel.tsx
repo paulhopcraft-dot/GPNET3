@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import type { WorkerCase } from "@shared/schema";
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
@@ -45,6 +46,33 @@ function generateRecoveryData(dateOfInjury: string) {
 
 export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
   const { expected, actual } = generateRecoveryData(workerCase.dateOfInjury);
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [loadingSummary, setLoadingSummary] = useState(false);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const generateSummary = async () => {
+      setLoadingSummary(true);
+      setSummaryError(null);
+      setAiSummary(null);
+      
+      try {
+        const response = await fetch(`/api/cases/${workerCase.id}/summary`);
+        if (!response.ok) {
+          throw new Error("Failed to generate summary");
+        }
+        const data = await response.json();
+        setAiSummary(data.summary);
+      } catch (error) {
+        console.error("Error generating AI summary:", error);
+        setSummaryError("AI summary temporarily unavailable");
+      } finally {
+        setLoadingSummary(false);
+      }
+    };
+
+    generateSummary();
+  }, [workerCase.id]);
 
   return (
     <aside className="w-96 flex-shrink-0 bg-card border-l border-border p-6">
@@ -57,16 +85,38 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
 
       <ScrollArea className="h-[calc(100vh-8rem)]">
         <div className="space-y-6">
-          {workerCase.summary && workerCase.summary.trim() && (
-            <Card data-testid="card-case-summary">
+          {loadingSummary && (
+            <Card data-testid="card-summary-loading">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                  <span className="material-symbols-outlined animate-spin text-primary">autorenew</span>
+                  <span>Generating AI case summary with Claude Sonnet 4...</span>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {aiSummary && (
+            <Card data-testid="card-ai-summary">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
-                  <span className="material-symbols-outlined text-primary">description</span>
-                  Case Summary
+                  <span className="material-symbols-outlined text-primary">psychology</span>
+                  AI Case Summary
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-sm whitespace-pre-wrap">{workerCase.summary}</div>
+                <div className="text-sm whitespace-pre-wrap leading-relaxed">{aiSummary}</div>
+              </CardContent>
+            </Card>
+          )}
+
+          {summaryError && (
+            <Card data-testid="card-summary-error">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span className="material-symbols-outlined">info</span>
+                  {summaryError}
+                </div>
               </CardContent>
             </Card>
           )}
