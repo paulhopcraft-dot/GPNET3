@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import type { WorkerCase } from "@shared/schema";
+import { isValidCompany } from "@shared/schema";
 
 export default function GPNet2Dashboard() {
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
@@ -58,6 +59,10 @@ export default function GPNet2Dashboard() {
 
   const filteredCases = useMemo(() => {
     return cases.filter((c) => {
+      // Filter out cases without valid company associations (defense in depth)
+      if (!isValidCompany(c.company)) {
+        return false;
+      }
       const matchesCompany = !selectedCompany || c.company === selectedCompany;
       const matchesSearch =
         !searchQuery ||
