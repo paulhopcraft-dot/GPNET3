@@ -10,42 +10,11 @@ interface CaseDetailPanelProps {
   onClose: () => void;
 }
 
-function generateRecoveryData(dateOfInjury: string) {
-  const injuryDate = new Date(dateOfInjury);
-  const now = new Date();
-  const daysSinceInjury = Math.max(Math.floor((now.getTime() - injuryDate.getTime()) / (1000 * 60 * 60 * 24)), 1);
-  const weeksElapsed = Math.max(daysSinceInjury / 7, 0.5);
-  const expectedWeeks = 12;
-  
-  const normalizeWeek = (week: number) => Math.max(0, Math.min(week / expectedWeeks, 1));
-  
-  const expected = [];
-  for (let i = 0; i <= expectedWeeks; i += 2) {
-    expected.push({ 
-      x: normalizeWeek(i), 
-      y: Math.max(0, Math.min(i / expectedWeeks, 1))
-    });
-  }
-  
-  const actual = [];
-  const currentProgress = Math.min(weeksElapsed / expectedWeeks, 0.85);
-  const steps = Math.max(Math.min(Math.ceil(weeksElapsed / 2), 6), 2);
-  
-  for (let i = 0; i <= steps; i++) {
-    const weekPoint = (i / steps) * weeksElapsed;
-    const progressVariation = 0.9 + Math.random() * 0.2;
-    const yValue = (i / steps) * currentProgress * progressVariation;
-    actual.push({
-      x: normalizeWeek(weekPoint),
-      y: Math.max(0, Math.min(yValue, 1))
-    });
-  }
-  
-  return { expected, actual };
-}
-
 export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
-  const { expected, actual } = generateRecoveryData(workerCase.dateOfInjury);
+  // Calculate expected recovery date (12 weeks from injury)
+  const injuryDate = new Date(workerCase.dateOfInjury);
+  const expectedRecoveryDate = new Date(injuryDate);
+  expectedRecoveryDate.setDate(expectedRecoveryDate.getDate() + (12 * 7)); // 12 weeks
   const [aiSummary, setAiSummary] = useState<string | null>(workerCase.aiSummary || null);
   const [summaryMeta, setSummaryMeta] = useState<{
     generatedAt?: string;
@@ -84,12 +53,13 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
     }
   };
 
-  const generateSummary = async () => {
+  const generateSummary = async (force: boolean = false) => {
     setLoadingSummary(true);
     setSummaryError(null);
     
     try {
-      const response = await fetch(`/api/cases/${workerCase.id}/summary`, {
+      const url = `/api/cases/${workerCase.id}/summary${force ? '?force=true' : ''}`;
+      const response = await fetch(url, {
         method: 'POST',
       });
       if (!response.ok) {
@@ -159,7 +129,7 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={generateSummary}
+                    onClick={() => generateSummary(true)}
                     disabled={loadingSummary}
                     data-testid="button-refresh-summary"
                     className="text-xs"
@@ -253,19 +223,10 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
 
           <div>
             <h3 className="text-sm font-medium text-muted-foreground mb-3">Recovery Timeline</h3>
-            <div className="bg-background rounded-lg p-4 border border-border" data-testid="recovery-timeline-chart">
-              <RecoveryChart expected={expected} actual={actual} width={320} height={200} />
-              <div className="flex items-center justify-center gap-6 mt-3 text-xs">
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-0.5 border-t-2 border-dashed border-muted-foreground"></div>
-                  <span className="text-muted-foreground">Expected</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-0.5 bg-emerald-600"></div>
-                  <span className="text-muted-foreground">Actual</span>
-                </div>
-              </div>
-            </div>
+            <RecoveryChart 
+              injuryDate={workerCase.dateOfInjury}
+              expectedRecoveryDate={expectedRecoveryDate.toISOString()}
+            />
           </div>
 
           {workerCase.attachments && workerCase.attachments.length > 0 && (

@@ -114,14 +114,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/cases/:id/summary", async (req, res) => {
     try {
       const caseId = req.params.id;
+      const force = req.query.force === 'true';
       const workerCase = await storage.getGPNet2CaseById(caseId);
 
       if (!workerCase) {
         return res.status(404).json({ error: "Case not found" });
       }
 
-      // Generate or fetch cached summary (API key check happens inside service if needed)
-      const result = await summaryService.getCachedOrGenerateSummary(caseId);
+      // If force=true, always regenerate; otherwise use cached if valid
+      let result;
+      if (force) {
+        // Force regeneration
+        const summary = await summaryService.generateCaseSummary(workerCase);
+        result = {
+          summary: summary.summary,
+          cached: false,
+          generatedAt: summary.generatedAt,
+          model: summary.model,
+        };
+      } else {
+        // Generate or fetch cached summary (API key check happens inside service if needed)
+        result = await summaryService.getCachedOrGenerateSummary(caseId);
+      }
 
       res.json({
         id: caseId,
