@@ -344,6 +344,9 @@ export class FreshdeskService {
         summary = `${primaryTicket.subject} (${ticketIds.length} related tickets)`;
       }
 
+      // Get the most recent updated_at timestamp from all merged tickets (already sorted by updated_at)
+      const ticketLastUpdatedAt = primaryTicket.updated_at;
+
       workerCases.push({
         id: ticketIds[0], // Use first (most recent) ticket ID as primary ID
         workerName,
@@ -361,6 +364,7 @@ export class FreshdeskService {
         summary,
         ticketIds,
         ticketCount: ticketIds.length,
+        ticketLastUpdatedAt,
         clcLastFollowUp: primaryTicket.custom_fields?.cf_full_medical_report_date || undefined,
         clcNextFollowUp: primaryTicket.custom_fields?.cf_valid_until || undefined,
       });
