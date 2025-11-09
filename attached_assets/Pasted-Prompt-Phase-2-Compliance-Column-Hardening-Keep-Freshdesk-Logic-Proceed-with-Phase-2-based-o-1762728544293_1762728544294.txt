@@ -1,0 +1,132 @@
+Prompt: “Phase 2 — Compliance Column Hardening (Keep Freshdesk Logic)”
+
+Proceed with Phase 2 based on the diagnostic summary.
+
+Goals:
+
+Keep current Freshdesk → complianceIndicator logic.
+
+Fix the seven gaps found (reason, timestamp, source, mapping, color semantics, null safety, type consistency).
+
+✅ Implementation Tasks
+
+Shared Type Update
+
+In shared/schema.ts, replace existing compliance type with:
+
+export type ComplianceIndicator = 'Very High' | 'High' | 'Medium' | 'Low' | 'Very Low';
+
+export interface CaseCompliance {
+  indicator: ComplianceIndicator;
+  reason: string;
+  source: 'freshdesk' | 'claude' | 'manual';
+  lastChecked: string;
+}
+
+
+Update WorkerCase to include:
+
+compliance?: CaseCompliance;
+
+
+Backend Fix (server/services/freshdesk.ts)
+
+Update calculateComplianceIndicator to return a full CaseCompliance object.
+
+Example mapping (using existing due _by logic):
+
+const diffDays = dayjs(ticket.due_by).diff(dayjs(), 'day');
+let indicator: ComplianceIndicator;
+let reason = '';
+if (diffDays < 0) {
+  indicator = 'Very Low';
+  reason = `Overdue by ${Math.abs(diffDays)} days`;
+} else if (diffDays <= 1) {
+  indicator = 'Low';
+  reason = `Due within ${diffDays} day(s)`;
+} else if (diffDays <= 3) {
+  indicator = 'Medium';
+  reason = `Due in ${diffDays} days`;
+} else if (diffDays <= 7) {
+  indicator = 'High';
+  reason = `Due in a week`;
+} else {
+  indicator = 'Very High';
+  reason = `On track (due in ${diffDays} days)`;
+}
+return {
+  indicator,
+  reason,
+  source: 'freshdesk',
+  lastChecked: new Date().toISOString(),
+};
+
+
+Adjust any caller to use case.compliance.indicator.
+
+API Response
+
+/api/gpnet2/cases should now return:
+
+{
+  "id": "123",
+  "workerName": "Jane Doe",
+  "compliance": {
+    "indicator": "Medium",
+    "reason": "Due in 2 days",
+    "source": "freshdesk",
+    "lastChecked": "2025-11-10T08:42:00Z"
+  }
+}
+
+
+Frontend (client/src/components/CasesTable.tsx & RiskBadge.tsx)
+
+Replace workerCase.complianceIndicator with workerCase.compliance?.indicator.
+
+Add tooltip on hover showing:
+
+reason
+
+(source, lastChecked)
+
+Add null check: if no compliance, show “—” with muted color and tooltip “Awaiting data”.
+
+Ensure color map aligns with good = green, bad = red (reverse the current confusion).
+
+Centralize Color Map
+
+Create shared/complianceColors.ts:
+
+export const complianceColors = {
+  'Very High': 'bg-green-500',
+  'High': 'bg-green-400',
+  'Medium': 'bg-yellow-400',
+  'Low': 'bg-orange-400',
+  'Very Low': 'bg-red-500',
+} as const;
+
+
+and import it in RiskBadge.tsx.
+
+Test & Verify
+
+Fetch /api/gpnet2/cases → confirm full compliance object.
+
+Load dashboard → badges render with tooltips, no undefined errors.
+
+Confirm “Very High” and “Very Low” now appear under correct scenarios.
+
+🔒 Acceptance Criteria
+
+✅ No breaking changes to Freshdesk sync.
+
+✅ All five compliance levels usable.
+
+✅ Tooltip shows reason + source + timestamp.
+
+✅ Colors now make semantic sense.
+
+✅ Null-safe rendering when data missing.
+
+After this step, we’ll add an optional Phase 3 (Claude adapter) to pull in Claude’s compliance analysis when available — without replacing Freshdesk logic.

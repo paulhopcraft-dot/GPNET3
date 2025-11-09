@@ -9,6 +9,13 @@ export type WorkStatus = "At work" | "Off work";
 export type RiskLevel = "High" | "Medium" | "Low";
 export type ComplianceIndicator = "Very High" | "High" | "Medium" | "Low" | "Very Low";
 
+export interface CaseCompliance {
+  indicator: ComplianceIndicator;
+  reason: string;
+  source: 'freshdesk' | 'claude' | 'manual';
+  lastChecked: string;
+}
+
 // Helper function to check if a company value is valid
 export function isValidCompany(company: string | null | undefined): boolean {
   if (!company) return false;
@@ -101,7 +108,8 @@ export interface WorkerCase {
   workStatus: WorkStatus;
   hasCertificate: boolean;
   certificateUrl?: string;
-  complianceIndicator: ComplianceIndicator;
+  complianceIndicator: ComplianceIndicator; // Legacy field - kept for backward compatibility
+  compliance?: CaseCompliance; // New structured compliance object
   currentStatus: string;
   nextStep: string;
   owner: string;
