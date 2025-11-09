@@ -1,4 +1,5 @@
 import type { WorkerCase, CompanyName, ComplianceIndicator, WorkStatus } from "@shared/schema";
+import { isValidCompany } from "@shared/schema";
 
 interface FreshdeskTicket {
   id: number;
@@ -463,6 +464,12 @@ export class FreshdeskService {
 
       // Get the most recent updated_at timestamp from all merged tickets (already sorted by updated_at)
       const ticketLastUpdatedAt = primaryTicket.updated_at;
+
+      // Skip cases without valid company associations
+      if (!isValidCompany(companyName)) {
+        console.warn(`[Freshdesk Sync] Skipping worker case due to invalid company: Ticket=${ticketIds[0]}, Worker=${displayName}, Company="${companyName}"`);
+        continue;
+      }
 
       workerCases.push({
         id: ticketIds[0], // Use first (most recent) ticket ID as primary ID

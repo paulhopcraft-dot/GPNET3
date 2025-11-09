@@ -1,6 +1,6 @@
 import type { WorkerCase, WorkerCaseDB } from "@shared/schema";
 import { db } from "./db";
-import { workerCases, caseAttachments } from "@shared/schema";
+import { workerCases, caseAttachments, isValidCompany } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
 export interface IStorage {
@@ -113,6 +113,12 @@ class DbStorage implements IStorage {
   async syncWorkerCaseFromFreshdesk(caseData: Partial<WorkerCase>): Promise<void> {
     if (!caseData.id) {
       throw new Error("Case ID is required for sync");
+    }
+
+    // Defensive guard: Skip syncing if company is invalid
+    if (!isValidCompany(caseData.company)) {
+      console.warn(`[Storage] Skipping sync for case with invalid company: CaseID=${caseData.id}, Worker=${caseData.workerName}, Company="${caseData.company}"`);
+      return;
     }
 
     const existingCase = await db
