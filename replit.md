@@ -91,6 +91,12 @@ Preferred communication style: Simple, everyday language.
 
 **Freshdesk Integration**
 - REST API integration for syncing support tickets as worker cases (November 2025)
+- **Company Association Filtering** (November 9, 2025): Multi-layer defense to exclude cases without valid company associations
+  - Helper function `isValidCompany()` identifies invalid values: "Unknown", "Unknown Company", null, undefined, empty
+  - Primary filter in `transformTicketsToWorkerCases()` skips invalid companies with structured logging
+  - Defensive storage guard prevents persistence of invalid companies from any source
+  - Frontend filtering ensures UI never displays invalid company cases
+  - Audit trail via console logs: `[Freshdesk Sync] Skipping worker case due to invalid company`
 - Custom transformation layer (`FreshdeskService`) to map Freshdesk tickets to internal case structure
 - Handles ticket status, priority, custom fields, and company associations
 - **Pagination & Full Ticket Fetch** (November 9, 2025): Fetches ALL tickets including closed/resolved
