@@ -300,6 +300,95 @@ export class FreshdeskService {
     return words.join(' ');
   }
 
+  private extractCompanyFromDescription(descriptionText: string, knownCompanies: CompanyName[]): string | null {
+    if (!descriptionText) {
+      return null;
+    }
+
+    const text = descriptionText.toLowerCase();
+
+    // Layer 1: Structured form patterns (with permissive character classes including apostrophes)
+    const structuredPatterns = [
+      /company\s*name[:\s]*([a-z0-9\s&\/.\-()'+]+?)(?:\s*(?:age|date|email|phone|address|abn|acn|contact|\n|$))/i,
+      /company:\s*([a-z0-9\s&\/.\-()'+]+?)(?:\s*(?:age|date|email|phone|address|abn|acn|contact|\n|,|$))/i,
+      /employer:\s*([a-z0-9\s&\/.\-()'+]+?)(?:\s*(?:age|date|email|phone|address|abn|acn|contact|\n|,|$))/i,
+    ];
+
+    for (const pattern of structuredPatterns) {
+      const match = descriptionText.match(pattern);
+      if (match) {
+        const extracted = match[1].trim();
+        const normalized = this.normalizeCompanyName(extracted, knownCompanies);
+        if (normalized) return normalized;
+      }
+    }
+
+    // Layer 2: Narrative phrase detectors (case-insensitive keywords, requires capitalized company names)
+    const narrativePatterns = [
+      /(?:[Ii]nsurer|[Pp]rovider|[Ww]orkcover)\s+(?:for|on behalf of)\s+([A-Z][a-zA-Z0-9\s&\/.\-()'+]+?)(?:\s*(?:[Pp]\/[Ll]|[Pp]ty|[Gg]roup|[Ll]imited|[Ll]td|,|\.|to conduct|$))/,
+    ];
+
+    for (const pattern of narrativePatterns) {
+      const match = descriptionText.match(pattern);
+      if (match) {
+        const extracted = match[1].trim();
+        const normalized = this.normalizeCompanyName(extracted, knownCompanies);
+        if (normalized) return normalized;
+      }
+    }
+
+    // Layer 3: Direct substring matching against known companies
+    for (const company of knownCompanies) {
+      const companyLower = company.toLowerCase();
+      if (text.includes(companyLower)) {
+        return company;
+      }
+    }
+
+    return null;
+  }
+
+  private normalizeCompanyName(extractedName: string, knownCompanies: CompanyName[]): string | null {
+    if (!extractedName) {
+      return null;
+    }
+
+    // Clean and normalize: lowercase, trim, strip punctuation and common suffixes
+    const cleaned = extractedName
+      .toLowerCase()
+      .trim()
+      .replace(/\s+(p\/l|pty|ltd|limited|group|human resources|hr|inc|corp|corporation|llc).*$/i, '')
+      .replace(/[\/\-()]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    // Map to canonical company names (fuzzy match after normalization)
+    for (const company of knownCompanies) {
+      const companyNormalized = company
+        .toLowerCase()
+        .replace(/[\/\-()]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      
+      if (cleaned.includes(companyNormalized) || companyNormalized.includes(cleaned)) {
+        return company;
+      }
+    }
+
+    // If no canonical match but we have a reasonable company name, return the cleaned version
+    // with proper title casing
+    if (cleaned.length > 2) {
+      return extractedName
+        .replace(/\s+(p\/l|pty|ltd|limited|group|human resources|hr|inc|corp|corporation|llc).*$/i, '')
+        .split(/\s+/)
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ')
+        .trim();
+    }
+
+    return null;
+  }
+
   async transformTicketsToWorkerCases(tickets: FreshdeskTicket[]): Promise<Partial<WorkerCase>[]> {
     const companyCache = new Map<number, FreshdeskCompany | null>();
     const validCompanies: CompanyName[] = ["Symmetry", "Allied Health", "Apex Labour", "SafeWorks", "Core Industrial"];
@@ -341,13 +430,9 @@ export class FreshdeskService {
       
       // Try to extract company from description if not set via company_id
       if (companyName === "Unknown Company" && ticket.description_text) {
-        const companyNameMatch = ticket.description_text.match(/Company Name\s*([A-Za-z\s&]+?)(?:Age|$)/i);
-        const basicCompanyMatch = ticket.description_text.match(/company:\s*([A-Za-z\s&]+?)(?:\n|$)/i);
-        
-        if (companyNameMatch) {
-          companyName = companyNameMatch[1].trim();
-        } else if (basicCompanyMatch) {
-          companyName = basicCompanyMatch[1].trim();
+        const extracted = this.extractCompanyFromDescription(ticket.description_text, validCompanies);
+        if (extracted) {
+          companyName = extracted;
         }
       }
 
@@ -433,13 +518,9 @@ export class FreshdeskService {
       }
       
       if (companyName === "Unknown Company" && primaryTicket.description_text) {
-        const companyNameMatch = primaryTicket.description_text.match(/Company Name\s*([A-Za-z\s&]+?)(?:Age|$)/i);
-        const basicCompanyMatch = primaryTicket.description_text.match(/company:\s*([A-Za-z\s&]+?)(?:\n|$)/i);
-        
-        if (companyNameMatch) {
-          companyName = companyNameMatch[1].trim();
-        } else if (basicCompanyMatch) {
-          companyName = basicCompanyMatch[1].trim();
+        const extracted = this.extractCompanyFromDescription(primaryTicket.description_text, validCompanies);
+        if (extracted) {
+          companyName = extracted;
         }
       }
 
