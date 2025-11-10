@@ -58,6 +58,11 @@ Preferred communication style: Simple, everyday language.
 
 ### Freshdesk Integration
 - **API:** REST API for syncing support tickets as worker cases.
+- **Intelligent Company Extraction:** Layered company extraction from ticket descriptions when company_id is null:
+  - **Layer 1 (Structured):** Form patterns like "company name:", "company:", "employer:" with comprehensive character support and field boundaries
+  - **Layer 2 (Narrative):** Case-insensitive keywords ([Ii]nsurer, [Pp]rovider, [Ww]orkcover) require capitalized company names to prevent false positives (e.g., "insurer for Symmetry" matches, "insurer for next steps" doesn't)
+  - **Layer 3 (Fallback):** Direct substring matching against known company list
+  - **Normalization:** Fuzzy matching, title-casing, punctuation/suffix stripping for canonical company names
 - **Legitimate Case Filtering:** Helper function `isLegitimateCase()` to filter out generic emails/non-case tickets based on worker name and case details.
 - **Smart Next Step Determination:** `determineNextStep()` function provides actionable guidance based on ticket status, priority, medical certificates, and work status.
 - **Pagination & Full Ticket Fetch:** Fetches all tickets (including closed/resolved) using a 6-month lookback window with pagination.
