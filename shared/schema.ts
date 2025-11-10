@@ -166,6 +166,32 @@ export const caseAttachments = pgTable("case_attachments", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Authentication Types
+export type UserRole = "admin" | "employer" | "clinician" | "insurer";
+
+export interface User {
+  id: string;
+  email: string;
+  password: string; // This will be hashed
+  role: UserRole;
+  subrole: string | null;
+  companyId: string | null;
+  insurerId: string | null;
+  createdAt: Date;
+}
+
+// Users table for authentication
+export const users = pgTable("users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: text("email").notNull().unique(),
+  password: text("password").notNull(), // bcrypt hashed
+  role: text("role").notNull(), // admin | employer | clinician | insurer
+  subrole: text("subrole"), // e.g., "doctor", "physio"
+  companyId: varchar("company_id"), // UUID reference to company
+  insurerId: varchar("insurer_id"), // UUID reference to insurer
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const insertWorkerCaseSchema = createInsertSchema(workerCases).omit({
   id: true,
   createdAt: true,
@@ -177,7 +203,14 @@ export const insertCaseAttachmentSchema = createInsertSchema(caseAttachments).om
   createdAt: true,
 });
 
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type InsertWorkerCase = z.infer<typeof insertWorkerCaseSchema>;
 export type WorkerCaseDB = typeof workerCases.$inferSelect;
 export type InsertCaseAttachment = z.infer<typeof insertCaseAttachmentSchema>;
 export type CaseAttachmentDB = typeof caseAttachments.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type UserDB = typeof users.$inferSelect;
