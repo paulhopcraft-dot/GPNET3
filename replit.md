@@ -33,7 +33,20 @@ Preferred communication style: Simple, everyday language.
 - **Migrations:** Drizzle Kit for schema migrations.
 
 ### Authentication
-- **Session Management:** `connect-pg-simple` for PostgreSQL-backed session storage (infrastructure ready, authentication not yet implemented).
+- **JWT-Based Authentication System** (November 10, 2025): Fully functional secure authentication with role-based access control
+  - **User Roles**: admin, employer, clinician, insurer with optional subrole field (e.g., "doctor", "physio")
+  - **Database**: `users` table with id, email, bcrypt-hashed password, role, subrole, company_id, insurer_id, created_at
+  - **Security**: bcrypt password hashing with 10 salt rounds, JWT tokens signed with JWT_SECRET
+  - **Token Expiry**: Access tokens expire in 15 minutes (configurable via JWT_EXPIRES_IN)
+  - **Endpoints**:
+    - `POST /api/auth/register` - Create new user account (supports admin, employer, clinician, insurer roles)
+    - `POST /api/auth/login` - Authenticate with email/password, returns JWT access token
+    - `GET /api/auth/me` - Get current user details (requires valid JWT)
+    - `POST /api/auth/logout` - Logout endpoint (client-side token invalidation)
+  - **Middleware**: `authorize(roles?: UserRole[])` - Reusable JWT verification with optional role-based access control
+  - **Modular Architecture**: Separated into `/controllers/auth.ts`, `/routes/auth.ts`, `/middleware/auth.ts`
+  - **Error Handling**: Clear JSON responses for validation errors, authentication failures, and authorization issues
+  - **Environment**: JWT_SECRET stored securely in Replit Secrets
 
 ### Design System Principles
 - **Color System:** HSL-based tokens, separate border colors, elevation system, light/dark theme support.
