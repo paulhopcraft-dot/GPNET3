@@ -1,0 +1,93 @@
+import type { Request, Response, NextFunction } from "express";
+import jwt from "jsonwebtoken";
+import type { UserRole } from "@shared/schema";
+
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        id: string;
+        email: string;
+        role: UserRole;
+      };
+    }
+  }
+}
+
+export interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    role: UserRole;
+  };
+}
+
+export interface JWTPayload {
+  id: string;
+  email: string;
+  role: UserRole;
+}
+
+export function authorize(allowedRoles?: UserRole[]) {
+  return (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const authHeader = req.headers.authorization;
+
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({ 
+          error: "Unauthorized", 
+          message: "No token provided" 
+        });
+      }
+
+      const token = authHeader.substring(7); // Remove "Bearer " prefix
+
+      if (!process.env.JWT_SECRET) {
+        console.error("JWT_SECRET is not set in environment variables");
+        return res.status(500).json({ 
+          error: "Server configuration error" 
+        });
+      }
+
+      const decoded = jwt.verify(token, process.env.JWT_SECRET) as JWTPayload;
+
+      // Attach user info to request
+      req.user = {
+        id: decoded.id,
+        email: decoded.email,
+        role: decoded.role,
+      };
+
+      // Check if user role is allowed
+      if (allowedRoles && allowedRoles.length > 0) {
+        if (!allowedRoles.includes(decoded.role)) {
+          return res.status(403).json({
+            error: "Forbidden",
+            message: `Access restricted to: ${allowedRoles.join(", ")}`,
+          });
+        }
+      }
+
+      next();
+    } catch (error) {
+      if (error instanceof jwt.TokenExpiredError) {
+        return res.status(401).json({
+          error: "Unauthorized",
+          message: "Token expired",
+        });
+      }
+
+      if (error instanceof jwt.JsonWebTokenError) {
+        return res.status(401).json({
+          error: "Unauthorized",
+          message: "Invalid token",
+        });
+      }
+
+      return res.status(500).json({
+        error: "Server error",
+        message: "Failed to authenticate token",
+      });
+    }
+  };
+}
