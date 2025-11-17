@@ -1,12 +1,14 @@
 import type { Express } from "express";
-import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { FreshdeskService } from "./services/freshdesk";
 import { summaryService } from "./services/summary";
 import Anthropic from "@anthropic-ai/sdk";
 import authRoutes from "./routes/auth";
+import type { RecoveryTimelineSummary } from "@shared/schema";
 
-export async function registerRoutes(app: Express): Promise<Server> {
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
+export async function registerRoutes(app: Express): Promise<void> {
   // Authentication routes
   app.use("/api/auth", authRoutes);
   // Claude compliance assistant
@@ -81,6 +83,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         error: "Failed to sync Freshdesk tickets",
         details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.get("/api/cases/:id/recovery-timeline", async (req, res) => {
+    try {
+      const caseId = req.params.id;
+      const workerCase = await storage.getGPNet2CaseById(caseId);
+
+      if (!workerCase) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      const certificates = await storage.getCaseRecoveryTimeline(caseId);
+      const lastCertificate = certificates[certificates.length - 1];
+
+      const summary: RecoveryTimelineSummary = {
+        totalCertificates: certificates.length,
+        daysOnReducedCapacity: certificates.reduce((total, cert) => {
+          if (cert.capacity === "fit") {
+            return total;
+          }
+          const start = new Date(cert.startDate).getTime();
+          const end = new Date(cert.endDate).getTime();
+          if (Number.isNaN(start) || Number.isNaN(end)) {
+            return total;
+          }
+          const diff = Math.max(1, Math.round((end - start) / MS_PER_DAY));
+          return total + diff;
+        }, 0),
+        lastKnownCapacity: lastCertificate?.capacity ?? "unknown",
+        lastUpdated: lastCertificate?.endDate ?? lastCertificate?.startDate ?? null,
+      };
+
+      res.json({
+        certificates,
+        summary,
+      });
+    } catch (err) {
+      console.error("Failed to fetch recovery timeline:", err);
+      res.status(500).json({
+        error: "Failed to fetch recovery timeline",
+        details: err instanceof Error ? err.message : "Unknown error",
       });
     }
   });
@@ -187,7 +232,4 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  const httpServer = createServer(app);
-
-  return httpServer;
 }

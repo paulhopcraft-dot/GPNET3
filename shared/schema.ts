@@ -8,12 +8,40 @@ export type CompanyName = "Symmetry" | "Allied Health" | "Apex Labour" | "SafeWo
 export type WorkStatus = "At work" | "Off work";
 export type RiskLevel = "High" | "Medium" | "Low";
 export type ComplianceIndicator = "Very High" | "High" | "Medium" | "Low" | "Very Low";
+export type WorkCapacity = "fit" | "partial" | "unfit" | "unknown";
 
 export interface CaseCompliance {
   indicator: ComplianceIndicator;
   reason: string;
   source: 'freshdesk' | 'claude' | 'manual';
   lastChecked: string;
+}
+
+export interface MedicalCertificate {
+  id: string;
+  caseId: string;
+  issueDate: string;
+  startDate: string;
+  endDate: string;
+  capacity: WorkCapacity;
+  notes?: string;
+  source: "freshdesk" | "manual";
+  documentUrl?: string;
+  sourceReference?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface MedicalCertificateInput {
+  caseId?: string;
+  issueDate: string;
+  startDate: string;
+  endDate: string;
+  capacity: WorkCapacity;
+  notes?: string;
+  source: "freshdesk" | "manual";
+  documentUrl?: string;
+  sourceReference?: string;
 }
 
 // Helper function to check if a company value is valid
@@ -125,6 +153,8 @@ export interface WorkerCase {
   attachments?: CaseAttachment[];
   clcLastFollowUp?: string;
   clcNextFollowUp?: string;
+  latestCertificate?: MedicalCertificate;
+  certificateHistory?: MedicalCertificateInput[];
 }
 
 // Database tables
@@ -153,6 +183,21 @@ export const workerCases = pgTable("worker_cases", {
   ticketLastUpdatedAt: timestamp("ticket_last_updated_at"),
   clcLastFollowUp: text("clc_last_follow_up"),
   clcNextFollowUp: text("clc_next_follow_up"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const medicalCertificates = pgTable("medical_certificates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  caseId: varchar("case_id").notNull().references(() => workerCases.id),
+  issueDate: timestamp("issue_date").notNull(),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  capacity: text("capacity").notNull(),
+  notes: text("notes"),
+  source: text("source").notNull().default("freshdesk"),
+  documentUrl: text("document_url"),
+  sourceReference: text("source_reference"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -214,3 +259,17 @@ export type InsertCaseAttachment = z.infer<typeof insertCaseAttachmentSchema>;
 export type CaseAttachmentDB = typeof caseAttachments.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type UserDB = typeof users.$inferSelect;
+export type MedicalCertificateDB = typeof medicalCertificates.$inferSelect;
+export type InsertMedicalCertificate = typeof medicalCertificates.$inferInsert;
+
+export interface RecoveryTimelineSummary {
+  totalCertificates: number;
+  daysOnReducedCapacity: number;
+  lastKnownCapacity: WorkCapacity;
+  lastUpdated?: string | null;
+}
+
+export interface RecoveryTimelineResponse {
+  certificates: MedicalCertificate[];
+  summary: RecoveryTimelineSummary;
+}

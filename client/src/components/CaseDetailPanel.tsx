@@ -1,9 +1,15 @@
 import { useState, useEffect } from "react";
-import type { WorkerCase } from "@shared/schema";
+import type {
+  WorkerCase,
+  MedicalCertificate,
+  RecoveryTimelineSummary,
+  WorkCapacity,
+} from "@shared/schema";
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
 import { RecoveryChart } from "./RecoveryChart";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Badge } from "./ui/badge";
 
 interface CaseDetailPanelProps {
   workerCase: WorkerCase;
@@ -27,6 +33,52 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
   });
   const [loadingSummary, setLoadingSummary] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [timeline, setTimeline] = useState<MedicalCertificate[]>([]);
+  const [timelineSummary, setTimelineSummary] = useState<RecoveryTimelineSummary | null>(null);
+  const [timelineLoading, setTimelineLoading] = useState(true);
+  const [timelineError, setTimelineError] = useState<string | null>(null);
+
+  const capacityLabel = (capacity: WorkCapacity | undefined) => {
+    switch (capacity) {
+      case "fit":
+        return "Fit for Work";
+      case "partial":
+        return "Partial Capacity";
+      case "unfit":
+        return "No Capacity";
+      default:
+        return "Unknown";
+    }
+  };
+
+  const capacityBadgeClass = (capacity: WorkCapacity | undefined) => {
+    switch (capacity) {
+      case "fit":
+        return "bg-emerald-100 text-emerald-800";
+      case "partial":
+        return "bg-amber-100 text-amber-800";
+      case "unfit":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-slate-100 text-slate-800";
+    }
+  };
+
+  const formatDate = (value?: string | null) => {
+    if (!value) return "Unknown";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "Unknown";
+    return date.toLocaleDateString("en-AU", { day: "2-digit", month: "short", year: "numeric" });
+  };
+
+  const formatRange = (start: string, end: string) => {
+    const startLabel = formatDate(start);
+    const endLabel = formatDate(end);
+    if (startLabel === endLabel) {
+      return startLabel;
+    }
+    return `${startLabel} – ${endLabel}`;
+  };
 
   const fetchCachedSummary = async (): Promise<boolean> => {
     try {
@@ -94,6 +146,39 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
     };
     
     initSummary();
+  }, [workerCase.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadTimeline = async () => {
+      setTimelineLoading(true);
+      setTimelineError(null);
+      try {
+        const response = await fetch(`/api/cases/${workerCase.id}/recovery-timeline`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch recovery timeline");
+        }
+        const data = await response.json();
+        if (cancelled) return;
+        setTimeline(data.certificates ?? []);
+        setTimelineSummary(data.summary ?? null);
+      } catch (error) {
+        if (cancelled) return;
+        setTimelineError(error instanceof Error ? error.message : "Recovery timeline unavailable");
+        setTimeline([]);
+        setTimelineSummary(null);
+      } finally {
+        if (!cancelled) {
+          setTimelineLoading(false);
+        }
+      }
+    };
+
+    loadTimeline();
+    return () => {
+      cancelled = true;
+    };
   }, [workerCase.id]);
 
   return (

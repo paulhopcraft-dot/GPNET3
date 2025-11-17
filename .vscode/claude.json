@@ -1,0 +1,6 @@
+{
+  "model": "claude-3.5-sonnet",
+  "max_tokens": 8000,
+  "temperature": 0.1,
+  "autoAcceptEdits": false
+}

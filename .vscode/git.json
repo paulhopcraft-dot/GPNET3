@@ -1,0 +1,21 @@
+{
+  "branches": [
+    {
+      "name": "main",
+      "description": "Stable, release-ready history"
+    },
+    {
+      "name": "dev",
+      "description": "Integration branch for in-progress work"
+    },
+    {
+      "name": "feature/<name>",
+      "description": "Short-lived branches for new features or fixes"
+    }
+  ],
+  "workflow": [
+    "Create a feature/<name> branch for each unit of work.",
+    "Merge feature branches into dev after review/testing.",
+    "Promote dev into main when ready for release."
+  ]
+}

@@ -1,7 +1,74 @@
-import type { WorkerCase, WorkerCaseDB } from "@shared/schema";
+import type {
+  WorkerCase,
+  WorkerCaseDB,
+  MedicalCertificate,
+  MedicalCertificateInput,
+  MedicalCertificateDB,
+  InsertMedicalCertificate,
+} from "@shared/schema";
 import { db } from "./db";
-import { workerCases, caseAttachments, isLegitimateCase } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import {
+  workerCases,
+  caseAttachments,
+  isLegitimateCase,
+  medicalCertificates,
+} from "@shared/schema";
+import { eq, desc, asc } from "drizzle-orm";
+
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
+function asDate(value: string | Date | null | undefined): Date | null {
+  if (!value) return null;
+  if (value instanceof Date) {
+    return isNaN(value.getTime()) ? null : value;
+  }
+  const date = new Date(value);
+  return isNaN(date.getTime()) ? null : date;
+}
+
+function normalizeCertificateInput(
+  caseId: string,
+  cert: MedicalCertificateInput,
+): InsertMedicalCertificate | null {
+  const issueDate = asDate(cert.issueDate) ?? asDate(cert.startDate);
+  const startDate = asDate(cert.startDate) ?? issueDate;
+  const endDate = asDate(cert.endDate) ?? startDate;
+
+  if (!issueDate || !startDate || !endDate) {
+    return null;
+  }
+
+  return {
+    caseId,
+    issueDate,
+    startDate,
+    endDate,
+    capacity: cert.capacity,
+    notes: cert.notes ?? null,
+    source: cert.source,
+    documentUrl: cert.documentUrl ?? null,
+    sourceReference: cert.sourceReference ?? null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+}
+
+function mapCertificateRow(row: MedicalCertificateDB): MedicalCertificate {
+  return {
+    id: row.id,
+    caseId: row.caseId,
+    issueDate: row.issueDate?.toISOString() ?? row.startDate.toISOString(),
+    startDate: row.startDate.toISOString(),
+    endDate: row.endDate.toISOString(),
+    capacity: row.capacity as MedicalCertificate["capacity"],
+    notes: row.notes ?? undefined,
+    source: (row.source as MedicalCertificate["source"]) ?? "freshdesk",
+    documentUrl: row.documentUrl ?? undefined,
+    sourceReference: row.sourceReference ?? undefined,
+    createdAt: row.createdAt?.toISOString(),
+    updatedAt: row.updatedAt?.toISOString(),
+  };
+}
 
 export interface IStorage {
   getGPNet2Cases(): Promise<WorkerCase[]>;
@@ -10,6 +77,7 @@ export interface IStorage {
   clearAllWorkerCases(): Promise<void>;
   updateAISummary(caseId: string, summary: string, model: string, workStatusClassification?: string): Promise<void>;
   needsSummaryRefresh(caseId: string): Promise<boolean>;
+  getCaseRecoveryTimeline(caseId: string): Promise<MedicalCertificate[]>;
 }
 
 class DbStorage implements IStorage {
@@ -23,6 +91,17 @@ class DbStorage implements IStorage {
           .from(caseAttachments)
           .where(eq(caseAttachments.caseId, dbCase.id));
 
+        const latestCertificateRow = await db
+          .select()
+          .from(medicalCertificates)
+          .where(eq(medicalCertificates.caseId, dbCase.id))
+          .orderBy(desc(medicalCertificates.startDate))
+          .limit(1);
+
+        const latestCertificate = latestCertificateRow[0]
+          ? mapCertificateRow(latestCertificateRow[0])
+          : undefined;
+
         return {
           id: dbCase.id,
           workerName: dbCase.workerName,
@@ -30,7 +109,7 @@ class DbStorage implements IStorage {
           dateOfInjury: dbCase.dateOfInjury.toISOString().split('T')[0],
           riskLevel: dbCase.riskLevel as any,
           workStatus: dbCase.workStatus as any,
-          hasCertificate: dbCase.hasCertificate,
+          hasCertificate: Boolean(dbCase.hasCertificate || latestCertificate),
           certificateUrl: dbCase.certificateUrl || undefined,
           complianceIndicator: dbCase.complianceIndicator as any,
           compliance: dbCase.complianceJson as any, // Parse JSONB compliance object
@@ -48,6 +127,7 @@ class DbStorage implements IStorage {
           ticketLastUpdatedAt: dbCase.ticketLastUpdatedAt?.toISOString() || undefined,
           clcLastFollowUp: dbCase.clcLastFollowUp || undefined,
           clcNextFollowUp: dbCase.clcNextFollowUp || undefined,
+          latestCertificate,
           attachments: attachments.map((att) => ({
             id: att.id,
             name: att.name,
@@ -77,6 +157,17 @@ class DbStorage implements IStorage {
       .from(caseAttachments)
       .where(eq(caseAttachments.caseId, id));
 
+    const latestCertificateRow = await db
+      .select()
+      .from(medicalCertificates)
+      .where(eq(medicalCertificates.caseId, id))
+      .orderBy(desc(medicalCertificates.startDate))
+      .limit(1);
+
+    const latestCertificate = latestCertificateRow[0]
+      ? mapCertificateRow(latestCertificateRow[0])
+      : undefined;
+
     const workerCase = dbCase[0];
     return {
       id: workerCase.id,
@@ -103,6 +194,7 @@ class DbStorage implements IStorage {
       ticketLastUpdatedAt: workerCase.ticketLastUpdatedAt?.toISOString() || undefined,
       clcLastFollowUp: workerCase.clcLastFollowUp || undefined,
       clcNextFollowUp: workerCase.clcNextFollowUp || undefined,
+      latestCertificate,
       attachments: attachments.map((att) => ({
         id: att.id,
         name: att.name,
@@ -110,6 +202,16 @@ class DbStorage implements IStorage {
         url: att.url,
       })),
     };
+  }
+
+  async getCaseRecoveryTimeline(caseId: string): Promise<MedicalCertificate[]> {
+    const rows = await db
+      .select()
+      .from(medicalCertificates)
+      .where(eq(medicalCertificates.caseId, caseId))
+      .orderBy(asc(medicalCertificates.startDate));
+
+    return rows.map(mapCertificateRow);
   }
 
   async syncWorkerCaseFromFreshdesk(caseData: Partial<WorkerCase>): Promise<void> {
@@ -146,6 +248,14 @@ class DbStorage implements IStorage {
       }
     }
 
+    const hasCertificate =
+      Boolean(caseData.hasCertificate) ||
+      Boolean(caseData.certificateHistory && caseData.certificateHistory.length > 0);
+    const latestCertificateDoc =
+      caseData.certificateHistory && caseData.certificateHistory.length > 0
+        ? caseData.certificateHistory[caseData.certificateHistory.length - 1].documentUrl
+        : undefined;
+
     const dbData = {
       id: caseData.id,
       workerName: caseData.workerName || "Unknown",
@@ -153,8 +263,8 @@ class DbStorage implements IStorage {
       dateOfInjury,
       riskLevel: caseData.riskLevel || "Low",
       workStatus: caseData.workStatus || "Off work",
-      hasCertificate: caseData.hasCertificate || false,
-      certificateUrl: caseData.certificateUrl || null,
+      hasCertificate,
+      certificateUrl: caseData.certificateUrl || latestCertificateDoc || null,
       complianceIndicator: caseData.complianceIndicator || "Low",
       complianceJson: caseData.compliance || null, // Store full compliance object as JSONB
       currentStatus: caseData.currentStatus || "New case",
@@ -186,9 +296,74 @@ class DbStorage implements IStorage {
     } else {
       await db.insert(workerCases).values(dbData);
     }
+
+    await this.syncMedicalCertificates(caseData.id, caseData.certificateHistory);
+  }
+
+  async getCaseRecoveryTimeline(caseId: string): Promise<MedicalCertificate[]> {
+    const rows = await db
+      .select()
+      .from(medicalCertificates)
+      .where(eq(medicalCertificates.caseId, caseId))
+      .orderBy(asc(medicalCertificates.startDate));
+
+    return rows.map(mapCertificateRow);
+  }
+
+  private async syncMedicalCertificates(
+    caseId: string,
+    certificates?: MedicalCertificateInput[],
+  ): Promise<void> {
+    if (!certificates || certificates.length === 0) {
+      return;
+    }
+
+    const normalized = certificates
+      .map((cert) => normalizeCertificateInput(caseId, cert))
+      .filter((cert): cert is InsertMedicalCertificate => Boolean(cert));
+
+    if (normalized.length === 0) {
+      return;
+    }
+
+    const existing = await db
+      .select()
+      .from(medicalCertificates)
+      .where(eq(medicalCertificates.caseId, caseId));
+
+    const seen = new Set(
+      existing.map((row) => {
+        const start = row.startDate.toISOString();
+        const end = row.endDate.toISOString();
+        const capacity = row.capacity;
+        const reference = row.sourceReference ?? "";
+        const doc = row.documentUrl ?? "";
+        return `${start}|${end}|${capacity}|${reference}|${doc}`;
+      }),
+    );
+
+    const newRows = normalized.filter((row) => {
+      const start = row.startDate.toISOString();
+      const end = row.endDate.toISOString();
+      const reference = row.sourceReference ?? "";
+      const doc = row.documentUrl ?? "";
+      const key = `${start}|${end}|${row.capacity}|${reference}|${doc}`;
+      if (seen.has(key)) {
+        return false;
+      }
+      seen.add(key);
+      return true;
+    });
+
+    if (newRows.length === 0) {
+      return;
+    }
+
+    await db.insert(medicalCertificates).values(newRows);
   }
 
   async clearAllWorkerCases(): Promise<void> {
+    await db.delete(medicalCertificates);
     await db.delete(caseAttachments);
     await db.delete(workerCases);
   }

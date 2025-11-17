@@ -1,4 +1,12 @@
-import type { WorkerCase, CompanyName, ComplianceIndicator, WorkStatus, CaseCompliance } from "@shared/schema";
+import type {
+  WorkerCase,
+  CompanyName,
+  ComplianceIndicator,
+  WorkStatus,
+  CaseCompliance,
+  MedicalCertificateInput,
+  WorkCapacity,
+} from "@shared/schema";
 import { isValidCompany, isLegitimateCase } from "@shared/schema";
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
@@ -176,48 +184,148 @@ export class FreshdeskService {
     }
   }
 
+  /**
+   * Compliance rules:
+   * - Resolved/closed tickets are automatically Very High.
+   * - Default to High when there are no overdue deadlines.
+   * - Medium when a follow-up/certificate is due within 7 days, there is no
+   *   current certificate, or the case has gone stale (>30 days without updates).
+   * - Low when a clear deadline is overdue by up to 1 week.
+   * - Very Low when a deadline is overdue by more than 1 week.
+   */
   private calculateComplianceIndicator(ticket: FreshdeskTicket): CaseCompliance {
     const now = dayjs().utc();
-    const due = ticket.due_by ? dayjs(ticket.due_by).utc() : null;
+    const today = now.startOf("day");
+    const dueDate = ticket.due_by ? dayjs(ticket.due_by).utc() : null;
+    const nextCertificate = ticket.custom_fields?.cf_valid_until
+      ? dayjs(ticket.custom_fields.cf_valid_until).utc()
+      : null;
+    const lastCertificate = ticket.custom_fields?.cf_full_medical_report_date
+      ? dayjs(ticket.custom_fields.cf_full_medical_report_date).utc()
+      : null;
+    const hasCurrentCertificate =
+      Boolean(ticket.custom_fields?.cf_latest_medical_certificate) ||
+      ticket.tags?.includes("has_certificate") ||
+      false;
+    const lastUpdated = ticket.updated_at ? dayjs(ticket.updated_at).utc() : null;
 
-    let indicator: ComplianceIndicator;
-    let reason = "";
+    const deadlines = [
+      dueDate
+        ? { kind: "followUp" as const, label: "Case follow-up", date: dueDate }
+        : null,
+      nextCertificate
+        ? { kind: "certificate" as const, label: "Medical certificate", date: nextCertificate }
+        : null,
+    ].filter(Boolean) as Array<{
+      kind: "followUp" | "certificate";
+      label: string;
+      date: dayjs.Dayjs;
+    }>;
 
-    // Check for resolved/closed status FIRST - these are always "Very High" regardless of due date
-    if (ticket.status === 4 || ticket.status === 5) { // Resolved or Closed
-      indicator = "Very High";
-      reason = "Case resolved – no outstanding deadlines";
-    } else if (!due) {
-      // No due date for active tickets
-      indicator = "Medium";
-      reason = "No due date found";
-    } else {
-      // Calculate days until due (positive = future, negative = overdue)
-      const diffDays = due.diff(now, "day");
-      
-      if (diffDays > 7) {
-        indicator = "Very High";
-        reason = `Due in ${diffDays} days (on track)`;
-      } else if (diffDays > 3) {
-        indicator = "High";
-        reason = `Due in ${diffDays} days`;
-      } else if (diffDays >= 1) {
+    const diffInDays = (date: dayjs.Dayjs) => date.startOf("day").diff(today, "day");
+    const formatDays = (days: number) => (days === 1 ? "1 day" : `${days} days`);
+    const lastChecked = new Date().toISOString();
+
+    if (ticket.status === 4 || ticket.status === 5) {
+      return {
+        indicator: "Very High",
+        reason: "Ticket resolved or closed - no outstanding deadlines",
+        source: "freshdesk",
+        lastChecked,
+      };
+    }
+
+    const annotatedDeadlines = deadlines.map((deadline) => ({
+      ...deadline,
+      diff: diffInDays(deadline.date),
+    }));
+
+    const overdueDeadlines = annotatedDeadlines
+      .filter((deadline) => deadline.diff < 0)
+      .sort((a, b) => a.diff - b.diff);
+
+    if (overdueDeadlines.length > 0) {
+      const worst = overdueDeadlines[0];
+      const overdueDays = Math.abs(worst.diff);
+      const indicator: ComplianceIndicator = overdueDays > 7 ? "Very Low" : "Low";
+      return {
+        indicator,
+        reason: `${worst.label} overdue by ${formatDays(overdueDays)}`,
+        source: "freshdesk",
+        lastChecked,
+      };
+    }
+
+    const upcomingDeadlines = annotatedDeadlines
+      .filter((deadline) => deadline.diff >= 0)
+      .sort((a, b) => a.diff - b.diff);
+
+    if (upcomingDeadlines.length > 0) {
+      const next = upcomingDeadlines[0];
+      const diff = next.diff;
+      let indicator: ComplianceIndicator = "High";
+      let reason: string;
+
+      if (diff <= 2) {
         indicator = "Medium";
-        reason = `Due in ${diffDays} days (needs attention soon)`;
-      } else if (diffDays >= 0) {
-        indicator = "Low";
-        reason = "Due today or tomorrow";
+        reason = `${next.label} due ${diff === 0 ? "today" : `in ${formatDays(diff)}`}`;
+      } else if (diff <= 7) {
+        indicator = "Medium";
+        reason = `${next.label} coming up in ${formatDays(diff)}`;
+      } else if (diff >= 14) {
+        indicator = "Very High";
+        reason = `${next.label} not due for ${formatDays(diff)}`;
       } else {
-        indicator = "Very Low";
-        reason = `Overdue by ${Math.abs(diffDays)} days`;
+        indicator = "High";
+        reason = `${next.label} due in ${formatDays(diff)}`;
+      }
+
+      return {
+        indicator,
+        reason,
+        source: "freshdesk",
+        lastChecked,
+      };
+    }
+
+    if (!hasCurrentCertificate) {
+      return {
+        indicator: "Medium",
+        reason: "No current medical certificate on file",
+        source: "freshdesk",
+        lastChecked,
+      };
+    }
+
+    if (lastCertificate) {
+      const age = today.diff(lastCertificate.startOf("day"), "day");
+      if (age > 35) {
+        return {
+          indicator: "Medium",
+          reason: `Latest certificate is ${formatDays(age)} old`,
+          source: "freshdesk",
+          lastChecked,
+        };
+      }
+    }
+
+    if (lastUpdated) {
+      const idleDays = now.diff(lastUpdated, "day");
+      if (idleDays > 30) {
+        return {
+          indicator: "Medium",
+          reason: `No ticket updates in ${formatDays(idleDays)} - follow up recommended`,
+          source: "freshdesk",
+          lastChecked,
+        };
       }
     }
 
     return {
-      indicator,
-      reason,
+      indicator: "High",
+      reason: "No deadlines recorded and certificate details current",
       source: "freshdesk",
-      lastChecked: new Date().toISOString(),
+      lastChecked,
     };
   }
 
@@ -259,6 +367,111 @@ export class FreshdeskService {
       default:
         return "Review case and determine appropriate action";
     }
+  }
+
+  private deriveCapacityFromTicket(
+    ticket: FreshdeskTicket,
+    fallbackWorkStatus: WorkStatus,
+  ): WorkCapacity {
+    const haystack = [
+      ticket.custom_fields?.cf_check_status,
+      ticket.description_text,
+      ticket.subject,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
+    if (/fit for full|full dut(y|ies)|100% capacity|cleared full duty/.test(haystack)) {
+      return "fit";
+    }
+    if (/(modified dut|partial capacity|light dut|reduced capacity)/.test(haystack)) {
+      return "partial";
+    }
+    if (/(no capacity|unfit|not fit|0% capacity|completely unfit)/.test(haystack)) {
+      return "unfit";
+    }
+
+    // Fall back to case work status
+    if (fallbackWorkStatus === "At work") {
+      return "partial";
+    }
+    if (fallbackWorkStatus === "Off work") {
+      return "unfit";
+    }
+
+    return "unknown";
+  }
+
+  private extractCertificateFromTicket(
+    ticket: FreshdeskTicket,
+    fallbackWorkStatus: WorkStatus,
+  ): MedicalCertificateInput | null {
+    const issueDateRaw =
+      ticket.custom_fields?.cf_full_medical_report_date ||
+      ticket.custom_fields?.cf_valid_until ||
+      ticket.updated_at ||
+      ticket.created_at;
+
+    if (!issueDateRaw) {
+      return null;
+    }
+
+    const issue = dayjs(issueDateRaw);
+    if (!issue.isValid()) {
+      return null;
+    }
+
+    const startRaw = ticket.custom_fields?.cf_full_medical_report_date || issueDateRaw;
+    const endRaw = ticket.custom_fields?.cf_valid_until || startRaw;
+    const start = dayjs(startRaw);
+    const end = dayjs(endRaw);
+
+    if (!start.isValid() || !end.isValid()) {
+      return null;
+    }
+
+    const capacity = this.deriveCapacityFromTicket(ticket, fallbackWorkStatus);
+
+    return {
+      issueDate: issue.toISOString(),
+      startDate: start.toISOString(),
+      endDate: end.toISOString(),
+      capacity,
+      notes: ticket.custom_fields?.cf_check_status || undefined,
+      source: "freshdesk",
+      documentUrl:
+        ticket.custom_fields?.cf_latest_medical_certificate ||
+        ticket.custom_fields?.cf_url ||
+        undefined,
+      sourceReference: ticket.id ? `ticket:${ticket.id}` : undefined,
+    };
+  }
+
+  private extractCertificateHistory(
+    tickets: FreshdeskTicket[],
+    caseDefaultWorkStatus: WorkStatus,
+  ): MedicalCertificateInput[] {
+    const deduped = new Map<string, MedicalCertificateInput>();
+
+    for (const ticket of tickets) {
+      const perTicketStatus = this.mapStatusToWorkStatus(ticket.status);
+      const certificate = this.extractCertificateFromTicket(
+        ticket,
+        perTicketStatus || caseDefaultWorkStatus,
+      );
+      if (!certificate) {
+        continue;
+      }
+      const key = `${certificate.startDate}-${certificate.endDate}-${certificate.capacity}`;
+      if (!deduped.has(key)) {
+        deduped.set(key, certificate);
+      }
+    }
+
+    return Array.from(deduped.values()).sort(
+      (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
+    );
   }
 
   private normalizeWorkerName(name: string): string {
@@ -609,6 +822,18 @@ export class FreshdeskService {
 
       // Determine work status first so we can use it in next step determination
       const workStatus = this.mapStatusToWorkStatus(primaryTicket.status);
+      const certificateHistory = this.extractCertificateHistory(sortedTickets, workStatus);
+      const latestCertificate = certificateHistory[certificateHistory.length - 1];
+      const hasCertificateFlag =
+        !!primaryTicket.custom_fields?.cf_latest_medical_certificate ||
+        primaryTicket.tags?.includes('has_certificate') ||
+        certificateHistory.length > 0 ||
+        false;
+      const certificateUrl =
+        latestCertificate?.documentUrl ||
+        primaryTicket.custom_fields?.cf_latest_medical_certificate ||
+        primaryTicket.custom_fields?.cf_url ||
+        undefined;
 
       // Build the case object first so we can validate it
       const caseData = {
@@ -618,8 +843,8 @@ export class FreshdeskService {
         dateOfInjury: dateOfInjury.toISOString().split('T')[0],
         riskLevel: this.mapPriorityToRiskLevel(primaryTicket.priority),
         workStatus,
-        hasCertificate: !!primaryTicket.custom_fields?.cf_latest_medical_certificate || primaryTicket.tags?.includes('has_certificate') || false,
-        certificateUrl: primaryTicket.custom_fields?.cf_latest_medical_certificate || primaryTicket.custom_fields?.cf_url || undefined,
+        hasCertificate: hasCertificateFlag,
+        certificateUrl,
         complianceIndicator: compliance.indicator, // Legacy field - extract from compliance object
         compliance, // New structured compliance object
         currentStatus: primaryTicket.custom_fields?.cf_check_status || primaryTicket.description_text || "Pending review",
@@ -632,6 +857,7 @@ export class FreshdeskService {
         ticketLastUpdatedAt,
         clcLastFollowUp: primaryTicket.custom_fields?.cf_full_medical_report_date || undefined,
         clcNextFollowUp: primaryTicket.custom_fields?.cf_valid_until || undefined,
+        certificateHistory,
       };
 
       // Skip if not a legitimate worker injury case (filters out generic emails, claims without names, etc.)
