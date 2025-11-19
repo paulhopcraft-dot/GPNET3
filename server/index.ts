@@ -3,7 +3,8 @@ import express, { type Request, Response, NextFunction } from "express";
 import cors from "cors";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
- 
+import { TranscriptIngestionModule } from "./services/transcripts";
+
 const app = express();
 app.use(
   cors({
@@ -53,7 +54,10 @@ app.use((req, res, next) => {
   next();
 });
 
+const transcriptModule = new TranscriptIngestionModule();
+
 const startServer = async () => {
+  await transcriptModule.start();
   await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -89,3 +93,18 @@ startServer().catch((error) => {
   console.error("Failed to start server:", error);
   process.exit(1);
 });
+
+let shuttingDown = false;
+const gracefulShutdown = async () => {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  try {
+    await transcriptModule.stop();
+  } catch (err) {
+    console.error("Transcript module shutdown error", err);
+  }
+  process.exit(0);
+};
+
+process.on("SIGINT", gracefulShutdown);
+process.on("SIGTERM", gracefulShutdown);

@@ -4,6 +4,8 @@ import type {
   MedicalCertificate,
   RecoveryTimelineSummary,
   WorkCapacity,
+  CaseDiscussionNote,
+  TranscriptInsight,
 } from "@shared/schema";
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
@@ -37,6 +39,14 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
   const [timelineSummary, setTimelineSummary] = useState<RecoveryTimelineSummary | null>(null);
   const [timelineLoading, setTimelineLoading] = useState(true);
   const [timelineError, setTimelineError] = useState<string | null>(null);
+  const [discussionNotes, setDiscussionNotes] = useState<CaseDiscussionNote[]>(
+    workerCase.latestDiscussionNotes ?? [],
+  );
+  const [discussionInsights, setDiscussionInsights] = useState<TranscriptInsight[]>(
+    workerCase.discussionInsights ?? [],
+  );
+  const [discussionLoading, setDiscussionLoading] = useState(false);
+  const [discussionError, setDiscussionError] = useState<string | null>(null);
 
   const capacityLabel = (capacity: WorkCapacity | undefined) => {
     switch (capacity) {
@@ -77,7 +87,19 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
     if (startLabel === endLabel) {
       return startLabel;
     }
-    return `${startLabel} – ${endLabel}`;
+    return `${startLabel} - ${endLabel}`;
+  };
+
+  const formatTimestamp = (value?: string | Date) => {
+    if (!value) return "Unknown";
+    const date = typeof value === "string" ? new Date(value) : value;
+    if (Number.isNaN(date.getTime())) return "Unknown";
+    return date.toLocaleString("en-AU", {
+      day: "2-digit",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
   const fetchCachedSummary = async (): Promise<boolean> => {
@@ -96,6 +118,22 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
         model: data.model,
         needsRefresh: data.needsRefresh,
       });
+      if (Array.isArray(data.discussionNotes)) {
+        setDiscussionNotes((prev) => {
+          if (prev.length > data.discussionNotes.length) {
+            return prev;
+          }
+          return data.discussionNotes;
+        });
+      }
+      if (Array.isArray(data.discussionInsights)) {
+        setDiscussionInsights((prev) => {
+          if (prev.length > data.discussionInsights.length) {
+            return prev;
+          }
+          return data.discussionInsights;
+        });
+      }
       
       // Return whether we need to generate a new summary
       return data.needsRefresh || !data.summary;
@@ -126,6 +164,22 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
         cached: data.cached,
         needsRefresh: false,
       });
+      if (Array.isArray(data.discussionNotes)) {
+        setDiscussionNotes((prev) => {
+          if (prev.length > data.discussionNotes.length) {
+            return prev;
+          }
+          return data.discussionNotes;
+        });
+      }
+      if (Array.isArray(data.discussionInsights)) {
+        setDiscussionInsights((prev) => {
+          if (prev.length > data.discussionInsights.length) {
+            return prev;
+          }
+          return data.discussionInsights;
+        });
+      }
     } catch (error) {
       console.error("Error generating AI summary:", error);
       setSummaryError(error instanceof Error ? error.message : "AI summary temporarily unavailable");
@@ -176,6 +230,47 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
     };
 
     loadTimeline();
+    return () => {
+      cancelled = true;
+    };
+  }, [workerCase.id]);
+
+  useEffect(() => {
+    setDiscussionNotes(workerCase.latestDiscussionNotes ?? []);
+    setDiscussionInsights(workerCase.discussionInsights ?? []);
+  }, [workerCase.id, workerCase.latestDiscussionNotes, workerCase.discussionInsights]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadDiscussionNotes = async () => {
+      setDiscussionLoading(true);
+      setDiscussionError(null);
+      try {
+        const response = await fetch(`/api/cases/${workerCase.id}/discussion-notes`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch discussion notes");
+        }
+        const data = await response.json();
+        if (!cancelled) {
+          setDiscussionNotes(data.notes ?? []);
+          setDiscussionInsights(data.insights ?? []);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setDiscussionError(
+            error instanceof Error ? error.message : "Failed to load discussion notes",
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setDiscussionLoading(false);
+        }
+      }
+    };
+
+    loadDiscussionNotes();
+
     return () => {
       cancelled = true;
     };
@@ -262,6 +357,112 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
             </Card>
           )}
 
+          <Card data-testid="card-discussion-notes">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <span className="material-symbols-outlined text-primary">forum</span>
+                Latest Discussion Notes
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {discussionInsights.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase text-muted-foreground">
+                    Transcript Risk Insights
+                  </p>
+                  <div className="space-y-2">
+                    {discussionInsights.slice(0, 4).map((insight) => (
+                      <div
+                        key={insight.id}
+                        className="flex items-start gap-2 rounded-md border border-border p-2"
+                      >
+                        <Badge className={`text-[10px] ${severityBadgeStyle(insight.severity)}`}>
+                          {insight.area} · {insight.severity}
+                        </Badge>
+                        <div className="text-sm text-card-foreground leading-snug">
+                          <p>{insight.summary}</p>
+                          {insight.detail && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {insight.detail}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {discussionLoading && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span className="material-symbols-outlined animate-spin text-primary">progress_activity</span>
+                  Loading transcript insights...
+                </div>
+              )}
+
+              {discussionError && (
+                <div className="text-sm text-muted-foreground flex items-center gap-2">
+                  <span className="material-symbols-outlined text-warning text-base">error</span>
+                  {discussionError}
+                </div>
+              )}
+
+              {!discussionLoading && !discussionError && discussionNotes.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  No transcript discussions have been ingested for this case yet.
+                </p>
+              )}
+
+              {!discussionLoading && discussionNotes.length > 0 && (
+                <div className="space-y-4">
+                  {discussionNotes.slice(0, 4).map((note) => (
+                    <div key={note.id} className="rounded-md border border-border p-3">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>{formatTimestamp(note.timestamp)}</span>
+                        <div className="flex gap-2">
+                          {note.updatesCompliance && (
+                            <Badge variant="secondary" className="text-[10px] uppercase tracking-wide">
+                              Compliance
+                            </Badge>
+                          )}
+                          {note.updatesRecoveryTimeline && (
+                            <Badge variant="secondary" className="text-[10px] uppercase tracking-wide">
+                              Recovery
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      <p className="mt-2 text-sm text-card-foreground">{note.summary}</p>
+
+                      {note.riskFlags && note.riskFlags.length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {note.riskFlags.map((flag) => (
+                            <Badge key={`${note.id}-${flag}`} variant="outline" className="text-xs">
+                              {flag}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+
+                      {note.nextSteps && note.nextSteps.length > 0 && (
+                        <div className="mt-3">
+                          <p className="text-xs font-medium uppercase text-muted-foreground">
+                            Next Steps
+                          </p>
+                          <ul className="mt-1 list-disc space-y-1 pl-4 text-sm text-card-foreground">
+                            {note.nextSteps.map((step, index) => (
+                              <li key={`${note.id}-step-${index}`}>{step}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           <div>
             <h3 className="text-sm font-medium text-muted-foreground mb-2">Company</h3>
             <p className="text-card-foreground">{workerCase.company}</p>
@@ -316,3 +517,13 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
     </aside>
   );
 }
+  const severityBadgeStyle = (severity: TranscriptInsight["severity"]) => {
+    switch (severity) {
+      case "critical":
+        return "bg-red-100 text-red-800";
+      case "warning":
+        return "bg-amber-100 text-amber-800";
+      default:
+        return "bg-slate-100 text-slate-800";
+    }
+  };

@@ -130,6 +130,27 @@ export async function registerRoutes(app: Express): Promise<void> {
     }
   });
 
+  app.get("/api/cases/:id/discussion-notes", async (req, res) => {
+    try {
+      const caseId = req.params.id;
+      const workerCase = await storage.getGPNet2CaseById(caseId);
+      if (!workerCase) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+      const [notes, insights] = await Promise.all([
+        storage.getCaseDiscussionNotes(caseId, 25),
+        storage.getCaseDiscussionInsights(caseId, 25),
+      ]);
+      res.json({ notes, insights });
+    } catch (err) {
+      console.error("Failed to fetch discussion notes:", err);
+      res.status(500).json({
+        error: "Failed to fetch discussion notes",
+        details: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  });
+
   // GET /api/cases/:id/summary - Returns cached summary without triggering generation
   app.get("/api/cases/:id/summary", async (req, res) => {
     try {
@@ -139,6 +160,10 @@ export async function registerRoutes(app: Express): Promise<void> {
       if (!workerCase) {
         return res.status(404).json({ error: "Case not found" });
       }
+      const [discussionNotes, discussionInsights] = await Promise.all([
+        storage.getCaseDiscussionNotes(caseId, 5),
+        storage.getCaseDiscussionInsights(caseId, 5),
+      ]);
 
       // Return cached summary data
       res.json({
@@ -149,6 +174,8 @@ export async function registerRoutes(app: Express): Promise<void> {
         workStatusClassification: workerCase.aiWorkStatusClassification || null,
         ticketLastUpdatedAt: workerCase.ticketLastUpdatedAt || null,
         needsRefresh: await storage.needsSummaryRefresh(caseId),
+        discussionNotes,
+        discussionInsights,
       });
     } catch (err) {
       console.error("Failed to fetch summary:", err);
@@ -206,6 +233,11 @@ export async function registerRoutes(app: Express): Promise<void> {
         result = await summaryService.getCachedOrGenerateSummary(caseId);
       }
 
+      const [discussionNotes, discussionInsights] = await Promise.all([
+        storage.getCaseDiscussionNotes(caseId, 5),
+        storage.getCaseDiscussionInsights(caseId, 5),
+      ]);
+
       res.json({
         id: caseId,
         summary: result.summary,
@@ -213,6 +245,8 @@ export async function registerRoutes(app: Express): Promise<void> {
         generatedAt: result.generatedAt,
         model: result.model,
         workStatusClassification: result.workStatusClassification,
+        discussionNotes,
+        discussionInsights,
       });
     } catch (err) {
       console.error("Summary generation failed:", err);

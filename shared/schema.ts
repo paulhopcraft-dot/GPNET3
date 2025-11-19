@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, boolean, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, boolean, json, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -127,6 +127,38 @@ export interface CaseAttachment {
   url: string;
 }
 
+export interface CaseDiscussionNote {
+  id: string;
+  caseId: string;
+  workerName: string;
+  timestamp: string;
+  rawText: string;
+  summary: string;
+  nextSteps?: string[];
+  riskFlags?: string[];
+  updatesCompliance: boolean;
+  updatesRecoveryTimeline: boolean;
+}
+
+export type TranscriptInsightSeverity = "info" | "warning" | "critical";
+export type TranscriptInsightArea =
+  | "compliance"
+  | "recovery"
+  | "risk"
+  | "returnToWork"
+  | "engagement";
+
+export interface TranscriptInsight {
+  id: string;
+  caseId: string;
+  noteId: string;
+  area: TranscriptInsightArea;
+  severity: TranscriptInsightSeverity;
+  summary: string;
+  detail?: string;
+  createdAt: string;
+}
+
 export interface WorkerCase {
   id: string;
   workerName: string;
@@ -155,6 +187,8 @@ export interface WorkerCase {
   clcNextFollowUp?: string;
   latestCertificate?: MedicalCertificate;
   certificateHistory?: MedicalCertificateInput[];
+  latestDiscussionNotes?: CaseDiscussionNote[];
+  discussionInsights?: TranscriptInsight[];
 }
 
 // Database tables
@@ -211,6 +245,30 @@ export const caseAttachments = pgTable("case_attachments", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const caseDiscussionNotes = pgTable("case_discussion_notes", {
+  id: text("id").primaryKey(),
+  caseId: text("case_id").references(() => workerCases.id).notNull(),
+  workerName: text("worker_name").notNull(),
+  timestamp: timestamp("timestamp").defaultNow(),
+  rawText: text("raw_text").notNull(),
+  summary: text("summary").notNull(),
+  nextSteps: json("next_steps").$type<string[]>(),
+  riskFlags: json("risk_flags").$type<string[]>(),
+  updatesCompliance: boolean("updates_compliance").default(false),
+  updatesRecoveryTimeline: boolean("updates_recovery_timeline").default(false),
+});
+
+export const caseDiscussionInsights = pgTable("case_discussion_insights", {
+  id: text("id").primaryKey(),
+  caseId: text("case_id").references(() => workerCases.id).notNull(),
+  noteId: text("note_id").references(() => caseDiscussionNotes.id).notNull(),
+  area: text("area").notNull(),
+  severity: text("severity").notNull(),
+  summary: text("summary").notNull(),
+  detail: text("detail"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Authentication Types
 export type UserRole = "admin" | "employer" | "clinician" | "insurer";
 
@@ -261,6 +319,10 @@ export type InsertUser = z.infer<typeof insertUserSchema>;
 export type UserDB = typeof users.$inferSelect;
 export type MedicalCertificateDB = typeof medicalCertificates.$inferSelect;
 export type InsertMedicalCertificate = typeof medicalCertificates.$inferInsert;
+export type CaseDiscussionNoteDB = typeof caseDiscussionNotes.$inferSelect;
+export type InsertCaseDiscussionNote = typeof caseDiscussionNotes.$inferInsert;
+export type CaseDiscussionInsightDB = typeof caseDiscussionInsights.$inferSelect;
+export type InsertCaseDiscussionInsight = typeof caseDiscussionInsights.$inferInsert;
 
 export interface RecoveryTimelineSummary {
   totalCertificates: number;

@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { storage } from "../storage";
-import type { WorkerCase } from "@shared/schema";
+import type { WorkerCase, CaseDiscussionNote, TranscriptInsight } from "@shared/schema";
 
 export class SummaryService {
   private anthropic: Anthropic | null = null;
@@ -163,6 +163,8 @@ Status: [Active/Closed - brief description]
   }
 
   private buildUserPrompt(workerCase: WorkerCase): string {
+    const notesSummary = this.formatDiscussionNotes(workerCase.latestDiscussionNotes);
+    const insightSummary = this.formatDiscussionInsights(workerCase.discussionInsights);
     return `Analyze this worker's compensation case and generate a structured summary:
 
 **Case Data:**
@@ -181,7 +183,52 @@ Status: [Active/Closed - brief description]
 **Case Description:**
 ${workerCase.summary}
 
+**Latest Transcript Highlights:**
+${notesSummary}
+
+**Transcript Risk Insights:**
+${insightSummary}
+
 Generate the structured case summary following the required format.`;
+  }
+
+  private formatDiscussionNotes(notes?: CaseDiscussionNote[]): string {
+    if (!notes || notes.length === 0) {
+      return "No transcript discussions have been ingested yet.";
+    }
+
+    return notes
+      .slice(0, 5)
+      .map((note) => {
+        const localized = new Date(note.timestamp).toLocaleString("en-AU", {
+          day: "2-digit",
+          month: "short",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        const nextSteps = note.nextSteps?.length
+          ? ` | Next: ${note.nextSteps.join("; ")}`
+          : "";
+        const risks = note.riskFlags?.length
+          ? ` | Risks: ${note.riskFlags.join(", ")}`
+          : "";
+        return `- [${localized}] ${note.summary}${nextSteps}${risks}`;
+      })
+      .join("\n");
+  }
+
+  private formatDiscussionInsights(insights?: TranscriptInsight[]): string {
+    if (!insights || insights.length === 0) {
+      return "No transcript-derived risk insights yet.";
+    }
+
+    return insights
+      .slice(0, 5)
+      .map(
+        (insight) =>
+          `- [${insight.area.toUpperCase()} - ${insight.severity.toUpperCase()}] ${insight.summary}`,
+      )
+      .join("\n");
   }
 }
 
