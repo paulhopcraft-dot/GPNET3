@@ -171,8 +171,10 @@ export class TranscriptIngestionModule {
         return;
       }
 
-      await this.persistNotes(filePath, parsedNotes);
-      this.processedFiles.set(filePath, stats.mtimeMs);
+      const didPersist = await this.persistNotes(filePath, parsedNotes);
+      if (didPersist) {
+        this.processedFiles.set(filePath, stats.mtimeMs);
+      }
     } catch (error: any) {
       if (error?.code === "ENOENT") {
         return; // File removed before processing
@@ -186,7 +188,7 @@ export class TranscriptIngestionModule {
   private async persistNotes(
     filePath: string,
     parsed: ParsedTranscriptNote[],
-  ): Promise<void> {
+  ): Promise<boolean> {
     const insertRows: InsertCaseDiscussionNote[] = [];
     const insightRows: InsertCaseDiscussionInsight[] = [];
     const notificationEvents = new Map<string, TranscriptIngestionEvent>();
@@ -246,7 +248,7 @@ export class TranscriptIngestionModule {
     }
 
     if (!insertRows.length) {
-      return;
+      return false;
     }
 
     await storage.upsertCaseDiscussionNotes(insertRows);
@@ -265,6 +267,8 @@ export class TranscriptIngestionModule {
         filePath,
       )}`,
     );
+
+    return true;
   }
 
   private createNoteId(filePath: string, note: ParsedTranscriptNote): string {

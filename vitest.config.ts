@@ -9,7 +9,12 @@ export default defineConfig({
     },
   },
   test: {
-    include: ["server/**/*.test.ts", "server/**/*.spec.ts", "shared/**/*.spec.ts"],
+    include: [
+      "server/**/*.test.ts",
+      "server/**/*.spec.ts",
+      "shared/**/*.spec.ts",
+      "client/**/*.test.ts",
+    ],
     environment: "node",
     globals: false,
     coverage: {

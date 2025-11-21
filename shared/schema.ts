@@ -148,6 +148,17 @@ export type TranscriptInsightArea =
   | "returnToWork"
   | "engagement";
 
+export interface AuditEvent {
+  id: string;
+  timestamp: string;
+  userId?: string | null;
+  organisationId?: string | null;
+  eventType: string;
+  resourceType?: string | null;
+  resourceId?: string | null;
+  metadata?: Record<string, any> | null;
+}
+
 export interface TranscriptInsight {
   id: string;
   caseId: string;
@@ -269,6 +280,17 @@ export const caseDiscussionInsights = pgTable("case_discussion_insights", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const auditEvents = pgTable("audit_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  userId: varchar("user_id"),
+  organisationId: varchar("organisation_id"),
+  eventType: text("event_type").notNull(),
+  resourceType: text("resource_type"),
+  resourceId: varchar("resource_id"),
+  metadata: jsonb("metadata"),
+});
+
 // Authentication Types
 export type UserRole = "admin" | "employer" | "clinician" | "insurer";
 
@@ -280,6 +302,7 @@ export interface User {
   subrole: string | null;
   companyId: string | null;
   insurerId: string | null;
+  isActive: boolean;
   createdAt: Date;
 }
 
@@ -292,6 +315,7 @@ export const users = pgTable("users", {
   subrole: text("subrole"), // e.g., "doctor", "physio"
   companyId: varchar("company_id"), // UUID reference to company
   insurerId: varchar("insurer_id"), // UUID reference to insurer
+  isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

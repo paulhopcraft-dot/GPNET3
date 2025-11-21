@@ -1,6 +1,8 @@
 import { test, expect } from "@playwright/test";
 
-test("dashboard loads and shows at least one case", async ({ page }) => {
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+test("dashboard loads, shows discussion notes, and keeps summaries per case", async ({ page }) => {
   await page.goto("/");
 
   // Wait for main heading
@@ -16,8 +18,12 @@ test("dashboard loads and shows at least one case", async ({ page }) => {
   const count = await rows.count();
   expect(count).toBeGreaterThan(1);
 
-  // Open the first case to reveal the detail panel
-  const firstCaseRow = page.locator('[data-testid^="row-case-"]').first();
+  const caseRows = page.locator('[data-testid^="row-case-"]');
+  const firstCaseRow = caseRows.first();
+  const secondCaseRow = caseRows.nth(1);
+  const firstWorkerName = (await firstCaseRow.locator("td").first().innerText()).trim();
+  const secondWorkerName = (await secondCaseRow.locator("td").first().innerText()).trim();
+
   await firstCaseRow.click();
 
   const discussionCard = page.getByTestId("card-discussion-notes");
@@ -27,4 +33,25 @@ test("dashboard loads and shows at least one case", async ({ page }) => {
   await expect(
     discussionCard.locator("text=/No transcript discussions|Transcript Risk Insights/i"),
   ).toBeVisible();
+
+  const workerHeading = page.getByTestId("case-detail-worker-name");
+  if (firstWorkerName) {
+    await expect(workerHeading).toHaveText(new RegExp(escapeRegExp(firstWorkerName), "i"));
+  }
+
+  const summaryCard = page.getByTestId("card-ai-summary");
+  if ((await summaryCard.count()) > 0 && firstWorkerName) {
+    await expect(summaryCard).toContainText(new RegExp(escapeRegExp(firstWorkerName), "i"));
+  }
+
+  await secondCaseRow.click();
+  if (secondWorkerName) {
+    await expect(workerHeading).toHaveText(new RegExp(escapeRegExp(secondWorkerName), "i"));
+  }
+  if ((await summaryCard.count()) > 0 && secondWorkerName) {
+    await expect(summaryCard).toContainText(new RegExp(escapeRegExp(secondWorkerName), "i"));
+    if (firstWorkerName) {
+      await expect(summaryCard).not.toContainText(new RegExp(escapeRegExp(firstWorkerName), "i"));
+    }
+  }
 });

@@ -1,4 +1,7 @@
-import { describe, it, expect, vi } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import type { InsertCaseDiscussionNote } from "@shared/schema";
 
 vi.mock("../../storage", () => ({
@@ -12,6 +15,11 @@ vi.mock("../../storage", () => ({
 }));
 
 import { TranscriptIngestionModule } from "./index";
+import { storage } from "../../storage";
+
+afterEach(() => {
+  vi.clearAllMocks();
+});
 
 describe("TranscriptIngestionModule insight generation", () => {
   const moduleInstance = new TranscriptIngestionModule();
@@ -50,5 +58,72 @@ describe("TranscriptIngestionModule insight generation", () => {
       .filter((insight) => insight.area === "compliance")
       .map((insight) => insight.severity);
     expect(severities).toContain("warning");
+  });
+});
+
+describe("Transcript ingestion control flow", () => {
+  const moduleInstance = new TranscriptIngestionModule();
+
+  const callPersist = (moduleInstance as any).persistNotes.bind(
+    moduleInstance as any,
+  ) as (filePath: string, parsed: any[]) => Promise<boolean>;
+
+  it("returns false when no worker match is found so file can be retried", async () => {
+    const findMock = storage.findCaseByWorkerName as vi.Mock;
+    findMock.mockResolvedValue(null);
+    const persisted = await callPersist("unmatched.txt", [
+      {
+        workerName: "Mystery Person",
+        timestamp: new Date(),
+        rawText: "No matching worker yet",
+        summary: "Summary",
+        nextSteps: [],
+        riskFlags: [],
+        updatesCompliance: false,
+        updatesRecoveryTimeline: false,
+      },
+    ]);
+    expect(persisted).toBe(false);
+    expect(storage.upsertCaseDiscussionNotes).not.toHaveBeenCalled();
+  });
+
+  it("only marks files as processed after successful persistence", async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "gpnet-transcripts-"));
+    const transcriptPath = path.join(tmpDir, "alex.txt");
+    fs.writeFileSync(
+      transcriptPath,
+      "Worker: Alex Smith\nMissed appointment and needs RTW follow up.\n",
+      "utf-8",
+    );
+
+    const processFile = (moduleInstance as any).processFile.bind(
+      moduleInstance as any,
+    ) as (filePath: string) => Promise<void>;
+    const processedFiles = (moduleInstance as any).processedFiles as Map<
+      string,
+      number
+    >;
+
+    const findMock = storage.findCaseByWorkerName as vi.Mock;
+    findMock.mockResolvedValue(null);
+    (storage.upsertCaseDiscussionNotes as vi.Mock).mockResolvedValue(undefined);
+    (storage.upsertCaseDiscussionInsights as vi.Mock).mockResolvedValue(
+      undefined,
+    );
+
+    await processFile(transcriptPath);
+    expect(processedFiles.has(transcriptPath)).toBe(false);
+
+    findMock.mockResolvedValue({
+      caseId: "case-1",
+      workerName: "Alex Smith",
+      confidence: 0.9,
+    });
+
+    await processFile(transcriptPath);
+    expect(processedFiles.has(transcriptPath)).toBe(true);
+    expect(storage.upsertCaseDiscussionNotes).toHaveBeenCalledTimes(1);
+
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 });

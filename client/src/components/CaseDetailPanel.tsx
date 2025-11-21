@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import type {
   WorkerCase,
   MedicalCertificate,
@@ -18,21 +18,22 @@ interface CaseDetailPanelProps {
   onClose: () => void;
 }
 
+export function deriveSummaryMetaFromCase(workerCase: WorkerCase) {
+  return {
+    generatedAt: workerCase.aiSummaryGeneratedAt,
+    model: workerCase.aiSummaryModel,
+    cached: workerCase.aiSummary ? true : undefined,
+    needsRefresh: undefined,
+  };
+}
+
 export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
   // Calculate expected recovery date (12 weeks from injury)
   const injuryDate = new Date(workerCase.dateOfInjury);
   const expectedRecoveryDate = new Date(injuryDate);
   expectedRecoveryDate.setDate(expectedRecoveryDate.getDate() + (12 * 7)); // 12 weeks
   const [aiSummary, setAiSummary] = useState<string | null>(workerCase.aiSummary || null);
-  const [summaryMeta, setSummaryMeta] = useState<{
-    generatedAt?: string;
-    model?: string;
-    needsRefresh?: boolean;
-    cached?: boolean;
-  }>({
-    generatedAt: workerCase.aiSummaryGeneratedAt,
-    model: workerCase.aiSummaryModel,
-  });
+  const [summaryMeta, setSummaryMeta] = useState(deriveSummaryMetaFromCase(workerCase));
   const [loadingSummary, setLoadingSummary] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [timeline, setTimeline] = useState<MedicalCertificate[]>([]);
@@ -47,6 +48,17 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
   );
   const [discussionLoading, setDiscussionLoading] = useState(false);
   const [discussionError, setDiscussionError] = useState<string | null>(null);
+  const latestCaseIdRef = useRef(workerCase.id);
+  useEffect(() => {
+    latestCaseIdRef.current = workerCase.id;
+  }, [workerCase.id]);
+
+  useEffect(() => {
+    setAiSummary(workerCase.aiSummary ?? null);
+    setSummaryMeta(deriveSummaryMetaFromCase(workerCase));
+    setSummaryError(null);
+    setLoadingSummary(false);
+  }, [workerCase.id, workerCase.aiSummary, workerCase.aiSummaryGeneratedAt, workerCase.aiSummaryModel]);
 
   const capacityLabel = (capacity: WorkCapacity | undefined) => {
     switch (capacity) {
@@ -103,12 +115,16 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
   };
 
   const fetchCachedSummary = async (): Promise<boolean> => {
+    const caseId = workerCase.id;
     try {
-      const response = await fetch(`/api/cases/${workerCase.id}/summary`);
+      const response = await fetch(`/api/cases/${caseId}/summary`);
       if (!response.ok) {
         throw new Error("Failed to fetch summary");
       }
       const data = await response.json();
+      if (latestCaseIdRef.current !== caseId) {
+        return false;
+      }
       
       if (data.summary) {
         setAiSummary(data.summary);
@@ -144,11 +160,12 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
   };
 
   const generateSummary = async (force: boolean = false) => {
+    const caseId = workerCase.id;
     setLoadingSummary(true);
     setSummaryError(null);
     
     try {
-      const url = `/api/cases/${workerCase.id}/summary${force ? '?force=true' : ''}`;
+      const url = `/api/cases/${caseId}/summary${force ? '?force=true' : ''}`;
       const response = await fetch(url, {
         method: 'POST',
       });
@@ -157,6 +174,9 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
         throw new Error(errorData.details || "Failed to generate summary");
       }
       const data = await response.json();
+      if (latestCaseIdRef.current !== caseId) {
+        return;
+      }
       setAiSummary(data.summary);
       setSummaryMeta({
         generatedAt: data.generatedAt,
@@ -184,7 +204,9 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
       console.error("Error generating AI summary:", error);
       setSummaryError(error instanceof Error ? error.message : "AI summary temporarily unavailable");
     } finally {
-      setLoadingSummary(false);
+      if (latestCaseIdRef.current === caseId) {
+        setLoadingSummary(false);
+      }
     }
   };
 
@@ -194,8 +216,11 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
       const needsGeneration = await fetchCachedSummary();
       
       // After fetching, generate if needed
-      if (needsGeneration && !loadingSummary) {
-        generateSummary();
+      if (latestCaseIdRef.current !== workerCase.id) {
+        return;
+      }
+      if (needsGeneration) {
+        void generateSummary();
       }
     };
     
@@ -279,7 +304,12 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
   return (
     <aside className="w-96 flex-shrink-0 bg-card border-l border-border p-6">
       <div className="flex justify-between items-start mb-6">
-        <h2 className="text-xl font-bold text-card-foreground">{workerCase.workerName}</h2>
+        <h2
+          className="text-xl font-bold text-card-foreground"
+          data-testid="case-detail-worker-name"
+        >
+          {workerCase.workerName}
+        </h2>
         <Button variant="ghost" size="icon" onClick={onClose} data-testid="button-close-panel">
           <span className="material-symbols-outlined">close</span>
         </Button>
