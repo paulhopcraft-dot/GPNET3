@@ -12,6 +12,7 @@ import { ScrollArea } from "./ui/scroll-area";
 import { RecoveryChart } from "./RecoveryChart";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
+import { TerminationPanel } from "./TerminationPanel";
 
 interface CaseDetailPanelProps {
   workerCase: WorkerCase;
@@ -520,6 +521,8 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
               expectedRecoveryDate={expectedRecoveryDate.toISOString()}
             />
           </div>
+
+          <TerminationPanel workerCase={workerCase} />
 
           {workerCase.attachments && workerCase.attachments.length > 0 && (
             <div>

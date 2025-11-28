@@ -4,6 +4,7 @@ import { FreshdeskService } from "./services/freshdesk";
 import { summaryService } from "./services/summary";
 import Anthropic from "@anthropic-ai/sdk";
 import authRoutes from "./routes/auth";
+import terminationRoutes from "./routes/termination";
 import type { RecoveryTimelineSummary } from "@shared/schema";
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
@@ -11,6 +12,17 @@ const MS_PER_DAY = 1000 * 60 * 60 * 24;
 export async function registerRoutes(app: Express): Promise<void> {
   // Authentication routes
   app.use("/api/auth", authRoutes);
+  app.use("/api/termination", terminationRoutes);
+
+  // Local diagnostics (non-sensitive env presence check)
+  app.get("/api/diagnostics/env", (_req, res) => {
+    res.json({
+      DATABASE_URL: !!process.env.DATABASE_URL,
+      FRESHDESK_DOMAIN: !!process.env.FRESHDESK_DOMAIN,
+      FRESHDESK_API_KEY: !!process.env.FRESHDESK_API_KEY,
+      ANTHROPIC_API_KEY: !!process.env.ANTHROPIC_API_KEY,
+    });
+  });
   // Claude compliance assistant
   app.post("/api/compliance", async (req, res) => {
     const { message } = req.body;

@@ -10,6 +10,9 @@
     "build": "vite build && tsc -p tsconfig.server.json",
     "start": "cross-env NODE_ENV=production node --experimental-loader tsx/esm server/index.ts",
     "db:push": "drizzle-kit push",
+    "drizzle:generate": "drizzle-kit generate --config=./drizzle.config.ts",
+    "drizzle:migrate": "drizzle-kit push --config=./drizzle.config.ts",
+    "db:inspect": "tsx server/scripts/inspectDb.ts",
     "seed": "tsx server/seed.ts",
     "test": "vitest run",
     "test:e2e": "playwright test",
@@ -42,7 +45,6 @@
     "cors": "^2.8.5",
     "dayjs": "^1.11.19",
     "dotenv": "^17.2.3",
-    "drizzle-kit": "^0.31.4",
     "drizzle-orm": "^0.39.1",
     "drizzle-zod": "^0.7.0",
     "express": "^4.21.2",
@@ -70,6 +72,7 @@
     "@playwright/test": "^1.46.1",
     "autoprefixer": "^10.4.22",
     "cross-env": "^7.0.3",
+    "drizzle-kit": "^0.31.7",
     "vitest": "^1.6.1"
   }
 }
