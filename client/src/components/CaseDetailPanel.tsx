@@ -302,6 +302,39 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
     };
   }, [workerCase.id]);
 
+  const rtwPlanLabels: Record<string, string> = {
+    not_planned: "Not planned",
+    planned_not_started: "Planned, not started",
+    in_progress: "RTW in progress",
+    working_well: "Working well",
+    failing: "Plan failing",
+    on_hold: "Plan on hold",
+    completed: "RTW completed",
+  };
+
+  const complianceLabels: Record<string, string> = {
+    unknown: "Unknown",
+    compliant: "Compliant",
+    partially_compliant: "Partially compliant",
+    non_compliant: "Non-compliant",
+  };
+
+  const specialistLabels: Record<string, string> = {
+    none: "No specialist involved",
+    referred: "Referred",
+    appointment_booked: "Appointment booked",
+    seen_waiting_report: "Seen - report pending",
+    report_received: "Report received",
+    did_not_attend: "Did not attend",
+    not_required: "Not required",
+  };
+
+  const hasClinicalStatus =
+    workerCase.rtwPlanStatus ||
+    workerCase.complianceStatus ||
+    workerCase.specialistStatus ||
+    workerCase.specialistReportSummary;
+
   return (
     <aside className="w-96 flex-shrink-0 bg-card border-l border-border p-6">
       <div className="flex justify-between items-start mb-6">
@@ -384,6 +417,119 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
                   <span className="material-symbols-outlined">info</span>
                   {summaryError}
                 </div>
+              </CardContent>
+            </Card>
+          )}
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <span className="material-symbols-outlined text-primary">fact_check</span>
+                Clinical Status
+              </CardTitle>
+            </CardHeader>
+      <CardContent className="space-y-3 text-sm">
+        {workerCase.rtwPlanStatus && (
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-[10px] uppercase tracking-wide">
+              RTW Plan
+                  </Badge>
+                  <span>{rtwPlanLabels[workerCase.rtwPlanStatus] ?? workerCase.rtwPlanStatus}</span>
+                </div>
+              )}
+              {workerCase.complianceStatus && (
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-[10px] uppercase tracking-wide">
+                    Compliance
+                  </Badge>
+                  <span>
+                    {complianceLabels[workerCase.complianceStatus] ?? workerCase.complianceStatus}
+                  </span>
+                </div>
+              )}
+              {workerCase.specialistStatus && (
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-[10px] uppercase tracking-wide">
+                    Specialist
+                  </Badge>
+                  <span>
+                    {specialistLabels[workerCase.specialistStatus] ?? workerCase.specialistStatus}
+                  </span>
+                </div>
+              )}
+              {workerCase.specialistReportSummary?.diagnosisSummary && (
+                <p className="text-xs text-muted-foreground">
+                  Latest specialist note: {workerCase.specialistReportSummary.diagnosisSummary}
+                </p>
+              )}
+              {!hasClinicalStatus && (
+                <p className="text-sm text-muted-foreground">No clinical status captured yet.</p>
+              )}
+      </CardContent>
+    </Card>
+
+          {workerCase.clinicalEvidence && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <span className="material-symbols-outlined text-primary">gavel</span>
+                  Duty Safety & Evidence
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant="outline"
+                    className={`text-[10px] uppercase tracking-wide ${
+                      workerCase.clinicalEvidence.dutySafetyStatus === "unsafe"
+                        ? "border-red-300 text-red-700"
+                        : workerCase.clinicalEvidence.dutySafetyStatus === "safe"
+                        ? "border-emerald-300 text-emerald-700"
+                        : "border-slate-300 text-slate-700"
+                    }`}
+                  >
+                    Duty Safety: {workerCase.clinicalEvidence.dutySafetyStatus.toUpperCase()}
+                  </Badge>
+                  {workerCase.clinicalEvidence.dutySafetyStatus !== "safe" && (
+                    <span className="text-muted-foreground">
+                      Review flags before assigning duties.
+                    </span>
+                  )}
+                </div>
+                {workerCase.clinicalEvidence.flags.filter((f) => f.severity === "high_risk").length >
+                  0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold uppercase text-muted-foreground">
+                      High-Risk Flags
+                    </p>
+                    <ul className="list-disc pl-5 space-y-1">
+                      {workerCase.clinicalEvidence.flags
+                        .filter((f) => f.severity === "high_risk")
+                        .map((flag) => (
+                          <li key={flag.code} className="text-sm text-red-700">
+                            {flag.message}
+                          </li>
+                        ))}
+                    </ul>
+                  </div>
+                )}
+                {workerCase.clinicalEvidence.recommendedActions &&
+                  workerCase.clinicalEvidence.recommendedActions.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold uppercase text-muted-foreground">
+                        Recommended Actions
+                      </p>
+                      <ul className="space-y-1">
+                        {workerCase.clinicalEvidence.recommendedActions.slice(0, 3).map((action) => (
+                          <li key={action.id} className="text-sm text-card-foreground">
+                            <span className="font-medium">{action.label}</span>{" "}
+                            <span className="text-muted-foreground">({action.target})</span>
+                            <div className="text-xs text-muted-foreground">{action.explanation}</div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
               </CardContent>
             </Card>
           )}

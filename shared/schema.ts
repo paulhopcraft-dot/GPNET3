@@ -9,6 +9,166 @@ export type WorkStatus = "At work" | "Off work";
 export type RiskLevel = "High" | "Medium" | "Low";
 export type ComplianceIndicator = "Very High" | "High" | "Medium" | "Low" | "Very Low";
 export type WorkCapacity = "fit" | "partial" | "unfit" | "unknown";
+export interface MedicalConstraints {
+  // Negative constraints – what the worker MUST NOT do
+  noLiftingOverKg?: number;
+  noBending?: boolean;
+  noTwisting?: boolean;
+  noProlongedStanding?: boolean;
+  noProlongedSitting?: boolean;
+  noDriving?: boolean;
+  noClimbing?: boolean;
+  otherConstraints?: string;
+
+  // Positive capacity markers
+  suitableForLightDuties?: boolean;
+  suitableForSeatedWork?: boolean;
+  suitableForModifiedHours?: boolean;
+
+  lastUpdatedBy?: "GP" | "Physiotherapist" | "Specialist" | "CaseManager" | "Unknown";
+  lastUpdatedAt?: string;
+}
+
+export interface FunctionalCapacity {
+  canLiftKg?: number;
+  canStandMinutes?: number;
+  canSitMinutes?: number;
+  canWalkMinutes?: number;
+  maxWorkHoursPerDay?: number;
+  maxWorkDaysPerWeek?: number;
+  otherCapacityNotes?: string;
+}
+
+export type RTWPlanStatus =
+  | "not_planned"
+  | "planned_not_started"
+  | "in_progress"
+  | "working_well"
+  | "failing"
+  | "on_hold"
+  | "completed";
+
+export type ComplianceStatus =
+  | "unknown"
+  | "compliant"
+  | "partially_compliant"
+  | "non_compliant";
+
+export type SpecialistStatus =
+  | "none"
+  | "referred"
+  | "appointment_booked"
+  | "seen_waiting_report"
+  | "report_received"
+  | "did_not_attend"
+  | "not_required";
+
+export interface SpecialistReportSummary {
+  specialistType?: string;
+  specialistName?: string;
+  lastAppointmentDate?: string;
+  diagnosisSummary?: string;
+  improving?: boolean | null;
+  surgeryLikely?: boolean | null;
+  surgeryPlannedDate?: string | null;
+  functionalSummary?: string;
+  recommendations?: string;
+  rawSource?: string;
+}
+
+export interface CaseClinicalStatus {
+  medicalConstraints?: MedicalConstraints;
+  functionalCapacity?: FunctionalCapacity;
+  rtwPlanStatus?: RTWPlanStatus;
+  complianceStatus?: ComplianceStatus;
+  specialistStatus?: SpecialistStatus;
+  specialistReportSummary?: SpecialistReportSummary;
+}
+
+export type DutySafetyStatus = "safe" | "unsafe" | "unknown";
+
+export interface ClinicalEvidenceFlag {
+  code:
+    | "MISSING_TREATMENT_PLAN"
+    | "CERTIFICATE_OUT_OF_DATE"
+    | "NO_RECENT_CERTIFICATE"
+    | "NOT_IMPROVING_AGAINST_EXPECTED_TIMELINE"
+    | "SPECIALIST_REFERRED_NO_APPOINTMENT"
+    | "SPECIALIST_APPOINTMENT_OVERDUE"
+    | "SPECIALIST_SEEN_NO_REPORT"
+    | "SPECIALIST_REPORT_OUTDATED"
+    | "RTW_PLAN_FAILING"
+    | "WORKER_NON_COMPLIANT"
+    | "EVIDENCE_INCOMPLETE"
+    | "OTHER";
+  severity: "info" | "warning" | "high_risk";
+  message: string;
+  details?: string;
+}
+
+export interface ClinicalEvidenceEvaluation {
+  caseId: string;
+  hasCurrentTreatmentPlan: boolean;
+  hasCurrentCertificate: boolean;
+  isImprovingOnExpectedTimeline: boolean | null;
+  dutySafetyStatus: DutySafetyStatus;
+  specialistStatus: SpecialistStatus;
+  specialistReportPresent: boolean;
+  specialistReportCurrent: boolean | null;
+  rtwPlanStatus?: RTWPlanStatus;
+  complianceStatus?: ComplianceStatus;
+  flags: ClinicalEvidenceFlag[];
+  lastClinicalUpdateDate?: string;
+  recommendedActions?: ClinicalActionRecommendation[];
+}
+
+export type ActionTarget =
+  | "WORKER"
+  | "EMPLOYER_INTERNAL"
+  | "GP"
+  | "PHYSIOTHERAPIST"
+  | "SPECIALIST"
+  | "INSURER";
+
+export type ClinicalActionType =
+  | "REQUEST_TREATMENT_PLAN"
+  | "REQUEST_UPDATED_CERTIFICATE"
+  | "REQUEST_CLINICAL_EXPLANATION_FOR_DELAY"
+  | "REQUEST_SPECIALIST_APPOINTMENT_STATUS"
+  | "REQUEST_SPECIALIST_REPORT"
+  | "ESCALATE_NON_COMPLIANCE_TO_INSURER"
+  | "REVIEW_RTW_PLAN_WITH_GP"
+  | "REVIEW_DUTIES_WITH_WORKER"
+  | "DOCUMENT_EVIDENCE_GAP"
+  | "OTHER";
+
+export interface ClinicalActionRecommendation {
+  id: string;
+  type: ClinicalActionType;
+  target: ActionTarget;
+  label: string;
+  explanation: string;
+  relatedFlagCodes: ClinicalEvidenceFlag["code"][];
+  suggestedSubject?: string;
+  suggestedBody?: string;
+  suggestedScript?: string;
+}
+
+export type CaseReportType =
+  | "NON_COMPLIANCE"
+  | "RTW_PLAN_FAILURE";
+
+export interface CaseReport {
+  id: string;
+  caseId: string;
+  type: CaseReportType;
+  target: ActionTarget;
+  title: string;
+  summary: string;
+  body: string;
+  createdAt: string;
+  sourceActionIds?: string[];
+}
 export type EmploymentStatus = "ACTIVE" | "SUSPENDED" | "TERMINATION_IN_PROGRESS" | "TERMINATED";
 export type TerminationReason = "INCAPACITY" | "OTHER";
 export type TerminationAuditFlag = "OK" | "HIGH_RISK" | null;
@@ -196,6 +356,13 @@ export interface WorkerCase {
   certificateUrl?: string;
   complianceIndicator: ComplianceIndicator; // Legacy field - kept for backward compatibility
   compliance?: CaseCompliance; // New structured compliance object
+  medicalConstraints?: MedicalConstraints;
+  functionalCapacity?: FunctionalCapacity;
+  rtwPlanStatus?: RTWPlanStatus;
+  complianceStatus?: ComplianceStatus;
+  specialistStatus?: SpecialistStatus;
+  specialistReportSummary?: SpecialistReportSummary;
+  clinicalEvidence?: ClinicalEvidenceEvaluation;
   currentStatus: string;
   nextStep: string;
   owner: string;
@@ -287,6 +454,7 @@ export const workerCases = pgTable("worker_cases", {
   certificateUrl: text("certificate_url"),
   complianceIndicator: text("compliance_indicator").notNull(),
   complianceJson: jsonb("compliance_json").$type<CaseCompliance>(),
+  clinicalStatusJson: jsonb("clinical_status_json").$type<CaseClinicalStatus>().nullable(),
   currentStatus: text("current_status").notNull(),
   nextStep: text("next_step").notNull(),
   owner: text("owner").notNull(),

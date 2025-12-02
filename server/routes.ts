@@ -6,6 +6,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import authRoutes from "./routes/auth";
 import terminationRoutes from "./routes/termination";
 import type { RecoveryTimelineSummary } from "@shared/schema";
+import { evaluateClinicalEvidence } from "./services/clinicalEvidence";
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
@@ -137,6 +138,24 @@ export async function registerRoutes(app: Express): Promise<void> {
       console.error("Failed to fetch recovery timeline:", err);
       res.status(500).json({
         error: "Failed to fetch recovery timeline",
+        details: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  });
+
+  app.get("/api/cases/:id/clinical-evidence", async (req, res) => {
+    try {
+      const caseId = req.params.id;
+      const workerCase = await storage.getGPNet2CaseById(caseId);
+      if (!workerCase) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+      const clinicalEvidence = evaluateClinicalEvidence(workerCase);
+      res.json({ caseId, clinicalEvidence });
+    } catch (err) {
+      console.error("Failed to evaluate clinical evidence:", err);
+      res.status(500).json({
+        error: "Failed to evaluate clinical evidence",
         details: err instanceof Error ? err.message : "Unknown error",
       });
     }

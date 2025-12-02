@@ -13,6 +13,7 @@ import type {
   InsertCaseDiscussionInsight,
   RiskLevel,
   ComplianceIndicator,
+  CaseClinicalStatus,
 } from "@shared/schema";
 import { db } from "./db";
 import {
@@ -23,6 +24,7 @@ import {
   caseDiscussionNotes,
   caseDiscussionInsights,
 } from "@shared/schema";
+import { evaluateClinicalEvidence } from "./services/clinicalEvidence";
 import { eq, desc, asc, inArray, ilike, sql } from "drizzle-orm";
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
@@ -314,6 +316,7 @@ export interface IStorage {
   findCaseByWorkerName(
     workerName: string,
   ): Promise<{ caseId: string; workerName: string; confidence: number } | null>;
+  updateClinicalStatus(caseId: string, status: CaseClinicalStatus): Promise<void>;
 }
 
 class DbStorage implements IStorage {
@@ -385,6 +388,12 @@ class DbStorage implements IStorage {
           certificateUrl: dbCase.certificateUrl || undefined,
           complianceIndicator: dbCase.complianceIndicator as any,
           compliance: dbCase.complianceJson as any, // Parse JSONB compliance object
+          medicalConstraints: dbCase.clinicalStatusJson?.medicalConstraints,
+          functionalCapacity: dbCase.clinicalStatusJson?.functionalCapacity,
+          rtwPlanStatus: dbCase.clinicalStatusJson?.rtwPlanStatus,
+          complianceStatus: dbCase.clinicalStatusJson?.complianceStatus,
+          specialistStatus: dbCase.clinicalStatusJson?.specialistStatus,
+          specialistReportSummary: dbCase.clinicalStatusJson?.specialistReportSummary,
           currentStatus: dbCase.currentStatus,
           nextStep: dbCase.nextStep,
           owner: dbCase.owner,
@@ -412,6 +421,7 @@ class DbStorage implements IStorage {
           })),
         };
 
+        workerCase.clinicalEvidence = evaluateClinicalEvidence(workerCase);
         const discussionNotes = notesByCase.get(dbCase.id) ?? [];
         const discussionInsights = insightsByCase.get(dbCase.id) ?? [];
         return applyDiscussionInsights(workerCase, discussionNotes, discussionInsights);
@@ -463,6 +473,12 @@ class DbStorage implements IStorage {
       certificateUrl: workerCase.certificateUrl || undefined,
       complianceIndicator: workerCase.complianceIndicator as any,
       compliance: workerCase.complianceJson as any, // Parse JSONB compliance object
+      medicalConstraints: workerCase.clinicalStatusJson?.medicalConstraints,
+      functionalCapacity: workerCase.clinicalStatusJson?.functionalCapacity,
+      rtwPlanStatus: workerCase.clinicalStatusJson?.rtwPlanStatus,
+      complianceStatus: workerCase.clinicalStatusJson?.complianceStatus,
+      specialistStatus: workerCase.clinicalStatusJson?.specialistStatus,
+      specialistReportSummary: workerCase.clinicalStatusJson?.specialistReportSummary,
       currentStatus: workerCase.currentStatus,
       nextStep: workerCase.nextStep,
       owner: workerCase.owner,
@@ -490,6 +506,7 @@ class DbStorage implements IStorage {
       })),
     };
 
+    caseData.clinicalEvidence = evaluateClinicalEvidence(caseData);
     return applyDiscussionInsights(caseData, discussionNotes, discussionInsights);
   }
 
@@ -672,6 +689,32 @@ class DbStorage implements IStorage {
       }
     }
 
+    const incomingClinicalStatus: CaseClinicalStatus = {};
+    if (caseData.medicalConstraints !== undefined) {
+      incomingClinicalStatus.medicalConstraints = caseData.medicalConstraints;
+    }
+    if (caseData.functionalCapacity !== undefined) {
+      incomingClinicalStatus.functionalCapacity = caseData.functionalCapacity;
+    }
+    if (caseData.rtwPlanStatus !== undefined) {
+      incomingClinicalStatus.rtwPlanStatus = caseData.rtwPlanStatus;
+    }
+    if (caseData.complianceStatus !== undefined) {
+      incomingClinicalStatus.complianceStatus = caseData.complianceStatus;
+    }
+    if (caseData.specialistStatus !== undefined) {
+      incomingClinicalStatus.specialistStatus = caseData.specialistStatus;
+    }
+    if (caseData.specialistReportSummary !== undefined) {
+      incomingClinicalStatus.specialistReportSummary = caseData.specialistReportSummary;
+    }
+
+    const hasIncomingClinicalStatus = Object.keys(incomingClinicalStatus).length > 0;
+    const existingClinicalStatus = existingCase[0]?.clinicalStatusJson ?? null;
+    const mergedClinicalStatus: CaseClinicalStatus | null = hasIncomingClinicalStatus
+      ? { ...(existingClinicalStatus ?? {}), ...incomingClinicalStatus }
+      : existingClinicalStatus;
+
     const hasCertificate =
       Boolean(caseData.hasCertificate) ||
       Boolean(caseData.certificateHistory && caseData.certificateHistory.length > 0);
@@ -691,6 +734,7 @@ class DbStorage implements IStorage {
       certificateUrl: caseData.certificateUrl || latestCertificateDoc || null,
       complianceIndicator: caseData.complianceIndicator || "Low",
       complianceJson: caseData.compliance || null, // Store full compliance object as JSONB
+      clinicalStatusJson: mergedClinicalStatus ?? null,
       currentStatus: caseData.currentStatus || "New case",
       nextStep: caseData.nextStep || "Review",
       owner: caseData.owner || "CLC Team",
@@ -715,6 +759,7 @@ class DbStorage implements IStorage {
           aiSummaryGeneratedAt: existing.aiSummaryGeneratedAt,
           aiSummaryModel: existing.aiSummaryModel,
           aiWorkStatusClassification: existing.aiWorkStatusClassification,
+          clinicalStatusJson: mergedClinicalStatus ?? existing.clinicalStatusJson ?? null,
         })
         .where(eq(workerCases.id, caseData.id));
     } else {
@@ -792,6 +837,31 @@ class DbStorage implements IStorage {
     await db.delete(medicalCertificates);
     await db.delete(caseAttachments);
     await db.delete(workerCases);
+  }
+
+  async updateClinicalStatus(caseId: string, status: CaseClinicalStatus): Promise<void> {
+    const existing = await db
+      .select()
+      .from(workerCases)
+      .where(eq(workerCases.id, caseId))
+      .limit(1);
+
+    if (!existing.length) {
+      throw new Error(`Case not found: ${caseId}`);
+    }
+
+    const merged: CaseClinicalStatus = {
+      ...(existing[0].clinicalStatusJson ?? {}),
+      ...status,
+    };
+
+    await db
+      .update(workerCases)
+      .set({
+        clinicalStatusJson: Object.keys(merged).length > 0 ? merged : null,
+        updatedAt: new Date(),
+      })
+      .where(eq(workerCases.id, caseId));
   }
 
   async updateAISummary(caseId: string, summary: string, model: string, workStatusClassification?: string): Promise<void> {
