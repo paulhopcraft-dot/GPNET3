@@ -13,6 +13,7 @@ import { RecoveryChart } from "./RecoveryChart";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { TerminationPanel } from "./TerminationPanel";
+import { TimelineCard } from "./TimelineCard";
 
 interface CaseDetailPanelProps {
   workerCase: WorkerCase;
@@ -639,6 +640,8 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
               )}
             </CardContent>
           </Card>
+
+          <TimelineCard caseId={workerCase.id} />
 
           <div>
             <h3 className="text-sm font-medium text-muted-foreground mb-2">Company</h3>

@@ -1,0 +1,7 @@
+# 18 — Claims Avatar Engine
+
+The claims avatar provides a worker-facing conversational interface for gathering comprehensive injury information in a guided, empathetic manner. The avatar conducts structured conversations covering the injury event and circumstances, current symptoms and functional limitations, impact on daily life and work capacity, prior medical history and treatments, and psychosocial factors that may affect recovery. Advanced natural language processing identifies psychosocial risk flags such as anxiety, catastrophizing, or support system deficits that may impede recovery.
+
+The avatar captures both the complete injury story in the worker's own words and extracts structured data fields for programmatic analysis and reporting. Reasoning capabilities analyze the conversation to identify appropriate return-to-work options based on functional capacity and available duties, generate clinical summaries suitable for medical and insurance review, and determine escalation triggers when concerning patterns or high-risk situations are detected.
+
+This worker-facing AI interaction provides several benefits: workers can tell their story comprehensively at their own pace, the conversational approach captures nuance often missed in forms, psychosocial factors are identified early when they can be addressed proactively, and structured outputs enable consistent case assessment across all workers. The avatar augments rather than replaces human case management, providing rich context for informed decision-making.

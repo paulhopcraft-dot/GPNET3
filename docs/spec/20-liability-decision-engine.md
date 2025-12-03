@@ -1,0 +1,7 @@
+# 20 — Liability & Decision Engine
+
+The liability decision engine analyzes case evidence to assess the likelihood that an injury is work-related and compensable under workers' compensation frameworks. Input analysis includes detailed injury descriptions and mechanism of injury, job tasks and working conditions at the time of injury, documentary evidence including witness statements and incident reports, worker medical and injury history, and behavioural patterns and communication sentiment. The engine applies both rules-based logic encoding regulatory requirements and machine learning models trained on historical claim outcomes.
+
+Engine outputs provide a likelihood assessment categorized as likely compensable, unlikely to be compensable, or unclear requiring further investigation, along with detailed rationale explaining the factors supporting the assessment. The system explicitly identifies evidence gaps where additional information could strengthen or clarify the liability determination, guiding case managers on what additional documentation or investigation is needed.
+
+This decision support helps case managers and employers make informed early decisions on claim acceptance or denial, reducing costly delays in treatment authorization and return-to-work planning. The engine's transparency in showing its reasoning builds trust and supports defensible decision-making in cases that may face disputes or regulatory review. All liability assessments are logged in audit trails with the specific evidence and version of decision logic used.

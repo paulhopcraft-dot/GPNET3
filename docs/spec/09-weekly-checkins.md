@@ -1,0 +1,7 @@
+# 09 — Weekly Check-ins & Worker Monitoring
+
+The weekly check-in system maintains regular contact with workers to monitor welfare, detect deterioration in conditions, and sustain engagement throughout the recovery and return-to-work process. Workers respond to a structured questionnaire covering pain levels, mood and mental health indicators, activities of daily living (ADL) capabilities, work experience feedback when applicable, and free-text areas for open communication. These regular touchpoints provide early warning signals for issues that might not be apparent through medical certificates alone.
+
+Check-in responses are processed to generate both structured data points and narrative summaries, enabling trend analysis over time while maintaining the human context of the worker's experience. The system identifies risk signals based on response patterns, such as increasing pain scores, declining mood indicators, or concerning statements in free-text responses. When predefined thresholds are crossed, escalation triggers alert case managers to intervene proactively.
+
+This continuous monitoring approach supports better outcomes by catching problems early, demonstrating ongoing employer engagement with the injured worker, and providing documented evidence of welfare monitoring for compliance and dispute resolution purposes. The check-in data integrates with other case information to provide a comprehensive view of worker status and progress.

@@ -317,6 +317,7 @@ export interface IStorage {
     workerName: string,
   ): Promise<{ caseId: string; workerName: string; confidence: number } | null>;
   updateClinicalStatus(caseId: string, status: CaseClinicalStatus): Promise<void>;
+  getCaseTimeline(caseId: string, limit?: number): Promise<TimelineEvent[]>;
 }
 
 class DbStorage implements IStorage {
@@ -904,6 +905,128 @@ class DbStorage implements IStorage {
     }
 
     return false;
+  }
+
+  async getCaseTimeline(caseId: string, limit: number = 50): Promise<TimelineEvent[]> {
+    const events: TimelineEvent[] = [];
+
+    // Fetch all sources in parallel
+    const [certificates, notes, attachments, workerCaseRows, terminationRows] = await Promise.all([
+      db.select().from(medicalCertificates).where(eq(medicalCertificates.caseId, caseId)),
+      db.select().from(caseDiscussionNotes).where(eq(caseDiscussionNotes.caseId, caseId)),
+      db.select().from(caseAttachments).where(eq(caseAttachments.caseId, caseId)),
+      db.select().from(workerCases).where(eq(workerCases.id, caseId)).limit(1),
+      db.select().from(terminationProcesses).where(eq(terminationProcesses.workerCaseId, caseId)).limit(1)
+    ]);
+
+    const formatDate = (date: Date) => date.toLocaleDateString("en-AU", { day: "2-digit", month: "short", year: "numeric" });
+
+    // Transform certificates
+    for (const cert of certificates) {
+      events.push({
+        id: `cert-${cert.id}`,
+        caseId,
+        eventType: "certificate_added",
+        timestamp: cert.createdAt?.toISOString() ?? cert.issueDate.toISOString(),
+        title: "Medical Certificate Added",
+        description: `Capacity: ${cert.capacity} | ${formatDate(cert.startDate)} - ${formatDate(cert.endDate)}`,
+        metadata: { capacity: cert.capacity, startDate: cert.startDate.toISOString(), endDate: cert.endDate.toISOString(), notes: cert.notes },
+        sourceId: cert.id,
+        sourceTable: "medical_certificates",
+        icon: "medical_information",
+        severity: cert.capacity === "unfit" ? "warning" : "info"
+      });
+    }
+
+    // Transform discussion notes
+    for (const note of notes) {
+      const hasCriticalFlags = note.riskFlags?.some((flag: string) => /critical|non-compliance|escalation|no show/i.test(flag));
+      events.push({
+        id: `note-${note.id}`,
+        caseId,
+        eventType: "discussion_note",
+        timestamp: note.timestamp?.toISOString() ?? new Date().toISOString(),
+        title: "Discussion Note Added",
+        description: note.summary,
+        metadata: { riskFlags: note.riskFlags, nextSteps: note.nextSteps, updatesCompliance: note.updatesCompliance, updatesRecoveryTimeline: note.updatesRecoveryTimeline },
+        sourceId: note.id,
+        sourceTable: "case_discussion_notes",
+        icon: "forum",
+        severity: hasCriticalFlags ? "critical" : "info"
+      });
+    }
+
+    // Transform attachments
+    for (const att of attachments) {
+      events.push({
+        id: `att-${att.id}`,
+        caseId,
+        eventType: "attachment_uploaded",
+        timestamp: att.createdAt?.toISOString() ?? new Date().toISOString(),
+        title: "Document Uploaded",
+        description: `${att.name} (${att.type})`,
+        metadata: { name: att.name, type: att.type, url: att.url },
+        sourceId: att.id,
+        sourceTable: "case_attachments",
+        icon: "attach_file",
+        severity: "info"
+      });
+    }
+
+    // Transform termination milestones
+    if (terminationRows.length > 0) {
+      const term = terminationRows[0];
+      const milestones = [
+        { date: term.agentMeetingDate, title: "Agent Meeting Held", icon: "handshake", severity: "info" },
+        { date: term.consultantInviteDate, title: "Consultant Invited", icon: "send", severity: "info" },
+        { date: term.consultantAppointmentDate, title: "Consultant Appointment", icon: "person_search", severity: "info" },
+        { date: term.preTerminationInviteSentDate, title: "Pre-Termination Invite Sent", icon: "mail", severity: "warning" },
+        { date: term.preTerminationMeetingDate, title: "Pre-Termination Meeting", icon: "gavel", severity: "warning" },
+        { date: term.decisionDate, title: `Termination Decision: ${term.decision}`, icon: "check_circle", severity: "critical" },
+        { date: term.terminationEffectiveDate, title: "Employment Terminated", icon: "cancel", severity: "critical" }
+      ];
+      for (let idx = 0; idx < milestones.length; idx++) {
+        const milestone = milestones[idx];
+        if (milestone.date) {
+          events.push({
+            id: `term-${term.id}-${idx}`,
+            caseId,
+            eventType: "termination_milestone",
+            timestamp: milestone.date.toISOString(),
+            title: milestone.title,
+            description: `Termination Status: ${term.status}`,
+            metadata: { status: term.status, decision: term.decision, terminationReason: term.decisionRationale },
+            sourceId: term.id,
+            sourceTable: "termination_processes",
+            icon: milestone.icon,
+            severity: milestone.severity as "info" | "warning" | "critical"
+          });
+        }
+      }
+    }
+
+    // Add case created event
+    if (workerCaseRows.length > 0) {
+      const wc = workerCaseRows[0];
+      events.push({
+        id: `case-created-${wc.id}`,
+        caseId,
+        eventType: "case_created",
+        timestamp: wc.createdAt?.toISOString() ?? new Date().toISOString(),
+        title: "Case Created",
+        description: `Worker: ${wc.workerName} | Company: ${wc.company}`,
+        metadata: { company: wc.company, workerName: wc.workerName, dateOfInjury: wc.dateOfInjury.toISOString(), initialStatus: wc.currentStatus },
+        sourceId: wc.id,
+        sourceTable: "worker_cases",
+        icon: "person_add",
+        severity: "info"
+      });
+    }
+
+    // Sort by timestamp descending (most recent first)
+    events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    return events.slice(0, limit);
   }
 }
 

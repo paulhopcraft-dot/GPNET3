@@ -1,0 +1,7 @@
+# 21 — Return-to-Work Intelligence Engine
+
+The return-to-work intelligence engine generates evidence-based RTW plans tailored to each worker's medical restrictions, job requirements, and recovery trajectory. The engine creates structured plans specifying phased hours progressions from initial reduced hours through full-time work, modified duties that accommodate current restrictions while maintaining meaningful work, and review cycles that align with medical certificate validity periods and expected recovery milestones. Plans balance the clinical imperative for graduated return with operational needs and worker preferences.
+
+Continuous monitoring capabilities detect unsafe duty assignments where actual work exceeds medical restrictions, identify too-fast progression that may risk re-injury or deterioration, and recognize deterioration signals from check-ins, communications, or certificate changes that suggest the current plan is not sustainable. When issues are detected, the engine recommends plan adjustments or triggers case manager review for intervention.
+
+The intelligence engine learns from historical case outcomes to refine recommendations over time, identifying factors associated with successful sustained return-to-work versus those that predict failure. This data-driven approach supplements clinical judgment with empirical evidence, supporting better outcomes while maintaining necessary flexibility for individual circumstances. All RTW plan changes are versioned and logged in the case timeline for compliance and dispute documentation.

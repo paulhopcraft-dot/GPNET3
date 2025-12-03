@@ -14,9 +14,11 @@ export default defineConfig({
       "server/**/*.spec.ts",
       "shared/**/*.spec.ts",
       "client/**/*.test.ts",
+      "client/**/*.test.tsx",
     ],
     environment: "node",
     globals: false,
+    setupFiles: ["./vitest.setup.ts"],
     coverage: {
       reporter: ["text", "lcov"],
     },

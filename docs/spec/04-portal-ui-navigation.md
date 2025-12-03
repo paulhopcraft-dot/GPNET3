@@ -1,0 +1,7 @@
+# 04 — Portal UI, Navigation & Screen Specifications
+
+The GPNet portal features a consistent global layout with a sidebar navigation, header, main content area, and theme built around the signature teal color palette. The sidebar provides quick access to all major modules including Dashboard, Cases, Checks, Prevention, Injury, Mental Health, Wellbeing, Exit, Reports, Automations, and Admin sections. This navigation structure ensures users can quickly move between different operational areas while maintaining context.
+
+Key screens include the login page with logo, hero text, and credential fields, and a comprehensive dashboard displaying KPI chips, action queues, recent activity, email summaries, quick actions, and watchlist items. The cases module provides a filterable and sortable list view, with detailed case pages featuring worker cards and tabbed interfaces for Overview, Emails, Checks, Documents, Timeline, Actions, and People information. Each case detail view includes a Recommended Next Step feature to guide case managers toward optimal actions.
+
+Additional specialized screens support the checks module with statuses for Awaiting, In Progress, Completed, and Flagged items with structured check creation, a threaded email view with AI-generated summaries and quick reply functionality, an automations interface for managing rules and templates, and comprehensive admin screens for managing organisation settings, sites, contacts, email/Freshdesk configuration, users and roles, automation policies, and audit trails with export capabilities.

@@ -1,0 +1,7 @@
+# 13 — Operational Case Workflow
+
+The operational case workflow defines the standard progression of injury cases through the GPNet system from initial contact through resolution. The workflow begins with initial contact and injury notification, followed by certificate management to establish medical status and work capacity. Clinical diagnosis and assessment phases gather detailed medical information, culminating in an IME-style report that synthesizes clinical findings. Job matching activities align worker capabilities with available duties, supported by ongoing follow-up and monitoring.
+
+Return-to-work planning formalizes the transition back to employment with structured plans including graduated hours, modified duties, and review schedules. The system continuously monitors for deterioration through check-ins, certificate reviews, and communication analysis, triggering intervention protocols when adverse trends are detected. Exit paths handle case closure scenarios including successful return-to-work, medical retirement, employment termination, or claim denial, each with specific documentation and compliance requirements.
+
+This standardized workflow ensures consistent case handling while allowing flexibility for the unique circumstances of each worker. The system guides case managers through each stage, recommending next actions and flagging when cases deviate from expected progression timelines. Workflow stage transitions are captured in the audit trail, supporting both operational oversight and regulatory compliance documentation.

@@ -1,0 +1,7 @@
+# 11 — Knowledge Layers (Local → Industry → Global)
+
+GPNet implements a three-tier knowledge hierarchy to provide context-aware decision support and guidance throughout the case management process. The local knowledge layer contains organisation-specific policies, enterprise agreements, site-specific rules, and custom procedures that reflect the unique operational context of each employer. The industry knowledge layer includes established return-to-work protocols, clinical pathways, jurisdictional compliance requirements, and best practices specific to injury management and workers' compensation.
+
+The global knowledge layer leverages large language model capabilities to provide general world knowledge, medical information, and broader context when local and industry-specific knowledge is insufficient. Knowledge resolution follows a priority order where local knowledge takes precedence over industry protocols, which in turn override global knowledge, ensuring that organisation-specific requirements are always respected while still providing valuable fallback information when needed.
+
+This layered approach enables the AI-powered features of GPNet to provide recommendations that are simultaneously compliant with specific organisational requirements, aligned with industry best practices, and informed by the latest medical and case management knowledge. The system can explain which knowledge layer informed each recommendation, providing transparency and building trust with users.

@@ -665,3 +665,31 @@ export interface RecoveryTimelineResponse {
   certificates: MedicalCertificate[];
   summary: RecoveryTimelineSummary;
 }
+
+export type TimelineEventType =
+  | "certificate_added"
+  | "discussion_note"
+  | "attachment_uploaded"
+  | "termination_milestone"
+  | "case_status_change"
+  | "case_created";
+
+export interface TimelineEvent {
+  id: string;
+  caseId: string;
+  eventType: TimelineEventType;
+  timestamp: string;
+  title: string;
+  description?: string;
+  metadata?: Record<string, any>;
+  sourceId?: string;
+  sourceTable?: string;
+  icon?: string;
+  severity?: "info" | "warning" | "critical";
+}
+
+export interface TimelineResponse {
+  caseId: string;
+  events: TimelineEvent[];
+  totalEvents: number;
+}

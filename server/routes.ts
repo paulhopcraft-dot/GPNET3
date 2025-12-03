@@ -182,6 +182,32 @@ export async function registerRoutes(app: Express): Promise<void> {
     }
   });
 
+  app.get("/api/cases/:id/timeline", async (req, res) => {
+    try {
+      const caseId = req.params.id;
+      const limit = parseInt(req.query.limit as string) || 50;
+
+      const workerCase = await storage.getGPNet2CaseById(caseId);
+      if (!workerCase) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      const events = await storage.getCaseTimeline(caseId, limit);
+
+      res.json({
+        caseId,
+        events,
+        totalEvents: events.length
+      });
+    } catch (err) {
+      console.error("Failed to fetch timeline:", err);
+      res.status(500).json({
+        error: "Failed to fetch timeline",
+        details: err instanceof Error ? err.message : "Unknown error"
+      });
+    }
+  });
+
   // GET /api/cases/:id/summary - Returns cached summary without triggering generation
   app.get("/api/cases/:id/summary", async (req, res) => {
     try {

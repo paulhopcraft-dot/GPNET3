@@ -1,0 +1,7 @@
+# 02 — System Architecture
+
+The GPNet system architecture is built on a modern, scalable foundation consisting of several interconnected components. The frontend is a React/Vite single-page application hosted at portal.gpnet.au, communicating with the backend through JSON REST APIs with all authenticated pages under the /app/* route structure. The backend is a Node/Express service responsible for authentication, business logic, automations, and integrations, exposing functionality through /api/* routes and utilizing a Postgres database with strong referential integrity and comprehensive audit tables.
+
+The AI layer integrates LLM calls for generating summaries, powering avatars, and providing RTW suggestions, supported by vector storage solutions like Pinecone or pgvector and predictive models using XGBoost. External integrations include Freshdesk for email and ticket management, SMTP/IMAP for email ingestion, and optional S3-style file storage for documents. An asynchronous job system handles background tasks such as email sending, content summarization, OCR processing, and predictive analytics jobs.
+
+Observability is maintained through comprehensive logging, metrics collection, error tracking, and dedicated /health and /metrics endpoints. The system operates across multiple environments including local development, dev, staging, and production, ensuring consistent deployment practices and monitoring capabilities across all tiers.
