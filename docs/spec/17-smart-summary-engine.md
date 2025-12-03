@@ -1,0 +1,7 @@
+# 17 — Smart Case Summary Engine
+
+The smart summary engine synthesizes information from multiple sources to generate comprehensive case snapshots for case managers, insurers, and other stakeholders. Input sources include the complete case timeline, all medical certificates and work capacity assessments, check-in responses and trends, email communications and sentiment analysis, risk signals and compliance flags, and current return-to-work status. The engine applies natural language processing and summarization techniques to distill this complex information into actionable insights.
+
+Summary outputs include a current case snapshot highlighting the most recent and relevant developments, identified risks including deterioration signals, compliance concerns, and predictive flags, current work restrictions and capacity limitations with expiry tracking, and recommended next actions prioritized by urgency and impact. Summaries are generated on-demand when case managers access case details and automatically when significant case events occur.
+
+This intelligent summarization reduces the cognitive load on case managers by highlighting what matters most in each case, enabling faster and more informed decision-making. Summaries are particularly valuable when managers inherit cases from colleagues, return from leave, or need to quickly brief stakeholders on case status during reviews or meetings.

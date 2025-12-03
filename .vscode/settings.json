@@ -1,0 +1,15 @@
+{
+  "command-runner.commands": {
+    "Ask Claude About Architecture": "code --command claude-code.startArchitecturePanel",
+    "Refactor With Claude": "code --command claude-code.multiFileRefactor",
+    "Review Multi-File Patch With Claude": "code --command claude-code.reviewPatch",
+    "Use Codex for File Patch": "code --command codex.runFilePatch",
+    "Use Codex for Debugging": "code --command codex.startDebugging",
+    "Use Codex for Fixing Errors": "code --command codex.autoFixErrors"
+  },
+  "github.copilot.enable": {
+    "*": true
+  },
+  "github.copilot.inlineSuggest.enable": true,
+  "github.copilot.editor.enableAutoCompletions": true
+}

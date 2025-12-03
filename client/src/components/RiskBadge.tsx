@@ -66,7 +66,7 @@ export function RiskBadge({ level, type, compliance }: RiskBadgeProps) {
         <div className="space-y-1">
           <p className="font-semibold">{compliance.reason}</p>
           <p className="text-xs text-muted-foreground">
-            Source: {compliance.source} • Checked: {formattedTime}
+            Source: {compliance.source} - Checked: {formattedTime}
           </p>
         </div>
       </TooltipContent>

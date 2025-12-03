@@ -82,6 +82,13 @@ export async function register(req: Request, res: Response) {
 
     const user = newUser[0];
 
+    if (user.isActive === false) {
+      return res.status(403).json({
+        error: "Forbidden",
+        message: "This account has been deactivated. Please contact support.",
+      });
+    }
+
     // Generate access token
     const accessToken = generateAccessToken(user.id, user.email, user.role);
 

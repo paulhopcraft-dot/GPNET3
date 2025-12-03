@@ -1,0 +1,7 @@
+# 03 — Portal Authentication, Roles & Organisation Onboarding
+
+Authentication in the GPNet portal is handled through a secure login flow at /login where users provide email and password credentials. The backend issues short-lived JWT tokens with refresh token rotation to maintain security, while logout functionality uses a JWT invalidation strategy to ensure session termination. The system supports three primary roles: Admin with full access to all features, Manager for case management operations, and Viewer for read-only access to case information.
+
+The organisation onboarding process guides new clients through a comprehensive wizard that captures all essential configuration. The multi-step wizard collects organisation profile details including name, ABN, timezone, and working days, followed by sites and locations setup, contact information, email and Freshdesk integration settings, automation defaults, and branding customization. Upon completion, users are redirected to the /app dashboard where they can begin managing cases immediately.
+
+This structured onboarding ensures that organisations have all necessary configurations in place before beginning operations, reducing setup friction and ensuring consistency across the platform. The role-based access control system provides granular security while maintaining operational flexibility for different organisational structures.

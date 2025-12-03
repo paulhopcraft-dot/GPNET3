@@ -1,0 +1,7 @@
+# 10 — GP Interview Engine
+
+The GP interview engine collects structured clinical information directly from treating physicians through a guided interview process. The system captures detailed injury specifics including mechanism of injury, affected body parts, and severity assessments, along with functional limitations that impact work capacity, prior medical history relevant to the current condition, and recommended investigations or specialist referrals. This structured approach ensures comprehensive clinical documentation while making it easier for busy GPs to provide necessary information.
+
+Interview responses are captured as both full transcripts for detailed reference and structured data fields for programmatic analysis and reporting. The system generates IME-style clinical summaries that synthesize the interview data into professional medical reports suitable for insurer review, case management decisions, and legal proceedings if necessary. These summaries maintain medical terminology accuracy while presenting information in formats familiar to insurance and legal professionals.
+
+By standardizing the clinical information gathering process, the GP interview engine reduces variability in documentation quality, ensures all necessary information is collected, and creates defensible medical records that support both case management and compliance requirements. The structured data enables better analytics and outcome prediction compared to unstructured clinical notes.

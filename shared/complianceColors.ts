@@ -48,7 +48,7 @@ export function getComplianceBadgeProps(indicator: ComplianceIndicator | undefin
     return {
       bgColor: 'bg-gray-400',
       textColor: 'text-white',
-      label: '—'
+      label: '--'
     };
   }
   return complianceColors[indicator];

@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, boolean, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, boolean, json, jsonb, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -8,12 +8,215 @@ export type CompanyName = "Symmetry" | "Allied Health" | "Apex Labour" | "SafeWo
 export type WorkStatus = "At work" | "Off work";
 export type RiskLevel = "High" | "Medium" | "Low";
 export type ComplianceIndicator = "Very High" | "High" | "Medium" | "Low" | "Very Low";
+export type WorkCapacity = "fit" | "partial" | "unfit" | "unknown";
+export interface MedicalConstraints {
+  // Negative constraints – what the worker MUST NOT do
+  noLiftingOverKg?: number;
+  noBending?: boolean;
+  noTwisting?: boolean;
+  noProlongedStanding?: boolean;
+  noProlongedSitting?: boolean;
+  noDriving?: boolean;
+  noClimbing?: boolean;
+  otherConstraints?: string;
+
+  // Positive capacity markers
+  suitableForLightDuties?: boolean;
+  suitableForSeatedWork?: boolean;
+  suitableForModifiedHours?: boolean;
+
+  lastUpdatedBy?: "GP" | "Physiotherapist" | "Specialist" | "CaseManager" | "Unknown";
+  lastUpdatedAt?: string;
+}
+
+export interface FunctionalCapacity {
+  canLiftKg?: number;
+  canStandMinutes?: number;
+  canSitMinutes?: number;
+  canWalkMinutes?: number;
+  maxWorkHoursPerDay?: number;
+  maxWorkDaysPerWeek?: number;
+  otherCapacityNotes?: string;
+}
+
+export type RTWPlanStatus =
+  | "not_planned"
+  | "planned_not_started"
+  | "in_progress"
+  | "working_well"
+  | "failing"
+  | "on_hold"
+  | "completed";
+
+export type ComplianceStatus =
+  | "unknown"
+  | "compliant"
+  | "partially_compliant"
+  | "non_compliant";
+
+export type SpecialistStatus =
+  | "none"
+  | "referred"
+  | "appointment_booked"
+  | "seen_waiting_report"
+  | "report_received"
+  | "did_not_attend"
+  | "not_required";
+
+export interface SpecialistReportSummary {
+  specialistType?: string;
+  specialistName?: string;
+  lastAppointmentDate?: string;
+  diagnosisSummary?: string;
+  improving?: boolean | null;
+  surgeryLikely?: boolean | null;
+  surgeryPlannedDate?: string | null;
+  functionalSummary?: string;
+  recommendations?: string;
+  rawSource?: string;
+}
+
+export interface CaseClinicalStatus {
+  medicalConstraints?: MedicalConstraints;
+  functionalCapacity?: FunctionalCapacity;
+  rtwPlanStatus?: RTWPlanStatus;
+  complianceStatus?: ComplianceStatus;
+  specialistStatus?: SpecialistStatus;
+  specialistReportSummary?: SpecialistReportSummary;
+}
+
+export type DutySafetyStatus = "safe" | "unsafe" | "unknown";
+
+export interface ClinicalEvidenceFlag {
+  code:
+    | "MISSING_TREATMENT_PLAN"
+    | "CERTIFICATE_OUT_OF_DATE"
+    | "NO_RECENT_CERTIFICATE"
+    | "NOT_IMPROVING_AGAINST_EXPECTED_TIMELINE"
+    | "SPECIALIST_REFERRED_NO_APPOINTMENT"
+    | "SPECIALIST_APPOINTMENT_OVERDUE"
+    | "SPECIALIST_SEEN_NO_REPORT"
+    | "SPECIALIST_REPORT_OUTDATED"
+    | "RTW_PLAN_FAILING"
+    | "WORKER_NON_COMPLIANT"
+    | "EVIDENCE_INCOMPLETE"
+    | "OTHER";
+  severity: "info" | "warning" | "high_risk";
+  message: string;
+  details?: string;
+}
+
+export interface ClinicalEvidenceEvaluation {
+  caseId: string;
+  hasCurrentTreatmentPlan: boolean;
+  hasCurrentCertificate: boolean;
+  isImprovingOnExpectedTimeline: boolean | null;
+  dutySafetyStatus: DutySafetyStatus;
+  specialistStatus: SpecialistStatus;
+  specialistReportPresent: boolean;
+  specialistReportCurrent: boolean | null;
+  rtwPlanStatus?: RTWPlanStatus;
+  complianceStatus?: ComplianceStatus;
+  flags: ClinicalEvidenceFlag[];
+  lastClinicalUpdateDate?: string;
+  recommendedActions?: ClinicalActionRecommendation[];
+}
+
+export type ActionTarget =
+  | "WORKER"
+  | "EMPLOYER_INTERNAL"
+  | "GP"
+  | "PHYSIOTHERAPIST"
+  | "SPECIALIST"
+  | "INSURER";
+
+export type ClinicalActionType =
+  | "REQUEST_TREATMENT_PLAN"
+  | "REQUEST_UPDATED_CERTIFICATE"
+  | "REQUEST_CLINICAL_EXPLANATION_FOR_DELAY"
+  | "REQUEST_SPECIALIST_APPOINTMENT_STATUS"
+  | "REQUEST_SPECIALIST_REPORT"
+  | "ESCALATE_NON_COMPLIANCE_TO_INSURER"
+  | "REVIEW_RTW_PLAN_WITH_GP"
+  | "REVIEW_DUTIES_WITH_WORKER"
+  | "DOCUMENT_EVIDENCE_GAP"
+  | "OTHER";
+
+export interface ClinicalActionRecommendation {
+  id: string;
+  type: ClinicalActionType;
+  target: ActionTarget;
+  label: string;
+  explanation: string;
+  relatedFlagCodes: ClinicalEvidenceFlag["code"][];
+  suggestedSubject?: string;
+  suggestedBody?: string;
+  suggestedScript?: string;
+}
+
+export type CaseReportType =
+  | "NON_COMPLIANCE"
+  | "RTW_PLAN_FAILURE";
+
+export interface CaseReport {
+  id: string;
+  caseId: string;
+  type: CaseReportType;
+  target: ActionTarget;
+  title: string;
+  summary: string;
+  body: string;
+  createdAt: string;
+  sourceActionIds?: string[];
+}
+export type EmploymentStatus = "ACTIVE" | "SUSPENDED" | "TERMINATION_IN_PROGRESS" | "TERMINATED";
+export type TerminationReason = "INCAPACITY" | "OTHER";
+export type TerminationAuditFlag = "OK" | "HIGH_RISK" | null;
+export type TerminationStatus =
+  | "NOT_STARTED"
+  | "PREP_EVIDENCE"
+  | "AGENT_MEETING"
+  | "CONSULTANT_CONFIRMATION"
+  | "PRE_TERMINATION_INVITE_SENT"
+  | "PRE_TERMINATION_MEETING_COMPLETED"
+  | "DECISION_PENDING"
+  | "TERMINATED"
+  | "TERMINATION_ABORTED";
+export type PayStatusDuringStandDown = "NORMAL" | "WORKCOVER_ONLY" | "SPECIAL_PAID_LEAVE";
+export type TerminationDecision = "NO_DECISION" | "TERMINATE" | "DEFER" | "ALTERNATIVE_ROLE_FOUND";
 
 export interface CaseCompliance {
   indicator: ComplianceIndicator;
   reason: string;
   source: 'freshdesk' | 'claude' | 'manual';
   lastChecked: string;
+}
+
+export interface MedicalCertificate {
+  id: string;
+  caseId: string;
+  issueDate: string;
+  startDate: string;
+  endDate: string;
+  capacity: WorkCapacity;
+  notes?: string;
+  source: "freshdesk" | "manual";
+  documentUrl?: string;
+  sourceReference?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface MedicalCertificateInput {
+  caseId?: string;
+  issueDate: string;
+  startDate: string;
+  endDate: string;
+  capacity: WorkCapacity;
+  notes?: string;
+  source: "freshdesk" | "manual";
+  documentUrl?: string;
+  sourceReference?: string;
 }
 
 // Helper function to check if a company value is valid
@@ -99,6 +302,49 @@ export interface CaseAttachment {
   url: string;
 }
 
+export interface CaseDiscussionNote {
+  id: string;
+  caseId: string;
+  workerName: string;
+  timestamp: string;
+  rawText: string;
+  summary: string;
+  nextSteps?: string[];
+  riskFlags?: string[];
+  updatesCompliance: boolean;
+  updatesRecoveryTimeline: boolean;
+}
+
+export type TranscriptInsightSeverity = "info" | "warning" | "critical";
+export type TranscriptInsightArea =
+  | "compliance"
+  | "recovery"
+  | "risk"
+  | "returnToWork"
+  | "engagement";
+
+export interface AuditEvent {
+  id: string;
+  timestamp: string;
+  userId?: string | null;
+  organisationId?: string | null;
+  eventType: string;
+  resourceType?: string | null;
+  resourceId?: string | null;
+  metadata?: Record<string, any> | null;
+}
+
+export interface TranscriptInsight {
+  id: string;
+  caseId: string;
+  noteId: string;
+  area: TranscriptInsightArea;
+  severity: TranscriptInsightSeverity;
+  summary: string;
+  detail?: string;
+  createdAt: string;
+}
+
 export interface WorkerCase {
   id: string;
   workerName: string;
@@ -110,6 +356,13 @@ export interface WorkerCase {
   certificateUrl?: string;
   complianceIndicator: ComplianceIndicator; // Legacy field - kept for backward compatibility
   compliance?: CaseCompliance; // New structured compliance object
+  medicalConstraints?: MedicalConstraints;
+  functionalCapacity?: FunctionalCapacity;
+  rtwPlanStatus?: RTWPlanStatus;
+  complianceStatus?: ComplianceStatus;
+  specialistStatus?: SpecialistStatus;
+  specialistReportSummary?: SpecialistReportSummary;
+  clinicalEvidence?: ClinicalEvidenceEvaluation;
   currentStatus: string;
   nextStep: string;
   owner: string;
@@ -125,6 +378,68 @@ export interface WorkerCase {
   attachments?: CaseAttachment[];
   clcLastFollowUp?: string;
   clcNextFollowUp?: string;
+  latestCertificate?: MedicalCertificate;
+  certificateHistory?: MedicalCertificateInput[];
+  latestDiscussionNotes?: CaseDiscussionNote[];
+  discussionInsights?: TranscriptInsight[];
+  employmentStatus?: EmploymentStatus;
+  terminationProcessId?: string | null;
+  terminationReason?: TerminationReason | null;
+  terminationAuditFlag?: TerminationAuditFlag;
+}
+
+export interface TerminationProcess {
+  id: string;
+  workerCaseId: string;
+  status: TerminationStatus;
+  preInjuryRole: string | null;
+  rtWAttemptsSummary: string | null;
+  hasSustainableRole: boolean | null;
+  alternativeRolesConsideredSummary: string | null;
+  agentMeetingDate: string | null;
+  agentMeetingNotesId: string | null;
+  consultantInviteDate: string | null;
+  consultantAppointmentDate: string | null;
+  consultantReportId: string | null;
+  longTermRestrictionsSummary: string | null;
+  canReturnPreInjuryRole: boolean | null;
+  preTerminationInviteSentDate: string | null;
+  preTerminationMeetingDate: string | null;
+  preTerminationMeetingLocation: string | null;
+  workerAllowedRepresentative: boolean | null;
+  workerInstructedNotToAttendWork: boolean | null;
+  payStatusDuringStandDown: PayStatusDuringStandDown | null;
+  preTerminationLetterDocId: string | null;
+  preTerminationMeetingHeld: boolean | null;
+  preTerminationMeetingNotesId: string | null;
+  anyNewMedicalInfoProvided: boolean | null;
+  newMedicalDocsSummary: string | null;
+  decision: TerminationDecision;
+  decisionDate: string | null;
+  decisionRationale: string | null;
+  terminationEffectiveDate: string | null;
+  terminationNoticeWeeks: number | null;
+  noticeType: "WORKED" | "PAID_IN_LIEU" | "MIXED" | null;
+  terminationLetterDocId: string | null;
+  entitlementsSummary: string | null;
+  ongoingCompArrangements: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DocumentTemplate {
+  id: string;
+  code: string;
+  body: string;
+  createdAt: string;
+}
+
+export interface GeneratedDocument {
+  id: string;
+  workerCaseId: string;
+  templateCode: string | null;
+  content: string;
+  createdAt: string;
 }
 
 // Database tables
@@ -139,6 +454,7 @@ export const workerCases = pgTable("worker_cases", {
   certificateUrl: text("certificate_url"),
   complianceIndicator: text("compliance_indicator").notNull(),
   complianceJson: jsonb("compliance_json").$type<CaseCompliance>(),
+  clinicalStatusJson: jsonb("clinical_status_json").$type<CaseClinicalStatus>().nullable(),
   currentStatus: text("current_status").notNull(),
   nextStep: text("next_step").notNull(),
   owner: text("owner").notNull(),
@@ -153,6 +469,82 @@ export const workerCases = pgTable("worker_cases", {
   ticketLastUpdatedAt: timestamp("ticket_last_updated_at"),
   clcLastFollowUp: text("clc_last_follow_up"),
   clcNextFollowUp: text("clc_next_follow_up"),
+  employmentStatus: text("employment_status").notNull().default("ACTIVE"),
+  terminationProcessId: varchar("termination_process_id"),
+  terminationReason: text("termination_reason"),
+  terminationAuditFlag: text("termination_audit_flag"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const terminationProcesses = pgTable("termination_processes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  workerCaseId: varchar("worker_case_id")
+    .notNull()
+    .references(() => workerCases.id, { onDelete: "cascade" }),
+  status: text("status").notNull().default("NOT_STARTED"),
+  preInjuryRole: text("pre_injury_role"),
+  rtWAttemptsSummary: text("rtw_attempts_summary"),
+  hasSustainableRole: boolean("has_sustainable_role"),
+  alternativeRolesConsideredSummary: text("alternative_roles_considered_summary"),
+  agentMeetingDate: timestamp("agent_meeting_date"),
+  agentMeetingNotesId: text("agent_meeting_notes_id"),
+  consultantInviteDate: timestamp("consultant_invite_date"),
+  consultantAppointmentDate: timestamp("consultant_appointment_date"),
+  consultantReportId: text("consultant_report_id"),
+  longTermRestrictionsSummary: text("long_term_restrictions_summary"),
+  canReturnPreInjuryRole: boolean("can_return_pre_injury_role"),
+  preTerminationInviteSentDate: timestamp("pre_termination_invite_sent_date"),
+  preTerminationMeetingDate: timestamp("pre_termination_meeting_date"),
+  preTerminationMeetingLocation: text("pre_termination_meeting_location"),
+  workerAllowedRepresentative: boolean("worker_allowed_representative"),
+  workerInstructedNotToAttendWork: boolean("worker_instructed_not_to_attend_work"),
+  payStatusDuringStandDown: text("pay_status_during_stand_down"),
+  preTerminationLetterDocId: text("pre_termination_letter_doc_id"),
+  preTerminationMeetingHeld: boolean("pre_termination_meeting_held"),
+  preTerminationMeetingNotesId: text("pre_termination_meeting_notes_id"),
+  anyNewMedicalInfoProvided: boolean("any_new_medical_info_provided"),
+  newMedicalDocsSummary: text("new_medical_docs_summary"),
+  decision: text("decision").notNull().default("NO_DECISION"),
+  decisionDate: timestamp("decision_date"),
+  decisionRationale: text("decision_rationale"),
+  terminationEffectiveDate: timestamp("termination_effective_date"),
+  terminationNoticeWeeks: integer("termination_notice_weeks"),
+  noticeType: text("notice_type"),
+  terminationLetterDocId: text("termination_letter_doc_id"),
+  entitlementsSummary: text("entitlements_summary"),
+  ongoingCompArrangements: text("ongoing_comp_arrangements"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const documentTemplates = pgTable("document_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  code: text("code").notNull().unique(),
+  body: text("body").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const generatedDocuments = pgTable("generated_documents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  workerCaseId: varchar("worker_case_id")
+    .references(() => workerCases.id, { onDelete: "cascade" }),
+  templateCode: text("template_code"),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const medicalCertificates = pgTable("medical_certificates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  caseId: varchar("case_id").notNull().references(() => workerCases.id),
+  issueDate: timestamp("issue_date").notNull(),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  capacity: text("capacity").notNull(),
+  notes: text("notes"),
+  source: text("source").notNull().default("freshdesk"),
+  documentUrl: text("document_url"),
+  sourceReference: text("source_reference"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -166,6 +558,41 @@ export const caseAttachments = pgTable("case_attachments", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const caseDiscussionNotes = pgTable("case_discussion_notes", {
+  id: text("id").primaryKey(),
+  caseId: text("case_id").references(() => workerCases.id).notNull(),
+  workerName: text("worker_name").notNull(),
+  timestamp: timestamp("timestamp").defaultNow(),
+  rawText: text("raw_text").notNull(),
+  summary: text("summary").notNull(),
+  nextSteps: json("next_steps").$type<string[]>(),
+  riskFlags: json("risk_flags").$type<string[]>(),
+  updatesCompliance: boolean("updates_compliance").default(false),
+  updatesRecoveryTimeline: boolean("updates_recovery_timeline").default(false),
+});
+
+export const caseDiscussionInsights = pgTable("case_discussion_insights", {
+  id: text("id").primaryKey(),
+  caseId: text("case_id").references(() => workerCases.id).notNull(),
+  noteId: text("note_id").references(() => caseDiscussionNotes.id).notNull(),
+  area: text("area").notNull(),
+  severity: text("severity").notNull(),
+  summary: text("summary").notNull(),
+  detail: text("detail"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const auditEvents = pgTable("audit_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  userId: varchar("user_id"),
+  organisationId: varchar("organisation_id"),
+  eventType: text("event_type").notNull(),
+  resourceType: text("resource_type"),
+  resourceId: varchar("resource_id"),
+  metadata: jsonb("metadata"),
+});
+
 // Authentication Types
 export type UserRole = "admin" | "employer" | "clinician" | "insurer";
 
@@ -177,6 +604,7 @@ export interface User {
   subrole: string | null;
   companyId: string | null;
   insurerId: string | null;
+  isActive: boolean;
   createdAt: Date;
 }
 
@@ -189,6 +617,7 @@ export const users = pgTable("users", {
   subrole: text("subrole"), // e.g., "doctor", "physio"
   companyId: varchar("company_id"), // UUID reference to company
   insurerId: varchar("insurer_id"), // UUID reference to insurer
+  isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -214,3 +643,53 @@ export type InsertCaseAttachment = z.infer<typeof insertCaseAttachmentSchema>;
 export type CaseAttachmentDB = typeof caseAttachments.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type UserDB = typeof users.$inferSelect;
+export type MedicalCertificateDB = typeof medicalCertificates.$inferSelect;
+export type InsertMedicalCertificate = typeof medicalCertificates.$inferInsert;
+export type CaseDiscussionNoteDB = typeof caseDiscussionNotes.$inferSelect;
+export type InsertCaseDiscussionNote = typeof caseDiscussionNotes.$inferInsert;
+export type CaseDiscussionInsightDB = typeof caseDiscussionInsights.$inferSelect;
+export type InsertCaseDiscussionInsight = typeof caseDiscussionInsights.$inferInsert;
+export type TerminationProcessDB = typeof terminationProcesses.$inferSelect;
+export type InsertTerminationProcess = typeof terminationProcesses.$inferInsert;
+export type DocumentTemplateDB = typeof documentTemplates.$inferSelect;
+export type GeneratedDocumentDB = typeof generatedDocuments.$inferSelect;
+
+export interface RecoveryTimelineSummary {
+  totalCertificates: number;
+  daysOnReducedCapacity: number;
+  lastKnownCapacity: WorkCapacity;
+  lastUpdated?: string | null;
+}
+
+export interface RecoveryTimelineResponse {
+  certificates: MedicalCertificate[];
+  summary: RecoveryTimelineSummary;
+}
+
+export type TimelineEventType =
+  | "certificate_added"
+  | "discussion_note"
+  | "attachment_uploaded"
+  | "termination_milestone"
+  | "case_status_change"
+  | "case_created";
+
+export interface TimelineEvent {
+  id: string;
+  caseId: string;
+  eventType: TimelineEventType;
+  timestamp: string;
+  title: string;
+  description?: string;
+  metadata?: Record<string, any>;
+  sourceId?: string;
+  sourceTable?: string;
+  icon?: string;
+  severity?: "info" | "warning" | "critical";
+}
+
+export interface TimelineResponse {
+  caseId: string;
+  events: TimelineEvent[];
+  totalEvents: number;
+}

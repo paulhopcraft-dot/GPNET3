@@ -1,0 +1,7 @@
+# 23 — Financial & Wage Management Engine
+
+The financial and wage management engine models the complex interplay between worker compensation, return-to-work hours, and various pay scenarios throughout injury cases. The system tracks base wages prior to injury, calculates earnings during graduated return-to-work based on actual hours worked, determines top-up payments when workers' compensation benefits supplement reduced earnings, and monitors no-pay periods when workers are unfit and awaiting compensation decisions or during leave without pay.
+
+Financial modeling supports planning by projecting costs under different return-to-work scenarios, enabling data-driven decisions about accommodation investments, alternative duty creation, and case management resource allocation. The engine integrates with return-to-work plans to automatically calculate expected wages at each phase of graduated return, providing transparency to workers about earnings expectations and supporting payroll processing.
+
+Reporting capabilities aggregate financial data across cases for budgeting, forecasting, and performance analysis. The system can identify cost drivers, compare actual versus projected costs, and support ROI analysis for case management interventions. All financial calculations are logged with audit trails supporting accounting reconciliation, workers' compensation insurer reporting, and financial compliance requirements.

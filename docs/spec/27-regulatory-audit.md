@@ -1,0 +1,7 @@
+# 27 — Regulatory Compliance & Audit Trail
+
+The regulatory compliance and audit system maintains comprehensive logs of all system activities to support compliance obligations and dispute resolution. Audit capture includes user authentication events such as logins, logouts, and failed access attempts, case data modifications tracking all edits to worker information, medical status, and return-to-work plans, return-to-work plan changes with version control and rationale documentation, and automation executions logging all system-generated actions including when they were triggered, what was sent, and to whom.
+
+The audit trail records not just what changed but who made the change, when it occurred, what the previous value was, and what business process or automation rule triggered the change. This comprehensive logging supports root cause analysis when issues arise, provides defensible documentation for regulatory audits and dispute proceedings, and enables quality assurance reviews of case management practices.
+
+Export capabilities generate audit bundles and evidence packages for specific cases or time periods, formatted for regulator submission or legal discovery processes. The system can produce complete case histories showing every action taken, decision made, and communication sent throughout the case lifecycle. Audit data retention policies ensure compliance with jurisdictional requirements while supporting efficient storage management, with configurable retention periods based on document type and regulatory requirements.

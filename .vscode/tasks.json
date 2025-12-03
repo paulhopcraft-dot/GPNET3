@@ -1,0 +1,74 @@
+{
+  "version": "2.0.0",
+  "inputs": [
+    {
+      "id": "featureName",
+      "type": "promptString",
+      "description": "Name for the new feature branch (without feature/ prefix)",
+      "default": "awesome-update"
+    }
+  ],
+  "tasks": [
+    {
+      "label": "Run GPNet",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "shell": {
+          "executable": "powershell.exe",
+          "args": [
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command"
+          ]
+        }
+      },
+      "isBackground": true,
+      "problemMatcher": [
+        {
+          "owner": "gpnet",
+          "pattern": [
+            {
+              "regexp": "^(?!x)x"
+            }
+          ],
+          "background": {
+            "activeOnStart": true,
+            "beginsPattern": ".",
+            "endsPattern": "^__never__?$"
+          }
+        }
+      ],
+      "presentation": {
+        "panel": "dedicated",
+        "clear": true,
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "Commit & Push",
+      "type": "shell",
+      "command": "powershell.exe",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        "git add -A; if ((git status --porcelain)) { git commit -m 'chore: workspace update' }; git push"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Create Feature Branch",
+      "type": "shell",
+      "command": "powershell.exe",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        "git checkout -b feature/${input:featureName}"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}

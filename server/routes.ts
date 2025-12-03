@@ -1,14 +1,29 @@
 import type { Express } from "express";
-import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { FreshdeskService } from "./services/freshdesk";
 import { summaryService } from "./services/summary";
 import Anthropic from "@anthropic-ai/sdk";
 import authRoutes from "./routes/auth";
+import terminationRoutes from "./routes/termination";
+import type { RecoveryTimelineSummary } from "@shared/schema";
+import { evaluateClinicalEvidence } from "./services/clinicalEvidence";
 
-export async function registerRoutes(app: Express): Promise<Server> {
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
+export async function registerRoutes(app: Express): Promise<void> {
   // Authentication routes
   app.use("/api/auth", authRoutes);
+  app.use("/api/termination", terminationRoutes);
+
+  // Local diagnostics (non-sensitive env presence check)
+  app.get("/api/diagnostics/env", (_req, res) => {
+    res.json({
+      DATABASE_URL: !!process.env.DATABASE_URL,
+      FRESHDESK_DOMAIN: !!process.env.FRESHDESK_DOMAIN,
+      FRESHDESK_API_KEY: !!process.env.FRESHDESK_API_KEY,
+      ANTHROPIC_API_KEY: !!process.env.ANTHROPIC_API_KEY,
+    });
+  });
   // Claude compliance assistant
   app.post("/api/compliance", async (req, res) => {
     const { message } = req.body;
@@ -85,6 +100,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/cases/:id/recovery-timeline", async (req, res) => {
+    try {
+      const caseId = req.params.id;
+      const workerCase = await storage.getGPNet2CaseById(caseId);
+
+      if (!workerCase) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      const certificates = await storage.getCaseRecoveryTimeline(caseId);
+      const lastCertificate = certificates[certificates.length - 1];
+
+      const summary: RecoveryTimelineSummary = {
+        totalCertificates: certificates.length,
+        daysOnReducedCapacity: certificates.reduce((total, cert) => {
+          if (cert.capacity === "fit") {
+            return total;
+          }
+          const start = new Date(cert.startDate).getTime();
+          const end = new Date(cert.endDate).getTime();
+          if (Number.isNaN(start) || Number.isNaN(end)) {
+            return total;
+          }
+          const diff = Math.max(1, Math.round((end - start) / MS_PER_DAY));
+          return total + diff;
+        }, 0),
+        lastKnownCapacity: lastCertificate?.capacity ?? "unknown",
+        lastUpdated: lastCertificate?.endDate ?? lastCertificate?.startDate ?? null,
+      };
+
+      res.json({
+        certificates,
+        summary,
+      });
+    } catch (err) {
+      console.error("Failed to fetch recovery timeline:", err);
+      res.status(500).json({
+        error: "Failed to fetch recovery timeline",
+        details: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  });
+
+  app.get("/api/cases/:id/clinical-evidence", async (req, res) => {
+    try {
+      const caseId = req.params.id;
+      const workerCase = await storage.getGPNet2CaseById(caseId);
+      if (!workerCase) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+      const clinicalEvidence = evaluateClinicalEvidence(workerCase);
+      res.json({ caseId, clinicalEvidence });
+    } catch (err) {
+      console.error("Failed to evaluate clinical evidence:", err);
+      res.status(500).json({
+        error: "Failed to evaluate clinical evidence",
+        details: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  });
+
+  app.get("/api/cases/:id/discussion-notes", async (req, res) => {
+    try {
+      const caseId = req.params.id;
+      const workerCase = await storage.getGPNet2CaseById(caseId);
+      if (!workerCase) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+      const [notes, insights] = await Promise.all([
+        storage.getCaseDiscussionNotes(caseId, 25),
+        storage.getCaseDiscussionInsights(caseId, 25),
+      ]);
+      res.json({ notes, insights });
+    } catch (err) {
+      console.error("Failed to fetch discussion notes:", err);
+      res.status(500).json({
+        error: "Failed to fetch discussion notes",
+        details: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  });
+
+  app.get("/api/cases/:id/timeline", async (req, res) => {
+    try {
+      const caseId = req.params.id;
+      const limit = parseInt(req.query.limit as string) || 50;
+
+      const workerCase = await storage.getGPNet2CaseById(caseId);
+      if (!workerCase) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      const events = await storage.getCaseTimeline(caseId, limit);
+
+      res.json({
+        caseId,
+        events,
+        totalEvents: events.length
+      });
+    } catch (err) {
+      console.error("Failed to fetch timeline:", err);
+      res.status(500).json({
+        error: "Failed to fetch timeline",
+        details: err instanceof Error ? err.message : "Unknown error"
+      });
+    }
+  });
+
   // GET /api/cases/:id/summary - Returns cached summary without triggering generation
   app.get("/api/cases/:id/summary", async (req, res) => {
     try {
@@ -94,6 +217,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!workerCase) {
         return res.status(404).json({ error: "Case not found" });
       }
+      const [discussionNotes, discussionInsights] = await Promise.all([
+        storage.getCaseDiscussionNotes(caseId, 5),
+        storage.getCaseDiscussionInsights(caseId, 5),
+      ]);
 
       // Return cached summary data
       res.json({
@@ -104,6 +231,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         workStatusClassification: workerCase.aiWorkStatusClassification || null,
         ticketLastUpdatedAt: workerCase.ticketLastUpdatedAt || null,
         needsRefresh: await storage.needsSummaryRefresh(caseId),
+        discussionNotes,
+        discussionInsights,
       });
     } catch (err) {
       console.error("Failed to fetch summary:", err);
@@ -161,6 +290,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         result = await summaryService.getCachedOrGenerateSummary(caseId);
       }
 
+      const [discussionNotes, discussionInsights] = await Promise.all([
+        storage.getCaseDiscussionNotes(caseId, 5),
+        storage.getCaseDiscussionInsights(caseId, 5),
+      ]);
+
       res.json({
         id: caseId,
         summary: result.summary,
@@ -168,6 +302,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         generatedAt: result.generatedAt,
         model: result.model,
         workStatusClassification: result.workStatusClassification,
+        discussionNotes,
+        discussionInsights,
       });
     } catch (err) {
       console.error("Summary generation failed:", err);
@@ -187,7 +323,4 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  const httpServer = createServer(app);
-
-  return httpServer;
 }

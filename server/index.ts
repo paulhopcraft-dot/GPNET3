@@ -1,8 +1,17 @@
+import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
+import cors from "cors";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { TranscriptIngestionModule } from "./services/transcripts";
 
 const app = express();
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  })
+);
 
 declare module "http" {
   interface IncomingMessage {
@@ -45,8 +54,11 @@ app.use((req, res, next) => {
   next();
 });
 
-(async () => {
-  const server = await registerRoutes(app);
+const transcriptModule = new TranscriptIngestionModule();
+
+const startServer = async () => {
+  await transcriptModule.start();
+  await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
@@ -55,20 +67,44 @@ app.use((req, res, next) => {
     throw err;
   });
 
-  // Vite only in dev
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
+  const port = parseInt(process.env.PORT || "5000", 10);
+  const isDev = app.get("env") === "development";
+
+  if (isDev) {
+    const server = app.listen(port, () => {
+      console.log(`Server listening on http://localhost:${port}`);
+    });
+
+    try {
+      await setupVite(app, server);
+    } catch (error) {
+      server.close();
+      throw error;
+    }
   } else {
     serveStatic(app);
+    app.listen(port, () => {
+      console.log(`Server listening on http://localhost:${port}`);
+    });
   }
+};
 
-  const port = parseInt(process.env.PORT || "5000", 10);
-  server.listen(
-    {
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    },
-    () => log(`✅ Server running on port ${port}`)
-  );
-})();
+startServer().catch((error) => {
+  console.error("Failed to start server:", error);
+  process.exit(1);
+});
+
+let shuttingDown = false;
+const gracefulShutdown = async () => {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  try {
+    await transcriptModule.stop();
+  } catch (err) {
+    console.error("Transcript module shutdown error", err);
+  }
+  process.exit(0);
+};
+
+process.on("SIGINT", gracefulShutdown);
+process.on("SIGTERM", gracefulShutdown);

@@ -1,0 +1,7 @@
+# 25 — Predictive Analytics Layer
+
+The predictive analytics layer applies machine learning models to forecast case outcomes and identify high-risk cases requiring enhanced management. Core prediction models include case duration forecasting estimating time to return-to-work or case closure, return-to-work probability assessment based on injury characteristics, worker factors, and intervention quality, and deterioration risk scoring identifying cases likely to worsen or develop complications. Models are trained on historical case data with continuous refinement as new outcomes are observed.
+
+Predictions inform multiple use cases including case ranking and prioritization based on risk scores and intervention urgency, work queue optimization to ensure case managers focus on the highest-value activities, and summary enhancement where predictive insights are surfaced in case summaries and recommended actions. The system provides confidence scores with each prediction and explains the key factors driving the prediction, supporting informed interpretation by case managers.
+
+Model performance is continuously monitored against actual outcomes, with periodic retraining to maintain accuracy as case patterns evolve. Predictions are presented as decision support rather than deterministic outcomes, maintaining human judgment as the final arbiter of case management decisions. The transparency of prediction logic and ongoing validation ensures the analytics layer adds genuine value while avoiding automation bias.

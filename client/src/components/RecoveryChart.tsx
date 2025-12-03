@@ -10,22 +10,25 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from "recharts";
-
-interface Certificate {
-  date: string;
-  capacity_percent: number;
-}
+import type { MedicalCertificate, WorkCapacity } from "@shared/schema";
 
 interface RecoveryChartProps {
   injuryDate: string;
   expectedRecoveryDate: string;
-  latestCertificate?: Certificate;
+  certificates?: MedicalCertificate[];
 }
+
+const CAPACITY_TO_PERCENT: Record<WorkCapacity, number> = {
+  fit: 100,
+  partial: 60,
+  unfit: 0,
+  unknown: 40,
+};
 
 export const RecoveryChart: React.FC<RecoveryChartProps> = ({
   injuryDate,
   expectedRecoveryDate,
-  latestCertificate,
+  certificates,
 }) => {
   if (!injuryDate || !expectedRecoveryDate) {
     return (
@@ -40,55 +43,61 @@ export const RecoveryChart: React.FC<RecoveryChartProps> = ({
   const now = new Date();
   const MS_PER_WEEK = 1000 * 60 * 60 * 24 * 7;
 
-  // Calculate weeks since injury and total recovery period
   const totalWeeks = Math.max(
     1,
-    Math.round((expected.getTime() - injury.getTime()) / MS_PER_WEEK)
+    Math.round((expected.getTime() - injury.getTime()) / MS_PER_WEEK),
   );
 
-  // Clamp current week inside visible range (0 → totalWeeks)
   const currentWeek = Math.min(
     totalWeeks,
-    Math.max(0, Math.round((now.getTime() - injury.getTime()) / MS_PER_WEEK))
+    Math.max(0, Math.round((now.getTime() - injury.getTime()) / MS_PER_WEEK)),
   );
 
-  // Expected linear recovery (0 → 100%)
   const expectedLine = Array.from({ length: totalWeeks + 1 }).map((_, i) => ({
     week: i,
     expected: Math.min(100, Math.round((i / totalWeeks) * 100)),
   }));
 
-  // Actual recovery — uses latest certificate if available, otherwise flat
-  let actualLine: { week: number; actual: number }[] = [{ week: 0, actual: 0 }];
+  const certificatePoints =
+    certificates?.map((certificate) => {
+      const date = new Date(certificate.endDate ?? certificate.startDate);
+      const week = Math.max(
+        0,
+        Math.round((date.getTime() - injury.getTime()) / MS_PER_WEEK),
+      );
 
-  if (latestCertificate && latestCertificate.date) {
-    const certWeek = Math.round(
-      (new Date(latestCertificate.date).getTime() - injury.getTime()) /
-        MS_PER_WEEK
-    );
-    actualLine.push({
-      week: certWeek,
-      actual: latestCertificate.capacity_percent,
-    });
-  }
+      return {
+        week,
+        actual: CAPACITY_TO_PERCENT[certificate.capacity] ?? CAPACITY_TO_PERCENT.unknown,
+      };
+    }) ?? [];
 
-  // Always add an endpoint at expected recovery (flat or interpolated)
-  actualLine.push({
-    week: totalWeeks,
-    actual:
-      latestCertificate?.capacity_percent &&
-      latestCertificate.capacity_percent < 100
-        ? Math.min(100, latestCertificate.capacity_percent + 20)
-        : 100,
+  const projectionStart =
+    certificatePoints.length > 0
+      ? certificatePoints[certificatePoints.length - 1].actual
+      : 0;
+  const projectedEnd = projectionStart < 100 ? Math.min(100, projectionStart + 20) : 100;
+
+  const actualLine = [
+    { week: 0, actual: 0 },
+    ...certificatePoints,
+    { week: totalWeeks, actual: projectedEnd },
+  ].sort((a, b) => a.week - b.week);
+
+  const actualByWeek = new Map<number, number>();
+  actualLine.forEach((point) => {
+    actualByWeek.set(point.week, point.actual);
   });
 
-  // Merge datasets
-  const chartData = expectedLine.map((e) => {
-    const match = actualLine.find((a) => a.week === e.week);
+  let runningActual = 0;
+  const chartData = expectedLine.map((point) => {
+    if (actualByWeek.has(point.week)) {
+      runningActual = actualByWeek.get(point.week)!;
+    }
     return {
-      week: e.week,
-      expected: e.expected,
-      actual: match ? match.actual : null,
+      week: point.week,
+      expected: point.expected,
+      actual: runningActual,
     };
   });
 
@@ -115,9 +124,7 @@ export const RecoveryChart: React.FC<RecoveryChartProps> = ({
             }}
           />
           <Tooltip
-            formatter={(value: number, name: string) =>
-              `${value}% (${name})`
-            }
+            formatter={(value: number, name: string) => `${value}% (${name})`}
             labelFormatter={(label: number) => `Week ${label}`}
           />
           <Legend />
@@ -137,7 +144,6 @@ export const RecoveryChart: React.FC<RecoveryChartProps> = ({
             dot={{ r: 4 }}
           />
 
-          {/* Improved: Always show current week marker if in range */}
           <ReferenceLine
             x={currentWeek}
             stroke="#FF9800"
@@ -154,7 +160,7 @@ export const RecoveryChart: React.FC<RecoveryChartProps> = ({
       </ResponsiveContainer>
 
       <div className="text-xs text-gray-500 mt-2 text-center">
-        Current week: {currentWeek} of {totalWeeks} — based on injury date
+        Current week: {currentWeek} of {totalWeeks} � based on injury date
       </div>
     </div>
   );
