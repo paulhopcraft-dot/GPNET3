@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -91,8 +91,41 @@ export function CasesTable() {
       setSortColumn(column);
       setSortDirection("asc");
     }
-    console.log(`Sorting by ${column} ${sortDirection}`);
   };
+
+  const sortedCases = useMemo(() => {
+    if (!sortColumn) return cases;
+
+    return [...cases].sort((a, b) => {
+      let aValue: string | number;
+      let bValue: string | number;
+
+      switch (sortColumn) {
+        case "id":
+          aValue = a.id;
+          bValue = b.id;
+          break;
+        case "candidate":
+          aValue = a.candidateName.toLowerCase();
+          bValue = b.candidateName.toLowerCase();
+          break;
+        case "risk":
+          aValue = a.riskScore;
+          bValue = b.riskScore;
+          break;
+        case "date":
+          aValue = new Date(a.dateSubmitted).getTime();
+          bValue = new Date(b.dateSubmitted).getTime();
+          break;
+        default:
+          return 0;
+      }
+
+      if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [cases, sortColumn, sortDirection]);
 
   return (
     <div className="border rounded-md">
@@ -161,7 +194,7 @@ export function CasesTable() {
             </tr>
           </thead>
           <tbody>
-            {cases.map((case_) => (
+            {sortedCases.map((case_) => (
               <tr key={case_.id} className="border-t hover-elevate" data-testid={`row-case-${case_.id}`}>
                 <td className="p-4">
                   <span className="font-mono text-sm font-medium" data-testid={`text-case-id-${case_.id}`}>
