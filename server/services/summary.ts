@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { storage } from "../storage";
 import type { WorkerCase, CaseDiscussionNote, TranscriptInsight } from "@shared/schema";
+import { getProgressTracker, getFeatureChecklist } from "./agent-harness";
 
 export class SummaryService {
   private anthropic: Anthropic | null = null;
@@ -24,38 +25,77 @@ export class SummaryService {
     workStatusClassification: string;
   }> {
     this.ensureConfigured();
+    const progressTracker = await getProgressTracker();
+
     const systemPrompt = this.buildSystemPrompt();
     const userPrompt = this.buildUserPrompt(workerCase);
-    
-    const response = await this.anthropic!.messages.create({
-      model: this.model,
-      max_tokens: 2048,
-      system: systemPrompt,
-      messages: [
+
+    try {
+      const response = await this.anthropic!.messages.create({
+        model: this.model,
+        max_tokens: 2048,
+        system: systemPrompt,
+        messages: [
+          {
+            role: "user",
+            content: userPrompt,
+          },
+        ],
+      });
+
+      const textContent = response.content.find((block) => block.type === "text");
+      if (!textContent || textContent.type !== "text") {
+        throw new Error("No text content in AI response");
+      }
+
+      // Extract work status classification from the response
+      const fullText = textContent.text;
+      const workStatusMatch = fullText.match(/Work Status Classification:\s*(.+?)(?:\n|$)/);
+      const workStatusClassification = workStatusMatch ? workStatusMatch[1].trim() : "N/A";
+
+      // Remove the classification line from summary (handles both \n and end-of-string)
+      const summary = fullText.replace(/Work Status Classification:.*?(?:\n|$)/, '').trim();
+
+      // Log successful generation
+      await progressTracker.logAction(
+        "summary-service",
+        "summary-generated",
+        true,
         {
-          role: "user",
-          content: userPrompt,
-        },
-      ],
-    });
+          caseId: workerCase.id,
+          workerName: workerCase.workerName,
+          model: this.model,
+          workStatus: workStatusClassification,
+        }
+      );
 
-    const textContent = response.content.find((block) => block.type === "text");
-    if (!textContent || textContent.type !== "text") {
-      throw new Error("No text content in AI response");
+      // Mark feature as passing
+      const featureChecklist = await getFeatureChecklist();
+      await featureChecklist.markFeature("case-summary-generation", true);
+
+      return {
+        summary,
+        workStatusClassification,
+      };
+    } catch (error: any) {
+      // Log failed generation
+      await progressTracker.logAction(
+        "summary-service",
+        "summary-generation-failed",
+        false,
+        {
+          caseId: workerCase.id,
+          workerName: workerCase.workerName,
+          error: error?.message,
+        }
+      );
+
+      // Mark feature as failing
+      const featureChecklist = await getFeatureChecklist();
+      await featureChecklist.markFeature("case-summary-generation", false, error?.message);
+
+      throw error;
     }
-
-    // Extract work status classification from the response
-    const fullText = textContent.text;
-    const workStatusMatch = fullText.match(/Work Status Classification:\s*(.+?)(?:\n|$)/);
-    const workStatusClassification = workStatusMatch ? workStatusMatch[1].trim() : "N/A";
-    
-    // Remove the classification line from summary (handles both \n and end-of-string)
-    const summary = fullText.replace(/Work Status Classification:.*?(?:\n|$)/, '').trim();
-
-    return {
-      summary,
-      workStatusClassification,
-    };
   }
 
   async getCachedOrGenerateSummary(caseId: string): Promise<{

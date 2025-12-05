@@ -14,6 +14,22 @@ vi.mock("../../storage", () => ({
   },
 }));
 
+// Mock agent harness to avoid file system operations during tests
+vi.mock("../agent-harness", () => ({
+  SessionStateManager: vi.fn().mockImplementation(() => ({
+    initialize: vi.fn().mockResolvedValue({ isRecovery: false }),
+    updateProgress: vi.fn().mockResolvedValue(undefined),
+    recordError: vi.fn().mockResolvedValue(undefined),
+    markComplete: vi.fn().mockResolvedValue(undefined),
+  })),
+  getProgressTracker: vi.fn().mockResolvedValue({
+    logAction: vi.fn().mockResolvedValue(undefined),
+  }),
+  getFeatureChecklist: vi.fn().mockResolvedValue({
+    markFeature: vi.fn().mockResolvedValue(undefined),
+  }),
+}));
+
 import { TranscriptIngestionModule } from "./index";
 import { storage } from "../../storage";
 

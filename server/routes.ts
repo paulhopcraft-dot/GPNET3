@@ -7,6 +7,7 @@ import authRoutes from "./routes/auth";
 import terminationRoutes from "./routes/termination";
 import type { RecoveryTimelineSummary } from "@shared/schema";
 import { evaluateClinicalEvidence } from "./services/clinicalEvidence";
+import { getProgressTracker, getFeatureChecklist } from "./services/agent-harness";
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
@@ -23,6 +24,31 @@ export async function registerRoutes(app: Express): Promise<void> {
       FRESHDESK_API_KEY: !!process.env.FRESHDESK_API_KEY,
       ANTHROPIC_API_KEY: !!process.env.ANTHROPIC_API_KEY,
     });
+  });
+
+  // Agent harness status endpoint (for monitoring long-running processes)
+  app.get("/api/diagnostics/agent-status", async (_req, res) => {
+    try {
+      const progressTracker = await getProgressTracker();
+      const featureChecklist = await getFeatureChecklist();
+
+      res.json({
+        sessionId: progressTracker.getCurrentSessionId(),
+        progress: {
+          summary: progressTracker.generateContextSummary(),
+          recentEntries: progressTracker.getRecentEntries(20),
+          failures: progressTracker.getFailedActions(),
+        },
+        features: {
+          summary: featureChecklist.generateStatusReport(),
+          passing: featureChecklist.getPassingFeatures(),
+          failing: featureChecklist.getFailingFeatures(),
+          nextToImplement: featureChecklist.getNextFeatureToImplement(),
+        },
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error?.message ?? "Failed to get agent status" });
+    }
   });
   // Claude compliance assistant
   app.post("/api/compliance", async (req, res) => {

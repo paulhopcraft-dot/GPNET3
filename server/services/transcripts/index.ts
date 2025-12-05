@@ -14,6 +14,11 @@ import type {
   TaskNotificationAgent,
   TranscriptIngestionEvent,
 } from "./task-agent";
+import {
+  SessionStateManager,
+  getProgressTracker,
+  getFeatureChecklist,
+} from "../agent-harness";
 
 export interface TranscriptIngestionOptions {
   transcriptsDir?: string;
@@ -36,19 +41,68 @@ export class TranscriptIngestionModule {
   private readonly processedFiles = new Map<string, number>();
   private readonly maxFileSizeBytes: number;
   private readonly taskAgent?: TaskNotificationAgent;
+  private readonly sessionState: SessionStateManager;
+  private totalProcessed = 0;
+  private totalPending = 0;
 
   constructor(private readonly options: TranscriptIngestionOptions = {}) {
     this.transcriptsDir =
       options.transcriptsDir ?? path.join(process.cwd(), "transcripts");
     this.maxFileSizeBytes = options.maxFileSizeBytes ?? DEFAULT_MAX_FILE_SIZE;
     this.taskAgent = options.taskAgent;
+    this.sessionState = new SessionStateManager("transcript-ingestion");
   }
 
   async start(): Promise<void> {
+    // Session Startup Protocol (per Anthropic's long-running agent guidance)
+    // 1. Initialize session state and check for recovery
+    const { isRecovery, previousState } = await this.sessionState.initialize();
+    const progressTracker = await getProgressTracker();
+
+    if (isRecovery && previousState) {
+      console.log(
+        `[Transcripts] Recovering from interrupted session (${previousState.processedItems} processed, ${previousState.pendingItems} pending)`,
+      );
+      await progressTracker.logAction(
+        "transcript-ingestion",
+        "session-recovery",
+        true,
+        { previousProcessed: previousState.processedItems, previousPending: previousState.pendingItems }
+      );
+    }
+
+    // 2. Verify working directory and environment
     await this.ensureDirectory();
+    await progressTracker.logAction(
+      "transcript-ingestion",
+      "directory-verified",
+      true,
+      { path: this.transcriptsDir }
+    );
+
+    // 3. Scan existing files and update progress
+    const pendingFiles = await this.listTranscriptFiles();
+    this.totalPending = pendingFiles.length;
+    await this.sessionState.updateProgress(this.totalProcessed, this.totalPending);
+
+    // 4. Process existing files
     await this.scanExistingFiles();
+
+    // 5. Start continuous monitoring
     this.startWatcher();
     this.startPolling();
+
+    // 6. Mark feature as passing if initial scan succeeded
+    const featureChecklist = await getFeatureChecklist();
+    await featureChecklist.markFeature("transcript-ingestion", true);
+
+    await progressTracker.logAction(
+      "transcript-ingestion",
+      "module-started",
+      true,
+      { directory: this.transcriptsDir, pendingFiles: this.totalPending }
+    );
+
     console.log(
       `[Transcripts] Transcript ingestion module active in ${this.transcriptsDir}`,
     );
@@ -60,6 +114,16 @@ export class TranscriptIngestionModule {
       clearInterval(this.pollTimer);
       this.pollTimer = undefined;
     }
+
+    // Mark session as complete for clean shutdown
+    await this.sessionState.markComplete();
+    const progressTracker = await getProgressTracker();
+    await progressTracker.logAction(
+      "transcript-ingestion",
+      "module-stopped",
+      true,
+      { totalProcessed: this.totalProcessed }
+    );
   }
 
   private async ensureDirectory(): Promise<void> {
@@ -180,6 +244,18 @@ export class TranscriptIngestionModule {
         return; // File removed before processing
       }
       console.error(`[Transcripts] Failed to process ${filePath}`, error);
+
+      // Record error for session recovery
+      await this.sessionState.recordError(
+        `Failed to process ${path.basename(filePath)}: ${error?.message ?? "unknown error"}`
+      );
+      const progressTracker = await getProgressTracker();
+      await progressTracker.logAction(
+        "transcript-ingestion",
+        "file-processing-failed",
+        false,
+        { file: path.basename(filePath), error: error?.message }
+      );
     } finally {
       this.processingFiles.delete(filePath);
     }
@@ -261,6 +337,23 @@ export class TranscriptIngestionModule {
         await this.taskAgent.notifyNewDiscussionNotes(event);
       }
     }
+
+    // Update progress tracking
+    this.totalProcessed += insertRows.length;
+    this.totalPending = Math.max(0, this.totalPending - 1);
+    await this.sessionState.updateProgress(this.totalProcessed, this.totalPending);
+
+    const progressTracker = await getProgressTracker();
+    await progressTracker.logAction(
+      "transcript-ingestion",
+      "file-processed",
+      true,
+      {
+        file: path.basename(filePath),
+        notesIngested: insertRows.length,
+        insightsGenerated: insightRows.length,
+      }
+    );
 
     console.log(
       `[Transcripts] Ingested ${insertRows.length} note(s) from ${path.basename(
