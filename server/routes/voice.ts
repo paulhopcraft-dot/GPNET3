@@ -1,12 +1,82 @@
 import express, { type Request, type Response } from "express";
 import crypto from "crypto";
 import { avatarPipelineService } from "../services/avatarPipeline";
+import { elevenLabsService } from "../services/elevenlabs";
 
 const router = express.Router();
 
-// simple placeholder so import works
+// Voice service status
 router.get("/", (_req: Request, res: Response) => {
-  res.json({ ok: true, route: "voice placeholder" });
+  res.json({
+    ok: true,
+    route: "voice",
+    elevenlabs_available: elevenLabsService.isAvailable(),
+  });
+});
+
+/**
+ * GET /api/voice/voices
+ * Get available ElevenLabs voices
+ */
+router.get("/voices", async (_req: Request, res: Response) => {
+  try {
+    const voices = await elevenLabsService.getVoices();
+    res.json({ voices });
+  } catch (error) {
+    res.status(500).json({
+      error: "Failed to fetch voices",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+});
+
+/**
+ * POST /api/voice/tts
+ * Text-to-speech synthesis
+ */
+router.post("/tts", async (req: Request, res: Response) => {
+  try {
+    const { text, voice_id, streaming } = req.body;
+
+    if (!text) {
+      return res.status(400).json({ error: "text is required" });
+    }
+
+    if (!elevenLabsService.isAvailable()) {
+      return res.status(503).json({
+        error: "ElevenLabs not configured",
+        message: "Set ELEVENLABS_API_KEY environment variable",
+      });
+    }
+
+    const options = voice_id ? { voiceId: voice_id } : undefined;
+
+    if (streaming) {
+      const stream = await elevenLabsService.textToSpeechStream(text, options);
+      if (!stream) {
+        return res.status(500).json({ error: "Failed to create audio stream" });
+      }
+
+      res.setHeader("Content-Type", "audio/mpeg");
+      res.setHeader("Transfer-Encoding", "chunked");
+      stream.pipe(res);
+    } else {
+      const audioBuffer = await elevenLabsService.textToSpeech(text, options);
+      if (!audioBuffer) {
+        return res.status(500).json({ error: "Failed to generate audio" });
+      }
+
+      res.setHeader("Content-Type", "audio/mpeg");
+      res.setHeader("Content-Length", audioBuffer.length);
+      res.send(audioBuffer);
+    }
+  } catch (error) {
+    console.error("[Voice/TTS] Error:", error);
+    res.status(500).json({
+      error: "TTS failed",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
 });
 
 /**

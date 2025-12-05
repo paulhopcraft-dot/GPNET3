@@ -7,6 +7,7 @@ import {
   FallbackConditionType,
 } from "../../shared/schema";
 import { avatarPipelineConfig as DEFAULT_CONFIG } from "../config/avatarPipeline.config";
+import { gpuMonitor } from "./gpuMonitor";
 
 interface SystemMetrics {
   a2f_sdk_available: boolean;
@@ -67,9 +68,8 @@ class AvatarPipelineService {
    * Get current VRAM availability in GB
    */
   async getVramAvailability(): Promise<number> {
-    // In production, this would query GPU VRAM via NVIDIA SMI or similar
-    // For now, return a simulated value
-    return this.simulateVramCheck();
+    // Query GPU VRAM via nvidia-smi (falls back to simulation if unavailable)
+    return gpuMonitor.getFreeVramGb();
   }
 
   /**
@@ -286,11 +286,6 @@ class AvatarPipelineService {
     });
   }
 
-  private simulateVramCheck(): number {
-    // In production, use nvidia-smi or similar to get actual VRAM
-    // This simulates 8-16 GB of available VRAM
-    return 8 + Math.random() * 8;
-  }
 }
 
 // Singleton instance

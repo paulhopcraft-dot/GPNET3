@@ -63,12 +63,12 @@ describe("AvatarPipelineService", () => {
       expect(service.getConcurrentSessionCount()).toBe(1);
     });
 
-    it("updates session activity", () => {
+    it("updates session activity", async () => {
       const session = service.startSession("session-1");
       const originalActivity = session.last_activity;
 
-      // Wait a small amount and update
-      vi.advanceTimersByTime(100);
+      // Small delay to ensure timestamp difference
+      await new Promise((resolve) => setTimeout(resolve, 10));
       service.updateSessionActivity("session-1");
 
       // Activity should be updated (in real test, we'd check the timestamp changed)
