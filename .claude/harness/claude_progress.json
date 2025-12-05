@@ -1,0 +1,43 @@
+{
+  "project": "GPNET3",
+  "description": "Worker's compensation case management system for Worksafe Victoria",
+  "last_updated": "2025-12-05",
+  "current_session": null,
+  "sessions": [],
+  "global_state": {
+    "environment_verified": false,
+    "tests_passing": null,
+    "build_passing": null,
+    "last_successful_commit": null
+  },
+  "notes": [
+    "This file tracks progress across coding sessions",
+    "Coding agents should read this file at session start",
+    "Update this file with session summaries before ending"
+  ],
+  "instructions_for_agent": {
+    "on_session_start": [
+      "Run pwd to verify working directory is /home/user/GPNET3",
+      "Read this progress file to understand current state",
+      "Read features.json to see what's done and pending",
+      "Run git log --oneline -10 to see recent commits",
+      "Run npm run test to verify environment is working",
+      "Check global_state.tests_passing before starting new work"
+    ],
+    "on_session_end": [
+      "Ensure all changes are committed with descriptive messages",
+      "Update features.json - only mark passes:true if verified",
+      "Add a session entry summarizing what was accomplished",
+      "Run tests and update global_state",
+      "Leave codebase in a clean, committable state"
+    ],
+    "critical_rules": [
+      "NEVER remove or edit feature definitions in features.json",
+      "ONLY change the 'passes' status from false to true",
+      "NEVER mark a feature as passing without verification",
+      "Work on ONE feature at a time",
+      "Commit frequently with clear messages",
+      "If tests fail, fix them before moving to next feature"
+    ]
+  }
+}

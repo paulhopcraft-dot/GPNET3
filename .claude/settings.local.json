@@ -4,7 +4,10 @@
       "Bash(find:*)",
       "Bash(cat:*)",
       "Bash(npm install:*)",
-      "Bash(npm run test:*)"
+      "Bash(npm run test:*)",
+      "Bash(npm run build:*)",
+      "Bash(./.claude/harness/init.sh:*)",
+      "Bash(./.claude/harness/end-session.sh:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,0 +1,88 @@
+{
+  "$schema": "./features.schema.json",
+  "project": "GPNET3",
+  "version": "1.0.0",
+  "generated_by": "initializer_agent",
+  "generated_at": "2025-12-05",
+  "instructions": {
+    "for_coding_agents": [
+      "This file defines all features that need to be implemented",
+      "Each feature has a 'passes' field - initially set to false",
+      "You may ONLY change 'passes' from false to true",
+      "You may NEVER remove features, add features, or edit descriptions",
+      "Only mark 'passes': true after verification (tests pass, manual check)",
+      "Work on features in priority order (priority 1 = highest)",
+      "Check verification_steps before marking as passing"
+    ],
+    "verification_required": true,
+    "format": "JSON to prevent inappropriate modifications"
+  },
+  "features": [
+    {
+      "id": "F001",
+      "name": "Environment Setup",
+      "description": "Development environment is properly configured and all dependencies install correctly",
+      "priority": 1,
+      "category": "infrastructure",
+      "passes": false,
+      "verification_steps": [
+        "npm install completes without errors",
+        "npm run dev starts the server successfully",
+        "Database connection can be established"
+      ],
+      "dependencies": [],
+      "notes": "Baseline requirement for all other features"
+    },
+    {
+      "id": "F002",
+      "name": "Unit Tests Pass",
+      "description": "All existing unit tests pass without failures",
+      "priority": 1,
+      "category": "testing",
+      "passes": false,
+      "verification_steps": [
+        "npm run test executes successfully",
+        "All test suites pass",
+        "No skipped tests unless intentionally marked"
+      ],
+      "dependencies": ["F001"],
+      "notes": "Must pass before any new feature work"
+    },
+    {
+      "id": "F003",
+      "name": "E2E Tests Pass",
+      "description": "All Playwright end-to-end tests pass",
+      "priority": 2,
+      "category": "testing",
+      "passes": false,
+      "verification_steps": [
+        "npx playwright test executes successfully",
+        "All browser tests pass",
+        "No flaky tests"
+      ],
+      "dependencies": ["F001", "F002"],
+      "notes": "End-to-end verification of user workflows"
+    },
+    {
+      "id": "F004",
+      "name": "Build Succeeds",
+      "description": "Production build completes without errors",
+      "priority": 1,
+      "category": "infrastructure",
+      "passes": false,
+      "verification_steps": [
+        "npm run build completes successfully",
+        "No TypeScript errors",
+        "No build warnings that indicate problems"
+      ],
+      "dependencies": ["F001"],
+      "notes": "Verifies type safety and bundling"
+    }
+  ],
+  "summary": {
+    "total_features": 4,
+    "passing": 0,
+    "failing": 4,
+    "completion_percentage": 0
+  }
+}

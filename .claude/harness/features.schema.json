@@ -1,0 +1,93 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Agentic Harness Feature Tracking",
+  "description": "Schema for tracking feature completion across coding agent sessions",
+  "type": "object",
+  "required": ["project", "version", "features", "summary"],
+  "properties": {
+    "project": {
+      "type": "string",
+      "description": "Project name"
+    },
+    "version": {
+      "type": "string",
+      "description": "Schema version"
+    },
+    "generated_by": {
+      "type": "string",
+      "enum": ["initializer_agent", "human"],
+      "description": "Who generated this feature list"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date",
+      "description": "When features were generated"
+    },
+    "instructions": {
+      "type": "object",
+      "description": "Instructions for coding agents"
+    },
+    "features": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "description", "priority", "passes", "verification_steps"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^F[0-9]{3}$",
+            "description": "Unique feature identifier"
+          },
+          "name": {
+            "type": "string",
+            "description": "Short feature name"
+          },
+          "description": {
+            "type": "string",
+            "description": "Detailed feature description"
+          },
+          "priority": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5,
+            "description": "Priority level (1=highest, 5=lowest)"
+          },
+          "category": {
+            "type": "string",
+            "enum": ["infrastructure", "testing", "feature", "bugfix", "refactor", "documentation"],
+            "description": "Feature category"
+          },
+          "passes": {
+            "type": "boolean",
+            "description": "Whether this feature passes verification. ONLY change from false to true."
+          },
+          "verification_steps": {
+            "type": "array",
+            "items": {"type": "string"},
+            "minItems": 1,
+            "description": "Steps to verify feature completion"
+          },
+          "dependencies": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Feature IDs this depends on"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Additional notes for the coding agent"
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["total_features", "passing", "failing", "completion_percentage"],
+      "properties": {
+        "total_features": {"type": "integer"},
+        "passing": {"type": "integer"},
+        "failing": {"type": "integer"},
+        "completion_percentage": {"type": "number"}
+      }
+    }
+  }
+}
