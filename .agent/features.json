@@ -1,0 +1,162 @@
+{
+  "_meta": {
+    "description": "GPNet feature ledger - tracks implementation status of all major features",
+    "last_updated": "2025-12-05",
+    "version": "1.0.0"
+  },
+
+  "cases_worker_management": {
+    "pass": false,
+    "notes": "Core entity management for workers and cases. Tables: worker_cases, users. Routes: /api/cases/*"
+  },
+
+  "case_detail_panel": {
+    "pass": false,
+    "notes": "Frontend case detail view with tabs: Overview, Timeline, Certificates, Documents, Notes, Actions. Located in client/src/components/"
+  },
+
+  "certificate_ingestion": {
+    "pass": false,
+    "notes": "Medical certificate upload, parsing, and storage. Table: medical_certificates. Routes: /api/cases/:id/certificates"
+  },
+
+  "certificate_compliance_monitoring": {
+    "pass": false,
+    "notes": "Tracks certificate validity, expiry, and generates compliance flags. Fields: hasCertificate, complianceIndicator, complianceJson"
+  },
+
+  "timeline_engine": {
+    "pass": false,
+    "notes": "Unified event timeline aggregating certificates, notes, attachments, milestones. Route: /api/cases/:id/timeline. Storage method: getCaseTimeline()"
+  },
+
+  "discussion_notes": {
+    "pass": false,
+    "notes": "Case discussion notes with AI summarization. Tables: case_discussion_notes, case_discussion_insights"
+  },
+
+  "action_queue": {
+    "pass": false,
+    "notes": "Pending actions management (chase_certificate, worker_checkin, host_followup). Derives from compliance state"
+  },
+
+  "freshdesk_sync": {
+    "pass": false,
+    "notes": "Bidirectional Freshdesk integration. Service: server/services/freshdesk.ts. Handles ticket ingestion and case linking"
+  },
+
+  "freshdesk_email_processing": {
+    "pass": false,
+    "notes": "Email parsing, attachment extraction, worker matching from Freshdesk tickets"
+  },
+
+  "smart_summary_engine": {
+    "pass": false,
+    "notes": "AI-generated case summaries. Service: server/services/summary.ts. Route: /api/cases/:id/summary. Fields: aiSummary, aiSummaryGeneratedAt"
+  },
+
+  "claims_avatar_engine": {
+    "pass": false,
+    "notes": "AI-driven worker interview system. Service: server/services/avatarPipeline.ts. Collects structured narrative data"
+  },
+
+  "avatar_pipeline_fallback": {
+    "pass": false,
+    "notes": "A2F/FLAME to LivePortrait fallback logic. Types in shared/schema.ts: AvatarPipelineConfig, AvatarPipelineStatus"
+  },
+
+  "clinical_evidence_evaluation": {
+    "pass": false,
+    "notes": "Evidence gap detection and clinical flags. Service: server/services/clinicalEvidence.ts. Types: ClinicalEvidenceEvaluation, ClinicalEvidenceFlag"
+  },
+
+  "clinical_action_recommendations": {
+    "pass": false,
+    "notes": "Recommended actions based on clinical evidence gaps. Service: server/services/clinicalActions.ts. Types: ClinicalActionRecommendation"
+  },
+
+  "rtw_plan_management": {
+    "pass": false,
+    "notes": "Return-to-work plan creation and tracking. Status field: rtwPlanStatus. Includes phased hours, duty restrictions"
+  },
+
+  "rtw_progress_monitoring": {
+    "pass": false,
+    "notes": "Monitors RTW plan execution, detects unsafe duties, too-fast progression. Triggers plan adjustments"
+  },
+
+  "termination_process": {
+    "pass": false,
+    "notes": "HR incapacity termination workflow. Table: termination_processes. Service: server/services/termination.ts. Routes: /api/termination/*"
+  },
+
+  "termination_document_generation": {
+    "pass": false,
+    "notes": "Pre-termination and termination letter generation. Tables: document_templates, generated_documents"
+  },
+
+  "weekly_checkins": {
+    "pass": false,
+    "notes": "Periodic worker health check-ins (pain, mood, function, concerns). Feeds into risk scoring and summaries"
+  },
+
+  "behaviour_sentiment_tracking": {
+    "pass": false,
+    "notes": "Worker engagement and sentiment analysis from emails, transcripts, check-ins. Outputs sentiment trend and flags"
+  },
+
+  "predictive_risk_scoring": {
+    "pass": false,
+    "notes": "ML-based risk level prediction. Fields: riskLevel, clinicalEvidence.flags. Informs case prioritization"
+  },
+
+  "case_duration_prediction": {
+    "pass": false,
+    "notes": "Forecasts time to RTW or case closure based on injury characteristics and intervention quality"
+  },
+
+  "medical_constraints_tracking": {
+    "pass": false,
+    "notes": "Tracks worker restrictions (no lifting, no bending, etc.) and positive capacity markers. Type: MedicalConstraints"
+  },
+
+  "functional_capacity_tracking": {
+    "pass": false,
+    "notes": "Tracks worker functional limits (lift kg, stand/sit minutes, work hours). Type: FunctionalCapacity"
+  },
+
+  "specialist_status_tracking": {
+    "pass": false,
+    "notes": "Tracks specialist referrals, appointments, reports. Type: SpecialistStatus, SpecialistReportSummary"
+  },
+
+  "case_attachments": {
+    "pass": false,
+    "notes": "Document/attachment storage and retrieval. Table: case_attachments. Routes: /api/cases/:id/attachments"
+  },
+
+  "audit_logging": {
+    "pass": false,
+    "notes": "Security and action audit trail. Table: audit_events. Type: AuditEvent"
+  },
+
+  "user_authentication": {
+    "pass": false,
+    "notes": "JWT-based auth with role-based access. Tables: users. Controllers: server/controllers/auth.ts. Routes: /api/auth/*"
+  },
+
+  "dashboard_views": {
+    "pass": false,
+    "notes": "Main dashboard showing case lists, action queue, compliance alerts. Located in client/src/pages/"
+  },
+
+  "recovery_timeline_chart": {
+    "pass": false,
+    "notes": "Visual representation of certificate history and capacity changes over time. Type: RecoveryTimelineResponse"
+  },
+
+  "voice_integration": {
+    "pass": false,
+    "notes": "Voice/telephony features. Routes: server/routes/voice.ts, server/src/voice/"
+  }
+}

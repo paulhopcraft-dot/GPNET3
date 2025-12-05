@@ -1,0 +1,5 @@
+# GPNet Build Progress Log
+# Append-only. Each coding session adds a short summary line.
+# Format: [YYYY-MM-DD] feature_key: summary | files: X | tests: status
+
+[2025-12-05] _initializer: Created agent harness and feature ledger | files: harness.md, features.json, progress.log | tests: n/a
