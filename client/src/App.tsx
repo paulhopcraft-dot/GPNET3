@@ -8,6 +8,8 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import GPNet2Dashboard from "./pages/GPNet2Dashboard";
 import LoginPage from "./pages/LoginPage";
+import AdminPanel from "./pages/AdminPanel";
+import ReportsDashboard from "./pages/ReportsDashboard";
 
 export default function App() {
   return (
@@ -23,6 +25,22 @@ export default function App() {
                   element={
                     <ProtectedRoute>
                       <GPNet2Dashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin"
+                  element={
+                    <ProtectedRoute>
+                      <AdminPanel />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/reports"
+                  element={
+                    <ProtectedRoute>
+                      <ReportsDashboard />
                     </ProtectedRoute>
                   }
                 />

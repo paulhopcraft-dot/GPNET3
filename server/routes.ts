@@ -5,6 +5,8 @@ import { summaryService } from "./services/summary";
 import Anthropic from "@anthropic-ai/sdk";
 import authRoutes from "./routes/auth";
 import terminationRoutes from "./routes/termination";
+import adminRoutes from "./routes/admin";
+import reportsRoutes from "./routes/reports";
 import type { RecoveryTimelineSummary } from "@shared/schema";
 import { evaluateClinicalEvidence } from "./services/clinicalEvidence";
 
@@ -14,6 +16,8 @@ export async function registerRoutes(app: Express): Promise<void> {
   // Authentication routes
   app.use("/api/auth", authRoutes);
   app.use("/api/termination", terminationRoutes);
+  app.use("/api/admin", adminRoutes);
+  app.use("/api/reports", reportsRoutes);
 
   // Local diagnostics (non-sensitive env presence check)
   app.get("/api/diagnostics/env", (_req, res) => {

@@ -1,14 +1,39 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { db } from "./db";
-import { storage } from "./storage";
-import { workerCases, medicalCertificates, caseDiscussionNotes, caseAttachments, terminationProcesses } from "../shared/schema";
-import { eq } from "drizzle-orm";
 
-describe("getCaseTimeline", () => {
+// Skip these integration tests if DATABASE_URL is not set
+// This check must happen before importing db modules
+const skipTests = !process.env.DATABASE_URL;
+
+describe.skipIf(skipTests)("getCaseTimeline", () => {
+  // Dynamic imports to avoid loading db when tests are skipped
+  let db: any;
+  let storage: any;
+  let workerCases: any;
+  let medicalCertificates: any;
+  let caseDiscussionNotes: any;
+  let caseAttachments: any;
+  let terminationProcesses: any;
+  let eq: any;
+
   const TEST_CASE_ID = "TEST-TIMELINE-001";
   const EMPTY_CASE_ID = "TEST-EMPTY-001";
 
   beforeAll(async () => {
+    // Dynamic imports
+    const dbModule = await import("./db");
+    const storageModule = await import("./storage");
+    const schemaModule = await import("../shared/schema");
+    const drizzleModule = await import("drizzle-orm");
+
+    db = dbModule.db;
+    storage = storageModule.storage;
+    workerCases = schemaModule.workerCases;
+    medicalCertificates = schemaModule.medicalCertificates;
+    caseDiscussionNotes = schemaModule.caseDiscussionNotes;
+    caseAttachments = schemaModule.caseAttachments;
+    terminationProcesses = schemaModule.terminationProcesses;
+    eq = drizzleModule.eq;
+
     // Clean up any existing test data
     await db.delete(caseAttachments).where(eq(caseAttachments.caseId, TEST_CASE_ID));
     await db.delete(caseDiscussionNotes).where(eq(caseDiscussionNotes.caseId, TEST_CASE_ID));
@@ -18,25 +43,37 @@ describe("getCaseTimeline", () => {
 
     await db.delete(workerCases).where(eq(workerCases.id, EMPTY_CASE_ID));
 
-    // Create test worker case
+    // Create test worker case with all required fields
     await db.insert(workerCases).values({
       id: TEST_CASE_ID,
       workerName: "Test Worker",
       company: "Test Company",
       dateOfInjury: new Date("2025-01-01"),
-      injuryType: "Test Injury",
+      riskLevel: "Medium",
+      workStatus: "Off work",
+      complianceIndicator: "Medium",
       currentStatus: "active",
+      nextStep: "Follow up required",
+      owner: "Test Owner",
+      dueDate: "2025-01-15",
+      summary: "Test case for timeline testing",
       createdAt: new Date("2025-01-01T10:00:00Z"),
     });
 
-    // Create empty worker case
+    // Create empty worker case with all required fields
     await db.insert(workerCases).values({
       id: EMPTY_CASE_ID,
       workerName: "Empty Worker",
       company: "Empty Company",
       dateOfInjury: new Date("2025-01-01"),
-      injuryType: "Empty Injury",
+      riskLevel: "Low",
+      workStatus: "At work",
+      complianceIndicator: "High",
       currentStatus: "active",
+      nextStep: "None",
+      owner: "Test Owner",
+      dueDate: "2025-01-15",
+      summary: "Empty test case",
       createdAt: new Date("2025-01-01T10:00:00Z"),
     });
 
@@ -56,6 +93,8 @@ describe("getCaseTimeline", () => {
     await db.insert(caseDiscussionNotes).values({
       id: "NOTE-001",
       caseId: TEST_CASE_ID,
+      workerName: "Test Worker",
+      rawText: "Raw transcript text: Worker missed appointment - critical compliance issue noted during call.",
       summary: "Worker missed appointment - critical compliance issue",
       timestamp: new Date("2025-01-10T14:00:00Z"),
       riskFlags: ["critical", "non-compliance", "escalation"],
@@ -76,6 +115,8 @@ describe("getCaseTimeline", () => {
   });
 
   afterAll(async () => {
+    if (!db) return;
+
     // Clean up test data
     await db.delete(caseAttachments).where(eq(caseAttachments.caseId, TEST_CASE_ID));
     await db.delete(caseDiscussionNotes).where(eq(caseDiscussionNotes.caseId, TEST_CASE_ID));
@@ -141,17 +182,17 @@ describe("getCaseTimeline", () => {
     const events = await storage.getCaseTimeline(TEST_CASE_ID);
 
     // Find the certificate event (unfit capacity should be "warning")
-    const certEvent = events.find((e) => e.eventType === "certificate_added");
+    const certEvent = events.find((e: any) => e.eventType === "certificate_added");
     expect(certEvent).toBeDefined();
     expect(certEvent!.severity).toBe("warning");
 
     // Find the discussion note (with critical risk flags should be "critical")
-    const noteEvent = events.find((e) => e.eventType === "discussion_note");
+    const noteEvent = events.find((e: any) => e.eventType === "discussion_note");
     expect(noteEvent).toBeDefined();
     expect(noteEvent!.severity).toBe("critical");
 
     // Attachment should have "info" severity
-    const attachmentEvent = events.find((e) => e.eventType === "attachment_uploaded");
+    const attachmentEvent = events.find((e: any) => e.eventType === "attachment_uploaded");
     expect(attachmentEvent).toBeDefined();
     expect(attachmentEvent!.severity).toBe("info");
   });
@@ -160,7 +201,7 @@ describe("getCaseTimeline", () => {
     const events = await storage.getCaseTimeline(TEST_CASE_ID);
 
     // Check certificate metadata
-    const certEvent = events.find((e) => e.eventType === "certificate_added");
+    const certEvent = events.find((e: any) => e.eventType === "certificate_added");
     expect(certEvent).toBeDefined();
     expect(certEvent!.metadata).toBeDefined();
     expect(certEvent!.metadata!.capacity).toBe("unfit");
@@ -168,7 +209,7 @@ describe("getCaseTimeline", () => {
     expect(certEvent!.metadata!.endDate).toBeDefined();
 
     // Check discussion note metadata
-    const noteEvent = events.find((e) => e.eventType === "discussion_note");
+    const noteEvent = events.find((e: any) => e.eventType === "discussion_note");
     expect(noteEvent).toBeDefined();
     expect(noteEvent!.metadata).toBeDefined();
     expect(noteEvent!.metadata!.riskFlags).toBeDefined();
@@ -176,7 +217,7 @@ describe("getCaseTimeline", () => {
     expect(noteEvent!.metadata!.riskFlags).toContain("critical");
 
     // Check attachment metadata
-    const attachmentEvent = events.find((e) => e.eventType === "attachment_uploaded");
+    const attachmentEvent = events.find((e: any) => e.eventType === "attachment_uploaded");
     expect(attachmentEvent).toBeDefined();
     expect(attachmentEvent!.metadata).toBeDefined();
     expect(attachmentEvent!.metadata!.name).toBe("medical-report.pdf");
@@ -186,7 +227,7 @@ describe("getCaseTimeline", () => {
   it("includes all expected event types", async () => {
     const events = await storage.getCaseTimeline(TEST_CASE_ID);
 
-    const eventTypes = events.map((e) => e.eventType);
+    const eventTypes = events.map((e: any) => e.eventType);
 
     // Should have these event types based on our test data
     expect(eventTypes).toContain("certificate_added");
@@ -198,16 +239,16 @@ describe("getCaseTimeline", () => {
   it("assigns correct icons to event types", async () => {
     const events = await storage.getCaseTimeline(TEST_CASE_ID);
 
-    const certEvent = events.find((e) => e.eventType === "certificate_added");
+    const certEvent = events.find((e: any) => e.eventType === "certificate_added");
     expect(certEvent!.icon).toBe("medical_information");
 
-    const noteEvent = events.find((e) => e.eventType === "discussion_note");
+    const noteEvent = events.find((e: any) => e.eventType === "discussion_note");
     expect(noteEvent!.icon).toBe("forum");
 
-    const attachmentEvent = events.find((e) => e.eventType === "attachment_uploaded");
+    const attachmentEvent = events.find((e: any) => e.eventType === "attachment_uploaded");
     expect(attachmentEvent!.icon).toBe("attach_file");
 
-    const caseCreatedEvent = events.find((e) => e.eventType === "case_created");
+    const caseCreatedEvent = events.find((e: any) => e.eventType === "case_created");
     expect(caseCreatedEvent!.icon).toBe("person_add");
   });
 });
