@@ -693,3 +693,69 @@ export interface TimelineResponse {
   events: TimelineEvent[];
   totalEvents: number;
 }
+
+// Avatar Pipeline Types
+export type AvatarPipelineType = "a2f_flame" | "liveportrait_mediapipe";
+
+export type FallbackConditionType =
+  | "a2f_sdk_unavailable"
+  | "flame_unavailable"
+  | "vram_low"
+  | "high_load"
+  | "render_failure";
+
+export interface A2FSdkUnavailableCondition {
+  type: "a2f_sdk_unavailable";
+  timeout_ms: number;
+}
+
+export interface FlameUnavailableCondition {
+  type: "flame_unavailable";
+  timeout_ms: number;
+}
+
+export interface VramLowCondition {
+  type: "vram_low";
+  threshold_gb: number;
+}
+
+export interface HighLoadCondition {
+  type: "high_load";
+  concurrent_sessions: number;
+}
+
+export interface RenderFailureCondition {
+  type: "render_failure";
+  consecutive_failures: number;
+}
+
+export type FallbackCondition =
+  | A2FSdkUnavailableCondition
+  | FlameUnavailableCondition
+  | VramLowCondition
+  | HighLoadCondition
+  | RenderFailureCondition;
+
+export interface AvatarPipelineConfig {
+  fallback_conditions: FallbackCondition[];
+  fallback_pipeline: AvatarPipelineType;
+}
+
+export interface AvatarPipelineStatus {
+  active_pipeline: AvatarPipelineType;
+  is_fallback: boolean;
+  triggered_condition: FallbackConditionType | null;
+  a2f_sdk_available: boolean;
+  flame_available: boolean;
+  vram_gb: number;
+  concurrent_sessions: number;
+  consecutive_render_failures: number;
+  last_checked: string;
+}
+
+export interface AvatarRenderSession {
+  id: string;
+  pipeline: AvatarPipelineType;
+  started_at: string;
+  last_activity: string;
+}
