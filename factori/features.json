@@ -1,0 +1,25 @@
+{
+  "initialize_harness": { "pass": false, "notes": "" },
+
+  "claims_intake_flow": { "pass": false, "notes": "" },
+  "certificate_ingestion_engine": { "pass": false, "notes": "" },
+  "medical_flags_and_red_risk": { "pass": false, "notes": "" },
+  "return_to_work_planner": { "pass": false, "notes": "" },
+
+  "xgboost_prediction_layer": { "pass": false, "notes": "" },
+  "freshdesk_ticket_mirroring": { "pass": false, "notes": "" },
+  "pinecone_rag_integration": { "pass": false, "notes": "" },
+
+  "treatment_plan_generator": { "pass": false, "notes": "" },
+  "timeline_and_recovery_estimator": { "pass": false, "notes": "" },
+  "provider_chat_workflow": { "pass": false, "notes": "" },
+
+  "weekly_checkin_engine": { "pass": false, "notes": "" },
+  "risk_dashboard": { "pass": false, "notes": "" },
+  "claimant_profile_summary": { "pass": false, "notes": "" },
+
+  "unit_tests": { "pass": false, "notes": "" },
+  "e2e_tests": { "pass": false, "notes": "" },
+
+  "deployment_pipeline": { "pass": false, "notes": "" }
+}
