@@ -509,6 +509,49 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
                         .map((flag) => (
                           <li key={flag.code} className="text-sm text-red-700">
                             {flag.message}
+                            {flag.details && (
+                              <span className="text-xs text-red-500 ml-1">({flag.details})</span>
+                            )}
+                          </li>
+                        ))}
+                    </ul>
+                  </div>
+                )}
+                {workerCase.clinicalEvidence.flags.filter((f) => f.severity === "warning").length >
+                  0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold uppercase text-muted-foreground">
+                      Warnings
+                    </p>
+                    <ul className="list-disc pl-5 space-y-1">
+                      {workerCase.clinicalEvidence.flags
+                        .filter((f) => f.severity === "warning")
+                        .map((flag) => (
+                          <li key={flag.code} className="text-sm text-amber-700">
+                            {flag.message}
+                            {flag.details && (
+                              <span className="text-xs text-amber-600 ml-1">({flag.details})</span>
+                            )}
+                          </li>
+                        ))}
+                    </ul>
+                  </div>
+                )}
+                {workerCase.clinicalEvidence.flags.filter((f) => f.severity === "info").length >
+                  0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold uppercase text-muted-foreground">
+                      Notes
+                    </p>
+                    <ul className="list-disc pl-5 space-y-1">
+                      {workerCase.clinicalEvidence.flags
+                        .filter((f) => f.severity === "info")
+                        .map((flag) => (
+                          <li key={flag.code} className="text-sm text-blue-700">
+                            {flag.message}
+                            {flag.details && (
+                              <span className="text-xs text-blue-600 ml-1">({flag.details})</span>
+                            )}
                           </li>
                         ))}
                     </ul>

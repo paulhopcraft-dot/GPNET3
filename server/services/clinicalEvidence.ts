@@ -7,11 +7,41 @@ import {
 import { buildClinicalActionRecommendations } from "./clinicalActions";
 
 const CERTIFICATE_STALE_DAYS = 42;
+const CERTIFICATE_EXPIRING_SOON_DAYS = 7;
 const SPECIALIST_OUTDATED_DAYS = 90;
+const DISENGAGED_THRESHOLD_DAYS = 30;
+const LONG_TAIL_THRESHOLD_DAYS = 180;
+
+// Psychological injury keywords for detection
+const PSYCH_KEYWORDS = [
+  "ptsd",
+  "post-traumatic",
+  "posttraumatic",
+  "psychological",
+  "psych",
+  "mental health",
+  "anxiety",
+  "depression",
+  "stress",
+  "trauma",
+  "psychiatric",
+  "psychosocial",
+];
 
 function daysSince(date: Date): number {
   const now = Date.now();
   return Math.floor((now - date.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function daysUntil(date: Date): number {
+  const now = Date.now();
+  return Math.floor((date.getTime() - now) / (1000 * 60 * 60 * 24));
+}
+
+function containsPsychKeywords(text: string | undefined | null): boolean {
+  if (!text) return false;
+  const lowerText = text.toLowerCase();
+  return PSYCH_KEYWORDS.some((keyword) => lowerText.includes(keyword));
 }
 
 function latestCertificateDate(workerCase: WorkerCase): Date | null {
@@ -189,6 +219,83 @@ export function evaluateClinicalEvidence(workerCase: WorkerCase): ClinicalEviden
       code: "EVIDENCE_INCOMPLETE",
       severity: "warning",
       message: "Insufficient clinical evidence recorded.",
+    });
+  }
+
+  // NEW: Certificate expiring soon (within 7 days)
+  if (hasCert && latestCertDate) {
+    const daysRemaining = daysUntil(latestCertDate);
+    if (daysRemaining >= 0 && daysRemaining <= CERTIFICATE_EXPIRING_SOON_DAYS) {
+      addFlag(flags, {
+        code: "CERTIFICATE_EXPIRING_SOON",
+        severity: "warning",
+        message: `Certificate expires in ${daysRemaining} day${daysRemaining === 1 ? "" : "s"}.`,
+        details: `Expiry date: ${latestCertDate.toISOString().split("T")[0]}`,
+      });
+    }
+  }
+
+  // NEW: Overdue CLC follow-up
+  if (workerCase.clcNextFollowUp) {
+    const nextFollowUp = new Date(workerCase.clcNextFollowUp);
+    if (!Number.isNaN(nextFollowUp.getTime())) {
+      const overdueDays = daysSince(nextFollowUp);
+      if (overdueDays > 0) {
+        addFlag(flags, {
+          code: "OVERDUE_FOLLOW_UP",
+          severity: overdueDays > 14 ? "high_risk" : "warning",
+          message: `CLC follow-up overdue by ${overdueDays} day${overdueDays === 1 ? "" : "s"}.`,
+          details: `Scheduled: ${nextFollowUp.toISOString().split("T")[0]}`,
+        });
+      }
+    }
+  }
+
+  // NEW: Worker disengaged (no activity in 30+ days)
+  const lastActivityDate = workerCase.ticketLastUpdatedAt
+    ? new Date(workerCase.ticketLastUpdatedAt)
+    : null;
+  if (lastActivityDate && !Number.isNaN(lastActivityDate.getTime())) {
+    const inactiveDays = daysSince(lastActivityDate);
+    if (inactiveDays > DISENGAGED_THRESHOLD_DAYS) {
+      addFlag(flags, {
+        code: "WORKER_DISENGAGED",
+        severity: inactiveDays > 60 ? "high_risk" : "warning",
+        message: `No case activity for ${inactiveDays} days.`,
+        details: `Last activity: ${lastActivityDate.toISOString().split("T")[0]}`,
+      });
+    }
+  }
+
+  // NEW: Long-tail case (open 180+ days without resolution)
+  if (workerCase.dateOfInjury && workerCase.workStatus === "Off work") {
+    const injuryDate = new Date(workerCase.dateOfInjury);
+    if (!Number.isNaN(injuryDate.getTime())) {
+      const caseDuration = daysSince(injuryDate);
+      if (caseDuration > LONG_TAIL_THRESHOLD_DAYS) {
+        addFlag(flags, {
+          code: "LONG_TAIL_CASE",
+          severity: "high_risk",
+          message: `Case open for ${caseDuration} days with worker still off work.`,
+          details: `Injury date: ${injuryDate.toISOString().split("T")[0]}`,
+        });
+      }
+    }
+  }
+
+  // NEW: Psychological injury marker
+  const textToScan = [
+    workerCase.summary,
+    workerCase.aiSummary,
+    workerCase.currentStatus,
+    workerCase.aiWorkStatusClassification,
+  ].join(" ");
+  if (containsPsychKeywords(textToScan)) {
+    addFlag(flags, {
+      code: "PSYCHOLOGICAL_INJURY_MARKER",
+      severity: "info",
+      message: "Psychological or mental health component detected.",
+      details: "Case may require specialized psych support or IME referral.",
     });
   }
 

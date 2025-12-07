@@ -14,3 +14,15 @@
 - Server starts on port 5000 with Vite middleware serving frontend
 - API verified: GET /api/gpnet2/cases returns all demo cases
 - Pre-existing test failures noted in TimelineCard.test.tsx (6 tests fail due to text matching)
+
+## 2025-12-07 — medical_flags_and_red_risk ✅
+- Added 5 new flag types to schema.ts: CERTIFICATE_EXPIRING_SOON, OVERDUE_FOLLOW_UP, WORKER_DISENGAGED, LONG_TAIL_CASE, PSYCHOLOGICAL_INJURY_MARKER
+- Enhanced clinicalEvidence.ts with detection logic:
+  - Certificate expiring within 7 days
+  - CLC follow-up overdue (warning at >0 days, high_risk at >14 days)
+  - Worker disengaged (no activity for 30+ days, high_risk at 60+ days)
+  - Long-tail case (180+ days off work)
+  - Psychological injury keywords detection (PTSD, anxiety, depression, etc.)
+- Updated clinicalActions.ts with recommended actions for each new flag type
+- Enhanced CaseDetailPanel.tsx to display all severity levels (high_risk, warning, info) with color-coded styling
+- API endpoint `/api/cases/:id/clinical-evidence` verified working with new flags

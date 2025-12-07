@@ -148,5 +148,84 @@ export function buildClinicalActionRecommendations(
     );
   }
 
+  // NEW: Certificate expiring soon
+  if (flagCodes.includes("CERTIFICATE_EXPIRING_SOON")) {
+    add(
+      "REQUEST_UPDATED_CERTIFICATE",
+      "GP",
+      "Request certificate renewal",
+      "Current certificate is expiring soon; request updated certificate to avoid gap.",
+      ["CERTIFICATE_EXPIRING_SOON"],
+      {
+        suggestedSubject: `Certificate renewal request – ${workerCase.workerName}`,
+        suggestedBody:
+          `Dear Doctor,\n\nThe current medical certificate for ${workerCase.workerName} is expiring soon. Please provide an updated certificate with current capacity assessment and expected recovery timeline.\n\nThank you.`,
+      },
+    );
+  }
+
+  // NEW: Overdue follow-up
+  if (flagCodes.includes("OVERDUE_FOLLOW_UP")) {
+    add(
+      "OTHER",
+      "WORKER",
+      "Contact worker for overdue check-in",
+      "Scheduled CLC follow-up is overdue; attempt contact to assess current status.",
+      ["OVERDUE_FOLLOW_UP"],
+      {
+        suggestedScript:
+          "Hi, we were due to check in with you but haven't been able to connect. How are you going? Any changes to your condition or treatment? Is there anything you need help with?",
+      },
+    );
+  }
+
+  // NEW: Worker disengaged
+  if (flagCodes.includes("WORKER_DISENGAGED")) {
+    add(
+      "OTHER",
+      "WORKER",
+      "Re-engage with worker",
+      "No case activity for extended period; worker may need support or escalation.",
+      ["WORKER_DISENGAGED"],
+      {
+        suggestedScript:
+          "Hi, we noticed we haven't heard from you in a while. We want to make sure you're okay and your case is progressing. Can we schedule a time to chat about how things are going?",
+      },
+    );
+    add(
+      "OTHER",
+      "EMPLOYER_INTERNAL",
+      "Document disengagement",
+      "Record attempts to contact worker and plan for escalation if needed.",
+      ["WORKER_DISENGAGED"],
+    );
+  }
+
+  // NEW: Long-tail case
+  if (flagCodes.includes("LONG_TAIL_CASE")) {
+    add(
+      "OTHER",
+      "INSURER",
+      "Request case review meeting",
+      "Case has been open for extended period; may need insurer review or specialist IME.",
+      ["LONG_TAIL_CASE"],
+      {
+        suggestedBody:
+          `Case review request for ${workerCase.workerName}:\n\nThis case has been open for an extended period with the worker still off work. We recommend a case conference to review:\n- Current clinical status and barriers to recovery\n- Whether an IME is warranted\n- Alternative RTW pathways or redeployment options\n- Cost projections and intervention strategies`,
+      },
+    );
+  }
+
+  // NEW: Psychological injury marker
+  if (flagCodes.includes("PSYCHOLOGICAL_INJURY_MARKER")) {
+    add(
+      "OTHER",
+      "EMPLOYER_INTERNAL",
+      "Consider psychological support referral",
+      "Case shows psychological injury markers; may benefit from EAP or psych referral.",
+      ["PSYCHOLOGICAL_INJURY_MARKER"],
+    );
+  }
+
   return actions;
 }

@@ -92,6 +92,7 @@ export interface ClinicalEvidenceFlag {
     | "MISSING_TREATMENT_PLAN"
     | "CERTIFICATE_OUT_OF_DATE"
     | "NO_RECENT_CERTIFICATE"
+    | "CERTIFICATE_EXPIRING_SOON"
     | "NOT_IMPROVING_AGAINST_EXPECTED_TIMELINE"
     | "SPECIALIST_REFERRED_NO_APPOINTMENT"
     | "SPECIALIST_APPOINTMENT_OVERDUE"
@@ -100,6 +101,10 @@ export interface ClinicalEvidenceFlag {
     | "RTW_PLAN_FAILING"
     | "WORKER_NON_COMPLIANT"
     | "EVIDENCE_INCOMPLETE"
+    | "OVERDUE_FOLLOW_UP"
+    | "WORKER_DISENGAGED"
+    | "LONG_TAIL_CASE"
+    | "PSYCHOLOGICAL_INJURY_MARKER"
     | "OTHER";
   severity: "info" | "warning" | "high_risk";
   message: string;
