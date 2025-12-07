@@ -454,7 +454,7 @@ export const workerCases = pgTable("worker_cases", {
   certificateUrl: text("certificate_url"),
   complianceIndicator: text("compliance_indicator").notNull(),
   complianceJson: jsonb("compliance_json").$type<CaseCompliance>(),
-  clinicalStatusJson: jsonb("clinical_status_json").$type<CaseClinicalStatus>().nullable(),
+  clinicalStatusJson: jsonb("clinical_status_json").$type<CaseClinicalStatus | null>(),
   currentStatus: text("current_status").notNull(),
   nextStep: text("next_step").notNull(),
   owner: text("owner").notNull(),

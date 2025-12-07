@@ -1,3 +1,16 @@
 # GPNet Build Progress Log
 # Claude Code must append summaries here.
 # DO NOT rewrite or delete existing lines.
+
+## 2025-12-07 — initialize_harness ✅
+- Installed all npm dependencies (582 packages)
+- Started PostgreSQL service, created gpnet3 database and gpnet user
+- Created .env file with DATABASE_URL and JWT_SECRET
+- Fixed schema.ts line 457: changed `.nullable()` chain to `.$type<T | null>()`
+- Fixed storage.ts: removed duplicate `getCaseRecoveryTimeline` method (lines 773-781)
+- Installed missing @radix-ui/react-label dependency
+- Ran `npm run db:push` — migrations applied successfully
+- Ran `npm run seed` — demo data loaded (8 cases)
+- Server starts on port 5000 with Vite middleware serving frontend
+- API verified: GET /api/gpnet2/cases returns all demo cases
+- Pre-existing test failures noted in TimelineCard.test.tsx (6 tests fail due to text matching)

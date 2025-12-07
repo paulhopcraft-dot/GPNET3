@@ -770,16 +770,6 @@ class DbStorage implements IStorage {
     await this.syncMedicalCertificates(caseData.id, caseData.certificateHistory);
   }
 
-  async getCaseRecoveryTimeline(caseId: string): Promise<MedicalCertificate[]> {
-    const rows = await db
-      .select()
-      .from(medicalCertificates)
-      .where(eq(medicalCertificates.caseId, caseId))
-      .orderBy(asc(medicalCertificates.startDate));
-
-    return rows.map(mapCertificateRow);
-  }
-
   private async syncMedicalCertificates(
     caseId: string,
     certificates?: MedicalCertificateInput[],
