@@ -1,5 +1,5 @@
 {
-  "initialize_harness": { "pass": false, "notes": "" },
+  "initialize_harness": { "pass": true, "notes": "System boots: PostgreSQL, migrations, seed data, API, and Vite frontend all working. Pre-existing test failures in TimelineCard.test.tsx noted." },
 
   "claims_intake_flow": { "pass": false, "notes": "" },
   "certificate_ingestion_engine": { "pass": false, "notes": "" },
