@@ -11,6 +11,15 @@ import { isValidCompany, isLegitimateCase } from "@shared/schema";
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 
+interface FreshdeskAttachment {
+  id: number;
+  name: string;
+  content_type: string;
+  size: number;
+  attachment_url: string;
+  created_at: string;
+}
+
 interface FreshdeskTicket {
   id: number;
   subject: string;
@@ -24,6 +33,7 @@ interface FreshdeskTicket {
   due_by?: string;
   responder_id?: number;
   company_id?: number;
+  attachments?: FreshdeskAttachment[];
 }
 
 interface FreshdeskCompany {
@@ -39,6 +49,121 @@ interface FreshdeskContact {
 
 // Enable dayjs UTC plugin
 dayjs.extend(utc);
+
+// Certificate file detection patterns
+const CERTIFICATE_FILE_PATTERNS = [
+  /medical.*cert/i,
+  /cert.*medical/i,
+  /workcover/i,
+  /capacity.*cert/i,
+  /fitness.*work/i,
+  /med.*report/i,
+  /doctor.*letter/i,
+  /gp.*cert/i,
+];
+
+const CERTIFICATE_CONTENT_TYPES = [
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+  'image/tiff',
+];
+
+// Medical restriction keywords for extraction
+const RESTRICTION_PATTERNS: { pattern: RegExp; category: string }[] = [
+  { pattern: /no\s+(heavy\s+)?lifting/i, category: 'lifting' },
+  { pattern: /lifting\s+restrict/i, category: 'lifting' },
+  { pattern: /max(imum)?\s+(\d+)\s*(kg|kilos?|pounds?|lbs?)/i, category: 'lifting' },
+  { pattern: /no\s+bending/i, category: 'bending' },
+  { pattern: /avoid\s+bending/i, category: 'bending' },
+  { pattern: /no\s+twisting/i, category: 'twisting' },
+  { pattern: /no\s+repetitive/i, category: 'repetitive' },
+  { pattern: /sit.?stand.*rotation/i, category: 'posture' },
+  { pattern: /alternate.*sitting.*standing/i, category: 'posture' },
+  { pattern: /desk.?based/i, category: 'duties' },
+  { pattern: /light\s+duties/i, category: 'duties' },
+  { pattern: /modified\s+duties/i, category: 'duties' },
+  { pattern: /no\s+driving/i, category: 'driving' },
+  { pattern: /avoid\s+driving/i, category: 'driving' },
+  { pattern: /no\s+climbing/i, category: 'climbing' },
+  { pattern: /avoid\s+heights/i, category: 'climbing' },
+  { pattern: /reduced\s+hours/i, category: 'hours' },
+  { pattern: /(\d+)\s*hours?\s*(per\s*)?(day|week)/i, category: 'hours' },
+  { pattern: /avoid\s+(prolonged\s+)?(standing|sitting)/i, category: 'posture' },
+  { pattern: /no\s+overtime/i, category: 'hours' },
+  { pattern: /stress\s+leave/i, category: 'psychological' },
+  { pattern: /gradual\s+return/i, category: 'graduated' },
+  { pattern: /phased\s+return/i, category: 'graduated' },
+];
+
+/**
+ * Check if an attachment appears to be a medical certificate
+ */
+function isCertificateAttachment(attachment: FreshdeskAttachment): boolean {
+  // Check content type
+  if (!CERTIFICATE_CONTENT_TYPES.includes(attachment.content_type)) {
+    return false;
+  }
+
+  // Check filename patterns
+  const filename = attachment.name.toLowerCase();
+  return CERTIFICATE_FILE_PATTERNS.some(pattern => pattern.test(filename));
+}
+
+/**
+ * Extract medical restrictions from text
+ */
+function extractRestrictions(text: string): string[] {
+  if (!text) return [];
+
+  const restrictions: string[] = [];
+  const seen = new Set<string>();
+
+  for (const { pattern, category } of RESTRICTION_PATTERNS) {
+    const match = text.match(pattern);
+    if (match && !seen.has(category)) {
+      restrictions.push(match[0].trim());
+      seen.add(category);
+    }
+  }
+
+  return restrictions;
+}
+
+/**
+ * Extract diagnosis keywords from text
+ */
+function extractDiagnosis(text: string): string | undefined {
+  if (!text) return undefined;
+
+  const diagnosisPatterns = [
+    /diagnosis[:\s]+([^.\n]+)/i,
+    /condition[:\s]+([^.\n]+)/i,
+    /injury[:\s]+([^.\n]+)/i,
+    /(lower\s+back|lumbar|cervical|shoulder|knee|ankle|wrist|hand)\s+(strain|sprain|injury|pain)/i,
+    /(ptsd|anxiety|depression|stress)/i,
+    /(fracture|tear|rupture)/i,
+  ];
+
+  for (const pattern of diagnosisPatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      return match[1]?.trim() || match[0].trim();
+    }
+  }
+
+  return undefined;
+}
+
+/**
+ * Find certificate attachments from a ticket
+ */
+function findCertificateAttachments(ticket: FreshdeskTicket): FreshdeskAttachment[] {
+  if (!ticket.attachments || ticket.attachments.length === 0) {
+    return [];
+  }
+  return ticket.attachments.filter(isCertificateAttachment);
+}
 
 export class FreshdeskService {
   private domain: string;
