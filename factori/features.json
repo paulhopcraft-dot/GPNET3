@@ -15,7 +15,7 @@
   "provider_chat_workflow": { "pass": false, "notes": "" },
 
   "weekly_checkin_engine": { "pass": false, "notes": "" },
-  "risk_dashboard": { "pass": false, "notes": "" },
+  "risk_dashboard": { "pass": true, "notes": "Executive risk dashboard with API endpoint GET /api/dashboard/risk-summary. Aggregates risk breakdown, flag counts, urgent cases, and company risk metrics. RiskDashboard.tsx UI with auto-refresh every 60s." },
   "claimant_profile_summary": { "pass": false, "notes": "" },
 
   "unit_tests": { "pass": false, "notes": "" },

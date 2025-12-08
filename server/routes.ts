@@ -76,6 +76,75 @@ export async function registerRoutes(app: Express): Promise<void> {
     }
   });
 
+  // Risk Dashboard - Executive summary of all cases
+  app.get("/api/dashboard/risk-summary", async (req, res) => {
+    try {
+      const cases = await storage.getGPNet2Cases();
+
+      // Risk level breakdown
+      const riskBreakdown = {
+        high: cases.filter((c) => c.riskLevel === "High").length,
+        medium: cases.filter((c) => c.riskLevel === "Medium").length,
+        low: cases.filter((c) => c.riskLevel === "Low").length,
+      };
+
+      // Work status breakdown
+      const workStatusBreakdown = {
+        offWork: cases.filter((c) => c.workStatus === "Off work").length,
+        atWork: cases.filter((c) => c.workStatus === "At work").length,
+      };
+
+      // Flag counts from clinical evidence
+      const flagCounts: Record<string, number> = {};
+      const urgentCases: Array<{ id: string; workerName: string; company: string; flags: string[] }> = [];
+
+      for (const c of cases) {
+        if (c.clinicalEvidence?.flags) {
+          const highRiskFlags: string[] = [];
+          for (const flag of c.clinicalEvidence.flags) {
+            flagCounts[flag.code] = (flagCounts[flag.code] || 0) + 1;
+            if (flag.severity === "high_risk") {
+              highRiskFlags.push(flag.message);
+            }
+          }
+          if (highRiskFlags.length > 0) {
+            urgentCases.push({
+              id: c.id,
+              workerName: c.workerName,
+              company: c.company,
+              flags: highRiskFlags,
+            });
+          }
+        }
+      }
+
+      // Company breakdown
+      const companyRisk: Record<string, { total: number; high: number; medium: number; low: number }> = {};
+      for (const c of cases) {
+        if (!companyRisk[c.company]) {
+          companyRisk[c.company] = { total: 0, high: 0, medium: 0, low: 0 };
+        }
+        companyRisk[c.company].total++;
+        if (c.riskLevel === "High") companyRisk[c.company].high++;
+        if (c.riskLevel === "Medium") companyRisk[c.company].medium++;
+        if (c.riskLevel === "Low") companyRisk[c.company].low++;
+      }
+
+      res.json({
+        totalCases: cases.length,
+        riskBreakdown,
+        workStatusBreakdown,
+        flagCounts,
+        urgentCases: urgentCases.slice(0, 10), // Top 10 urgent cases
+        companyRisk,
+        generatedAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Failed to generate risk summary:", error);
+      res.status(500).json({ error: "Failed to generate risk summary" });
+    }
+  });
+
   // Freshdesk sync endpoint
   app.post("/api/freshdesk/sync", async (req, res) => {
     try {

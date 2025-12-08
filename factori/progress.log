@@ -40,3 +40,19 @@
   - GET /api/cases/:id/rtw-plan - generates an RTW plan for a case
   - POST /api/cases/:id/rtw-plan/assess - assesses safety of a phase
 - API verified: returns phased plans with duties, restrictions, review dates, and recommendations
+
+## 2025-12-08 — risk_dashboard ✅
+- Added GET /api/dashboard/risk-summary endpoint to server/routes.ts
+- Aggregates case data into executive overview:
+  - Total cases count and work status breakdown (off work vs at work)
+  - Risk breakdown (high/medium/low counts)
+  - Flag counts for all active risk flags
+  - Urgent cases list (high risk + off work + multiple flags)
+  - Company-level risk breakdown
+- Created client/src/components/RiskDashboard.tsx UI component:
+  - Top-level metrics cards with color-coded risk levels
+  - Active risk flags panel with badge counts
+  - Urgent cases panel with worker details and flags
+  - Company risk breakdown grid
+  - Auto-refresh every 60 seconds
+- API verified: returns complete risk summary with 8 cases, flag counts, and company breakdown
