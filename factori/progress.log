@@ -26,3 +26,17 @@
 - Updated clinicalActions.ts with recommended actions for each new flag type
 - Enhanced CaseDetailPanel.tsx to display all severity levels (high_risk, warning, info) with color-coded styling
 - API endpoint `/api/cases/:id/clinical-evidence` verified working with new flags
+
+## 2025-12-08 — return_to_work_planner ✅
+- Added RTWPlan, RTWPlanPhase, RTWRecommendation interfaces to schema.ts
+- Created server/services/rtwPlanner.ts with:
+  - Phase templates (graduated_slow, graduated_standard, graduated_fast, direct_return)
+  - generateRTWPlan() - creates phased RTW plans based on case data
+  - assessPlanSafety() - checks plan against medical restrictions
+  - generateRecommendations() - suggests adjustments based on risk level, compliance, etc.
+  - deriveRestrictions() - extracts restrictions from medicalConstraints
+  - suggestDuties() - recommends appropriate duties based on restrictions
+- Added API endpoints:
+  - GET /api/cases/:id/rtw-plan - generates an RTW plan for a case
+  - POST /api/cases/:id/rtw-plan/assess - assesses safety of a phase
+- API verified: returns phased plans with duties, restrictions, review dates, and recommendations

@@ -48,6 +48,51 @@ export type RTWPlanStatus =
   | "on_hold"
   | "completed";
 
+// RTW Plan Phase - represents a stage in the return-to-work progression
+export interface RTWPlanPhase {
+  phaseNumber: number;
+  name: string;
+  hoursPerDay: number;
+  daysPerWeek: number;
+  durationWeeks: number;
+  duties: string[];
+  restrictions: string[];
+  reviewDate?: string;
+  startDate?: string;
+  endDate?: string;
+  status: "pending" | "active" | "completed" | "skipped";
+}
+
+// Full RTW Plan structure
+export interface RTWPlan {
+  id: string;
+  caseId: string;
+  workerName: string;
+  createdAt: string;
+  updatedAt: string;
+  status: RTWPlanStatus;
+  currentPhase: number;
+  phases: RTWPlanPhase[];
+  goalDate?: string; // Target date for full return
+  notes?: string;
+  createdBy?: string;
+  // Safety assessment
+  safetyStatus: "safe" | "at_risk" | "unsafe" | "unknown";
+  safetyNotes?: string;
+  // Recommendations
+  recommendations?: RTWRecommendation[];
+}
+
+// RTW Recommendation for plan adjustments
+export interface RTWRecommendation {
+  id: string;
+  type: "extend_phase" | "reduce_hours" | "add_restriction" | "escalate" | "progress" | "review_needed";
+  priority: "low" | "medium" | "high";
+  message: string;
+  reason: string;
+  suggestedAction?: string;
+}
+
 export type ComplianceStatus =
   | "unknown"
   | "compliant"

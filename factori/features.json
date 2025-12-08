@@ -4,7 +4,7 @@
   "claims_intake_flow": { "pass": false, "notes": "" },
   "certificate_ingestion_engine": { "pass": false, "notes": "" },
   "medical_flags_and_red_risk": { "pass": true, "notes": "Added 5 new flag types: CERTIFICATE_EXPIRING_SOON, OVERDUE_FOLLOW_UP, WORKER_DISENGAGED, LONG_TAIL_CASE, PSYCHOLOGICAL_INJURY_MARKER. Enhanced UI to show all severity levels." },
-  "return_to_work_planner": { "pass": false, "notes": "" },
+  "return_to_work_planner": { "pass": true, "notes": "RTWPlan/RTWPlanPhase/RTWRecommendation types, generateRTWPlan service with phased progression templates, safety assessment, and recommendations. API: GET /api/cases/:id/rtw-plan" },
 
   "xgboost_prediction_layer": { "pass": false, "notes": "" },
   "freshdesk_ticket_mirroring": { "pass": false, "notes": "" },

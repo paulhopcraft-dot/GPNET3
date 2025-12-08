@@ -7,6 +7,7 @@ import authRoutes from "./routes/auth";
 import terminationRoutes from "./routes/termination";
 import type { RecoveryTimelineSummary } from "@shared/schema";
 import { evaluateClinicalEvidence } from "./services/clinicalEvidence";
+import { generateRTWPlan, assessPlanSafety, generateRecommendations } from "./services/rtwPlanner";
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
@@ -177,6 +178,50 @@ export async function registerRoutes(app: Express): Promise<void> {
       console.error("Failed to fetch discussion notes:", err);
       res.status(500).json({
         error: "Failed to fetch discussion notes",
+        details: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  });
+
+  // RTW Plan generation endpoint
+  app.get("/api/cases/:id/rtw-plan", async (req, res) => {
+    try {
+      const caseId = req.params.id;
+      const workerCase = await storage.getGPNet2CaseById(caseId);
+      if (!workerCase) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      const plan = generateRTWPlan(workerCase);
+      res.json({ caseId, plan });
+    } catch (err) {
+      console.error("Failed to generate RTW plan:", err);
+      res.status(500).json({
+        error: "Failed to generate RTW plan",
+        details: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  });
+
+  // RTW Plan safety assessment endpoint
+  app.post("/api/cases/:id/rtw-plan/assess", async (req, res) => {
+    try {
+      const caseId = req.params.id;
+      const { phase } = req.body;
+
+      const workerCase = await storage.getGPNet2CaseById(caseId);
+      if (!workerCase) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      const safety = assessPlanSafety(workerCase, phase);
+      const recommendations = generateRecommendations(workerCase, phase ? [phase] : []);
+
+      res.json({ caseId, safety, recommendations });
+    } catch (err) {
+      console.error("Failed to assess RTW plan:", err);
+      res.status(500).json({
+        error: "Failed to assess RTW plan",
         details: err instanceof Error ? err.message : "Unknown error",
       });
     }
