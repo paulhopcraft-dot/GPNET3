@@ -16,7 +16,7 @@
 
   "weekly_checkin_engine": { "pass": false, "notes": "" },
   "risk_dashboard": { "pass": true, "notes": "Executive risk dashboard with API endpoint GET /api/dashboard/risk-summary. Aggregates risk breakdown, flag counts, urgent cases, and company risk metrics. RiskDashboard.tsx UI with auto-refresh every 60s." },
-  "claimant_profile_summary": { "pass": false, "notes": "" },
+  "claimant_profile_summary": { "pass": true, "notes": "Comprehensive worker profile service with status snapshot, medical summary, recovery progress, active flags, engagement metrics. API: GET /api/cases/:id/profile. WorkerProfileCard.tsx UI component." },
 
   "unit_tests": { "pass": false, "notes": "" },
   "e2e_tests": { "pass": false, "notes": "" },

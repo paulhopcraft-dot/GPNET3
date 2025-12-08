@@ -9,6 +9,7 @@ import type { RecoveryTimelineSummary } from "@shared/schema";
 import { evaluateClinicalEvidence } from "./services/clinicalEvidence";
 import { generateRTWPlan, assessPlanSafety, generateRecommendations } from "./services/rtwPlanner";
 import { estimateRecoveryTimeline, getRecoverySummary } from "./services/recoveryEstimator";
+import { generateWorkerProfile, formatProfileSections, getStatusLine } from "./services/workerProfile";
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
@@ -321,6 +322,37 @@ export async function registerRoutes(app: Express): Promise<void> {
       console.error("Failed to estimate recovery timeline:", err);
       res.status(500).json({
         error: "Failed to estimate recovery timeline",
+        details: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  });
+
+  // Worker profile summary endpoint
+  app.get("/api/cases/:id/profile", async (req, res) => {
+    try {
+      const caseId = req.params.id;
+      const workerCase = await storage.getGPNet2CaseById(caseId);
+      if (!workerCase) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      // Get certificate history for more complete profile
+      const certificates = await storage.getCaseRecoveryTimeline(caseId);
+
+      const profile = generateWorkerProfile(workerCase, certificates);
+      const sections = formatProfileSections(profile);
+      const statusLine = getStatusLine(profile);
+
+      res.json({
+        caseId,
+        profile,
+        sections,
+        statusLine,
+      });
+    } catch (err) {
+      console.error("Failed to generate worker profile:", err);
+      res.status(500).json({
+        error: "Failed to generate worker profile",
         details: err instanceof Error ? err.message : "Unknown error",
       });
     }

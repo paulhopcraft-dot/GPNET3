@@ -69,3 +69,25 @@
 - Added API endpoint:
   - GET /api/cases/:id/recovery-estimate - returns full recovery estimate with summary
 - API verified: returns injury category, estimated recovery days/date, risk factors, and recommendations
+
+## 2025-12-08 — claimant_profile_summary ✅
+- Created server/services/workerProfile.ts with:
+  - generateWorkerProfile() - builds comprehensive profile from case data
+  - formatProfileSections() - structures profile into UI-ready sections
+  - getStatusLine() - generates one-line status summary
+- Profile includes:
+  - Basic info (name, company, injury date, case owner)
+  - Status snapshot (work status, risk level, compliance, RTW plan, employment)
+  - Medical summary (capacity, certificate, restrictions, functional limits, diagnosis)
+  - Recovery progress (estimated date, progress indicator, injury category, confidence)
+  - Active flags grouped by severity (high risk, warnings, info)
+  - Engagement metrics (last activity, follow-ups, ticket count)
+  - Recommendations from recovery estimator
+- Created client/src/components/WorkerProfileCard.tsx UI component:
+  - Compact mode for list views
+  - Full profile view with sections grid
+  - Color-coded severity indicators
+  - AI summary display
+- Added API endpoint:
+  - GET /api/cases/:id/profile - returns profile, sections, and status line
+- API verified: returns comprehensive profile with all sections and recommendations
