@@ -56,3 +56,16 @@
   - Company risk breakdown grid
   - Auto-refresh every 60 seconds
 - API verified: returns complete risk summary with 8 cases, flag counts, and company breakdown
+
+## 2025-12-08 — timeline_and_recovery_estimator ✅
+- Created server/services/recoveryEstimator.ts with:
+  - Injury categorization (musculoskeletal minor/moderate/severe, psychological, surgical, chronic, mixed)
+  - Benchmark recovery days based on injury category
+  - Risk factor identification (high risk, non-compliance, RTW failing, surgery, extended duration, disengagement)
+  - Positive factor identification (at work, low risk, compliant, RTW progressing, improving)
+  - Progress indicator calculation (on_track, delayed, significantly_delayed)
+  - Recovery range estimation (optimistic, realistic, pessimistic)
+  - Case-specific recommendations generation
+- Added API endpoint:
+  - GET /api/cases/:id/recovery-estimate - returns full recovery estimate with summary
+- API verified: returns injury category, estimated recovery days/date, risk factors, and recommendations

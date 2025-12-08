@@ -8,6 +8,7 @@ import terminationRoutes from "./routes/termination";
 import type { RecoveryTimelineSummary } from "@shared/schema";
 import { evaluateClinicalEvidence } from "./services/clinicalEvidence";
 import { generateRTWPlan, assessPlanSafety, generateRecommendations } from "./services/rtwPlanner";
+import { estimateRecoveryTimeline, getRecoverySummary } from "./services/recoveryEstimator";
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
@@ -291,6 +292,35 @@ export async function registerRoutes(app: Express): Promise<void> {
       console.error("Failed to assess RTW plan:", err);
       res.status(500).json({
         error: "Failed to assess RTW plan",
+        details: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  });
+
+  // Recovery timeline estimation endpoint
+  app.get("/api/cases/:id/recovery-estimate", async (req, res) => {
+    try {
+      const caseId = req.params.id;
+      const workerCase = await storage.getGPNet2CaseById(caseId);
+      if (!workerCase) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      // Get certificate history for more accurate estimation
+      const certificates = await storage.getCaseRecoveryTimeline(caseId);
+
+      const estimate = estimateRecoveryTimeline(workerCase, certificates);
+      const summary = getRecoverySummary(estimate);
+
+      res.json({
+        caseId,
+        estimate,
+        summary,
+      });
+    } catch (err) {
+      console.error("Failed to estimate recovery timeline:", err);
+      res.status(500).json({
+        error: "Failed to estimate recovery timeline",
         details: err instanceof Error ? err.message : "Unknown error",
       });
     }

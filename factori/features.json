@@ -11,7 +11,7 @@
   "pinecone_rag_integration": { "pass": false, "notes": "" },
 
   "treatment_plan_generator": { "pass": false, "notes": "" },
-  "timeline_and_recovery_estimator": { "pass": false, "notes": "" },
+  "timeline_and_recovery_estimator": { "pass": true, "notes": "Recovery estimator service with injury categorization, benchmark comparisons, risk/positive factors, progress indicators, and recommendations. API: GET /api/cases/:id/recovery-estimate" },
   "provider_chat_workflow": { "pass": false, "notes": "" },
 
   "weekly_checkin_engine": { "pass": false, "notes": "" },
