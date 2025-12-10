@@ -7,7 +7,7 @@
   "return_to_work_planner": { "pass": true, "notes": "RTWPlan/RTWPlanPhase/RTWRecommendation types, generateRTWPlan service with phased progression templates, safety assessment, and recommendations. API: GET /api/cases/:id/rtw-plan" },
 
   "xgboost_prediction_layer": { "pass": false, "notes": "" },
-  "freshdesk_ticket_mirroring": { "pass": false, "notes": "" },
+  "freshdesk_ticket_mirroring": { "pass": true, "notes": "Bidirectional Freshdesk integration: create/reply tickets, get conversations, webhook handling, high-risk email detection (suicide, threats, legal), bounce detection. APIs: GET/POST /api/freshdesk/tickets, /api/freshdesk/webhook, /api/cases/:id/communications, /api/freshdesk/analyze-risk" },
   "pinecone_rag_integration": { "pass": false, "notes": "" },
 
   "treatment_plan_generator": { "pass": true, "notes": "Treatment plan generator with injury-based templates, treatment items (type, frequency, duration, provider, goals), milestones, short/long-term goals, and escalation triggers. API: GET /api/cases/:id/treatment-plan" },

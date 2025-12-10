@@ -11,6 +11,89 @@ import { isValidCompany, isLegitimateCase } from "@shared/schema";
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 
+// High-risk keyword patterns for email detection
+const HIGH_RISK_KEYWORDS = [
+  /\b(suicid|kill\s*my\s*self|end\s*(my|it\s*all)|don'?t\s*want\s*to\s*live)\b/i,
+  /\b(threat|threaten|lawyer|legal\s*action|sue|court)\b/i,
+  /\b(harass|discriminat|bully|hostile)\b/i,
+  /\b(hopeless|worthless|can'?t\s*go\s*on|no\s*point)\b/i,
+  /\b(extreme\s*pain|unbearable|agony|suffering)\b/i,
+  /\b(not\s*coping|breakdown|crisis|emergency)\b/i,
+  /\b(complaint|ombudsman|fair\s*work|worksafe)\b/i,
+  /\b(unsafe|dangerous|injury\s*risk|hazard)\b/i,
+];
+
+// Bounce detection patterns
+const BOUNCE_PATTERNS = [
+  /delivery\s*(has\s*)?fail/i,
+  /undeliverable/i,
+  /mailbox\s*(not\s*found|unavailable)/i,
+  /address\s*rejected/i,
+  /user\s*unknown/i,
+  /no\s*such\s*(user|address)/i,
+  /message\s*not\s*delivered/i,
+  /permanent\s*(failure|error)/i,
+  /bounce/i,
+];
+
+export interface FreshdeskConversation {
+  id: number;
+  body: string;
+  body_text: string;
+  incoming: boolean;
+  private: boolean;
+  user_id: number;
+  from_email: string;
+  to_emails: string[];
+  cc_emails: string[];
+  created_at: string;
+  attachments: FreshdeskAttachment[];
+}
+
+export interface CreateTicketInput {
+  subject: string;
+  description: string;
+  email: string;
+  priority?: 1 | 2 | 3 | 4; // 1=Low, 2=Medium, 3=High, 4=Urgent
+  status?: 2 | 3 | 4 | 5; // 2=Open, 3=Pending, 4=Resolved, 5=Closed
+  type?: string;
+  tags?: string[];
+  custom_fields?: Record<string, any>;
+  cc_emails?: string[];
+}
+
+export interface ReplyToTicketInput {
+  body: string;
+  from_email?: string;
+  cc_emails?: string[];
+  bcc_emails?: string[];
+  private_note?: boolean;
+  user_id?: number;
+}
+
+export interface HighRiskDetection {
+  isHighRisk: boolean;
+  triggers: string[];
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  recommendedAction: string;
+}
+
+export interface BounceDetection {
+  isBounce: boolean;
+  originalEmail?: string;
+  bounceReason?: string;
+}
+
+export interface TicketMirrorResult {
+  ticketId: number;
+  caseId?: string;
+  action: 'created' | 'updated' | 'replied' | 'synced';
+  success: boolean;
+  error?: string;
+  highRiskDetection?: HighRiskDetection;
+  bounceDetection?: BounceDetection;
+}
+
 interface FreshdeskAttachment {
   id: number;
   name: string;
@@ -995,5 +1078,378 @@ export class FreshdeskService {
     }
 
     return workerCases;
+  }
+
+  /**
+   * Detect high-risk language in text content
+   */
+  detectHighRisk(text: string): HighRiskDetection {
+    if (!text) {
+      return {
+        isHighRisk: false,
+        triggers: [],
+        severity: 'low',
+        recommendedAction: 'No action required',
+      };
+    }
+
+    const triggers: string[] = [];
+    let maxSeverity: 'low' | 'medium' | 'high' | 'critical' = 'low';
+
+    for (const pattern of HIGH_RISK_KEYWORDS) {
+      const match = text.match(pattern);
+      if (match) {
+        triggers.push(match[0]);
+
+        // Determine severity based on keyword type
+        if (/suicid|kill\s*my\s*self|end\s*(my|it\s*all)/i.test(match[0])) {
+          maxSeverity = 'critical';
+        } else if (/threat|lawyer|legal|harass|discriminat/i.test(match[0])) {
+          if (maxSeverity !== 'critical') maxSeverity = 'high';
+        } else if (/hopeless|worthless|crisis|emergency|breakdown/i.test(match[0])) {
+          if (maxSeverity !== 'critical' && maxSeverity !== 'high') maxSeverity = 'high';
+        } else {
+          if (maxSeverity === 'low') maxSeverity = 'medium';
+        }
+      }
+    }
+
+    const isHighRisk = triggers.length > 0;
+    let recommendedAction = 'No action required';
+
+    if (maxSeverity === 'critical') {
+      recommendedAction = 'IMMEDIATE: Contact worker immediately. Escalate to supervisor. Consider emergency services if appropriate.';
+    } else if (maxSeverity === 'high') {
+      recommendedAction = 'URGENT: Review case immediately. Contact worker within 24 hours. Document all communications.';
+    } else if (maxSeverity === 'medium') {
+      recommendedAction = 'Schedule follow-up with worker within 48 hours. Review case notes for context.';
+    }
+
+    return {
+      isHighRisk,
+      triggers,
+      severity: maxSeverity,
+      recommendedAction,
+    };
+  }
+
+  /**
+   * Detect bounced email notifications
+   */
+  detectBounce(text: string, subject: string): BounceDetection {
+    const combinedText = `${subject} ${text}`;
+
+    for (const pattern of BOUNCE_PATTERNS) {
+      if (pattern.test(combinedText)) {
+        // Try to extract original email address
+        const emailMatch = text.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+
+        return {
+          isBounce: true,
+          originalEmail: emailMatch ? emailMatch[1] : undefined,
+          bounceReason: pattern.source.replace(/\\s\*/g, ' ').replace(/[\\()]/g, ''),
+        };
+      }
+    }
+
+    return { isBounce: false };
+  }
+
+  /**
+   * Create a new ticket in Freshdesk
+   */
+  async createTicket(input: CreateTicketInput): Promise<FreshdeskTicket> {
+    const response = await fetch(`${this.baseUrl}/tickets`, {
+      method: 'POST',
+      headers: {
+        'Authorization': this.getAuthHeader(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        subject: input.subject,
+        description: input.description,
+        email: input.email,
+        priority: input.priority || 1,
+        status: input.status || 2,
+        type: input.type,
+        tags: input.tags,
+        custom_fields: input.custom_fields,
+        cc_emails: input.cc_emails,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to create Freshdesk ticket: ${response.status} - ${errorText}`);
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Reply to an existing ticket
+   */
+  async replyToTicket(ticketId: number, input: ReplyToTicketInput): Promise<FreshdeskConversation> {
+    const endpoint = input.private_note
+      ? `${this.baseUrl}/tickets/${ticketId}/notes`
+      : `${this.baseUrl}/tickets/${ticketId}/reply`;
+
+    const body: any = {
+      body: input.body,
+    };
+
+    if (!input.private_note) {
+      if (input.from_email) body.from_email = input.from_email;
+      if (input.cc_emails) body.cc_emails = input.cc_emails;
+      if (input.bcc_emails) body.bcc_emails = input.bcc_emails;
+    } else {
+      body.private = true;
+      if (input.user_id) body.user_id = input.user_id;
+    }
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Authorization': this.getAuthHeader(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to reply to ticket ${ticketId}: ${response.status} - ${errorText}`);
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Get ticket by ID with full details
+   */
+  async getTicket(ticketId: number): Promise<FreshdeskTicket> {
+    const response = await fetch(`${this.baseUrl}/tickets/${ticketId}?include=description`, {
+      headers: {
+        'Authorization': this.getAuthHeader(),
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch ticket ${ticketId}: ${response.status}`);
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Get all conversations for a ticket
+   */
+  async getTicketConversations(ticketId: number): Promise<FreshdeskConversation[]> {
+    const response = await fetch(`${this.baseUrl}/tickets/${ticketId}/conversations`, {
+      headers: {
+        'Authorization': this.getAuthHeader(),
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch conversations for ticket ${ticketId}: ${response.status}`);
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Update ticket status
+   */
+  async updateTicketStatus(ticketId: number, status: 2 | 3 | 4 | 5): Promise<FreshdeskTicket> {
+    const response = await fetch(`${this.baseUrl}/tickets/${ticketId}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': this.getAuthHeader(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ status }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to update ticket ${ticketId}: ${response.status} - ${errorText}`);
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Update ticket priority
+   */
+  async updateTicketPriority(ticketId: number, priority: 1 | 2 | 3 | 4): Promise<FreshdeskTicket> {
+    const response = await fetch(`${this.baseUrl}/tickets/${ticketId}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': this.getAuthHeader(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ priority }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to update ticket ${ticketId} priority: ${response.status} - ${errorText}`);
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Process incoming webhook from Freshdesk
+   */
+  async processWebhook(payload: any): Promise<TicketMirrorResult> {
+    const ticketId = payload.ticket_id || payload.id;
+    if (!ticketId) {
+      return {
+        ticketId: 0,
+        action: 'synced',
+        success: false,
+        error: 'No ticket ID in webhook payload',
+      };
+    }
+
+    try {
+      // Fetch full ticket details
+      const ticket = await this.getTicket(ticketId);
+
+      // Check for high-risk content
+      const textToAnalyze = `${ticket.subject} ${ticket.description_text || ''}`;
+      const highRiskDetection = this.detectHighRisk(textToAnalyze);
+
+      // Check for bounce
+      const bounceDetection = this.detectBounce(ticket.description_text || '', ticket.subject);
+
+      // Transform to worker case
+      const workerCases = await this.transformTicketsToWorkerCases([ticket]);
+      const caseId = workerCases.length > 0 ? workerCases[0].id : undefined;
+
+      // If high-risk, escalate priority
+      if (highRiskDetection.severity === 'critical' || highRiskDetection.severity === 'high') {
+        await this.updateTicketPriority(ticketId, 4); // Urgent
+      }
+
+      return {
+        ticketId,
+        caseId,
+        action: payload.event_type === 'ticket_created' ? 'created' : 'updated',
+        success: true,
+        highRiskDetection: highRiskDetection.isHighRisk ? highRiskDetection : undefined,
+        bounceDetection: bounceDetection.isBounce ? bounceDetection : undefined,
+      };
+    } catch (error) {
+      return {
+        ticketId,
+        action: 'synced',
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * Get tickets for a specific case by searching worker name
+   */
+  async getTicketsForCase(workerName: string): Promise<FreshdeskTicket[]> {
+    try {
+      // Search by worker name in custom fields
+      const searchQuery = encodeURIComponent(`"${workerName}"`);
+      const response = await fetch(`${this.baseUrl}/search/tickets?query=${searchQuery}`, {
+        headers: {
+          'Authorization': this.getAuthHeader(),
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        // Fallback to fetching all and filtering
+        const allTickets = await this.fetchTickets();
+        const normalizedSearch = this.normalizeWorkerName(workerName);
+        return allTickets.filter(t => {
+          const ticketWorkerName = t.custom_fields?.cf_workers_name || t.custom_fields?.cf_worker_first_name || t.subject;
+          const normalizedTicket = this.normalizeWorkerName(ticketWorkerName || '');
+          return normalizedTicket === normalizedSearch;
+        });
+      }
+
+      const result = await response.json();
+      return result.results || [];
+    } catch (error) {
+      console.error('Error searching tickets:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get communication history for a case (all tickets and conversations)
+   */
+  async getCaseCommunicationHistory(workerName: string): Promise<{
+    tickets: FreshdeskTicket[];
+    conversations: Map<number, FreshdeskConversation[]>;
+    timeline: Array<{
+      date: string;
+      type: 'ticket_created' | 'reply' | 'note' | 'status_change';
+      ticketId: number;
+      summary: string;
+      incoming: boolean;
+      highRisk?: HighRiskDetection;
+    }>;
+  }> {
+    const tickets = await this.getTicketsForCase(workerName);
+    const conversations = new Map<number, FreshdeskConversation[]>();
+    const timeline: Array<{
+      date: string;
+      type: 'ticket_created' | 'reply' | 'note' | 'status_change';
+      ticketId: number;
+      summary: string;
+      incoming: boolean;
+      highRisk?: HighRiskDetection;
+    }> = [];
+
+    // Add ticket creation events
+    for (const ticket of tickets) {
+      const highRisk = this.detectHighRisk(`${ticket.subject} ${ticket.description_text || ''}`);
+      timeline.push({
+        date: ticket.created_at,
+        type: 'ticket_created',
+        ticketId: ticket.id,
+        summary: ticket.subject,
+        incoming: true,
+        highRisk: highRisk.isHighRisk ? highRisk : undefined,
+      });
+
+      // Fetch conversations for each ticket
+      try {
+        const ticketConversations = await this.getTicketConversations(ticket.id);
+        conversations.set(ticket.id, ticketConversations);
+
+        // Add conversation events to timeline
+        for (const conv of ticketConversations) {
+          const convHighRisk = this.detectHighRisk(conv.body_text || conv.body);
+          timeline.push({
+            date: conv.created_at,
+            type: conv.private ? 'note' : 'reply',
+            ticketId: ticket.id,
+            summary: (conv.body_text || conv.body).substring(0, 100) + '...',
+            incoming: conv.incoming,
+            highRisk: convHighRisk.isHighRisk ? convHighRisk : undefined,
+          });
+        }
+      } catch (error) {
+        console.error(`Error fetching conversations for ticket ${ticket.id}:`, error);
+      }
+    }
+
+    // Sort timeline by date
+    timeline.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    return { tickets, conversations, timeline };
   }
 }

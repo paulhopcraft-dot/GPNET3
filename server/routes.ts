@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { storage } from "./storage";
-import { FreshdeskService } from "./services/freshdesk";
+import { FreshdeskService, CreateTicketInput, ReplyToTicketInput } from "./services/freshdesk";
 import { summaryService } from "./services/summary";
 import Anthropic from "@anthropic-ai/sdk";
 import authRoutes from "./routes/auth";
@@ -169,20 +169,257 @@ export async function registerRoutes(app: Express): Promise<void> {
       const freshdesk = new FreshdeskService();
       const tickets = await freshdesk.fetchTickets();
       const workerCases = await freshdesk.transformTicketsToWorkerCases(tickets);
-      
+
       for (const workerCase of workerCases) {
         await storage.syncWorkerCaseFromFreshdesk(workerCase);
       }
 
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         synced: workerCases.length,
         message: `Successfully synced ${workerCases.length} cases from Freshdesk`
       });
     } catch (error) {
       console.error("Error syncing Freshdesk tickets:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to sync Freshdesk tickets",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Get a specific ticket from Freshdesk
+  app.get("/api/freshdesk/tickets/:ticketId", async (req, res) => {
+    try {
+      const freshdesk = new FreshdeskService();
+      const ticketId = parseInt(req.params.ticketId, 10);
+      const ticket = await freshdesk.getTicket(ticketId);
+      res.json(ticket);
+    } catch (error) {
+      console.error("Error fetching Freshdesk ticket:", error);
+      res.status(500).json({
+        error: "Failed to fetch ticket",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Get conversations for a ticket
+  app.get("/api/freshdesk/tickets/:ticketId/conversations", async (req, res) => {
+    try {
+      const freshdesk = new FreshdeskService();
+      const ticketId = parseInt(req.params.ticketId, 10);
+      const conversations = await freshdesk.getTicketConversations(ticketId);
+      res.json(conversations);
+    } catch (error) {
+      console.error("Error fetching ticket conversations:", error);
+      res.status(500).json({
+        error: "Failed to fetch conversations",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Create a new ticket in Freshdesk
+  app.post("/api/freshdesk/tickets", async (req, res) => {
+    try {
+      const freshdesk = new FreshdeskService();
+      const input: CreateTicketInput = req.body;
+
+      if (!input.subject || !input.description || !input.email) {
+        return res.status(400).json({
+          error: "Missing required fields: subject, description, email"
+        });
+      }
+
+      const ticket = await freshdesk.createTicket(input);
+
+      // Check for high-risk content in the created ticket
+      const highRiskDetection = freshdesk.detectHighRisk(`${input.subject} ${input.description}`);
+
+      res.json({
+        ticket,
+        highRiskDetection: highRiskDetection.isHighRisk ? highRiskDetection : undefined,
+      });
+    } catch (error) {
+      console.error("Error creating Freshdesk ticket:", error);
+      res.status(500).json({
+        error: "Failed to create ticket",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Reply to a ticket
+  app.post("/api/freshdesk/tickets/:ticketId/reply", async (req, res) => {
+    try {
+      const freshdesk = new FreshdeskService();
+      const ticketId = parseInt(req.params.ticketId, 10);
+      const input: ReplyToTicketInput = req.body;
+
+      if (!input.body) {
+        return res.status(400).json({ error: "Missing required field: body" });
+      }
+
+      const conversation = await freshdesk.replyToTicket(ticketId, input);
+      res.json(conversation);
+    } catch (error) {
+      console.error("Error replying to ticket:", error);
+      res.status(500).json({
+        error: "Failed to reply to ticket",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Add a private note to a ticket
+  app.post("/api/freshdesk/tickets/:ticketId/notes", async (req, res) => {
+    try {
+      const freshdesk = new FreshdeskService();
+      const ticketId = parseInt(req.params.ticketId, 10);
+      const { body } = req.body;
+
+      if (!body) {
+        return res.status(400).json({ error: "Missing required field: body" });
+      }
+
+      const note = await freshdesk.replyToTicket(ticketId, { body, private_note: true });
+      res.json(note);
+    } catch (error) {
+      console.error("Error adding note to ticket:", error);
+      res.status(500).json({
+        error: "Failed to add note",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Update ticket status
+  app.put("/api/freshdesk/tickets/:ticketId/status", async (req, res) => {
+    try {
+      const freshdesk = new FreshdeskService();
+      const ticketId = parseInt(req.params.ticketId, 10);
+      const { status } = req.body;
+
+      if (![2, 3, 4, 5].includes(status)) {
+        return res.status(400).json({ error: "Invalid status. Must be 2 (Open), 3 (Pending), 4 (Resolved), or 5 (Closed)" });
+      }
+
+      const ticket = await freshdesk.updateTicketStatus(ticketId, status);
+      res.json(ticket);
+    } catch (error) {
+      console.error("Error updating ticket status:", error);
+      res.status(500).json({
+        error: "Failed to update ticket status",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Update ticket priority
+  app.put("/api/freshdesk/tickets/:ticketId/priority", async (req, res) => {
+    try {
+      const freshdesk = new FreshdeskService();
+      const ticketId = parseInt(req.params.ticketId, 10);
+      const { priority } = req.body;
+
+      if (![1, 2, 3, 4].includes(priority)) {
+        return res.status(400).json({ error: "Invalid priority. Must be 1 (Low), 2 (Medium), 3 (High), or 4 (Urgent)" });
+      }
+
+      const ticket = await freshdesk.updateTicketPriority(ticketId, priority);
+      res.json(ticket);
+    } catch (error) {
+      console.error("Error updating ticket priority:", error);
+      res.status(500).json({
+        error: "Failed to update ticket priority",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Webhook endpoint for Freshdesk
+  app.post("/api/freshdesk/webhook", async (req, res) => {
+    try {
+      const freshdesk = new FreshdeskService();
+      const result = await freshdesk.processWebhook(req.body);
+
+      // If this is a new case, sync it to storage
+      if (result.success && result.caseId) {
+        const ticket = await freshdesk.getTicket(result.ticketId);
+        const workerCases = await freshdesk.transformTicketsToWorkerCases([ticket]);
+
+        for (const workerCase of workerCases) {
+          await storage.syncWorkerCaseFromFreshdesk(workerCase);
+        }
+      }
+
+      res.json(result);
+    } catch (error) {
+      console.error("Error processing Freshdesk webhook:", error);
+      res.status(500).json({
+        error: "Failed to process webhook",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Get communication history for a case
+  app.get("/api/cases/:id/communications", async (req, res) => {
+    try {
+      const caseId = req.params.id;
+      const workerCase = await storage.getGPNet2CaseById(caseId);
+
+      if (!workerCase) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      const freshdesk = new FreshdeskService();
+      const history = await freshdesk.getCaseCommunicationHistory(workerCase.workerName);
+
+      // Convert Map to object for JSON serialization
+      const conversationsObj: Record<number, any[]> = {};
+      history.conversations.forEach((value, key) => {
+        conversationsObj[key] = value;
+      });
+
+      res.json({
+        tickets: history.tickets,
+        conversations: conversationsObj,
+        timeline: history.timeline,
+        caseId,
+        workerName: workerCase.workerName,
+      });
+    } catch (error) {
+      console.error("Error fetching case communications:", error);
+      res.status(500).json({
+        error: "Failed to fetch communications",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Analyze text for high-risk content
+  app.post("/api/freshdesk/analyze-risk", async (req, res) => {
+    try {
+      const freshdesk = new FreshdeskService();
+      const { text, subject } = req.body;
+
+      if (!text) {
+        return res.status(400).json({ error: "Missing required field: text" });
+      }
+
+      const highRiskDetection = freshdesk.detectHighRisk(text);
+      const bounceDetection = freshdesk.detectBounce(text, subject || '');
+
+      res.json({
+        highRisk: highRiskDetection,
+        bounce: bounceDetection,
+      });
+    } catch (error) {
+      console.error("Error analyzing risk:", error);
+      res.status(500).json({
+        error: "Failed to analyze risk",
         details: error instanceof Error ? error.message : "Unknown error"
       });
     }

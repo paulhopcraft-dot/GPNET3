@@ -143,3 +143,33 @@
   - POST /api/cases/:id/generate-message - generates message from template
   - GET /api/cases/:id/suggested-communications - returns suggested communications for case
 - API verified: generates appropriate messages with variable substitution
+
+## 2025-12-10 — freshdesk_ticket_mirroring ✅
+- Enhanced server/services/freshdesk.ts with bidirectional ticket operations:
+  - createTicket() - create new tickets in Freshdesk
+  - replyToTicket() - send replies or add private notes
+  - getTicket() - fetch ticket by ID with full details
+  - getTicketConversations() - get all conversations for a ticket
+  - updateTicketStatus() - change ticket status (Open/Pending/Resolved/Closed)
+  - updateTicketPriority() - change ticket priority (Low/Medium/High/Urgent)
+  - processWebhook() - handle incoming Freshdesk webhooks
+  - getCaseCommunicationHistory() - get full communication timeline for a case
+  - getTicketsForCase() - search tickets by worker name
+- High-risk email detection for:
+  - Suicidal language (critical severity)
+  - Legal threats, harassment claims (high severity)
+  - Hopelessness, crisis language (high severity)
+  - Extreme pain, complaints (medium severity)
+- Bounce detection for undeliverable emails
+- Added API endpoints:
+  - GET /api/freshdesk/tickets/:ticketId - get ticket details
+  - GET /api/freshdesk/tickets/:ticketId/conversations - get ticket conversations
+  - POST /api/freshdesk/tickets - create new ticket
+  - POST /api/freshdesk/tickets/:ticketId/reply - reply to ticket
+  - POST /api/freshdesk/tickets/:ticketId/notes - add private note
+  - PUT /api/freshdesk/tickets/:ticketId/status - update status
+  - PUT /api/freshdesk/tickets/:ticketId/priority - update priority
+  - POST /api/freshdesk/webhook - receive Freshdesk webhooks
+  - GET /api/cases/:id/communications - get case communication history
+  - POST /api/freshdesk/analyze-risk - analyze text for high-risk content
+- API verified: high-risk detection and bounce detection working correctly
