@@ -268,3 +268,27 @@
   - GET /api/cases/:id/predict/rtw - RTW probability
   - GET /api/cases/:id/predict/deterioration - deterioration risk
   - GET /api/predictions/rankings - case priority rankings with urgency filter
+
+## 2025-12-10 — pinecone_rag_integration ✅
+- Created server/services/ragKnowledge.ts with:
+  - Three-tier knowledge hierarchy (local → industry → global)
+  - Mock vector embeddings (128-dimensional) for semantic search
+  - Cosine similarity calculation for relevance scoring
+  - Keyword extraction and matching with boost scoring
+  - Layer-prioritized search results (local docs appear first)
+- Knowledge document types: policy, procedure, medical_certificate, case_note, email, transcript, checkin_response, compliance_guideline, clinical_pathway, enterprise_agreement
+- Pre-populated with 10 sample documents:
+  - Local: Company RTW policies, incident reporting procedures, EBA injury benefits
+  - Industry: WorkSafe Victoria clinical pathways, certificate requirements, late claim guidelines
+  - Global: ILO RTW principles, WHO chronic pain management, workplace mental health
+- Document operations: indexDocument(), getDocument(), updateDocument(), deleteDocument(), listDocuments()
+- Search functions: searchKnowledge(), getRAGContext(), findSimilarDocuments(), getCaseRelevantKnowledge()
+- Added API endpoints:
+  - GET /api/knowledge/search?q= - semantic search with layer/type/company/tags filters
+  - POST /api/knowledge/context - get RAG context for AI with case context enhancement
+  - GET /api/knowledge/stats - knowledge base statistics by layer and type
+  - GET /api/knowledge/documents - list documents with filters
+  - POST /api/knowledge/documents - index new document
+  - GET/PUT/DELETE /api/knowledge/documents/:id - CRUD operations
+  - GET /api/knowledge/documents/:id/similar - find similar documents
+  - GET /api/cases/:id/knowledge - get case-relevant knowledge with company filter

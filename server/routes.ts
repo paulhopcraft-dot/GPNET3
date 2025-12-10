@@ -50,6 +50,20 @@ import {
   rankCasesByPriority,
   explainConfidence,
 } from "./services/predictions";
+import {
+  searchKnowledge,
+  getRAGContext,
+  indexDocument,
+  getDocument,
+  updateDocument,
+  deleteDocument,
+  getKnowledgeBaseStats,
+  listDocuments,
+  findSimilarDocuments,
+  getCaseRelevantKnowledge,
+  KnowledgeLayer,
+  DocumentType,
+} from "./services/ragKnowledge";
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
@@ -1307,6 +1321,204 @@ export async function registerRoutes(app: Express): Promise<void> {
     } catch (err) {
       console.error("Rankings error:", err);
       res.status(500).json({ error: "Failed to generate rankings" });
+    }
+  });
+
+  // ========================================
+  // RAG Knowledge Base API Endpoints
+  // ========================================
+
+  // GET /api/knowledge/search - Search knowledge base
+  app.get("/api/knowledge/search", (req, res) => {
+    try {
+      const query = req.query.q as string;
+      if (!query) {
+        return res.status(400).json({ error: "Query parameter 'q' is required" });
+      }
+
+      const limit = parseInt(req.query.limit as string) || 10;
+      const layers = req.query.layers
+        ? (req.query.layers as string).split(",") as KnowledgeLayer[]
+        : undefined;
+      const types = req.query.types
+        ? (req.query.types as string).split(",") as DocumentType[]
+        : undefined;
+      const company = req.query.company as string;
+      const tags = req.query.tags
+        ? (req.query.tags as string).split(",")
+        : undefined;
+
+      const results = searchKnowledge(query, { limit, layers, types, company, tags });
+
+      res.json({
+        query,
+        results,
+        count: results.length,
+        searchedAt: new Date().toISOString(),
+      });
+    } catch (err) {
+      console.error("Knowledge search error:", err);
+      res.status(500).json({ error: "Search failed" });
+    }
+  });
+
+  // POST /api/knowledge/context - Get RAG context for AI
+  app.post("/api/knowledge/context", (req, res) => {
+    try {
+      const { query, limit, company, caseContext } = req.body;
+
+      if (!query) {
+        return res.status(400).json({ error: "Query is required" });
+      }
+
+      const context = getRAGContext(query, { limit, company, caseContext });
+      res.json(context);
+    } catch (err) {
+      console.error("RAG context error:", err);
+      res.status(500).json({ error: "Failed to get context" });
+    }
+  });
+
+  // GET /api/knowledge/stats - Get knowledge base statistics
+  app.get("/api/knowledge/stats", (_req, res) => {
+    try {
+      const stats = getKnowledgeBaseStats();
+      res.json(stats);
+    } catch (err) {
+      console.error("Knowledge stats error:", err);
+      res.status(500).json({ error: "Failed to get stats" });
+    }
+  });
+
+  // GET /api/knowledge/documents - List documents
+  app.get("/api/knowledge/documents", (req, res) => {
+    try {
+      const layer = req.query.layer as KnowledgeLayer | undefined;
+      const type = req.query.type as DocumentType | undefined;
+      const company = req.query.company as string | undefined;
+      const limit = parseInt(req.query.limit as string) || 50;
+      const offset = parseInt(req.query.offset as string) || 0;
+
+      const result = listDocuments({ layer, type, company, limit, offset });
+      res.json(result);
+    } catch (err) {
+      console.error("List documents error:", err);
+      res.status(500).json({ error: "Failed to list documents" });
+    }
+  });
+
+  // POST /api/knowledge/documents - Index new document
+  app.post("/api/knowledge/documents", (req, res) => {
+    try {
+      const { type, layer, title, content, metadata } = req.body;
+
+      if (!type || !layer || !title || !content) {
+        return res.status(400).json({
+          error: "type, layer, title, and content are required",
+        });
+      }
+
+      const doc = indexDocument(type, layer, title, content, metadata || {});
+      res.status(201).json(doc);
+    } catch (err) {
+      console.error("Index document error:", err);
+      res.status(500).json({ error: "Failed to index document" });
+    }
+  });
+
+  // GET /api/knowledge/documents/:id - Get document by ID
+  app.get("/api/knowledge/documents/:id", (req, res) => {
+    try {
+      const doc = getDocument(req.params.id);
+      if (!doc) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      res.json(doc);
+    } catch (err) {
+      console.error("Get document error:", err);
+      res.status(500).json({ error: "Failed to get document" });
+    }
+  });
+
+  // PUT /api/knowledge/documents/:id - Update document
+  app.put("/api/knowledge/documents/:id", (req, res) => {
+    try {
+      const updates = req.body;
+      const doc = updateDocument(req.params.id, updates);
+      if (!doc) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      res.json(doc);
+    } catch (err) {
+      console.error("Update document error:", err);
+      res.status(500).json({ error: "Failed to update document" });
+    }
+  });
+
+  // DELETE /api/knowledge/documents/:id - Delete document
+  app.delete("/api/knowledge/documents/:id", (req, res) => {
+    try {
+      const deleted = deleteDocument(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      res.json({ success: true, deletedId: req.params.id });
+    } catch (err) {
+      console.error("Delete document error:", err);
+      res.status(500).json({ error: "Failed to delete document" });
+    }
+  });
+
+  // GET /api/knowledge/documents/:id/similar - Find similar documents
+  app.get("/api/knowledge/documents/:id/similar", (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 5;
+      const similar = findSimilarDocuments(req.params.id, limit);
+      res.json({ documentId: req.params.id, similar });
+    } catch (err) {
+      console.error("Find similar error:", err);
+      res.status(500).json({ error: "Failed to find similar documents" });
+    }
+  });
+
+  // GET /api/cases/:id/knowledge - Get relevant knowledge for a case
+  app.get("/api/cases/:id/knowledge", async (req, res) => {
+    try {
+      const caseId = req.params.id;
+      const workerCase = await storage.getCaseById(caseId);
+
+      if (!workerCase) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      const limit = parseInt(req.query.limit as string) || 8;
+
+      // Extract case characteristics
+      const diagnosis = workerCase.diagnosis || "";
+      let injuryType = "musculoskeletal";
+      if (/psycholog|anxiety|depression|ptsd|stress|mental/i.test(diagnosis)) {
+        injuryType = "psychological";
+      }
+
+      const knowledge = getCaseRelevantKnowledge(
+        {
+          company: workerCase.company,
+          injuryType,
+          diagnosis: workerCase.diagnosis || undefined,
+          workStatus: workerCase.workStatus,
+          riskLevel: workerCase.riskLevel,
+        },
+        limit
+      );
+
+      res.json({
+        caseId,
+        workerName: workerCase.workerName,
+        knowledge,
+      });
+    } catch (err) {
+      console.error("Case knowledge error:", err);
+      res.status(500).json({ error: "Failed to get case knowledge" });
     }
   });
 
