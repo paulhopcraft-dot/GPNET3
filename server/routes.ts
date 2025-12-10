@@ -26,6 +26,14 @@ import {
   generateMessage,
   getSuggestedCommunications,
 } from "./services/providerChat";
+import {
+  getInjuryTypes,
+  validateIntakeForm,
+  processClaimsIntake,
+  getIntakeFormTemplate,
+  getRequiredDocuments,
+  ClaimsIntakeForm,
+} from "./services/claimsIntake";
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
@@ -420,6 +428,102 @@ export async function registerRoutes(app: Express): Promise<void> {
       console.error("Error analyzing risk:", error);
       res.status(500).json({
         error: "Failed to analyze risk",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Claims intake endpoints
+  app.get("/api/intake/injury-types", async (req, res) => {
+    try {
+      const injuryTypes = getInjuryTypes();
+      res.json(injuryTypes);
+    } catch (error) {
+      console.error("Error fetching injury types:", error);
+      res.status(500).json({ error: "Failed to fetch injury types" });
+    }
+  });
+
+  app.get("/api/intake/injury-types/:type/documents", async (req, res) => {
+    try {
+      const injuryType = req.params.type.toUpperCase();
+      const documents = getRequiredDocuments(injuryType as any);
+      res.json(documents);
+    } catch (error) {
+      console.error("Error fetching required documents:", error);
+      res.status(500).json({ error: "Failed to fetch required documents" });
+    }
+  });
+
+  app.get("/api/intake/template", async (req, res) => {
+    try {
+      const template = getIntakeFormTemplate();
+      res.json(template);
+    } catch (error) {
+      console.error("Error fetching intake template:", error);
+      res.status(500).json({ error: "Failed to fetch intake template" });
+    }
+  });
+
+  app.post("/api/intake/validate", async (req, res) => {
+    try {
+      const form: ClaimsIntakeForm = req.body;
+      const validation = validateIntakeForm(form);
+      res.json(validation);
+    } catch (error) {
+      console.error("Error validating intake form:", error);
+      res.status(500).json({ error: "Failed to validate intake form" });
+    }
+  });
+
+  app.post("/api/intake/submit", async (req, res) => {
+    try {
+      const form: ClaimsIntakeForm = req.body;
+      const options = {
+        createFreshdeskTicket: req.query.createTicket === 'true',
+        autoAssign: req.query.autoAssign === 'true',
+      };
+
+      const result = await processClaimsIntake(form, options);
+
+      if (!result.success) {
+        return res.status(400).json(result);
+      }
+
+      // Sync the new case to storage if successful
+      if (result.caseId) {
+        const workerName = `${form.workerFirstName.trim()} ${form.workerLastName.trim()}`;
+        await storage.syncWorkerCaseFromFreshdesk({
+          id: result.caseId,
+          workerName,
+          company: form.company as any,
+          dateOfInjury: form.dateOfInjury,
+          riskLevel: 'Medium',
+          workStatus: form.currentWorkStatus === 'off_work' ? 'Off work' :
+                      form.currentWorkStatus === 'working_modified' ? 'Modified duties' : 'At work',
+          hasCertificate: false,
+          complianceIndicator: 'Medium',
+          compliance: {
+            indicator: 'Medium',
+            reason: 'New case - awaiting initial documentation',
+            source: 'intake',
+            lastChecked: new Date().toISOString(),
+          },
+          currentStatus: `New claim: ${form.injuryDescription.substring(0, 100)}`,
+          nextStep: result.nextSteps[0] || 'Review case and obtain documentation',
+          owner: form.assignedCaseManager || 'CLC Team',
+          dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString(),
+          summary: form.injuryDescription,
+          ticketIds: result.freshdeskTicketId ? [`FD-${result.freshdeskTicketId}`] : [result.caseId],
+          ticketCount: 1,
+        });
+      }
+
+      res.json(result);
+    } catch (error) {
+      console.error("Error processing claims intake:", error);
+      res.status(500).json({
+        error: "Failed to process claims intake",
         details: error instanceof Error ? error.message : "Unknown error"
       });
     }

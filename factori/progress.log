@@ -173,3 +173,28 @@
   - GET /api/cases/:id/communications - get case communication history
   - POST /api/freshdesk/analyze-risk - analyze text for high-risk content
 - API verified: high-risk detection and bounce detection working correctly
+
+## 2025-12-10 — claims_intake_flow ✅
+- Created server/services/claimsIntake.ts with:
+  - 6 injury type categories with subtypes and documentation requirements:
+    - MUSCULOSKELETAL: Back/Spine, Shoulder, Knee, Wrist, Neck, Hip, Ankle, Elbow
+    - PSYCHOLOGICAL: Anxiety, Depression, PTSD, Work Stress, Burnout
+    - SOFT_TISSUE: Strain, Sprain, Contusion, Laceration, Burn
+    - FRACTURE: Simple, Compound, Stress Fracture
+    - NEUROLOGICAL: Concussion, Nerve Damage, Carpal Tunnel, Sciatica
+    - OCCUPATIONAL_DISEASE: Hearing Loss, Respiratory, Skin Condition
+  - Form validation with comprehensive error/warning system
+  - Date validation (future dates, late notifications >30 days)
+  - Email/phone format validation with helpful warnings
+  - Injury-specific validation (e.g., psychological requires specialist docs)
+  - Work status consistency checks
+  - Initial risk level determination based on injury type and circumstances
+  - Next steps generation based on injury type and case status
+  - Optional Freshdesk ticket creation during intake
+- Added API endpoints:
+  - GET /api/intake/injury-types - returns all injury categories with subtypes
+  - GET /api/intake/injury-types/:type/documents - required/optional docs for injury type
+  - GET /api/intake/template - default form template
+  - POST /api/intake/validate - validates form and returns errors/warnings
+  - POST /api/intake/submit - processes intake, creates case, optionally creates Freshdesk ticket
+- API verified: injury types, validation, and form processing working correctly
