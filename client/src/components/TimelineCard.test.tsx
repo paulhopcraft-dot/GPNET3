@@ -1,8 +1,11 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
+import * as matchers from "@testing-library/jest-dom/matchers";
 import { TimelineCard } from "./TimelineCard";
 import type { TimelineResponse } from "@shared/schema";
+
+expect.extend(matchers);
 
 describe("TimelineCard", () => {
   beforeEach(() => {

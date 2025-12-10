@@ -14,6 +14,20 @@ import type {
   RiskLevel,
   ComplianceIndicator,
   CaseClinicalStatus,
+  UserInviteDB,
+  InsertUserInvite,
+  CertificateExpiryAlertDB,
+  InsertCertificateExpiryAlert,
+  CaseAction,
+  CaseActionDB,
+  InsertCaseAction,
+  CaseActionType,
+  CaseActionStatus,
+  TimelineEvent,
+  EmailDraftDB,
+  InsertEmailDraft,
+  NotificationDB,
+  InsertNotification,
 } from "@shared/schema";
 import { db } from "./db";
 import {
@@ -21,11 +35,17 @@ import {
   caseAttachments,
   isLegitimateCase,
   medicalCertificates,
+  certificateExpiryAlerts,
   caseDiscussionNotes,
   caseDiscussionInsights,
+  userInvites,
+  caseActions,
+  terminationProcesses,
+  emailDrafts,
+  notifications,
 } from "@shared/schema";
 import { evaluateClinicalEvidence } from "./services/clinicalEvidence";
-import { eq, desc, asc, inArray, ilike, sql } from "drizzle-orm";
+import { eq, desc, asc, inArray, ilike, sql, and, lte, gte } from "drizzle-orm";
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
@@ -318,6 +338,61 @@ export interface IStorage {
   ): Promise<{ caseId: string; workerName: string; confidence: number } | null>;
   updateClinicalStatus(caseId: string, status: CaseClinicalStatus): Promise<void>;
   getCaseTimeline(caseId: string, limit?: number): Promise<TimelineEvent[]>;
+
+  // User invite methods
+  createUserInvite(invite: InsertUserInvite): Promise<UserInviteDB>;
+  getUserInviteByToken(token: string): Promise<UserInviteDB | null>;
+  getUserInviteById(id: string): Promise<UserInviteDB | null>;
+  updateUserInvite(id: string, updates: Partial<UserInviteDB>): Promise<UserInviteDB>;
+  getUserInvitesByOrg(organizationId: string): Promise<UserInviteDB[]>;
+
+  // Certificate Engine v1 - Certificate management
+  createCertificate(certificate: InsertMedicalCertificate): Promise<MedicalCertificateDB>;
+  getCertificate(id: string): Promise<MedicalCertificateDB | null>;
+  getCertificatesByCase(caseId: string): Promise<MedicalCertificateDB[]>;
+  getCertificatesByWorker(workerId: string): Promise<MedicalCertificateDB[]>;
+  getCertificatesByOrganization(organizationId: string): Promise<MedicalCertificateDB[]>;
+  updateCertificate(id: string, updates: Partial<InsertMedicalCertificate>): Promise<MedicalCertificateDB>;
+  deleteCertificate(id: string): Promise<void>;
+  getCurrentCertificates(workerId: string): Promise<MedicalCertificateDB[]>;
+  getExpiringCertificates(organizationId: string, daysAhead: number): Promise<MedicalCertificateDB[]>;
+  markCertificateAsReviewed(id: string, reviewDate: Date): Promise<MedicalCertificateDB>;
+
+  // Certificate Engine v1 - Alert management
+  createExpiryAlert(alert: InsertCertificateExpiryAlert): Promise<CertificateExpiryAlertDB>;
+  getUnacknowledgedAlerts(organizationId: string): Promise<CertificateExpiryAlertDB[]>;
+  acknowledgeAlert(alertId: string, userId: string): Promise<CertificateExpiryAlertDB>;
+
+  // Action Queue v1 - Case Actions
+  createAction(action: InsertCaseAction): Promise<CaseActionDB>;
+  getActionById(id: string): Promise<CaseActionDB | null>;
+  getActionsByCase(caseId: string): Promise<CaseActionDB[]>;
+  getPendingActions(limit?: number): Promise<CaseAction[]>;
+  getOverdueActions(limit?: number): Promise<CaseAction[]>;
+  getAllActionsWithCaseInfo(options?: { status?: CaseActionStatus; limit?: number }): Promise<CaseAction[]>;
+  updateAction(id: string, updates: Partial<InsertCaseAction>): Promise<CaseActionDB>;
+  markActionDone(id: string): Promise<CaseActionDB>;
+  markActionCancelled(id: string): Promise<CaseActionDB>;
+  findPendingActionByTypeAndCase(caseId: string, type: CaseActionType): Promise<CaseActionDB | null>;
+  upsertAction(caseId: string, type: CaseActionType, dueDate?: Date, notes?: string): Promise<CaseActionDB>;
+
+  // Email Drafter v1 - Email Draft management
+  createEmailDraft(draft: InsertEmailDraft): Promise<EmailDraftDB>;
+  getEmailDraftById(id: string): Promise<EmailDraftDB | null>;
+  getEmailDraftsByCase(caseId: string): Promise<EmailDraftDB[]>;
+  updateEmailDraft(id: string, updates: Partial<InsertEmailDraft>): Promise<EmailDraftDB>;
+  deleteEmailDraft(id: string): Promise<void>;
+
+  // Notifications Engine v1 - Notification management
+  createNotification(notification: InsertNotification): Promise<NotificationDB>;
+  getNotificationById(id: string): Promise<NotificationDB | null>;
+  getPendingNotifications(limit?: number): Promise<NotificationDB[]>;
+  getNotificationsByCase(caseId: string): Promise<NotificationDB[]>;
+  getRecentNotifications(hours?: number): Promise<NotificationDB[]>;
+  updateNotificationStatus(id: string, status: string, failureReason?: string): Promise<NotificationDB>;
+  markNotificationSent(id: string): Promise<NotificationDB>;
+  notificationExistsByDedupeKey(dedupeKey: string): Promise<boolean>;
+  getNotificationStats(): Promise<{ pending: number; sent: number; failed: number }>;
 }
 
 class DbStorage implements IStorage {
@@ -770,16 +845,6 @@ class DbStorage implements IStorage {
     await this.syncMedicalCertificates(caseData.id, caseData.certificateHistory);
   }
 
-  async getCaseRecoveryTimeline(caseId: string): Promise<MedicalCertificate[]> {
-    const rows = await db
-      .select()
-      .from(medicalCertificates)
-      .where(eq(medicalCertificates.caseId, caseId))
-      .orderBy(asc(medicalCertificates.startDate));
-
-    return rows.map(mapCertificateRow);
-  }
-
   private async syncMedicalCertificates(
     caseId: string,
     certificates?: MedicalCertificateInput[],
@@ -1027,6 +1092,464 @@ class DbStorage implements IStorage {
     events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
     return events.slice(0, limit);
+  }
+
+  // User invite methods
+  async createUserInvite(invite: InsertUserInvite): Promise<UserInviteDB> {
+    const [created] = await db.insert(userInvites).values(invite).returning();
+    return created;
+  }
+
+  async getUserInviteByToken(token: string): Promise<UserInviteDB | null> {
+    const [invite] = await db
+      .select()
+      .from(userInvites)
+      .where(eq(userInvites.token, token))
+      .limit(1);
+    return invite || null;
+  }
+
+  async getUserInviteById(id: string): Promise<UserInviteDB | null> {
+    const [invite] = await db
+      .select()
+      .from(userInvites)
+      .where(eq(userInvites.id, id))
+      .limit(1);
+    return invite || null;
+  }
+
+  async updateUserInvite(id: string, updates: Partial<UserInviteDB>): Promise<UserInviteDB> {
+    const [updated] = await db
+      .update(userInvites)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(userInvites.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getUserInvitesByOrg(organizationId: string): Promise<UserInviteDB[]> {
+    return await db
+      .select()
+      .from(userInvites)
+      .where(eq(userInvites.organizationId, organizationId))
+      .orderBy(desc(userInvites.createdAt));
+  }
+
+  // Certificate Engine v1 - Certificate management methods
+  async createCertificate(certificate: InsertMedicalCertificate): Promise<MedicalCertificateDB> {
+    const [result] = await db.insert(medicalCertificates)
+      .values(certificate)
+      .returning();
+    return result;
+  }
+
+  async getCertificate(id: string): Promise<MedicalCertificateDB | null> {
+    const result = await db.select()
+      .from(medicalCertificates)
+      .where(eq(medicalCertificates.id, id))
+      .limit(1);
+    return result[0] || null;
+  }
+
+  async getCertificatesByCase(caseId: string): Promise<MedicalCertificateDB[]> {
+    return await db.select()
+      .from(medicalCertificates)
+      .where(eq(medicalCertificates.caseId, caseId))
+      .orderBy(desc(medicalCertificates.issueDate));
+  }
+
+  async getCertificatesByWorker(workerId: string): Promise<MedicalCertificateDB[]> {
+    return await db.select()
+      .from(medicalCertificates)
+      .where(eq(medicalCertificates.workerId, workerId))
+      .orderBy(desc(medicalCertificates.issueDate));
+  }
+
+  async getCertificatesByOrganization(organizationId: string): Promise<MedicalCertificateDB[]> {
+    return await db.select()
+      .from(medicalCertificates)
+      .where(eq(medicalCertificates.organizationId, organizationId))
+      .orderBy(desc(medicalCertificates.issueDate));
+  }
+
+  async updateCertificate(id: string, updates: Partial<InsertMedicalCertificate>): Promise<MedicalCertificateDB> {
+    const [result] = await db.update(medicalCertificates)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(medicalCertificates.id, id))
+      .returning();
+    return result;
+  }
+
+  async deleteCertificate(id: string): Promise<void> {
+    await db.delete(medicalCertificates)
+      .where(eq(medicalCertificates.id, id));
+  }
+
+  async getCurrentCertificates(workerId: string): Promise<MedicalCertificateDB[]> {
+    return await db.select()
+      .from(medicalCertificates)
+      .where(and(
+        eq(medicalCertificates.workerId, workerId),
+        eq(medicalCertificates.isCurrentCertificate, true)
+      ))
+      .orderBy(desc(medicalCertificates.endDate));
+  }
+
+  async getExpiringCertificates(organizationId: string, daysAhead: number): Promise<MedicalCertificateDB[]> {
+    const expiryDate = new Date();
+    expiryDate.setDate(expiryDate.getDate() + daysAhead);
+
+    return await db.select()
+      .from(medicalCertificates)
+      .where(and(
+        eq(medicalCertificates.organizationId, organizationId),
+        lte(medicalCertificates.endDate, expiryDate),
+        gte(medicalCertificates.endDate, new Date())
+      ))
+      .orderBy(medicalCertificates.endDate);
+  }
+
+  async markCertificateAsReviewed(id: string, reviewDate: Date): Promise<MedicalCertificateDB> {
+    const [result] = await db.update(medicalCertificates)
+      .set({ requiresReview: false, reviewDate, updatedAt: new Date() })
+      .where(eq(medicalCertificates.id, id))
+      .returning();
+    return result;
+  }
+
+  // Certificate Engine v1 - Alert management methods
+  async createExpiryAlert(alert: InsertCertificateExpiryAlert): Promise<CertificateExpiryAlertDB> {
+    const [result] = await db.insert(certificateExpiryAlerts)
+      .values(alert)
+      .onConflictDoNothing()
+      .returning();
+    return result;
+  }
+
+  async getUnacknowledgedAlerts(organizationId: string): Promise<CertificateExpiryAlertDB[]> {
+    const results = await db.select({
+      alert: certificateExpiryAlerts,
+    })
+      .from(certificateExpiryAlerts)
+      .innerJoin(medicalCertificates, eq(certificateExpiryAlerts.certificateId, medicalCertificates.id))
+      .where(and(
+        eq(medicalCertificates.organizationId, organizationId),
+        eq(certificateExpiryAlerts.acknowledged, false)
+      ))
+      .orderBy(certificateExpiryAlerts.alertDate);
+
+    return results.map(r => r.alert);
+  }
+
+  async acknowledgeAlert(alertId: string, userId: string): Promise<CertificateExpiryAlertDB> {
+    const [result] = await db.update(certificateExpiryAlerts)
+      .set({ acknowledged: true, acknowledgedBy: userId, acknowledgedAt: new Date() })
+      .where(eq(certificateExpiryAlerts.id, alertId))
+      .returning();
+    return result;
+  }
+
+  // Action Queue v1 - Case Action methods
+  async createAction(action: InsertCaseAction): Promise<CaseActionDB> {
+    const [result] = await db.insert(caseActions)
+      .values(action)
+      .returning();
+    return result;
+  }
+
+  async getActionById(id: string): Promise<CaseActionDB | null> {
+    const [result] = await db.select()
+      .from(caseActions)
+      .where(eq(caseActions.id, id))
+      .limit(1);
+    return result || null;
+  }
+
+  async getActionsByCase(caseId: string): Promise<CaseActionDB[]> {
+    return await db.select()
+      .from(caseActions)
+      .where(eq(caseActions.caseId, caseId))
+      .orderBy(desc(caseActions.dueDate));
+  }
+
+  async getPendingActions(limit: number = 50): Promise<CaseAction[]> {
+    const results = await db.select({
+      action: caseActions,
+      workerName: workerCases.workerName,
+      company: workerCases.company,
+    })
+      .from(caseActions)
+      .innerJoin(workerCases, eq(caseActions.caseId, workerCases.id))
+      .where(eq(caseActions.status, "pending"))
+      .orderBy(asc(caseActions.dueDate))
+      .limit(limit);
+
+    return results.map(r => ({
+      id: r.action.id,
+      caseId: r.action.caseId,
+      type: r.action.type as CaseActionType,
+      status: r.action.status as CaseActionStatus,
+      dueDate: r.action.dueDate?.toISOString(),
+      priority: r.action.priority ?? 1,
+      notes: r.action.notes ?? undefined,
+      workerName: r.workerName,
+      company: r.company,
+      createdAt: r.action.createdAt?.toISOString() ?? new Date().toISOString(),
+      updatedAt: r.action.updatedAt?.toISOString() ?? new Date().toISOString(),
+    }));
+  }
+
+  async getOverdueActions(limit: number = 50): Promise<CaseAction[]> {
+    const now = new Date();
+    const results = await db.select({
+      action: caseActions,
+      workerName: workerCases.workerName,
+      company: workerCases.company,
+    })
+      .from(caseActions)
+      .innerJoin(workerCases, eq(caseActions.caseId, workerCases.id))
+      .where(and(
+        eq(caseActions.status, "pending"),
+        lte(caseActions.dueDate, now)
+      ))
+      .orderBy(asc(caseActions.dueDate))
+      .limit(limit);
+
+    return results.map(r => ({
+      id: r.action.id,
+      caseId: r.action.caseId,
+      type: r.action.type as CaseActionType,
+      status: r.action.status as CaseActionStatus,
+      dueDate: r.action.dueDate?.toISOString(),
+      priority: r.action.priority ?? 1,
+      notes: r.action.notes ?? undefined,
+      workerName: r.workerName,
+      company: r.company,
+      createdAt: r.action.createdAt?.toISOString() ?? new Date().toISOString(),
+      updatedAt: r.action.updatedAt?.toISOString() ?? new Date().toISOString(),
+    }));
+  }
+
+  async getAllActionsWithCaseInfo(options?: { status?: CaseActionStatus; limit?: number }): Promise<CaseAction[]> {
+    const limit = options?.limit ?? 100;
+
+    let query = db.select({
+      action: caseActions,
+      workerName: workerCases.workerName,
+      company: workerCases.company,
+    })
+      .from(caseActions)
+      .innerJoin(workerCases, eq(caseActions.caseId, workerCases.id));
+
+    if (options?.status) {
+      query = query.where(eq(caseActions.status, options.status)) as typeof query;
+    }
+
+    const results = await query
+      .orderBy(asc(caseActions.dueDate))
+      .limit(limit);
+
+    return results.map(r => ({
+      id: r.action.id,
+      caseId: r.action.caseId,
+      type: r.action.type as CaseActionType,
+      status: r.action.status as CaseActionStatus,
+      dueDate: r.action.dueDate?.toISOString(),
+      priority: r.action.priority ?? 1,
+      notes: r.action.notes ?? undefined,
+      workerName: r.workerName,
+      company: r.company,
+      createdAt: r.action.createdAt?.toISOString() ?? new Date().toISOString(),
+      updatedAt: r.action.updatedAt?.toISOString() ?? new Date().toISOString(),
+    }));
+  }
+
+  async updateAction(id: string, updates: Partial<InsertCaseAction>): Promise<CaseActionDB> {
+    const [result] = await db.update(caseActions)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(caseActions.id, id))
+      .returning();
+    return result;
+  }
+
+  async markActionDone(id: string): Promise<CaseActionDB> {
+    const [result] = await db.update(caseActions)
+      .set({ status: "done", updatedAt: new Date() })
+      .where(eq(caseActions.id, id))
+      .returning();
+    return result;
+  }
+
+  async markActionCancelled(id: string): Promise<CaseActionDB> {
+    const [result] = await db.update(caseActions)
+      .set({ status: "cancelled", updatedAt: new Date() })
+      .where(eq(caseActions.id, id))
+      .returning();
+    return result;
+  }
+
+  async findPendingActionByTypeAndCase(caseId: string, type: CaseActionType): Promise<CaseActionDB | null> {
+    const [result] = await db.select()
+      .from(caseActions)
+      .where(and(
+        eq(caseActions.caseId, caseId),
+        eq(caseActions.type, type),
+        eq(caseActions.status, "pending")
+      ))
+      .limit(1);
+    return result || null;
+  }
+
+  async upsertAction(caseId: string, type: CaseActionType, dueDate?: Date, notes?: string): Promise<CaseActionDB> {
+    // Check if a pending action of this type already exists for the case
+    const existing = await this.findPendingActionByTypeAndCase(caseId, type);
+
+    if (existing) {
+      // Update the existing action if needed (e.g., new due date)
+      if (dueDate || notes) {
+        return await this.updateAction(existing.id, {
+          dueDate: dueDate ?? existing.dueDate ?? undefined,
+          notes: notes ?? existing.notes ?? undefined,
+        });
+      }
+      return existing;
+    }
+
+    // Create a new action
+    return await this.createAction({
+      caseId,
+      type,
+      status: "pending",
+      dueDate,
+      notes,
+      priority: 1,
+    });
+  }
+
+  // Email Drafter v1 - Email Draft management
+  async createEmailDraft(draft: InsertEmailDraft): Promise<EmailDraftDB> {
+    const [result] = await db.insert(emailDrafts).values(draft).returning();
+    return result;
+  }
+
+  async getEmailDraftById(id: string): Promise<EmailDraftDB | null> {
+    const [result] = await db.select()
+      .from(emailDrafts)
+      .where(eq(emailDrafts.id, id))
+      .limit(1);
+    return result || null;
+  }
+
+  async getEmailDraftsByCase(caseId: string): Promise<EmailDraftDB[]> {
+    return await db.select()
+      .from(emailDrafts)
+      .where(eq(emailDrafts.caseId, caseId))
+      .orderBy(desc(emailDrafts.createdAt));
+  }
+
+  async updateEmailDraft(id: string, updates: Partial<InsertEmailDraft>): Promise<EmailDraftDB> {
+    const [result] = await db.update(emailDrafts)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(emailDrafts.id, id))
+      .returning();
+    return result;
+  }
+
+  async deleteEmailDraft(id: string): Promise<void> {
+    await db.delete(emailDrafts).where(eq(emailDrafts.id, id));
+  }
+
+  // Notifications Engine v1 - Notification management
+  async createNotification(notification: InsertNotification): Promise<NotificationDB> {
+    const [result] = await db.insert(notifications).values(notification).returning();
+    return result;
+  }
+
+  async getNotificationById(id: string): Promise<NotificationDB | null> {
+    const [result] = await db.select()
+      .from(notifications)
+      .where(eq(notifications.id, id))
+      .limit(1);
+    return result || null;
+  }
+
+  async getPendingNotifications(limit: number = 100): Promise<NotificationDB[]> {
+    return await db.select()
+      .from(notifications)
+      .where(eq(notifications.status, "pending"))
+      .orderBy(
+        desc(sql`CASE WHEN ${notifications.priority} = 'critical' THEN 0
+                      WHEN ${notifications.priority} = 'high' THEN 1
+                      WHEN ${notifications.priority} = 'medium' THEN 2
+                      ELSE 3 END`),
+        asc(notifications.createdAt)
+      )
+      .limit(limit);
+  }
+
+  async getNotificationsByCase(caseId: string): Promise<NotificationDB[]> {
+    return await db.select()
+      .from(notifications)
+      .where(eq(notifications.caseId, caseId))
+      .orderBy(desc(notifications.createdAt));
+  }
+
+  async getRecentNotifications(hours: number = 24): Promise<NotificationDB[]> {
+    const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
+    return await db.select()
+      .from(notifications)
+      .where(gte(notifications.createdAt, cutoff))
+      .orderBy(desc(notifications.createdAt));
+  }
+
+  async updateNotificationStatus(id: string, status: string, failureReason?: string): Promise<NotificationDB> {
+    const updates: Partial<NotificationDB> = { status };
+    if (failureReason) {
+      updates.failureReason = failureReason;
+    }
+    if (status === "sent") {
+      updates.sentAt = new Date();
+    }
+    const [result] = await db.update(notifications)
+      .set(updates)
+      .where(eq(notifications.id, id))
+      .returning();
+    return result;
+  }
+
+  async markNotificationSent(id: string): Promise<NotificationDB> {
+    const [result] = await db.update(notifications)
+      .set({ status: "sent", sentAt: new Date() })
+      .where(eq(notifications.id, id))
+      .returning();
+    return result;
+  }
+
+  async notificationExistsByDedupeKey(dedupeKey: string): Promise<boolean> {
+    const [result] = await db.select({ count: sql<number>`count(*)` })
+      .from(notifications)
+      .where(and(
+        eq(notifications.dedupeKey, dedupeKey),
+        eq(notifications.status, "pending")
+      ));
+    return (result?.count ?? 0) > 0;
+  }
+
+  async getNotificationStats(): Promise<{ pending: number; sent: number; failed: number }> {
+    const results = await db.select({
+      status: notifications.status,
+      count: sql<number>`count(*)::int`,
+    })
+      .from(notifications)
+      .groupBy(notifications.status);
+
+    const stats = { pending: 0, sent: 0, failed: 0 };
+    for (const row of results) {
+      if (row.status === "pending") stats.pending = row.count;
+      else if (row.status === "sent") stats.sent = row.count;
+      else if (row.status === "failed") stats.failed = row.count;
+    }
+    return stats;
   }
 }
 

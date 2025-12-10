@@ -5,6 +5,7 @@ import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import type { AuthRequest } from "../middleware/auth";
+import { validateInvite, useInvite } from "../inviteService";
 
 const SALT_ROUNDS = 10;
 const JWT_EXPIRES_IN = "15m"; // 15 minutes as per requirements
@@ -23,30 +24,41 @@ function generateAccessToken(userId: string, email: string, role: string): strin
 
 export async function register(req: Request, res: Response) {
   try {
-    const { email, password, role, subrole, companyId, insurerId } = req.body;
+    const { email, password, inviteToken } = req.body;
 
     // Validate required fields
-    if (!email || !password || !role) {
+    if (!email || !password || !inviteToken) {
       return res.status(400).json({
         error: "Bad Request",
-        message: "Email, password, and role are required",
+        message: "Email, password, and invite token are required",
       });
     }
 
-    // Validate role
-    const validRoles = ["admin", "employer", "clinician", "insurer"];
-    if (!validRoles.includes(role)) {
-      return res.status(400).json({
-        error: "Bad Request",
-        message: `Role must be one of: ${validRoles.join(", ")}`,
+    // Validate invite token
+    const inviteValidation = await validateInvite(inviteToken);
+
+    if (!inviteValidation.valid || !inviteValidation.invite) {
+      return res.status(403).json({
+        error: "Forbidden",
+        message: inviteValidation.error || "Invalid invite token",
       });
     }
 
-    // Check if user already exists
+    const invite = inviteValidation.invite;
+
+    // Verify email matches invite
+    if (email.toLowerCase().trim() !== invite.email.toLowerCase().trim()) {
+      return res.status(403).json({
+        error: "Forbidden",
+        message: "Email does not match the invited email address",
+      });
+    }
+
+    // Check if user already exists with this email
     const existingUser = await db
       .select()
       .from(users)
-      .where(eq(users.email, email))
+      .where(eq(users.email, email.toLowerCase().trim()))
       .limit(1);
 
     if (existingUser.length > 0) {
@@ -59,16 +71,19 @@ export async function register(req: Request, res: Response) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
-    // Create user
+    // Create user with organizationId and role FROM THE INVITE
+    // User cannot choose these - they come from the invite only
     const newUser = await db
       .insert(users)
       .values({
-        email,
+        email: invite.email,
         password: hashedPassword,
-        role,
-        subrole: subrole || null,
-        companyId: companyId || null,
-        insurerId: insurerId || null,
+        role: invite.role, // ✅ From invite, not user input
+        subrole: invite.subrole || null, // ✅ From invite, not user input
+        // Note: organizationId will be added after migration 0003 is applied
+        // For now, using legacy companyId field as temporary storage
+        companyId: invite.organizationId, // Temporary until migration
+        insurerId: null,
       })
       .returning({
         id: users.id,
@@ -82,12 +97,8 @@ export async function register(req: Request, res: Response) {
 
     const user = newUser[0];
 
-    if (user.isActive === false) {
-      return res.status(403).json({
-        error: "Forbidden",
-        message: "This account has been deactivated. Please contact support.",
-      });
-    }
+    // Mark invite as used
+    await useInvite(inviteToken);
 
     // Generate access token
     const accessToken = generateAccessToken(user.id, user.email, user.role);
@@ -101,8 +112,7 @@ export async function register(req: Request, res: Response) {
           email: user.email,
           role: user.role,
           subrole: user.subrole,
-          companyId: user.companyId,
-          insurerId: user.insurerId,
+          organizationId: invite.organizationId,
           createdAt: user.createdAt,
         },
         accessToken,

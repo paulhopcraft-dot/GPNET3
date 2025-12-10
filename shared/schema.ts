@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, boolean, json, jsonb, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, boolean, json, jsonb, integer, numeric } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -217,6 +217,35 @@ export interface MedicalCertificateInput {
   source: "freshdesk" | "manual";
   documentUrl?: string;
   sourceReference?: string;
+}
+
+// Certificate Engine v1 - Additional types
+export type CertificateType = "medical_certificate" | "clearance" | "fitness_assessment" | "other";
+export type CertificateCapacity = "fit" | "partial" | "unfit" | "unknown";
+export type PractitionerType = "gp" | "specialist" | "physiotherapist" | "psychologist" | "other";
+export type AlertType = "expiring_soon" | "expired" | "review_needed";
+
+export interface RestrictionItem {
+  type: "modified_duties" | "no_lifting" | "reduced_hours" | "work_from_home" | "other";
+  description: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface OcrExtractedData {
+  rawText: string;
+  extractedFields: {
+    issueDate?: string;
+    startDate?: string;
+    endDate?: string;
+    practitionerName?: string;
+    capacity?: string;
+    restrictions?: string[];
+  };
+  confidence: {
+    overall: number;
+    fields: Record<string, number>;
+  };
 }
 
 // Helper function to check if a company value is valid
@@ -454,7 +483,7 @@ export const workerCases = pgTable("worker_cases", {
   certificateUrl: text("certificate_url"),
   complianceIndicator: text("compliance_indicator").notNull(),
   complianceJson: jsonb("compliance_json").$type<CaseCompliance>(),
-  clinicalStatusJson: jsonb("clinical_status_json").$type<CaseClinicalStatus>().nullable(),
+  clinicalStatusJson: jsonb("clinical_status_json").$type<CaseClinicalStatus | null>(),
   currentStatus: text("current_status").notNull(),
   nextStep: text("next_step").notNull(),
   owner: text("owner").notNull(),
@@ -547,6 +576,23 @@ export const medicalCertificates = pgTable("medical_certificates", {
   sourceReference: text("source_reference"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+
+  // Certificate Engine v1 - Extended fields
+  certificateType: text("certificate_type").notNull().default("medical_certificate"),
+  organizationId: varchar("organization_id"),
+  workerId: varchar("worker_id"),
+  documentId: varchar("document_id"),
+  restrictions: jsonb("restrictions").default(sql`'[]'::jsonb`).$type<RestrictionItem[]>(),
+  treatingPractitioner: varchar("treating_practitioner"),
+  practitionerType: varchar("practitioner_type"),
+  clinicName: varchar("clinic_name"),
+  rawExtractedData: jsonb("raw_extracted_data").$type<OcrExtractedData>(),
+  extractionConfidence: numeric("extraction_confidence", { precision: 3, scale: 2 }),
+  requiresReview: boolean("requires_review").default(false),
+  isCurrentCertificate: boolean("is_current_certificate").default(false),
+  reviewDate: timestamp("review_date"),
+  fileName: varchar("file_name"),
+  fileUrl: varchar("file_url"),
 });
 
 export const caseAttachments = pgTable("case_attachments", {
@@ -593,6 +639,17 @@ export const auditEvents = pgTable("audit_events", {
   metadata: jsonb("metadata"),
 });
 
+export const certificateExpiryAlerts = pgTable("certificate_expiry_alerts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  certificateId: varchar("certificate_id").notNull().references(() => medicalCertificates.id, { onDelete: "cascade" }),
+  alertType: text("alert_type").notNull(), // 'expiring_soon' | 'expired' | 'review_needed'
+  alertDate: timestamp("alert_date").notNull(),
+  acknowledged: boolean("acknowledged").default(false),
+  acknowledgedBy: varchar("acknowledged_by"),
+  acknowledgedAt: timestamp("acknowledged_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Authentication Types
 export type UserRole = "admin" | "employer" | "clinician" | "insurer";
 
@@ -621,6 +678,34 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// User invites table for secure registration
+export const userInvites = pgTable("user_invites", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: text("email").notNull(),
+  organizationId: varchar("organization_id").notNull(),
+  role: text("role").notNull(), // admin | employer | clinician | insurer
+  subrole: text("subrole"), // e.g., "doctor", "physio"
+  invitedByUserId: varchar("invited_by_user_id").notNull().references(() => users.id),
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  usedAt: timestamp("used_at"),
+  status: text("status").notNull().default("pending"), // pending | used | expired | cancelled
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Webhook form mappings for secure webhook authentication
+export const webhookFormMappings = pgTable("webhook_form_mappings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  formId: text("form_id").notNull().unique(), // JotForm form ID
+  organizationId: varchar("organization_id").notNull(),
+  formType: text("form_type").notNull(), // "worker_injury", "medical_certificate", etc.
+  webhookPassword: text("webhook_password").notNull(), // Secure password for webhook verification
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const insertWorkerCaseSchema = createInsertSchema(workerCases).omit({
   id: true,
   createdAt: true,
@@ -637,12 +722,28 @@ export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
 });
 
+export const insertUserInviteSchema = createInsertSchema(userInvites).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertWebhookFormMappingSchema = createInsertSchema(webhookFormMappings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export type InsertWorkerCase = z.infer<typeof insertWorkerCaseSchema>;
 export type WorkerCaseDB = typeof workerCases.$inferSelect;
 export type InsertCaseAttachment = z.infer<typeof insertCaseAttachmentSchema>;
 export type CaseAttachmentDB = typeof caseAttachments.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type UserDB = typeof users.$inferSelect;
+export type InsertUserInvite = z.infer<typeof insertUserInviteSchema>;
+export type UserInviteDB = typeof userInvites.$inferSelect;
+export type InsertWebhookFormMapping = z.infer<typeof insertWebhookFormMappingSchema>;
+export type WebhookFormMappingDB = typeof webhookFormMappings.$inferSelect;
 export type MedicalCertificateDB = typeof medicalCertificates.$inferSelect;
 export type InsertMedicalCertificate = typeof medicalCertificates.$inferInsert;
 export type CaseDiscussionNoteDB = typeof caseDiscussionNotes.$inferSelect;
@@ -653,6 +754,14 @@ export type TerminationProcessDB = typeof terminationProcesses.$inferSelect;
 export type InsertTerminationProcess = typeof terminationProcesses.$inferInsert;
 export type DocumentTemplateDB = typeof documentTemplates.$inferSelect;
 export type GeneratedDocumentDB = typeof generatedDocuments.$inferSelect;
+export type CertificateExpiryAlertDB = typeof certificateExpiryAlerts.$inferSelect;
+export type InsertCertificateExpiryAlert = typeof certificateExpiryAlerts.$inferInsert;
+
+// Zod schemas for Certificate Engine v1
+export const insertMedicalCertificateSchema = createInsertSchema(medicalCertificates);
+export const selectMedicalCertificateSchema = createInsertSchema(medicalCertificates);
+export const insertCertificateExpiryAlertSchema = createInsertSchema(certificateExpiryAlerts);
+export const selectCertificateExpiryAlertSchema = createInsertSchema(certificateExpiryAlerts);
 
 export interface RecoveryTimelineSummary {
   totalCertificates: number;
@@ -692,4 +801,247 @@ export interface TimelineResponse {
   caseId: string;
   events: TimelineEvent[];
   totalEvents: number;
+}
+
+// =====================================================
+// Action Queue v1 - Case Actions for Compliance
+// =====================================================
+
+export type CaseActionType = "chase_certificate" | "review_case" | "follow_up";
+export type CaseActionStatus = "pending" | "done" | "cancelled";
+
+export interface CaseAction {
+  id: string;
+  caseId: string;
+  type: CaseActionType;
+  status: CaseActionStatus;
+  dueDate?: string;
+  priority: number;
+  notes?: string;
+  workerName?: string; // Denormalized for display
+  company?: string; // Denormalized for display
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const caseActions = pgTable("case_actions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  caseId: varchar("case_id").notNull().references(() => workerCases.id, { onDelete: "cascade" }),
+  type: text("type").notNull(), // chase_certificate, review_case, follow_up
+  status: text("status").notNull().default("pending"), // pending, done, cancelled
+  dueDate: timestamp("due_date"),
+  priority: integer("priority").default(1),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertCaseActionSchema = createInsertSchema(caseActions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertCaseAction = typeof caseActions.$inferInsert;
+export type CaseActionDB = typeof caseActions.$inferSelect;
+
+// =====================================================
+// Certificate Compliance Engine v1
+// =====================================================
+
+export type CertificateComplianceFlag =
+  | "no_certificate"
+  | "certificate_expiring_soon"
+  | "certificate_expired"
+  | "compliant";
+
+export interface CertificateCompliance {
+  status: CertificateComplianceFlag;
+  activeCertificate?: MedicalCertificate;
+  newestCertificate?: MedicalCertificate;
+  daysUntilExpiry?: number;
+  daysSinceExpiry?: number;
+  message: string;
+}
+
+// =====================================================
+// Smart Summary Engine v1 - Structured Case Analysis
+// =====================================================
+
+export type SummaryRiskLevel = "high" | "medium" | "low";
+export type ImportanceLevel = "critical" | "recommended";
+export type PriorityLevel = "urgent" | "normal";
+export type RTWReadinessLevel = "ready" | "conditional" | "not_ready" | "unknown";
+export type ComplianceStatusLevel = "compliant" | "at_risk" | "non_compliant";
+
+export interface SummaryRisk {
+  level: SummaryRiskLevel;
+  description: string;
+  source: string;
+}
+
+export interface MissingInfoItem {
+  item: string;
+  importance: ImportanceLevel;
+}
+
+export interface RecommendedAction {
+  action: string;
+  priority: PriorityLevel;
+  reason: string;
+}
+
+export interface RTWReadiness {
+  level: RTWReadinessLevel;
+  conditions: string[];
+  blockers: string[];
+}
+
+export interface ComplianceSummary {
+  status: ComplianceStatusLevel;
+  issues: string[];
+}
+
+export interface CaseSummary {
+  caseId: string;
+  generatedAt: string;
+
+  // Narrative
+  summaryText: string;
+  currentStatus: string;
+
+  // Structured data
+  risks: SummaryRisk[];
+  missingInfo: MissingInfoItem[];
+  recommendedActions: RecommendedAction[];
+  rtwReadiness: RTWReadiness;
+  compliance: ComplianceSummary;
+
+  confidence: number;
+}
+
+// =====================================================
+// IR Email Drafter v1 - AI-Powered Email Generation
+// =====================================================
+
+export type EmailDraftType =
+  | "initial_contact"
+  | "certificate_chase"
+  | "check_in_follow_up"
+  | "rtw_update"
+  | "duties_proposal"
+  | "non_compliance_warning"
+  | "employer_update"
+  | "insurer_report"
+  | "general_response";
+
+export type EmailRecipientType = "worker" | "employer" | "insurer" | "host" | "other";
+export type EmailTone = "formal" | "supportive" | "firm";
+export type EmailDraftStatus = "draft" | "sent" | "discarded";
+
+export const emailDrafts = pgTable("email_drafts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  caseId: varchar("case_id").notNull().references(() => workerCases.id, { onDelete: "cascade" }),
+  emailType: text("email_type").notNull(),
+  recipient: text("recipient").notNull(),
+  recipientName: text("recipient_name"),
+  recipientEmail: text("recipient_email"),
+  subject: text("subject").notNull(),
+  body: text("body").notNull(),
+  tone: text("tone").notNull().default("formal"),
+  additionalContext: text("additional_context"),
+  caseContextSnapshot: jsonb("case_context_snapshot"),
+  status: text("status").notNull().default("draft"),
+  createdBy: varchar("created_by"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type InsertEmailDraft = typeof emailDrafts.$inferInsert;
+export type EmailDraftDB = typeof emailDrafts.$inferSelect;
+
+export interface EmailDraft {
+  id: string;
+  caseId: string;
+  emailType: EmailDraftType;
+  recipient: EmailRecipientType;
+  recipientName: string | null;
+  recipientEmail: string | null;
+  subject: string;
+  body: string;
+  tone: EmailTone;
+  additionalContext: string | null;
+  status: EmailDraftStatus;
+  createdBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EmailDraftRequest {
+  emailType: EmailDraftType;
+  recipient: EmailRecipientType;
+  recipientName?: string;
+  recipientEmail?: string;
+  additionalContext?: string;
+  tone?: EmailTone;
+}
+
+export interface EmailTypeInfo {
+  value: EmailDraftType;
+  label: string;
+  description: string;
+  defaultRecipient: EmailRecipientType;
+}
+
+// =====================================================
+// Email Notifications Engine v1 - Automated Alerts
+// =====================================================
+
+export type NotificationType =
+  | "certificate_expiring"
+  | "certificate_expired"
+  | "action_overdue"
+  | "case_attention_needed"
+  | "weekly_digest";
+
+export type NotificationPriority = "low" | "medium" | "high" | "critical";
+export type NotificationStatus = "pending" | "sent" | "failed" | "skipped";
+
+export const notifications = pgTable("notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  type: text("type").notNull(),
+  priority: text("priority").notNull().default("medium"),
+  caseId: varchar("case_id").references(() => workerCases.id, { onDelete: "cascade" }),
+  recipientId: varchar("recipient_id"),
+  recipientEmail: text("recipient_email").notNull(),
+  recipientName: text("recipient_name"),
+  subject: text("subject").notNull(),
+  body: text("body").notNull(),
+  status: text("status").notNull().default("pending"),
+  sentAt: timestamp("sent_at"),
+  failureReason: text("failure_reason"),
+  dedupeKey: text("dedupe_key").notNull(),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type InsertNotification = typeof notifications.$inferInsert;
+export type NotificationDB = typeof notifications.$inferSelect;
+
+export interface Notification {
+  id: string;
+  type: NotificationType;
+  priority: NotificationPriority;
+  caseId: string | null;
+  recipientId: string | null;
+  recipientEmail: string;
+  recipientName: string | null;
+  subject: string;
+  body: string;
+  status: NotificationStatus;
+  sentAt: string | null;
+  failureReason: string | null;
+  dedupeKey: string;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
 }

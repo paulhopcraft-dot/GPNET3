@@ -7,6 +7,8 @@ import { CaseDetailPanel } from "@/components/CaseDetailPanel";
 import { AIAssistant } from "@/components/ai-assistant";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
+import { DashboardStats } from "@/components/dashboard-stats";
+import { ActionQueueCard } from "@/components/ActionQueueCard";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import type { WorkerCase } from "@shared/schema";
@@ -144,26 +146,39 @@ export default function GPNet2Dashboard() {
             </div>
           </div>
           
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
-            <SearchBar value={searchQuery} onChange={setSearchQuery} />
-            <div className="flex items-center gap-2">
-              <Button 
-                onClick={() => syncMutation.mutate()}
-                disabled={syncMutation.isPending}
-                data-testid="button-sync-freshdesk"
-                size="sm"
-              >
-                <span className="material-symbols-outlined text-base">
-                  {syncMutation.isPending ? "sync" : "refresh"}
-                </span>
-                <span className="font-bold hidden sm:inline">
-                  {syncMutation.isPending ? "Syncing..." : "Sync Freshdesk"}
-                </span>
-              </Button>
-              <ThemeToggle className="hidden lg:block" />
+          {/* Dashboard Stats - Overview metrics */}
+          <div className="mb-6">
+            <DashboardStats cases={filteredCases} />
+          </div>
+
+          {/* Action Queue and Search Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+            <div className="lg:col-span-2">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <SearchBar value={searchQuery} onChange={setSearchQuery} />
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={() => syncMutation.mutate()}
+                    disabled={syncMutation.isPending}
+                    data-testid="button-sync-freshdesk"
+                    size="sm"
+                  >
+                    <span className="material-symbols-outlined text-base">
+                      {syncMutation.isPending ? "sync" : "refresh"}
+                    </span>
+                    <span className="font-bold hidden sm:inline">
+                      {syncMutation.isPending ? "Syncing..." : "Sync Freshdesk"}
+                    </span>
+                  </Button>
+                  <ThemeToggle className="hidden lg:block" />
+                </div>
+              </div>
+            </div>
+            <div className="lg:col-span-1">
+              <ActionQueueCard onCaseClick={handleCaseClick} limit={5} />
             </div>
           </div>
-          
+
           <CasesTable
             cases={filteredCases}
             selectedCaseId={selectedCaseId}

@@ -5,6 +5,13 @@ import { summaryService } from "./services/summary";
 import Anthropic from "@anthropic-ai/sdk";
 import authRoutes from "./routes/auth";
 import terminationRoutes from "./routes/termination";
+import inviteRoutes from "./routes/invites";
+import webhookRoutes from "./routes/webhooks";
+import certificateRoutes from "./routes/certificates";
+import actionRoutes from "./routes/actions";
+import smartSummaryRoutes from "./routes/smartSummary";
+import emailDraftRoutes from "./routes/emailDrafts";
+import notificationRoutes from "./routes/notifications";
 import type { RecoveryTimelineSummary } from "@shared/schema";
 import { evaluateClinicalEvidence } from "./services/clinicalEvidence";
 
@@ -14,6 +21,27 @@ export async function registerRoutes(app: Express): Promise<void> {
   // Authentication routes
   app.use("/api/auth", authRoutes);
   app.use("/api/termination", terminationRoutes);
+
+  // Admin invite routes (requires admin authentication)
+  app.use("/api/admin/invites", inviteRoutes);
+
+  // Webhook routes (password-protected, fail-closed security)
+  app.use("/api/webhooks", webhookRoutes);
+
+  // Certificate Engine v1 routes (JWT-protected)
+  app.use("/api/certificates", certificateRoutes);
+
+  // Action Queue v1 routes (JWT-protected)
+  app.use("/api/actions", actionRoutes);
+
+  // Smart Summary Engine v1 routes (JWT-protected)
+  app.use("/api/cases", smartSummaryRoutes);
+
+  // Email Drafts routes (JWT-protected)
+  app.use("/api", emailDraftRoutes);
+
+  // Notification Engine v1 routes (JWT-protected, admin)
+  app.use("/api/notifications", notificationRoutes);
 
   // Local diagnostics (non-sensitive env presence check)
   app.get("/api/diagnostics/env", (_req, res) => {

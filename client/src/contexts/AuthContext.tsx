@@ -1,5 +1,6 @@
 import { createContext, useState, useEffect, ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
+import { fetchWithCsrf } from "../lib/queryClient";
 
 export type UserRole = "admin" | "employer" | "clinician" | "insurer";
 
@@ -148,9 +149,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const token = state.token;
 
     try {
-      // Call logout endpoint if token exists
+      // Call logout endpoint if token exists (requires CSRF token)
       if (token) {
-        await fetch("/api/auth/logout", {
+        await fetchWithCsrf("/api/auth/logout", {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${token}`,

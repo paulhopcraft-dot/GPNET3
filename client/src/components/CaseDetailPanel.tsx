@@ -14,6 +14,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { TerminationPanel } from "./TerminationPanel";
 import { TimelineCard } from "./TimelineCard";
+import { CertificateCard } from "./CertificateCard";
+import { SummaryCard } from "./SummaryCard";
+import { EmailDraftButton } from "./EmailDraftButton";
+import { fetchWithCsrf } from "../lib/queryClient";
 
 interface CaseDetailPanelProps {
   workerCase: WorkerCase;
@@ -165,16 +169,12 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
     const caseId = workerCase.id;
     setLoadingSummary(true);
     setSummaryError(null);
-    
+
     try {
       const url = `/api/cases/${caseId}/summary${force ? '?force=true' : ''}`;
-      const response = await fetch(url, {
+      const response = await fetchWithCsrf(url, {
         method: 'POST',
       });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.details || "Failed to generate summary");
-      }
       const data = await response.json();
       if (latestCaseIdRef.current !== caseId) {
         return;
@@ -345,13 +345,19 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
         >
           {workerCase.workerName}
         </h2>
-        <Button variant="ghost" size="icon" onClick={onClose} data-testid="button-close-panel">
-          <span className="material-symbols-outlined">close</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <EmailDraftButton caseId={workerCase.id} workerName={workerCase.workerName} />
+          <Button variant="ghost" size="icon" onClick={onClose} data-testid="button-close-panel">
+            <span className="material-symbols-outlined">close</span>
+          </Button>
+        </div>
       </div>
 
       <ScrollArea className="h-[calc(100vh-8rem)]">
         <div className="space-y-6">
+          {/* Smart Summary Card - Structured Analysis */}
+          <SummaryCard caseId={workerCase.id} />
+
           {loadingSummary && (
             <Card data-testid="card-summary-loading">
               <CardContent className="p-6">
@@ -642,6 +648,8 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
           </Card>
 
           <TimelineCard caseId={workerCase.id} />
+
+          <CertificateCard caseId={workerCase.id} />
 
           <div>
             <h3 className="text-sm font-medium text-muted-foreground mb-2">Company</h3>

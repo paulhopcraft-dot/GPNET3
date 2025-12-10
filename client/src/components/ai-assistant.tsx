@@ -6,6 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Bot, Send, X, MessageSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { fetchWithCsrf } from "../lib/queryClient";
 
 interface Message {
   id: string;
@@ -42,17 +43,13 @@ export function AIAssistant() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/compliance", {
+      const response = await fetchWithCsrf("/api/compliance", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ message: messageText }),
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to get compliance response");
-      }
 
       const data = await response.json();
       

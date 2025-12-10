@@ -3,6 +3,7 @@ import type { WorkerCase, TerminationProcess, PayStatusDuringStandDown, Terminat
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
+import { fetchWithCsrf } from "../lib/queryClient";
 
 interface TerminationPanelProps {
   workerCase: WorkerCase;
@@ -31,14 +32,26 @@ function StatusBadge({ status }: { status: TerminationProcess["status"] }) {
 }
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(url, {
-    headers: { "Content-Type": "application/json" },
-    ...options,
-  });
-  if (!res.ok) {
+  const method = options?.method || "GET";
+  const requiresCsrf = ["POST", "PUT", "PATCH", "DELETE"].includes(method.toUpperCase());
+
+  // Use CSRF-protected fetch for unsafe methods
+  const res = requiresCsrf
+    ? await fetchWithCsrf(url, {
+        headers: { "Content-Type": "application/json" },
+        ...options,
+      })
+    : await fetch(url, {
+        headers: { "Content-Type": "application/json" },
+        ...options,
+      });
+
+  // fetchWithCsrf already throws on error, but handle regular fetch
+  if (!res.ok && !requiresCsrf) {
     const data = await res.json().catch(() => ({}));
     throw new Error(data.error || `Request failed (${res.status})`);
   }
+
   return res.json();
 }
 
