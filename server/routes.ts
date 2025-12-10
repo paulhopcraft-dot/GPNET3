@@ -42,6 +42,14 @@ import {
   getExpiryAlertLevel,
   CertificateSource,
 } from "./services/certificateIngestion";
+import {
+  predictCaseDuration,
+  predictRTWProbability,
+  predictDeteriorationRisk,
+  getAllPredictions,
+  rankCasesByPriority,
+  explainConfidence,
+} from "./services/predictions";
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
@@ -1175,10 +1183,130 @@ export async function registerRoutes(app: Express): Promise<void> {
         });
       }
       
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Summary generation failed",
         details: err instanceof Error ? err.message : "Unknown error"
       });
+    }
+  });
+
+  // ========================================
+  // Predictive Analytics API Endpoints
+  // ========================================
+
+  // GET /api/cases/:id/predictions - Get all predictions for a case
+  app.get("/api/cases/:id/predictions", async (req, res) => {
+    try {
+      const caseId = req.params.id;
+      const workerCase = await storage.getCaseById(caseId);
+
+      if (!workerCase) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      const predictions = getAllPredictions(workerCase);
+      res.json(predictions);
+    } catch (err) {
+      console.error("Prediction error:", err);
+      res.status(500).json({ error: "Failed to generate predictions" });
+    }
+  });
+
+  // GET /api/cases/:id/predict/duration - Predict case duration
+  app.get("/api/cases/:id/predict/duration", async (req, res) => {
+    try {
+      const caseId = req.params.id;
+      const workerCase = await storage.getCaseById(caseId);
+
+      if (!workerCase) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      const prediction = predictCaseDuration(workerCase);
+      res.json({
+        caseId,
+        workerName: workerCase.workerName,
+        prediction,
+        confidenceExplanation: explainConfidence(prediction.confidence),
+      });
+    } catch (err) {
+      console.error("Duration prediction error:", err);
+      res.status(500).json({ error: "Failed to predict duration" });
+    }
+  });
+
+  // GET /api/cases/:id/predict/rtw - Predict RTW probability
+  app.get("/api/cases/:id/predict/rtw", async (req, res) => {
+    try {
+      const caseId = req.params.id;
+      const workerCase = await storage.getCaseById(caseId);
+
+      if (!workerCase) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      const prediction = predictRTWProbability(workerCase);
+      res.json({
+        caseId,
+        workerName: workerCase.workerName,
+        prediction,
+        confidenceExplanation: explainConfidence(prediction.confidence),
+      });
+    } catch (err) {
+      console.error("RTW prediction error:", err);
+      res.status(500).json({ error: "Failed to predict RTW probability" });
+    }
+  });
+
+  // GET /api/cases/:id/predict/deterioration - Predict deterioration risk
+  app.get("/api/cases/:id/predict/deterioration", async (req, res) => {
+    try {
+      const caseId = req.params.id;
+      const workerCase = await storage.getCaseById(caseId);
+
+      if (!workerCase) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      const prediction = predictDeteriorationRisk(workerCase);
+      res.json({
+        caseId,
+        workerName: workerCase.workerName,
+        prediction,
+        confidenceExplanation: explainConfidence(prediction.confidence),
+      });
+    } catch (err) {
+      console.error("Deterioration prediction error:", err);
+      res.status(500).json({ error: "Failed to predict deterioration risk" });
+    }
+  });
+
+  // GET /api/predictions/rankings - Get all cases ranked by priority
+  app.get("/api/predictions/rankings", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 20;
+      const urgencyFilter = req.query.urgency as string;
+
+      const allCases = await storage.getGPNet2Cases();
+      let rankings = rankCasesByPriority(allCases);
+
+      // Filter by urgency if specified
+      if (urgencyFilter && ["low", "medium", "high", "critical"].includes(urgencyFilter)) {
+        rankings = rankings.filter(r => r.urgencyLevel === urgencyFilter);
+      }
+
+      // Limit results
+      rankings = rankings.slice(0, limit);
+
+      res.json({
+        rankings,
+        totalCases: allCases.length,
+        generatedAt: new Date().toISOString(),
+        modelVersion: "xgb-priority-v1.0",
+      });
+    } catch (err) {
+      console.error("Rankings error:", err);
+      res.status(500).json({ error: "Failed to generate rankings" });
     }
   });
 

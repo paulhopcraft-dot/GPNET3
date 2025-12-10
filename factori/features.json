@@ -6,7 +6,7 @@
   "medical_flags_and_red_risk": { "pass": true, "notes": "Added 5 new flag types: CERTIFICATE_EXPIRING_SOON, OVERDUE_FOLLOW_UP, WORKER_DISENGAGED, LONG_TAIL_CASE, PSYCHOLOGICAL_INJURY_MARKER. Enhanced UI to show all severity levels." },
   "return_to_work_planner": { "pass": true, "notes": "RTWPlan/RTWPlanPhase/RTWRecommendation types, generateRTWPlan service with phased progression templates, safety assessment, and recommendations. API: GET /api/cases/:id/rtw-plan" },
 
-  "xgboost_prediction_layer": { "pass": false, "notes": "" },
+  "xgboost_prediction_layer": { "pass": true, "notes": "XGBoost-style predictive analytics with case duration forecasting, RTW probability assessment, and deterioration risk scoring. Feature extraction from case data, confidence scoring, and feature importance explanations. Case priority rankings. APIs: GET /api/cases/:id/predictions, /api/cases/:id/predict/duration, /api/cases/:id/predict/rtw, /api/cases/:id/predict/deterioration, GET /api/predictions/rankings" },
   "freshdesk_ticket_mirroring": { "pass": true, "notes": "Bidirectional Freshdesk integration: create/reply tickets, get conversations, webhook handling, high-risk email detection (suicide, threats, legal), bounce detection. APIs: GET/POST /api/freshdesk/tickets, /api/freshdesk/webhook, /api/cases/:id/communications, /api/freshdesk/analyze-risk" },
   "pinecone_rag_integration": { "pass": false, "notes": "" },
 

@@ -244,3 +244,27 @@
   - generateTrendSummary() - averages, engagement rate, next check-in date
   - getNextCheckInDate() - 7-day intervals
 - All 68 new tests passing
+
+## 2025-12-10 — xgboost_prediction_layer ✅
+- Created server/services/predictions.ts with XGBoost-style predictive analytics:
+  - Feature extraction from case data (days off work, injury type, risk level, compliance, RTW status, flags)
+  - predictCaseDuration() - forecasts days to RTW/closure with range estimates
+  - predictRTWProbability() - probability assessment with barriers/enablers identification
+  - predictDeteriorationRisk() - risk scoring with factor identification and recommended actions
+  - getAllPredictions() - combines all predictions with overall assessment
+  - rankCasesByPriority() - ranks all cases by composite priority score
+  - explainConfidence() - human-readable confidence explanations
+- Each prediction includes:
+  - Confidence score (0-1)
+  - Feature importance contributions (which factors influenced prediction)
+  - Human-readable explanations
+  - Model version tracking
+- Duration prediction: base days by injury type, adjusted for risk level, compliance, RTW status, engagement
+- RTW prediction: probability 0-100%, classification (likely/uncertain/unlikely), barriers and enablers lists
+- Deterioration prediction: risk score 0-100, risk level (low/medium/high/critical), risk factors with mitigations
+- Added API endpoints:
+  - GET /api/cases/:id/predictions - all predictions for a case
+  - GET /api/cases/:id/predict/duration - duration forecast
+  - GET /api/cases/:id/predict/rtw - RTW probability
+  - GET /api/cases/:id/predict/deterioration - deterioration risk
+  - GET /api/predictions/rankings - case priority rankings with urgency filter
