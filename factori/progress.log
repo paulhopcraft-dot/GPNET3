@@ -198,3 +198,27 @@
   - POST /api/intake/validate - validates form and returns errors/warnings
   - POST /api/intake/submit - processes intake, creates case, optionally creates Freshdesk ticket
 - API verified: injury types, validation, and form processing working correctly
+
+## 2025-12-10 — certificate_ingestion_engine ✅
+- Created server/services/certificateIngestion.ts with:
+  - Certificate type classification (WorkCover, medical, fitness, specialist, GP, allied health)
+  - Field extraction with confidence scoring:
+    - Dates (issue, start, end, review)
+    - Worker name, doctor name, clinic
+    - Diagnosis extraction
+    - Work capacity (fit/partial/unfit)
+    - Restrictions (lifting, bending, hours, etc.)
+    - Hours per week
+  - Validation with business rules:
+    - Required field checks
+    - Date logic validation
+    - Capacity/restriction consistency
+    - Low confidence field flagging
+  - Expiry tracking with alert levels (info/warning/critical)
+  - Certificate record creation for storage
+- Added API endpoints:
+  - POST /api/certificates/extract - extracts data from certificate text
+  - POST /api/certificates/ingest - full ingestion pipeline with validation
+  - POST /api/certificates/validate - validates extracted data
+  - GET /api/certificates/expiry-check - checks days until expiry with alert level
+- API verified: extraction correctly identifies certificate type, dates, capacity, restrictions

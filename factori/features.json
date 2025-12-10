@@ -2,7 +2,7 @@
   "initialize_harness": { "pass": true, "notes": "System boots: PostgreSQL, migrations, seed data, API, and Vite frontend all working. Pre-existing test failures in TimelineCard.test.tsx noted." },
 
   "claims_intake_flow": { "pass": true, "notes": "Claims intake workflow with 6 injury types (musculoskeletal, psychological, soft tissue, fracture, neurological, occupational disease). Form validation with errors/warnings, required document tracking, risk assessment, next steps generation. Optional Freshdesk ticket creation. APIs: GET /api/intake/injury-types, GET /api/intake/template, POST /api/intake/validate, POST /api/intake/submit" },
-  "certificate_ingestion_engine": { "pass": false, "notes": "" },
+  "certificate_ingestion_engine": { "pass": true, "notes": "Certificate ingestion with OCR field extraction (dates, diagnosis, capacity, restrictions, hours), validation with confidence scoring, expiry tracking with alert levels. Supports WorkCover, medical, fitness, specialist, GP, allied health certificates. APIs: POST /api/certificates/extract, POST /api/certificates/ingest, POST /api/certificates/validate, GET /api/certificates/expiry-check" },
   "medical_flags_and_red_risk": { "pass": true, "notes": "Added 5 new flag types: CERTIFICATE_EXPIRING_SOON, OVERDUE_FOLLOW_UP, WORKER_DISENGAGED, LONG_TAIL_CASE, PSYCHOLOGICAL_INJURY_MARKER. Enhanced UI to show all severity levels." },
   "return_to_work_planner": { "pass": true, "notes": "RTWPlan/RTWPlanPhase/RTWRecommendation types, generateRTWPlan service with phased progression templates, safety assessment, and recommendations. API: GET /api/cases/:id/rtw-plan" },
 

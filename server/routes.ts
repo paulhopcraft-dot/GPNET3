@@ -34,6 +34,14 @@ import {
   getRequiredDocuments,
   ClaimsIntakeForm,
 } from "./services/claimsIntake";
+import {
+  extractCertificateData,
+  validateCertificateData,
+  processCertificateIngestion,
+  calculateDaysUntilExpiry,
+  getExpiryAlertLevel,
+  CertificateSource,
+} from "./services/certificateIngestion";
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
@@ -524,6 +532,104 @@ export async function registerRoutes(app: Express): Promise<void> {
       console.error("Error processing claims intake:", error);
       res.status(500).json({
         error: "Failed to process claims intake",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Certificate ingestion endpoints
+  app.post("/api/certificates/extract", async (req, res) => {
+    try {
+      const { text, filename } = req.body;
+
+      if (!text) {
+        return res.status(400).json({ error: "Missing required field: text" });
+      }
+
+      const extractedData = extractCertificateData(text, filename || '');
+      const validation = validateCertificateData(extractedData);
+
+      res.json({
+        extractedData,
+        validation,
+      });
+    } catch (error) {
+      console.error("Error extracting certificate data:", error);
+      res.status(500).json({
+        error: "Failed to extract certificate data",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.post("/api/certificates/ingest", async (req, res) => {
+    try {
+      const { text, source, filename, fileType, fileSize, caseId } = req.body;
+
+      if (!text) {
+        return res.status(400).json({ error: "Missing required field: text" });
+      }
+
+      const result = processCertificateIngestion(
+        text,
+        (source as CertificateSource) || 'api_upload',
+        filename || 'unknown',
+        fileType || 'application/octet-stream',
+        fileSize || 0,
+        caseId
+      );
+
+      res.json(result);
+    } catch (error) {
+      console.error("Error ingesting certificate:", error);
+      res.status(500).json({
+        error: "Failed to ingest certificate",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.post("/api/certificates/validate", async (req, res) => {
+    try {
+      const { extractedData } = req.body;
+
+      if (!extractedData) {
+        return res.status(400).json({ error: "Missing required field: extractedData" });
+      }
+
+      const validation = validateCertificateData(extractedData);
+      res.json(validation);
+    } catch (error) {
+      console.error("Error validating certificate:", error);
+      res.status(500).json({
+        error: "Failed to validate certificate",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.get("/api/certificates/expiry-check", async (req, res) => {
+    try {
+      const endDate = req.query.endDate as string;
+
+      if (!endDate) {
+        return res.status(400).json({ error: "Missing required query param: endDate" });
+      }
+
+      const daysUntilExpiry = calculateDaysUntilExpiry(endDate);
+      const alertLevel = getExpiryAlertLevel(daysUntilExpiry);
+
+      res.json({
+        endDate,
+        daysUntilExpiry,
+        alertLevel,
+        isExpired: daysUntilExpiry !== null && daysUntilExpiry <= 0,
+        needsRenewal: daysUntilExpiry !== null && daysUntilExpiry <= 14,
+      });
+    } catch (error) {
+      console.error("Error checking certificate expiry:", error);
+      res.status(500).json({
+        error: "Failed to check certificate expiry",
         details: error instanceof Error ? error.message : "Unknown error"
       });
     }
