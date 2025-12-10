@@ -18,6 +18,7 @@ import {
   CheckIn,
   CheckInResponse,
 } from "./services/weeklyCheckin";
+import { generateTreatmentPlan, getTreatmentPlanSummary } from "./services/treatmentPlan";
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
@@ -301,6 +302,32 @@ export async function registerRoutes(app: Express): Promise<void> {
       console.error("Failed to assess RTW plan:", err);
       res.status(500).json({
         error: "Failed to assess RTW plan",
+        details: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  });
+
+  // Treatment plan generator endpoint
+  app.get("/api/cases/:id/treatment-plan", async (req, res) => {
+    try {
+      const caseId = req.params.id;
+      const workerCase = await storage.getGPNet2CaseById(caseId);
+      if (!workerCase) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      const plan = generateTreatmentPlan(workerCase);
+      const summary = getTreatmentPlanSummary(plan);
+
+      res.json({
+        caseId,
+        plan,
+        summary,
+      });
+    } catch (err) {
+      console.error("Failed to generate treatment plan:", err);
+      res.status(500).json({
+        error: "Failed to generate treatment plan",
         details: err instanceof Error ? err.message : "Unknown error",
       });
     }

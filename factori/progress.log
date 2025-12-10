@@ -113,3 +113,17 @@
   - GET /api/cases/:id/checkins - returns check-in history with trends
   - GET /api/checkin/:id - returns a specific check-in
 - API verified: creates check-ins, calculates scores, detects risk signals, generates summaries
+
+## 2025-12-10 — treatment_plan_generator ✅
+- Created server/services/treatmentPlan.ts with:
+  - Treatment templates by injury category (minor/moderate/severe musculoskeletal, psychological, surgical, mixed, chronic)
+  - TreatmentItem structure with type, name, priority, frequency, duration, provider, goals
+  - TreatmentMilestone structure with week number, description, expected outcome, assessment criteria
+  - generateTreatmentPlan() - creates plan based on case injury categorization
+  - getTreatmentPlanSummary() - generates text summary of plan
+- Treatment types: physiotherapy, OT, GP review, specialist, psychological, pain management, exercise, hydrotherapy, FCE, workplace assessment, case conference
+- Goals framework: short-term (2-4 weeks) and long-term goals
+- Escalation triggers: no improvement, worsening symptoms, complications, disengagement
+- Added API endpoint:
+  - GET /api/cases/:id/treatment-plan - returns complete treatment plan with summary
+- API verified: returns injury-appropriate treatments, milestones, goals, and recommendations
