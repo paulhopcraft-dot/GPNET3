@@ -222,3 +222,25 @@
   - POST /api/certificates/validate - validates extracted data
   - GET /api/certificates/expiry-check - checks days until expiry with alert level
 - API verified: extraction correctly identifies certificate type, dates, capacity, restrictions
+
+## 2025-12-10 — unit_tests ✅
+- Created server/services/claimsIntake.test.ts with 19 tests:
+  - getInjuryTypes() - verifies 6 injury categories with subtypes and required docs
+  - getRequiredDocuments() - required/optional docs for injury types
+  - getIntakeFormTemplate() - default form values
+  - validateIntakeForm() - comprehensive validation testing (required fields, date validation, email format, late notifications, injury-specific requirements)
+- Created server/services/certificateIngestion.test.ts with 24 tests:
+  - extractCertificateData() - certificate type detection, date extraction, work capacity (fit/partial/unfit), restrictions, diagnosis, doctor name
+  - validateCertificateData() - required fields, date logic, fit/restrictions consistency
+  - calculateDaysUntilExpiry() - null handling, past/future dates
+  - getExpiryAlertLevel() - critical/warning/info thresholds
+  - processCertificateIngestion() - full pipeline, manual review flagging, expiry info
+- Created server/services/weeklyCheckin.test.ts with 25 tests:
+  - CHECKIN_QUESTIONS - structure validation, categories, question types
+  - createCheckIn() - creation with pending status, unique IDs, scheduled dates
+  - calculateScores() - pain/mood/ADL scores, overall wellbeing calculation
+  - completeCheckIn() - status update, risk signal detection, summary generation
+  - detectRiskSignals() - concerning text, disengagement, pain increase from previous
+  - generateTrendSummary() - averages, engagement rate, next check-in date
+  - getNextCheckInDate() - 7-day intervals
+- All 68 new tests passing
