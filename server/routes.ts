@@ -19,6 +19,13 @@ import {
   CheckInResponse,
 } from "./services/weeklyCheckin";
 import { generateTreatmentPlan, getTreatmentPlanSummary } from "./services/treatmentPlan";
+import {
+  getAllTemplates,
+  getTemplatesForTarget,
+  getTemplate,
+  generateMessage,
+  getSuggestedCommunications,
+} from "./services/providerChat";
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
@@ -328,6 +335,66 @@ export async function registerRoutes(app: Express): Promise<void> {
       console.error("Failed to generate treatment plan:", err);
       res.status(500).json({
         error: "Failed to generate treatment plan",
+        details: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  });
+
+  // Provider communication templates
+  app.get("/api/provider-templates", (_req, res) => {
+    const templates = getAllTemplates();
+    res.json({ templates });
+  });
+
+  app.get("/api/provider-templates/:target", (req, res) => {
+    const target = req.params.target.toUpperCase() as any;
+    const templates = getTemplatesForTarget(target);
+    res.json({ target, templates });
+  });
+
+  // Generate a message from template for a case
+  app.post("/api/cases/:id/generate-message", async (req, res) => {
+    try {
+      const caseId = req.params.id;
+      const { templateId, additionalVariables } = req.body;
+
+      const workerCase = await storage.getGPNet2CaseById(caseId);
+      if (!workerCase) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      const templates = getAllTemplates();
+      const template = templates.find(t => t.id === templateId);
+      if (!template) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+
+      const message = generateMessage(template, workerCase, additionalVariables);
+      res.json({ message });
+    } catch (err) {
+      console.error("Failed to generate message:", err);
+      res.status(500).json({
+        error: "Failed to generate message",
+        details: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  });
+
+  // Get suggested communications for a case
+  app.get("/api/cases/:id/suggested-communications", async (req, res) => {
+    try {
+      const caseId = req.params.id;
+      const workerCase = await storage.getGPNet2CaseById(caseId);
+      if (!workerCase) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      const suggestions = getSuggestedCommunications(workerCase);
+      res.json({ caseId, suggestions });
+    } catch (err) {
+      console.error("Failed to get suggested communications:", err);
+      res.status(500).json({
+        error: "Failed to get suggested communications",
         details: err instanceof Error ? err.message : "Unknown error",
       });
     }

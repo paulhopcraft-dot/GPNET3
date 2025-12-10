@@ -127,3 +127,19 @@
 - Added API endpoint:
   - GET /api/cases/:id/treatment-plan - returns complete treatment plan with summary
 - API verified: returns injury-appropriate treatments, milestones, goals, and recommendations
+
+## 2025-12-10 — provider_chat_workflow ✅
+- Created server/services/providerChat.ts with:
+  - 9 message templates for different provider types and action types
+  - Templates for: GP (certificate, treatment plan, RTW review, clinical explanation), Specialist (appointment status, report request), Physio (progress update), Worker (duties review), Insurer (non-compliance)
+  - Variable substitution with case data (worker name, dates, restrictions, etc.)
+  - Conditional content blocks for context-sensitive messaging
+  - Phone scripts for call-based communications
+  - getSuggestedCommunications() - recommends communications based on case status
+  - generateMessage() - creates message from template with case variables
+- Added API endpoints:
+  - GET /api/provider-templates - returns all available templates
+  - GET /api/provider-templates/:target - returns templates for specific provider type
+  - POST /api/cases/:id/generate-message - generates message from template
+  - GET /api/cases/:id/suggested-communications - returns suggested communications for case
+- API verified: generates appropriate messages with variable substitution
