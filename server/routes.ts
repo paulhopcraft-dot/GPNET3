@@ -10,6 +10,14 @@ import { evaluateClinicalEvidence } from "./services/clinicalEvidence";
 import { generateRTWPlan, assessPlanSafety, generateRecommendations } from "./services/rtwPlanner";
 import { estimateRecoveryTimeline, getRecoverySummary } from "./services/recoveryEstimator";
 import { generateWorkerProfile, formatProfileSections, getStatusLine } from "./services/workerProfile";
+import {
+  CHECKIN_QUESTIONS,
+  createCheckIn,
+  completeCheckIn,
+  generateTrendSummary,
+  CheckIn,
+  CheckInResponse,
+} from "./services/weeklyCheckin";
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
@@ -353,6 +361,140 @@ export async function registerRoutes(app: Express): Promise<void> {
       console.error("Failed to generate worker profile:", err);
       res.status(500).json({
         error: "Failed to generate worker profile",
+        details: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  });
+
+  // In-memory check-in storage (would be in database in production)
+  const checkInStore: Map<string, CheckIn[]> = new Map();
+
+  // Get check-in questions
+  app.get("/api/checkin/questions", (_req, res) => {
+    res.json({ questions: CHECKIN_QUESTIONS });
+  });
+
+  // Create a new check-in for a case
+  app.post("/api/cases/:id/checkin", async (req, res) => {
+    try {
+      const caseId = req.params.id;
+      const workerCase = await storage.getGPNet2CaseById(caseId);
+      if (!workerCase) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      const { scheduledDate } = req.body;
+      const checkIn = createCheckIn(caseId, workerCase.workerName, scheduledDate);
+
+      // Store check-in
+      const existing = checkInStore.get(caseId) || [];
+      existing.push(checkIn);
+      checkInStore.set(caseId, existing);
+
+      res.json({ checkIn });
+    } catch (err) {
+      console.error("Failed to create check-in:", err);
+      res.status(500).json({
+        error: "Failed to create check-in",
+        details: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  });
+
+  // Submit check-in responses
+  app.post("/api/checkin/:checkInId/submit", async (req, res) => {
+    try {
+      const { checkInId } = req.params;
+      const { responses } = req.body as { responses: CheckInResponse[] };
+
+      // Find the check-in
+      let found: CheckIn | null = null;
+      let caseId: string | null = null;
+
+      for (const [cid, checkIns] of checkInStore.entries()) {
+        const idx = checkIns.findIndex((c) => c.id === checkInId);
+        if (idx !== -1) {
+          found = checkIns[idx];
+          caseId = cid;
+          break;
+        }
+      }
+
+      if (!found || !caseId) {
+        return res.status(404).json({ error: "Check-in not found" });
+      }
+
+      // Get previous scores for comparison
+      const caseCheckIns = checkInStore.get(caseId) || [];
+      const completed = caseCheckIns
+        .filter((c) => c.status === "completed" && c.id !== checkInId)
+        .sort((a, b) => new Date(b.completedDate!).getTime() - new Date(a.completedDate!).getTime());
+      const previousScores = completed[0]?.scores;
+
+      // Complete the check-in
+      const completedCheckIn = completeCheckIn(found, responses, previousScores);
+
+      // Update store
+      const allCheckIns = checkInStore.get(caseId)!;
+      const idx = allCheckIns.findIndex((c) => c.id === checkInId);
+      allCheckIns[idx] = completedCheckIn;
+
+      res.json({
+        checkIn: completedCheckIn,
+        hasHighRiskSignals: completedCheckIn.riskSignals.some((s) => s.severity === "high"),
+      });
+    } catch (err) {
+      console.error("Failed to submit check-in:", err);
+      res.status(500).json({
+        error: "Failed to submit check-in",
+        details: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  });
+
+  // Get check-in history for a case
+  app.get("/api/cases/:id/checkins", async (req, res) => {
+    try {
+      const caseId = req.params.id;
+      const workerCase = await storage.getGPNet2CaseById(caseId);
+      if (!workerCase) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      const checkIns = checkInStore.get(caseId) || [];
+      const trend = generateTrendSummary(caseId, workerCase.workerName, checkIns);
+
+      res.json({
+        caseId,
+        checkIns,
+        trend,
+      });
+    } catch (err) {
+      console.error("Failed to fetch check-ins:", err);
+      res.status(500).json({
+        error: "Failed to fetch check-ins",
+        details: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
+  });
+
+  // Get a specific check-in
+  app.get("/api/checkin/:checkInId", (req, res) => {
+    try {
+      const { checkInId } = req.params;
+
+      for (const checkIns of checkInStore.values()) {
+        const found = checkIns.find((c) => c.id === checkInId);
+        if (found) {
+          return res.json({ checkIn: found });
+        }
+      }
+
+      res.status(404).json({ error: "Check-in not found" });
+    } catch (err) {
+      console.error("Failed to fetch check-in:", err);
+      res.status(500).json({
+        error: "Failed to fetch check-in",
         details: err instanceof Error ? err.message : "Unknown error",
       });
     }

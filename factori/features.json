@@ -14,7 +14,7 @@
   "timeline_and_recovery_estimator": { "pass": true, "notes": "Recovery estimator service with injury categorization, benchmark comparisons, risk/positive factors, progress indicators, and recommendations. API: GET /api/cases/:id/recovery-estimate" },
   "provider_chat_workflow": { "pass": false, "notes": "" },
 
-  "weekly_checkin_engine": { "pass": false, "notes": "" },
+  "weekly_checkin_engine": { "pass": true, "notes": "Weekly check-in questionnaire with pain/mood/ADL/work categories. Score calculation, risk signal detection, trend analysis, and summary generation. APIs: GET /api/checkin/questions, POST /api/cases/:id/checkin, POST /api/checkin/:id/submit, GET /api/cases/:id/checkins" },
   "risk_dashboard": { "pass": true, "notes": "Executive risk dashboard with API endpoint GET /api/dashboard/risk-summary. Aggregates risk breakdown, flag counts, urgent cases, and company risk metrics. RiskDashboard.tsx UI with auto-refresh every 60s." },
   "claimant_profile_summary": { "pass": true, "notes": "Comprehensive worker profile service with status snapshot, medical summary, recovery progress, active flags, engagement metrics. API: GET /api/cases/:id/profile. WorkerProfileCard.tsx UI component." },
 

@@ -91,3 +91,25 @@
 - Added API endpoint:
   - GET /api/cases/:id/profile - returns profile, sections, and status line
 - API verified: returns comprehensive profile with all sections and recommendations
+
+## 2025-12-10 — weekly_checkin_engine ✅
+- Created server/services/weeklyCheckin.ts with:
+  - CHECKIN_QUESTIONS - 15 questions across pain, mood, ADL, work, and general categories
+  - calculateScores() - converts responses to pain/mood/ADL/work/overall scores
+  - detectRiskSignals() - identifies risk signals from responses and score changes
+  - generateCheckInSummary() - creates narrative summary from scores and signals
+  - calculateTrends() - analyzes trends across multiple check-ins
+  - generateTrendSummary() - creates comprehensive trend report with engagement rate
+- Risk signal detection for:
+  - High/increasing pain levels
+  - Low/declining mood
+  - Low ADL capability
+  - Concerning keywords in text responses (hopeless, suicidal, etc.)
+  - Non-compliance with treatment/appointments
+- Added API endpoints:
+  - GET /api/checkin/questions - returns questionnaire structure
+  - POST /api/cases/:id/checkin - creates a new check-in for a case
+  - POST /api/checkin/:id/submit - submits responses and calculates scores/signals
+  - GET /api/cases/:id/checkins - returns check-in history with trends
+  - GET /api/checkin/:id - returns a specific check-in
+- API verified: creates check-ins, calculates scores, detects risk signals, generates summaries
