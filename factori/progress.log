@@ -366,3 +366,15 @@ Progress: 18/23 features (78%)
 - APIs: upload, search, CRUD, versioning, linking, status management
 Progress: 19/23 features (83%)
 
+
+2025-12-11T02:13:53+00:00 — regulatory_audit_engine
+- Created server/services/regulatoryAudit.ts (550+ lines)
+- 11 audit event types: authentication, case_modification, rtw_plan_change, certificate_action, document_action, communication, automation_execution, compliance_check, data_export, user_action, system_event
+- Logs who/what/when/why with previous/new values and change reasons
+- Compliance checks: certificate validity, RTW plan presence, contact frequency, incident reports
+- Export bundles in JSON or CSV format for regulatory submissions
+- Configurable retention policies (7 years for case data, 3 years for automation, etc)
+- Audit statistics and querying with multiple filter options
+- APIs: stats, retention policies, events query/log, export, case audit trail, compliance checks
+Progress: 20/23 features (87%)
+

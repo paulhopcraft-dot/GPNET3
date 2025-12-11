@@ -90,6 +90,26 @@ import {
   DOCUMENT_TYPE_LABELS,
   DocumentType as EvidenceDocumentType,
 } from "./services/evidenceDocuments";
+import {
+  logAuditEvent,
+  logAuthEvent,
+  logCaseModification,
+  logRTWPlanChange,
+  logCertificateAction,
+  logAutomationExecution,
+  logCommunication,
+  queryAuditEvents,
+  getCaseAuditTrail,
+  generateAuditSummary,
+  exportAuditBundle,
+  formatAuditAsCSV,
+  getCaseComplianceChecks,
+  runComplianceChecks,
+  getRetentionPolicies,
+  getAuditStats,
+  AuditFilter,
+  AuditExportOptions,
+} from "./services/regulatoryAudit";
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
@@ -1932,6 +1952,183 @@ export async function registerRoutes(app: Express): Promise<void> {
     } catch (err) {
       console.error("Case documents error:", err);
       res.status(500).json({ error: "Failed to get case documents" });
+    }
+  });
+
+  // ==================== REGULATORY AUDIT ENGINE ====================
+
+  // GET /api/audit/stats - Get audit statistics
+  app.get("/api/audit/stats", (req, res) => {
+    try {
+      const days = parseInt(req.query.days as string) || 30;
+      const stats = getAuditStats(days);
+      res.json(stats);
+    } catch (err) {
+      console.error("Audit stats error:", err);
+      res.status(500).json({ error: "Failed to get audit stats" });
+    }
+  });
+
+  // GET /api/audit/retention-policies - Get retention policies
+  app.get("/api/audit/retention-policies", (_req, res) => {
+    res.json(getRetentionPolicies());
+  });
+
+  // GET /api/audit/events - Query audit events
+  app.get("/api/audit/events", (req, res) => {
+    try {
+      const filter: AuditFilter = {
+        eventTypes: req.query.types ? (req.query.types as string).split(",") as AuditFilter["eventTypes"] : undefined,
+        severity: req.query.severity ? (req.query.severity as string).split(",") as AuditFilter["severity"] : undefined,
+        userId: req.query.userId as string,
+        entityType: req.query.entityType as string,
+        entityId: req.query.entityId as string,
+        caseId: req.query.caseId as string,
+        dateFrom: req.query.dateFrom as string,
+        dateTo: req.query.dateTo as string,
+        searchQuery: req.query.q as string,
+      };
+
+      const events = queryAuditEvents(filter);
+      const limit = parseInt(req.query.limit as string) || 100;
+
+      res.json({
+        totalEvents: events.length,
+        events: events.slice(0, limit),
+        summary: generateAuditSummary(events),
+      });
+    } catch (err) {
+      console.error("Query audit events error:", err);
+      res.status(500).json({ error: "Failed to query audit events" });
+    }
+  });
+
+  // POST /api/audit/events - Log a custom audit event
+  app.post("/api/audit/events", (req, res) => {
+    try {
+      const event = logAuditEvent(req.body);
+      res.json({ success: true, event });
+    } catch (err) {
+      console.error("Log audit event error:", err);
+      res.status(500).json({ error: "Failed to log audit event" });
+    }
+  });
+
+  // POST /api/audit/export - Export audit bundle
+  app.post("/api/audit/export", (req, res) => {
+    try {
+      const options: AuditExportOptions = {
+        caseId: req.body.caseId,
+        dateFrom: req.body.dateFrom,
+        dateTo: req.body.dateTo,
+        eventTypes: req.body.eventTypes,
+        format: req.body.format || "json",
+        includeMetadata: req.body.includeMetadata ?? true,
+        includeSystemEvents: req.body.includeSystemEvents ?? false,
+      };
+
+      const bundle = exportAuditBundle(options, "current-user", req.body.caseInfo);
+
+      if (options.format === "csv") {
+        res.setHeader("Content-Type", "text/csv");
+        res.setHeader("Content-Disposition", `attachment; filename="audit-export-${bundle.id}.csv"`);
+        return res.send(formatAuditAsCSV(bundle.events));
+      }
+
+      res.json(bundle);
+    } catch (err) {
+      console.error("Export audit bundle error:", err);
+      res.status(500).json({ error: "Failed to export audit bundle" });
+    }
+  });
+
+  // GET /api/cases/:id/audit-trail - Get audit trail for a case
+  app.get("/api/cases/:id/audit-trail", async (req, res) => {
+    try {
+      const caseId = req.params.id;
+      const workerCase = await storage.getCaseById(caseId);
+
+      if (!workerCase) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      const events = getCaseAuditTrail(caseId);
+      const summary = generateAuditSummary(events);
+
+      res.json({
+        caseId,
+        workerName: workerCase.workerName,
+        eventCount: events.length,
+        summary,
+        events,
+      });
+    } catch (err) {
+      console.error("Case audit trail error:", err);
+      res.status(500).json({ error: "Failed to get case audit trail" });
+    }
+  });
+
+  // GET /api/cases/:id/compliance - Get compliance checks for a case
+  app.get("/api/cases/:id/compliance", async (req, res) => {
+    try {
+      const caseId = req.params.id;
+      const workerCase = await storage.getCaseById(caseId);
+
+      if (!workerCase) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      const checks = getCaseComplianceChecks(caseId);
+
+      res.json({
+        caseId,
+        workerName: workerCase.workerName,
+        checkCount: checks.length,
+        passCount: checks.filter(c => c.status === "pass").length,
+        failCount: checks.filter(c => c.status === "fail").length,
+        checks,
+      });
+    } catch (err) {
+      console.error("Compliance checks error:", err);
+      res.status(500).json({ error: "Failed to get compliance checks" });
+    }
+  });
+
+  // POST /api/cases/:id/compliance/run - Run compliance checks for a case
+  app.post("/api/cases/:id/compliance/run", async (req, res) => {
+    try {
+      const caseId = req.params.id;
+      const workerCase = await storage.getCaseById(caseId);
+
+      if (!workerCase) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      // Get case data for compliance checks (in production, fetch from various sources)
+      const caseData = {
+        hasCertificate: req.body.hasCertificate ?? true,
+        certificateExpired: req.body.certificateExpired ?? false,
+        hasRTWPlan: req.body.hasRTWPlan ?? true,
+        lastContactDays: req.body.lastContactDays ?? 2,
+        hasIncidentReport: req.body.hasIncidentReport ?? true,
+        injuryReportedWithin24h: req.body.injuryReportedWithin24h ?? true,
+      };
+
+      const checks = runComplianceChecks(caseId, caseData);
+
+      res.json({
+        caseId,
+        workerName: workerCase.workerName,
+        runAt: new Date().toISOString(),
+        checkCount: checks.length,
+        passCount: checks.filter(c => c.status === "pass").length,
+        failCount: checks.filter(c => c.status === "fail").length,
+        warningCount: checks.filter(c => c.status === "warning").length,
+        checks,
+      });
+    } catch (err) {
+      console.error("Run compliance checks error:", err);
+      res.status(500).json({ error: "Failed to run compliance checks" });
     }
   });
 
