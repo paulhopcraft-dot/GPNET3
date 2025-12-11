@@ -378,3 +378,16 @@ Progress: 19/23 features (83%)
 - APIs: stats, retention policies, events query/log, export, case audit trail, compliance checks
 Progress: 20/23 features (87%)
 
+
+2025-12-11T02:39:26+00:00 — smart_summary_engine
+- Created server/services/smartSummary.ts (500+ lines)
+- Synthesizes data from timeline, certificates, check-ins, communications, risk signals, RTW status
+- Case snapshots with headlines, urgency levels (routine/attention_needed/urgent/critical)
+- 5 summary types: full, snapshot, brief, stakeholder, handover
+- Recommended actions prioritized by urgency with rationale and due dates
+- Executive summaries for stakeholder briefings
+- Batch summary generation with aggregate statistics
+- Change detection between summary versions
+- APIs: case summary, snapshot, actions, custom generation, batch summaries
+Progress: 21/23 features (91%)
+

@@ -110,6 +110,15 @@ import {
   AuditFilter,
   AuditExportOptions,
 } from "./services/regulatoryAudit";
+import {
+  generateCaseSummary,
+  generateBriefSnapshot,
+  generateBatchSummaries,
+  compareSummaries,
+  createMockCaseData,
+  SummaryType,
+  CaseDataSources,
+} from "./services/smartSummary";
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
@@ -2129,6 +2138,193 @@ export async function registerRoutes(app: Express): Promise<void> {
     } catch (err) {
       console.error("Run compliance checks error:", err);
       res.status(500).json({ error: "Failed to run compliance checks" });
+    }
+  });
+
+  // ==================== SMART SUMMARY ENGINE ====================
+
+  // GET /api/cases/:id/summary - Get full case summary
+  app.get("/api/cases/:id/summary", async (req, res) => {
+    try {
+      const caseId = req.params.id;
+      const workerCase = await storage.getCaseById(caseId);
+
+      if (!workerCase) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      const summaryType = (req.query.type as SummaryType) || "full";
+
+      // Build case data from various sources
+      const injuryDate = new Date(workerCase.injuryDate);
+      const daysOpen = Math.floor((Date.now() - injuryDate.getTime()) / (1000 * 60 * 60 * 24));
+
+      const caseData: CaseDataSources = {
+        caseId,
+        workerName: workerCase.workerName,
+        company: workerCase.company,
+        injuryDate: workerCase.injuryDate,
+        diagnosis: workerCase.diagnosis || "Not specified",
+        workStatus: workerCase.workStatus,
+        riskLevel: workerCase.riskLevel,
+        daysOpen,
+        currentCapacity: workerCase.workStatus === "Off work" ? "Unfit for work" : "Partial capacity",
+        restrictions: workerCase.restrictions ? [workerCase.restrictions] : [],
+        // Use mock data for demo - in production would aggregate from other services
+        ...createMockCaseData(caseId),
+        // Override with actual case data
+        caseId,
+        workerName: workerCase.workerName,
+        company: workerCase.company,
+        diagnosis: workerCase.diagnosis || "Not specified",
+        workStatus: workerCase.workStatus,
+        riskLevel: workerCase.riskLevel,
+        daysOpen,
+      };
+
+      const summary = generateCaseSummary(caseData, summaryType);
+
+      res.json(summary);
+    } catch (err) {
+      console.error("Case summary error:", err);
+      res.status(500).json({ error: "Failed to generate case summary" });
+    }
+  });
+
+  // GET /api/cases/:id/snapshot - Get brief snapshot
+  app.get("/api/cases/:id/snapshot", async (req, res) => {
+    try {
+      const caseId = req.params.id;
+      const workerCase = await storage.getCaseById(caseId);
+
+      if (!workerCase) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      const injuryDate = new Date(workerCase.injuryDate);
+      const daysOpen = Math.floor((Date.now() - injuryDate.getTime()) / (1000 * 60 * 60 * 24));
+
+      const caseData: CaseDataSources = {
+        ...createMockCaseData(caseId),
+        caseId,
+        workerName: workerCase.workerName,
+        company: workerCase.company,
+        diagnosis: workerCase.diagnosis || "Not specified",
+        workStatus: workerCase.workStatus,
+        riskLevel: workerCase.riskLevel,
+        daysOpen,
+      };
+
+      const snapshot = generateBriefSnapshot(caseData);
+
+      res.json({
+        caseId,
+        workerName: workerCase.workerName,
+        ...snapshot,
+      });
+    } catch (err) {
+      console.error("Case snapshot error:", err);
+      res.status(500).json({ error: "Failed to generate case snapshot" });
+    }
+  });
+
+  // POST /api/summary/generate - Generate summary from provided data
+  app.post("/api/summary/generate", (req, res) => {
+    try {
+      const caseData: CaseDataSources = req.body;
+      const summaryType = (req.query.type as SummaryType) || "full";
+
+      if (!caseData.caseId || !caseData.workerName) {
+        return res.status(400).json({ error: "caseId and workerName are required" });
+      }
+
+      const summary = generateCaseSummary(caseData, summaryType);
+
+      res.json(summary);
+    } catch (err) {
+      console.error("Generate summary error:", err);
+      res.status(500).json({ error: "Failed to generate summary" });
+    }
+  });
+
+  // GET /api/summary/batch - Get summaries for multiple cases
+  app.get("/api/summary/batch", async (req, res) => {
+    try {
+      const cases = await storage.getGPNet2Cases();
+
+      const caseDataList: CaseDataSources[] = cases.slice(0, 20).map(c => {
+        const injuryDate = new Date(c.injuryDate);
+        const daysOpen = Math.floor((Date.now() - injuryDate.getTime()) / (1000 * 60 * 60 * 24));
+
+        return {
+          ...createMockCaseData(c.id.toString()),
+          caseId: c.id.toString(),
+          workerName: c.workerName,
+          company: c.company,
+          diagnosis: c.diagnosis || "Not specified",
+          workStatus: c.workStatus,
+          riskLevel: c.riskLevel,
+          daysOpen,
+        };
+      });
+
+      const { summaries, aggregateStats } = generateBatchSummaries(caseDataList);
+
+      res.json({
+        totalCases: summaries.length,
+        aggregateStats,
+        summaries: summaries.map(s => ({
+          caseId: s.caseId,
+          headline: s.snapshot.headline,
+          urgency: s.snapshot.urgency,
+          status: s.snapshot.status,
+          riskLevel: s.risks.overallRisk,
+          trend: s.progress.trend,
+          topAction: s.recommendedActions[0]?.action || null,
+        })),
+      });
+    } catch (err) {
+      console.error("Batch summary error:", err);
+      res.status(500).json({ error: "Failed to generate batch summaries" });
+    }
+  });
+
+  // GET /api/cases/:id/actions - Get recommended actions for a case
+  app.get("/api/cases/:id/actions", async (req, res) => {
+    try {
+      const caseId = req.params.id;
+      const workerCase = await storage.getCaseById(caseId);
+
+      if (!workerCase) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      const injuryDate = new Date(workerCase.injuryDate);
+      const daysOpen = Math.floor((Date.now() - injuryDate.getTime()) / (1000 * 60 * 60 * 24));
+
+      const caseData: CaseDataSources = {
+        ...createMockCaseData(caseId),
+        caseId,
+        workerName: workerCase.workerName,
+        company: workerCase.company,
+        diagnosis: workerCase.diagnosis || "Not specified",
+        workStatus: workerCase.workStatus,
+        riskLevel: workerCase.riskLevel,
+        daysOpen,
+      };
+
+      const summary = generateCaseSummary(caseData, "snapshot");
+
+      res.json({
+        caseId,
+        workerName: workerCase.workerName,
+        actionCount: summary.recommendedActions.length,
+        urgentCount: summary.recommendedActions.filter(a => a.priority === "urgent").length,
+        actions: summary.recommendedActions,
+      });
+    } catch (err) {
+      console.error("Case actions error:", err);
+      res.status(500).json({ error: "Failed to get case actions" });
     }
   });
 
