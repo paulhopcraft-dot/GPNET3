@@ -338,3 +338,16 @@
 - Created .env.example template
 
 ## PROJECT COMPLETE - 17/17 features (100%)
+
+2025-12-11T01:44:59+00:00 — behaviour_sentiment_engine
+- Created server/services/behaviourSentiment.ts (500+ lines)
+- Sentiment analysis: positive/negative detection, magnitude, confidence scoring
+- Distress language detection: identifies crisis keywords (hopelessness, giving up, etc)
+- Frustration detection: identifies escalation and legal threat language
+- Engagement metrics: responsiveness, appointment attendance, check-in completion
+- Behaviour flags: 9 flag types with severity levels and suggested actions
+- Full worker behaviour analysis with risk levels and recommendations
+- APIs: GET /api/cases/:id/behaviour, POST /api/sentiment/analyze, POST /api/cases/:id/interactions, GET /api/behaviour/rankings, GET /api/cases/:id/engagement
+- All service tests passing
+Progress: 18/23 features (78%)
+

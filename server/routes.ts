@@ -64,6 +64,16 @@ import {
   KnowledgeLayer,
   DocumentType,
 } from "./services/ragKnowledge";
+import {
+  analyzeWorkerBehaviour,
+  analyzeSentiment,
+  detectDistressLanguage,
+  detectFrustration,
+  calculateEngagement,
+  createMockInteractions,
+  rankCasesByBehaviourRisk,
+  InteractionRecord,
+} from "./services/behaviourSentiment";
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
@@ -1519,6 +1529,154 @@ export async function registerRoutes(app: Express): Promise<void> {
     } catch (err) {
       console.error("Case knowledge error:", err);
       res.status(500).json({ error: "Failed to get case knowledge" });
+    }
+  });
+
+  // ==================== BEHAVIOUR & SENTIMENT ENGINE ====================
+
+  // GET /api/cases/:id/behaviour - Full behaviour analysis for a case
+  app.get("/api/cases/:id/behaviour", async (req, res) => {
+    try {
+      const caseId = req.params.id;
+      const workerCase = await storage.getCaseById(caseId);
+
+      if (!workerCase) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      // In production, this would fetch real interaction records from database
+      // For now, generate mock interactions for demonstration
+      const interactions = createMockInteractions(caseId);
+      const analysis = analyzeWorkerBehaviour(caseId, workerCase.workerName, interactions);
+
+      res.json(analysis);
+    } catch (err) {
+      console.error("Behaviour analysis error:", err);
+      res.status(500).json({ error: "Failed to analyze behaviour" });
+    }
+  });
+
+  // POST /api/sentiment/analyze - Analyze text sentiment
+  app.post("/api/sentiment/analyze", (req, res) => {
+    try {
+      const { text } = req.body;
+      if (!text) {
+        return res.status(400).json({ error: "Text is required" });
+      }
+
+      const sentiment = analyzeSentiment(text);
+      const distress = detectDistressLanguage(text);
+      const frustration = detectFrustration(text);
+
+      res.json({
+        text: text.substring(0, 100) + (text.length > 100 ? "..." : ""),
+        sentiment,
+        distress,
+        frustration,
+        overallConcern: distress.detected || frustration.legalThreat ? "high" :
+                        frustration.detected ? "medium" : "low"
+      });
+    } catch (err) {
+      console.error("Sentiment analysis error:", err);
+      res.status(500).json({ error: "Failed to analyze sentiment" });
+    }
+  });
+
+  // POST /api/cases/:id/interactions - Add interaction record
+  app.post("/api/cases/:id/interactions", async (req, res) => {
+    try {
+      const caseId = req.params.id;
+      const workerCase = await storage.getCaseById(caseId);
+
+      if (!workerCase) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      const interaction: InteractionRecord = {
+        id: crypto.randomUUID(),
+        caseId,
+        timestamp: new Date().toISOString(),
+        channel: req.body.channel || "email",
+        direction: req.body.direction || "inbound",
+        content: req.body.content,
+        attended: req.body.attended,
+        responseTime: req.body.responseTime,
+      };
+
+      // Analyze sentiment if content provided
+      if (interaction.content) {
+        interaction.sentiment = analyzeSentiment(interaction.content);
+      }
+
+      // In production, this would persist to database
+      res.json({
+        success: true,
+        interaction,
+        analysis: interaction.content ? {
+          distress: detectDistressLanguage(interaction.content),
+          frustration: detectFrustration(interaction.content)
+        } : null
+      });
+    } catch (err) {
+      console.error("Add interaction error:", err);
+      res.status(500).json({ error: "Failed to add interaction" });
+    }
+  });
+
+  // GET /api/behaviour/rankings - Get all cases ranked by behaviour risk
+  app.get("/api/behaviour/rankings", async (req, res) => {
+    try {
+      const cases = await storage.getGPNet2Cases();
+
+      const analyses = cases.map(c => {
+        const interactions = createMockInteractions(c.id.toString());
+        return analyzeWorkerBehaviour(c.id.toString(), c.workerName, interactions);
+      });
+
+      const ranked = rankCasesByBehaviourRisk(analyses);
+
+      res.json({
+        totalCases: ranked.length,
+        criticalCount: ranked.filter(a => a.riskLevel === "critical").length,
+        highCount: ranked.filter(a => a.riskLevel === "high").length,
+        rankings: ranked.map(a => ({
+          caseId: a.caseId,
+          workerName: a.workerName,
+          riskLevel: a.riskLevel,
+          priorityScore: a.priorityScore,
+          flagCount: a.flags.length,
+          engagementScore: a.engagement.overallScore,
+          sentiment: a.currentSentiment.value,
+        }))
+      });
+    } catch (err) {
+      console.error("Behaviour rankings error:", err);
+      res.status(500).json({ error: "Failed to get behaviour rankings" });
+    }
+  });
+
+  // GET /api/cases/:id/engagement - Get engagement metrics for a case
+  app.get("/api/cases/:id/engagement", async (req, res) => {
+    try {
+      const caseId = req.params.id;
+      const workerCase = await storage.getCaseById(caseId);
+
+      if (!workerCase) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      const interactions = createMockInteractions(caseId);
+      const engagement = calculateEngagement(interactions);
+
+      res.json({
+        caseId,
+        workerName: workerCase.workerName,
+        engagement,
+        interactionCount: interactions.length
+      });
+    } catch (err) {
+      console.error("Engagement metrics error:", err);
+      res.status(500).json({ error: "Failed to get engagement metrics" });
     }
   });
 
