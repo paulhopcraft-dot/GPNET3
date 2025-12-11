@@ -74,6 +74,22 @@ import {
   rankCasesByBehaviourRisk,
   InteractionRecord,
 } from "./services/behaviourSentiment";
+import {
+  uploadDocument,
+  getDocument as getEvidenceDocument,
+  updateDocumentMetadata,
+  uploadNewVersion,
+  linkDocument,
+  updateDocumentStatus,
+  searchDocuments,
+  getCaseDocuments,
+  getExpiringDocuments,
+  getDocumentStats,
+  getAccessLogs,
+  deleteDocument as deleteEvidenceDocument,
+  DOCUMENT_TYPE_LABELS,
+  DocumentType as EvidenceDocumentType,
+} from "./services/evidenceDocuments";
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
@@ -1677,6 +1693,245 @@ export async function registerRoutes(app: Express): Promise<void> {
     } catch (err) {
       console.error("Engagement metrics error:", err);
       res.status(500).json({ error: "Failed to get engagement metrics" });
+    }
+  });
+
+  // ==================== EVIDENCE & DOCUMENT MANAGEMENT ====================
+
+  // GET /api/documents/types - Get document type labels
+  app.get("/api/documents/types", (_req, res) => {
+    res.json(DOCUMENT_TYPE_LABELS);
+  });
+
+  // GET /api/documents/stats - Get document statistics
+  app.get("/api/documents/stats", (req, res) => {
+    try {
+      const caseId = req.query.caseId as string | undefined;
+      const stats = getDocumentStats(caseId);
+      res.json(stats);
+    } catch (err) {
+      console.error("Document stats error:", err);
+      res.status(500).json({ error: "Failed to get document stats" });
+    }
+  });
+
+  // GET /api/documents/expiring - Get expiring documents
+  app.get("/api/documents/expiring", (req, res) => {
+    try {
+      const days = parseInt(req.query.days as string) || 14;
+      const expiring = getExpiringDocuments(days);
+      res.json({
+        daysAhead: days,
+        count: expiring.length,
+        documents: expiring.map(d => ({
+          id: d.id,
+          title: d.metadata.title,
+          documentType: d.metadata.documentType,
+          expiryDate: d.metadata.expiryDate,
+          caseLinks: d.links.filter(l => l.linkType === "case"),
+        })),
+      });
+    } catch (err) {
+      console.error("Expiring documents error:", err);
+      res.status(500).json({ error: "Failed to get expiring documents" });
+    }
+  });
+
+  // GET /api/documents/search - Search documents
+  app.get("/api/documents/search", (req, res) => {
+    try {
+      const query = (req.query.q as string) || "";
+      const documentTypes = req.query.types
+        ? (req.query.types as string).split(",") as EvidenceDocumentType[]
+        : undefined;
+      const caseId = req.query.caseId as string | undefined;
+
+      const results = searchDocuments(query, {
+        documentTypes,
+        caseId,
+      });
+
+      res.json({
+        query,
+        totalResults: results.length,
+        results: results.slice(0, 20),
+      });
+    } catch (err) {
+      console.error("Document search error:", err);
+      res.status(500).json({ error: "Failed to search documents" });
+    }
+  });
+
+  // POST /api/documents/upload - Upload a new document
+  app.post("/api/documents/upload", (req, res) => {
+    try {
+      const { filename, mimeType, sizeBytes, caseId, workerId, title, description, documentType, tags, expiryDate, isConfidential } = req.body;
+
+      if (!filename || !mimeType || !sizeBytes) {
+        return res.status(400).json({ error: "filename, mimeType, and sizeBytes are required" });
+      }
+
+      const result = uploadDocument(filename, mimeType, sizeBytes, "current-user", {
+        caseId,
+        workerId,
+        title,
+        description,
+        documentType,
+        tags,
+        expiryDate,
+        isConfidential,
+      });
+
+      if (!result.success) {
+        return res.status(400).json({ error: result.error, virusScanStatus: result.virusScanStatus });
+      }
+
+      res.json(result);
+    } catch (err) {
+      console.error("Document upload error:", err);
+      res.status(500).json({ error: "Failed to upload document" });
+    }
+  });
+
+  // GET /api/documents/:id - Get document by ID
+  app.get("/api/documents/:id", (req, res) => {
+    try {
+      const doc = getEvidenceDocument(req.params.id);
+      if (!doc) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      res.json(doc);
+    } catch (err) {
+      console.error("Get document error:", err);
+      res.status(500).json({ error: "Failed to get document" });
+    }
+  });
+
+  // PUT /api/documents/:id - Update document metadata
+  app.put("/api/documents/:id", (req, res) => {
+    try {
+      const updates = req.body;
+      const doc = updateDocumentMetadata(req.params.id, updates, "current-user");
+      if (!doc) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      res.json(doc);
+    } catch (err) {
+      console.error("Update document error:", err);
+      res.status(500).json({ error: "Failed to update document" });
+    }
+  });
+
+  // POST /api/documents/:id/version - Upload new version
+  app.post("/api/documents/:id/version", (req, res) => {
+    try {
+      const { sizeBytes, changeNote } = req.body;
+      if (!sizeBytes) {
+        return res.status(400).json({ error: "sizeBytes is required" });
+      }
+
+      const doc = uploadNewVersion(req.params.id, sizeBytes, "current-user", changeNote);
+      if (!doc) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      res.json({ success: true, document: doc, currentVersion: doc.currentVersion });
+    } catch (err) {
+      console.error("Upload version error:", err);
+      res.status(500).json({ error: "Failed to upload new version" });
+    }
+  });
+
+  // POST /api/documents/:id/link - Link document to entity
+  app.post("/api/documents/:id/link", (req, res) => {
+    try {
+      const { linkType, targetId, targetName } = req.body;
+      if (!linkType || !targetId) {
+        return res.status(400).json({ error: "linkType and targetId are required" });
+      }
+
+      const doc = linkDocument(req.params.id, linkType, targetId, targetName, "current-user");
+      if (!doc) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      res.json({ success: true, document: doc });
+    } catch (err) {
+      console.error("Link document error:", err);
+      res.status(500).json({ error: "Failed to link document" });
+    }
+  });
+
+  // PUT /api/documents/:id/status - Update document status
+  app.put("/api/documents/:id/status", (req, res) => {
+    try {
+      const { status } = req.body;
+      if (!status) {
+        return res.status(400).json({ error: "status is required" });
+      }
+
+      const doc = updateDocumentStatus(req.params.id, status, "current-user");
+      if (!doc) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      res.json({ success: true, document: doc });
+    } catch (err) {
+      console.error("Update status error:", err);
+      res.status(500).json({ error: "Failed to update document status" });
+    }
+  });
+
+  // GET /api/documents/:id/access-logs - Get document access logs
+  app.get("/api/documents/:id/access-logs", (req, res) => {
+    try {
+      const doc = getEvidenceDocument(req.params.id);
+      if (!doc) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      const logs = getAccessLogs(req.params.id);
+      res.json({ documentId: req.params.id, logs });
+    } catch (err) {
+      console.error("Access logs error:", err);
+      res.status(500).json({ error: "Failed to get access logs" });
+    }
+  });
+
+  // DELETE /api/documents/:id - Delete document
+  app.delete("/api/documents/:id", (req, res) => {
+    try {
+      const success = deleteEvidenceDocument(req.params.id, "current-user");
+      if (!success) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      res.json({ success: true, deletedId: req.params.id });
+    } catch (err) {
+      console.error("Delete document error:", err);
+      res.status(500).json({ error: "Failed to delete document" });
+    }
+  });
+
+  // GET /api/cases/:id/documents - Get all documents for a case
+  app.get("/api/cases/:id/documents", async (req, res) => {
+    try {
+      const caseId = req.params.id;
+      const workerCase = await storage.getCaseById(caseId);
+
+      if (!workerCase) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      const documents = getCaseDocuments(caseId);
+      const stats = getDocumentStats(caseId);
+
+      res.json({
+        caseId,
+        workerName: workerCase.workerName,
+        documentCount: documents.length,
+        stats,
+        documents,
+      });
+    } catch (err) {
+      console.error("Case documents error:", err);
+      res.status(500).json({ error: "Failed to get case documents" });
     }
   });
 

@@ -351,3 +351,18 @@
 - All service tests passing
 Progress: 18/23 features (78%)
 
+
+2025-12-11T01:51:02+00:00 — evidence_documents_engine
+- Created server/services/evidenceDocuments.ts (600+ lines)
+- 13 document types: certificates, incident reports, clinical notes, imaging, pathology, statements, etc.
+- Upload with virus scanning simulation and file validation
+- Version control with full history tracking
+- Document metadata with tags, descriptions, custom fields
+- Full-text search with relevance scoring and snippets
+- Document linking to cases, workers, timeline events
+- Expiry tracking with alerts for certificates
+- Access logging for audit trails and compliance
+- Document statistics by type and status
+- APIs: upload, search, CRUD, versioning, linking, status management
+Progress: 19/23 features (83%)
+
