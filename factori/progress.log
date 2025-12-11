@@ -292,3 +292,18 @@
   - GET/PUT/DELETE /api/knowledge/documents/:id - CRUD operations
   - GET /api/knowledge/documents/:id/similar - find similar documents
   - GET /api/cases/:id/knowledge - get case-relevant knowledge with company filter
+
+## 2025-12-11 — e2e_tests ✅
+- Created tests/e2e/api-endpoints.spec.ts with API endpoint tests:
+  - Knowledge Base API: stats, search, layer filtering, document listing, RAG context
+  - Intake API: injury types, form template, validation (invalid/valid data)
+  - Certificate API: extraction, validation, expiry calculation
+  - Check-in API: questionnaire structure
+  - Provider Templates API: listing and target filtering
+- Created tests/e2e/case-management.spec.ts with UI tests:
+  - Case list view: table display, row clicking, sequential selection
+  - Case detail panel: worker name, discussion notes, timeline cards
+  - Navigation: app loading, page title, state management
+  - Error handling: missing case graceful handling
+- Extends existing gpnet-dashboard.spec.ts test
+- Playwright configuration already in place at playwright.config.ts
