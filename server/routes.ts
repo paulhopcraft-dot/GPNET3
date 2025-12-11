@@ -125,6 +125,27 @@ import {
   createSampleEvidence,
   LiabilityEvidence,
 } from "./services/liabilityDecision";
+import {
+  setBaseWageInfo,
+  getBaseWageInfo,
+  recordWorkPeriod,
+  getWorkPeriods,
+  calculatePeriodWages,
+  getWageCalculations,
+  recordTransaction,
+  getTransactions,
+  projectCosts,
+  getCostProjections,
+  generateRTWScenarios,
+  generateFinancialSummary,
+  calculateInterventionROI,
+  generateAggregateFinancials,
+  exportForPayroll,
+  reconcileTransactions,
+  calculateNormalWeeklyWage,
+  BaseWageInfo,
+  RTWScenario,
+} from "./services/financialWage";
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
@@ -2416,6 +2437,320 @@ export async function registerRoutes(app: Express): Promise<void> {
       description: "Sample evidence structure for liability assessment",
       evidence: sample,
     });
+  });
+
+  // ========================================================================
+  // Financial & Wage Management Engine APIs
+  // ========================================================================
+
+  // GET /api/cases/:id/financials - Get comprehensive financial summary
+  app.get("/api/cases/:id/financials", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const workerCase = await storage.getGPNet2Case(id);
+
+      if (!workerCase) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      // Check if base wage info exists
+      const baseWage = getBaseWageInfo(id);
+      if (!baseWage) {
+        return res.json({
+          caseId: id,
+          workerName: workerCase.workerName,
+          message: "No financial data configured. Set base wage info first.",
+          hasFinancialData: false,
+        });
+      }
+
+      const summary = generateFinancialSummary(id, workerCase.workerName);
+      res.json(summary);
+    } catch (err) {
+      console.error("Error getting financial summary:", err);
+      res.status(500).json({ error: "Failed to get financial summary" });
+    }
+  });
+
+  // POST /api/cases/:id/wage-info - Set base wage information
+  app.post("/api/cases/:id/wage-info", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const wageInfo = req.body as BaseWageInfo;
+
+      if (!wageInfo.hourlyRate || !wageInfo.normalHoursPerWeek) {
+        return res.status(400).json({
+          error: "hourlyRate and normalHoursPerWeek are required",
+        });
+      }
+
+      const result = setBaseWageInfo(id, {
+        hourlyRate: wageInfo.hourlyRate,
+        normalHoursPerWeek: wageInfo.normalHoursPerWeek,
+        normalDaysPerWeek: wageInfo.normalDaysPerWeek || 5,
+        payPeriod: wageInfo.payPeriod || "weekly",
+        employmentType: wageInfo.employmentType || "full_time",
+        superannuationRate: wageInfo.superannuationRate || 0.115,
+        allowances: wageInfo.allowances || [],
+      });
+
+      const weeklyWage = calculateNormalWeeklyWage(result);
+
+      res.json({
+        success: true,
+        wageInfo: result,
+        calculatedWeeklyWage: weeklyWage,
+      });
+    } catch (err) {
+      console.error("Error setting wage info:", err);
+      res.status(500).json({ error: "Failed to set wage info" });
+    }
+  });
+
+  // GET /api/cases/:id/wage-info - Get base wage information
+  app.get("/api/cases/:id/wage-info", (req, res) => {
+    try {
+      const { id } = req.params;
+      const wageInfo = getBaseWageInfo(id);
+
+      if (!wageInfo) {
+        return res.status(404).json({ error: "No wage info found for case" });
+      }
+
+      const weeklyWage = calculateNormalWeeklyWage(wageInfo);
+      res.json({ wageInfo, calculatedWeeklyWage: weeklyWage });
+    } catch (err) {
+      console.error("Error getting wage info:", err);
+      res.status(500).json({ error: "Failed to get wage info" });
+    }
+  });
+
+  // POST /api/cases/:id/work-periods - Record a work period
+  app.post("/api/cases/:id/work-periods", (req, res) => {
+    try {
+      const { id } = req.params;
+      const { startDate, endDate, hoursWorked, daysWorked, category, rtwPhase, notes } = req.body;
+
+      if (!startDate || !endDate || hoursWorked === undefined) {
+        return res.status(400).json({
+          error: "startDate, endDate, and hoursWorked are required",
+        });
+      }
+
+      const period = recordWorkPeriod({
+        caseId: id,
+        startDate,
+        endDate,
+        hoursWorked,
+        daysWorked: daysWorked || 0,
+        category: category || "rtw_wages",
+        rtwPhase,
+        notes,
+      });
+
+      res.json(period);
+    } catch (err) {
+      console.error("Error recording work period:", err);
+      res.status(500).json({ error: "Failed to record work period" });
+    }
+  });
+
+  // GET /api/cases/:id/work-periods - Get work periods
+  app.get("/api/cases/:id/work-periods", (req, res) => {
+    try {
+      const { id } = req.params;
+      const periods = getWorkPeriods(id);
+      res.json(periods);
+    } catch (err) {
+      console.error("Error getting work periods:", err);
+      res.status(500).json({ error: "Failed to get work periods" });
+    }
+  });
+
+  // POST /api/cases/:id/wage-calculation - Calculate wages for a period
+  app.post("/api/cases/:id/wage-calculation", (req, res) => {
+    try {
+      const { id } = req.params;
+      const { periodStart, periodEnd, hoursWorked, rtwPhase, weeksOnClaim } = req.body;
+
+      if (!periodStart || !periodEnd || hoursWorked === undefined) {
+        return res.status(400).json({
+          error: "periodStart, periodEnd, and hoursWorked are required",
+        });
+      }
+
+      const calculation = calculatePeriodWages(
+        id,
+        periodStart,
+        periodEnd,
+        hoursWorked,
+        rtwPhase,
+        weeksOnClaim || 1
+      );
+
+      res.json(calculation);
+    } catch (err) {
+      console.error("Error calculating wages:", err);
+      res.status(500).json({ error: "Failed to calculate wages" });
+    }
+  });
+
+  // GET /api/cases/:id/wage-calculations - Get wage calculation history
+  app.get("/api/cases/:id/wage-calculations", (req, res) => {
+    try {
+      const { id } = req.params;
+      const calculations = getWageCalculations(id);
+      res.json(calculations);
+    } catch (err) {
+      console.error("Error getting wage calculations:", err);
+      res.status(500).json({ error: "Failed to get wage calculations" });
+    }
+  });
+
+  // POST /api/cases/:id/transactions - Record a financial transaction
+  app.post("/api/cases/:id/transactions", (req, res) => {
+    try {
+      const { id } = req.params;
+      const { date, type, category, amount, description, reference, payrollReference, reconciled } = req.body;
+
+      if (!date || !type || !amount) {
+        return res.status(400).json({
+          error: "date, type, and amount are required",
+        });
+      }
+
+      const transaction = recordTransaction({
+        caseId: id,
+        date,
+        type,
+        category: category || "wage_payment",
+        amount,
+        description: description || "",
+        reference,
+        payrollReference,
+        reconciled: reconciled || false,
+        createdBy: "current-user",
+      });
+
+      res.json(transaction);
+    } catch (err) {
+      console.error("Error recording transaction:", err);
+      res.status(500).json({ error: "Failed to record transaction" });
+    }
+  });
+
+  // GET /api/cases/:id/transactions - Get transactions for a case
+  app.get("/api/cases/:id/transactions", (req, res) => {
+    try {
+      const { id } = req.params;
+      const transactions = getTransactions(id);
+      res.json(transactions);
+    } catch (err) {
+      console.error("Error getting transactions:", err);
+      res.status(500).json({ error: "Failed to get transactions" });
+    }
+  });
+
+  // POST /api/cases/:id/cost-projection - Project costs for an RTW scenario
+  app.post("/api/cases/:id/cost-projection", (req, res) => {
+    try {
+      const { id } = req.params;
+      const { scenario, baseWage } = req.body;
+
+      if (!scenario) {
+        return res.status(400).json({ error: "scenario is required" });
+      }
+
+      const projection = projectCosts(id, scenario as RTWScenario, baseWage);
+      res.json(projection);
+    } catch (err) {
+      console.error("Error projecting costs:", err);
+      res.status(500).json({ error: "Failed to project costs" });
+    }
+  });
+
+  // GET /api/cases/:id/cost-projections - Get all cost projections for a case
+  app.get("/api/cases/:id/cost-projections", (req, res) => {
+    try {
+      const { id } = req.params;
+      const projections = getCostProjections(id);
+      res.json(projections);
+    } catch (err) {
+      console.error("Error getting projections:", err);
+      res.status(500).json({ error: "Failed to get projections" });
+    }
+  });
+
+  // GET /api/financial/rtw-scenarios - Get predefined RTW scenarios for cost comparison
+  app.get("/api/financial/rtw-scenarios", (req, res) => {
+    try {
+      const hoursPerDay = parseInt(req.query.hoursPerDay as string) || 8;
+      const scenarios = generateRTWScenarios(hoursPerDay);
+      res.json(scenarios);
+    } catch (err) {
+      console.error("Error generating scenarios:", err);
+      res.status(500).json({ error: "Failed to generate scenarios" });
+    }
+  });
+
+  // POST /api/cases/:id/intervention-roi - Calculate ROI for intervention
+  app.post("/api/cases/:id/intervention-roi", (req, res) => {
+    try {
+      const { id } = req.params;
+      const { interventionCost, weeksAccelerated } = req.body;
+
+      if (!interventionCost || !weeksAccelerated) {
+        return res.status(400).json({
+          error: "interventionCost and weeksAccelerated are required",
+        });
+      }
+
+      const roi = calculateInterventionROI(id, interventionCost, weeksAccelerated);
+      res.json(roi);
+    } catch (err) {
+      console.error("Error calculating ROI:", err);
+      res.status(500).json({ error: "Failed to calculate ROI" });
+    }
+  });
+
+  // GET /api/financial/aggregate - Get aggregate financials across cases
+  app.get("/api/financial/aggregate", async (req, res) => {
+    try {
+      const cases = await storage.getGPNet2Cases();
+      const caseIds = cases.map((c) => c.id);
+      const aggregate = generateAggregateFinancials(caseIds);
+      res.json(aggregate);
+    } catch (err) {
+      console.error("Error generating aggregate:", err);
+      res.status(500).json({ error: "Failed to generate aggregate" });
+    }
+  });
+
+  // GET /api/cases/:id/payroll-export - Export data for payroll
+  app.get("/api/cases/:id/payroll-export", (req, res) => {
+    try {
+      const { id } = req.params;
+      const periodStart = (req.query.periodStart as string) || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+      const periodEnd = (req.query.periodEnd as string) || new Date().toISOString().split("T")[0];
+
+      const exportData = exportForPayroll(id, periodStart, periodEnd);
+      res.json(exportData);
+    } catch (err) {
+      console.error("Error exporting payroll data:", err);
+      res.status(500).json({ error: "Failed to export payroll data" });
+    }
+  });
+
+  // GET /api/cases/:id/reconciliation - Reconcile transactions against calculations
+  app.get("/api/cases/:id/reconciliation", (req, res) => {
+    try {
+      const { id } = req.params;
+      const result = reconcileTransactions(id);
+      res.json(result);
+    } catch (err) {
+      console.error("Error reconciling:", err);
+      res.status(500).json({ error: "Failed to reconcile" });
+    }
   });
 
 }

@@ -405,3 +405,33 @@ Progress: 21/23 features (91%)
 - APIs: case liability assessment, custom evidence assessment, quick check, sample evidence
 Progress: 22/23 features (96%)
 
+
+
+--- 2025-12-11 02:49:38 ---
+Feature: financial_wage_engine
+Status: COMPLETE
+
+Implemented financial and wage management engine:
+- Base wage tracking with hourly rates, hours/week, allowances
+- RTW period wage calculations with workers' comp integration
+- Top-up payment calculations based on jurisdiction rates
+- 4 RTW scenario templates for cost projection
+- Intervention ROI calculator
+- Financial summaries and payroll export
+- Transaction recording and reconciliation
+
+APIs added:
+- POST/GET /api/cases/:id/wage-info
+- POST/GET /api/cases/:id/work-periods
+- POST/GET /api/cases/:id/wage-calculation(s)
+- POST/GET /api/cases/:id/transactions
+- POST/GET /api/cases/:id/cost-projection(s)
+- GET /api/financial/rtw-scenarios
+- POST /api/cases/:id/intervention-roi
+- GET /api/financial/aggregate
+- GET /api/cases/:id/payroll-export
+- GET /api/cases/:id/reconciliation
+- GET /api/cases/:id/financials
+
+Progress: 23/23 features (100%)
+
