@@ -1,17 +1,70 @@
 version: "3.9"
+
 services:
+  # PostgreSQL Database
   postgres:
     image: postgres:16
     container_name: gpnet-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: gpnet3
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-gpnet3}
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d gpnet3"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # GPNet3 Application (Production)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gpnet-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-gpnet3}
+      JWT_SECRET: ${JWT_SECRET:-change-in-production}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      FRESHDESK_DOMAIN: ${FRESHDESK_DOMAIN:-}
+      FRESHDESK_API_KEY: ${FRESHDESK_API_KEY:-}
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+    profiles:
+      - prod
+
+  # GPNet3 Application (Development with hot reload)
+  app-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: gpnet-dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-gpnet3}
+      JWT_SECRET: ${JWT_SECRET:-dev-secret}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      FRESHDESK_DOMAIN: ${FRESHDESK_DOMAIN:-}
+      FRESHDESK_API_KEY: ${FRESHDESK_API_KEY:-}
+    volumes:
+      - .:/app
+      - /app/node_modules
+    ports:
+      - "5000:5000"
+    profiles:
+      - dev
 
 volumes:
   pgdata:
