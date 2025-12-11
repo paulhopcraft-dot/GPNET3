@@ -14,6 +14,10 @@ import CasesPage from "./pages/CasesPage";
 import ClaimsIntakePage from "./pages/ClaimsIntakePage";
 import RTWPlannerPage from "./pages/RTWPlannerPage";
 import FinancialsPage from "./pages/FinancialsPage";
+import CheckinsPage from "./pages/CheckinsPage";
+import PredictionsPage from "./pages/PredictionsPage";
+import RiskDashboardPage from "./pages/RiskDashboardPage";
+import AuditLogPage from "./pages/AuditLogPage";
 
 // Placeholder pages for routes not yet built
 function PlaceholderPage({ title }: { title: string }) {
@@ -75,7 +79,7 @@ export default function App() {
                   path="/checkins"
                   element={
                     <ProtectedRoute>
-                      <PlaceholderPage title="Check-ins" />
+                      <CheckinsPage />
                     </ProtectedRoute>
                   }
                 />
@@ -91,7 +95,7 @@ export default function App() {
                   path="/predictions"
                   element={
                     <ProtectedRoute>
-                      <PlaceholderPage title="Predictions" />
+                      <PredictionsPage />
                     </ProtectedRoute>
                   }
                 />
@@ -99,7 +103,7 @@ export default function App() {
                   path="/risk"
                   element={
                     <ProtectedRoute>
-                      <PlaceholderPage title="Risk Dashboard" />
+                      <RiskDashboardPage />
                     </ProtectedRoute>
                   }
                 />
@@ -107,7 +111,7 @@ export default function App() {
                   path="/audit"
                   element={
                     <ProtectedRoute>
-                      <PlaceholderPage title="Audit Log" />
+                      <AuditLogPage />
                     </ProtectedRoute>
                   }
                 />
