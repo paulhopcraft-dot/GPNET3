@@ -119,6 +119,12 @@ import {
   SummaryType,
   CaseDataSources,
 } from "./services/smartSummary";
+import {
+  assessLiability,
+  quickLiabilityCheck,
+  createSampleEvidence,
+  LiabilityEvidence,
+} from "./services/liabilityDecision";
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
@@ -2326,6 +2332,90 @@ export async function registerRoutes(app: Express): Promise<void> {
       console.error("Case actions error:", err);
       res.status(500).json({ error: "Failed to get case actions" });
     }
+  });
+
+  // ==================== LIABILITY DECISION ENGINE ====================
+
+  // GET /api/cases/:id/liability - Get liability assessment for a case
+  app.get("/api/cases/:id/liability", async (req, res) => {
+    try {
+      const caseId = req.params.id;
+      const workerCase = await storage.getCaseById(caseId);
+
+      if (!workerCase) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      // In production, would aggregate evidence from various sources
+      // For now, use sample evidence with case-specific overrides
+      const evidence = createSampleEvidence(caseId);
+      evidence.injury.description = workerCase.diagnosis || evidence.injury.description;
+
+      const assessment = assessLiability(caseId, evidence, "system");
+
+      // Log the assessment in audit trail
+      logAuditEvent({
+        eventType: "compliance_check",
+        severity: assessment.outcome === "unlikely_compensable" ? "warning" : "info",
+        entityType: "case",
+        entityId: caseId,
+        action: "liability_assessment",
+        description: `Liability assessment: ${assessment.outcome} (${assessment.confidenceScore}% confidence)`,
+        metadata: { assessmentId: assessment.id, outcome: assessment.outcome },
+      });
+
+      res.json(assessment);
+    } catch (err) {
+      console.error("Liability assessment error:", err);
+      res.status(500).json({ error: "Failed to assess liability" });
+    }
+  });
+
+  // POST /api/liability/assess - Assess liability from provided evidence
+  app.post("/api/liability/assess", (req, res) => {
+    try {
+      const { caseId, evidence } = req.body;
+
+      if (!caseId || !evidence) {
+        return res.status(400).json({ error: "caseId and evidence are required" });
+      }
+
+      const assessment = assessLiability(caseId, evidence as LiabilityEvidence, "current-user");
+
+      res.json(assessment);
+    } catch (err) {
+      console.error("Liability assessment error:", err);
+      res.status(500).json({ error: "Failed to assess liability" });
+    }
+  });
+
+  // POST /api/liability/quick-check - Quick liability check
+  app.post("/api/liability/quick-check", (req, res) => {
+    try {
+      const { hasIncidentReport, hasWitness, hasMedicalSupport, priorClaims, preExisting } = req.body;
+
+      const result = quickLiabilityCheck(
+        hasIncidentReport ?? false,
+        hasWitness ?? false,
+        hasMedicalSupport ?? false,
+        priorClaims ?? 0,
+        preExisting ?? false
+      );
+
+      res.json(result);
+    } catch (err) {
+      console.error("Quick check error:", err);
+      res.status(500).json({ error: "Failed to perform quick check" });
+    }
+  });
+
+  // GET /api/liability/sample-evidence - Get sample evidence structure
+  app.get("/api/liability/sample-evidence", (_req, res) => {
+    const sample = createSampleEvidence("SAMPLE-001");
+    res.json({
+      description: "Sample evidence structure for liability assessment",
+      evidence: sample,
+    });
   });
 
 }

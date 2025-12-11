@@ -391,3 +391,17 @@ Progress: 20/23 features (87%)
 - APIs: case summary, snapshot, actions, custom generation, batch summaries
 Progress: 21/23 features (91%)
 
+
+2025-12-11T02:44:13+00:00 — liability_decision_engine
+- Created server/services/liabilityDecision.ts (600+ lines)
+- Analyzes 5 evidence categories: injury details, work conditions, documentary evidence, worker history, behavioural factors
+- Outputs 3 likelihood outcomes: likely_compensable, unlikely_compensable, unclear_needs_investigation
+- Evidence factors categorized as supporting, concerning, or neutral with weighted scoring
+- Evidence strength assessment: strong, moderate, weak, missing
+- Identifies evidence gaps with impact levels and remediation actions
+- Generates detailed rationale explaining assessment reasoning
+- Quick check function for simplified high-level assessment
+- Audit trail integration logs all assessments
+- APIs: case liability assessment, custom evidence assessment, quick check, sample evidence
+Progress: 22/23 features (96%)
+
