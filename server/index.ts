@@ -71,8 +71,8 @@ const startServer = async () => {
   const isDev = app.get("env") === "development";
 
   if (isDev) {
-    const server = app.listen(port, () => {
-      console.log(`Server listening on http://localhost:${port}`);
+    const server = app.listen(port, "0.0.0.0", () => {
+      console.log(`Server listening on http://0.0.0.0:${port}`);
     });
 
     try {
@@ -83,8 +83,8 @@ const startServer = async () => {
     }
   } else {
     serveStatic(app);
-    app.listen(port, () => {
-      console.log(`Server listening on http://localhost:${port}`);
+    app.listen(port, "0.0.0.0", () => {
+      console.log(`Server listening on http://0.0.0.0:${port}`);
     });
   }
 };
