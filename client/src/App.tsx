@@ -6,8 +6,26 @@ import { TooltipProvider } from "./components/ui/tooltip";
 import { ThemeProvider } from "./components/theme-provider";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
-import GPNet2Dashboard from "./pages/GPNet2Dashboard";
+
+// Pages
 import LoginPage from "./pages/LoginPage";
+import DashboardPage from "./pages/DashboardPage";
+import CasesPage from "./pages/CasesPage";
+import ClaimsIntakePage from "./pages/ClaimsIntakePage";
+import RTWPlannerPage from "./pages/RTWPlannerPage";
+import FinancialsPage from "./pages/FinancialsPage";
+
+// Placeholder pages for routes not yet built
+function PlaceholderPage({ title }: { title: string }) {
+  return (
+    <div className="flex h-screen items-center justify-center bg-background">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold mb-2">{title}</h1>
+        <p className="text-muted-foreground">Coming soon</p>
+      </div>
+    </div>
+  );
+}
 
 export default function App() {
   return (
@@ -17,12 +35,95 @@ export default function App() {
           <ThemeProvider defaultTheme="light">
             <AuthProvider>
               <Routes>
+                {/* Public routes */}
                 <Route path="/login" element={<LoginPage />} />
+
+                {/* Protected routes */}
                 <Route
                   path="/"
                   element={
                     <ProtectedRoute>
-                      <GPNet2Dashboard />
+                      <DashboardPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/cases"
+                  element={
+                    <ProtectedRoute>
+                      <CasesPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/claims/new"
+                  element={
+                    <ProtectedRoute>
+                      <ClaimsIntakePage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/rtw-planner"
+                  element={
+                    <ProtectedRoute>
+                      <RTWPlannerPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/checkins"
+                  element={
+                    <ProtectedRoute>
+                      <PlaceholderPage title="Check-ins" />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/financials"
+                  element={
+                    <ProtectedRoute>
+                      <FinancialsPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/predictions"
+                  element={
+                    <ProtectedRoute>
+                      <PlaceholderPage title="Predictions" />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/risk"
+                  element={
+                    <ProtectedRoute>
+                      <PlaceholderPage title="Risk Dashboard" />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/audit"
+                  element={
+                    <ProtectedRoute>
+                      <PlaceholderPage title="Audit Log" />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/users"
+                  element={
+                    <ProtectedRoute>
+                      <PlaceholderPage title="User Management" />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/settings"
+                  element={
+                    <ProtectedRoute>
+                      <PlaceholderPage title="Settings" />
                     </ProtectedRoute>
                   }
                 />
