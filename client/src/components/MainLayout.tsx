@@ -15,6 +15,7 @@ import {
   LogOut,
   ChevronDown,
   Menu,
+  ClipboardList,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,7 @@ const navigationItems = [
     items: [
       { name: "Dashboard", href: "/", icon: LayoutDashboard },
       { name: "Cases", href: "/cases", icon: FileText },
+      { name: "Case Summary", href: "/summary", icon: ClipboardList },
     ],
   },
   {

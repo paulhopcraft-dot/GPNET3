@@ -18,6 +18,7 @@ import CheckinsPage from "./pages/CheckinsPage";
 import PredictionsPage from "./pages/PredictionsPage";
 import RiskDashboardPage from "./pages/RiskDashboardPage";
 import AuditLogPage from "./pages/AuditLogPage";
+import CaseSummaryPage from "./pages/CaseSummaryPage";
 
 // Placeholder pages for routes not yet built
 function PlaceholderPage({ title }: { title: string }) {
@@ -112,6 +113,14 @@ export default function App() {
                   element={
                     <ProtectedRoute>
                       <AuditLogPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/summary"
+                  element={
+                    <ProtectedRoute>
+                      <CaseSummaryPage />
                     </ProtectedRoute>
                   }
                 />

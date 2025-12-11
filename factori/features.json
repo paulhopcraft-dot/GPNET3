@@ -33,5 +33,7 @@
   "frontend_checkins_page": { "pass": true, "notes": "Weekly check-in management UI. Case selector, questionnaire with scale/yes_no/text questions, score visualization (pain, mood, ADL, work, overall), history tab, trends tab, risk signal alerts. Route: /checkins" },
   "frontend_predictions_page": { "pass": true, "notes": "ML predictions dashboard UI. Duration prediction with range and confidence, RTW probability with timeframe, deterioration risk with warnings, factor analysis with impact indicators, priority rankings table. Route: /predictions" },
   "frontend_risk_dashboard_page": { "pass": true, "notes": "Executive risk overview UI. Key metrics (total cases, high/medium risk, long-tail), risk distribution visual bar, active flags summary, high risk cases table, company risk analysis. Route: /risk" },
-  "frontend_audit_log_page": { "pass": true, "notes": "Audit log viewer UI. Stats cards for event counts, filters (search, event type, actor, date range), events table with badges and icons, compliance checks tab, export to CSV/JSON. Route: /audit" }
+  "frontend_audit_log_page": { "pass": true, "notes": "Audit log viewer UI. Stats cards for event counts, filters (search, event type, actor, date range), events table with badges and icons, compliance checks tab, export to CSV/JSON. Route: /audit" },
+
+  "frontend_case_summary_page": { "pass": true, "notes": "Comprehensive case summary UI with snapshot, executive summary, current situation, risks & compliance, progress tracking, and recommended actions. Case selector, tabbed interface, print/export support. Route: /summary" }
 }
