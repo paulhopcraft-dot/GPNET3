@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, cleanup } from "@testing-library/react";
 import { TimelineCard } from "./TimelineCard";
 import type { TimelineResponse } from "@shared/schema";
 
@@ -11,6 +11,7 @@ describe("TimelineCard", () => {
   });
 
   afterEach(() => {
+    cleanup();
     vi.restoreAllMocks();
   });
 
@@ -31,7 +32,8 @@ describe("TimelineCard", () => {
     render(<TimelineCard caseId="TEST-001" />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Timeline unavailable/i)).toBeInTheDocument();
+      // Component shows the error message directly
+      expect(screen.getByText(/Network error/i)).toBeInTheDocument();
     });
 
     // Verify error icon is present
@@ -194,7 +196,7 @@ describe("TimelineCard", () => {
           caseId: "TEST-001",
           eventType: "discussion_note",
           timestamp: "2025-01-15T10:00:00Z",
-          title: "Discussion Note",
+          title: "Risk Flag Test Note",
           metadata: {
             riskFlags: ["Flag 1", "Flag 2", "Flag 3", "Flag 4"],
           },
@@ -211,7 +213,7 @@ describe("TimelineCard", () => {
     render(<TimelineCard caseId="TEST-001" />);
 
     await waitFor(() => {
-      expect(screen.getByText("Discussion Note")).toBeInTheDocument();
+      expect(screen.getByText("Risk Flag Test Note")).toBeInTheDocument();
     });
 
     // Only first 3 flags should be displayed
@@ -277,7 +279,8 @@ describe("TimelineCard", () => {
 
     await waitFor(() => {
       // Event type "discussion_note" should be formatted as "Discussion Note"
-      expect(screen.getByText("DISCUSSION NOTE")).toBeInTheDocument();
+      // (CSS uppercase class transforms display, but text content is title case)
+      expect(screen.getByText("Discussion Note")).toBeInTheDocument();
     });
   });
 

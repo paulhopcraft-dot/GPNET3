@@ -77,23 +77,35 @@ export async function registerRoutes(app: Express): Promise<void> {
 
   // Freshdesk sync endpoint
   app.post("/api/freshdesk/sync", async (req, res) => {
+    // Check if Freshdesk is configured before attempting sync
+    if (!process.env.FRESHDESK_DOMAIN || !process.env.FRESHDESK_API_KEY) {
+      // Return success with 0 synced - graceful degradation when Freshdesk isn't configured
+      return res.json({
+        success: true,
+        synced: 0,
+        message: "Freshdesk sync skipped - not configured",
+        configured: false
+      });
+    }
+
     try {
       const freshdesk = new FreshdeskService();
       const tickets = await freshdesk.fetchTickets();
       const workerCases = await freshdesk.transformTicketsToWorkerCases(tickets);
-      
+
       for (const workerCase of workerCases) {
         await storage.syncWorkerCaseFromFreshdesk(workerCase);
       }
 
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         synced: workerCases.length,
-        message: `Successfully synced ${workerCases.length} cases from Freshdesk`
+        message: `Successfully synced ${workerCases.length} cases from Freshdesk`,
+        configured: true
       });
     } catch (error) {
       console.error("Error syncing Freshdesk tickets:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to sync Freshdesk tickets",
         details: error instanceof Error ? error.message : "Unknown error"
       });
