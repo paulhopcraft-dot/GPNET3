@@ -15,7 +15,7 @@ import type {
   ComplianceIndicator,
   CaseClinicalStatus,
 } from "@shared/schema";
-import { db } from "./db";
+import { db, USE_MOCK_DB } from "./db";
 import {
   workerCases,
   caseAttachments,
@@ -1020,4 +1020,176 @@ class DbStorage implements IStorage {
   }
 }
 
-export const storage: IStorage = new DbStorage();
+// Mock data for testing without database
+const MOCK_CASES: WorkerCase[] = [
+  {
+    id: "MOCK-001",
+    workerName: "John Smith",
+    company: "ABC Construction",
+    dateOfInjury: "2024-09-15",
+    riskLevel: "High",
+    workStatus: "Off work",
+    hasCertificate: true,
+    complianceIndicator: "Medium",
+    compliance: { indicator: "Medium", reason: "Awaiting specialist report", source: "manual", lastChecked: new Date().toISOString() },
+    currentStatus: "Under Review",
+    nextStep: "Schedule IME appointment",
+    owner: "CLC Team",
+    dueDate: "2024-12-20",
+    summary: "Lower back injury from lifting incident. Currently off work pending specialist assessment.",
+    ticketIds: ["MOCK-001"],
+    ticketCount: 3,
+    aiSummary: "Worker sustained lower back injury on 15/09/2024 while lifting heavy materials. Currently off work with medical certificate. Awaiting IME assessment to determine RTW capacity.",
+    aiSummaryGeneratedAt: new Date().toISOString(),
+    ticketLastUpdatedAt: new Date().toISOString(),
+    attachments: [],
+  },
+  {
+    id: "MOCK-002",
+    workerName: "Sarah Johnson",
+    company: "Metro Transport",
+    dateOfInjury: "2024-10-01",
+    riskLevel: "Medium",
+    workStatus: "Modified duties",
+    hasCertificate: true,
+    complianceIndicator: "High",
+    compliance: { indicator: "High", reason: "Good progress on RTW plan", source: "manual", lastChecked: new Date().toISOString() },
+    currentStatus: "RTW in Progress",
+    nextStep: "Review modified duties progress",
+    owner: "CLC Team",
+    dueDate: "2024-12-15",
+    summary: "Shoulder strain from repetitive work. On modified duties with physio support.",
+    ticketIds: ["MOCK-002"],
+    ticketCount: 2,
+    aiSummary: "Worker experiencing shoulder strain from repetitive tasks. Currently on modified duties with physiotherapy. Good compliance with treatment plan.",
+    aiSummaryGeneratedAt: new Date().toISOString(),
+    ticketLastUpdatedAt: new Date().toISOString(),
+    attachments: [],
+  },
+  {
+    id: "MOCK-003",
+    workerName: "Michael Chen",
+    company: "Tech Solutions",
+    dateOfInjury: "2024-11-10",
+    riskLevel: "Low",
+    workStatus: "At work",
+    hasCertificate: false,
+    complianceIndicator: "Very High",
+    compliance: { indicator: "Very High", reason: "Full RTW achieved", source: "manual", lastChecked: new Date().toISOString() },
+    currentStatus: "Closed - RTW",
+    nextStep: "Final review",
+    owner: "CLC Team",
+    dueDate: "2024-12-10",
+    summary: "Minor wrist strain from computer work. Successfully returned to full duties.",
+    ticketIds: ["MOCK-003"],
+    ticketCount: 1,
+    aiSummary: "Worker had minor wrist strain from computer use. Completed ergonomic assessment and returned to full duties.",
+    aiSummaryGeneratedAt: new Date().toISOString(),
+    ticketLastUpdatedAt: new Date().toISOString(),
+    attachments: [],
+  },
+  {
+    id: "MOCK-004",
+    workerName: "Emma Wilson",
+    company: "Healthcare Plus",
+    dateOfInjury: "2024-08-20",
+    riskLevel: "High",
+    workStatus: "Off work",
+    hasCertificate: true,
+    complianceIndicator: "Low",
+    compliance: { indicator: "Low", reason: "Missed appointments, non-responsive", source: "manual", lastChecked: new Date().toISOString() },
+    currentStatus: "Escalated",
+    nextStep: "Contact employer for welfare check",
+    owner: "CLC Team",
+    dueDate: "2024-12-12",
+    summary: "Psychological injury claim. Worker has become non-responsive to contact attempts.",
+    ticketIds: ["MOCK-004"],
+    ticketCount: 5,
+    aiSummary: "Worker lodged psychological injury claim. Has missed multiple appointments and is not responding to contact. Case escalated for welfare check.",
+    aiSummaryGeneratedAt: new Date().toISOString(),
+    ticketLastUpdatedAt: new Date().toISOString(),
+    attachments: [],
+  },
+  {
+    id: "MOCK-005",
+    workerName: "David Brown",
+    company: "Retail Corp",
+    dateOfInjury: "2024-07-05",
+    riskLevel: "Medium",
+    workStatus: "Modified duties",
+    hasCertificate: true,
+    complianceIndicator: "Medium",
+    compliance: { indicator: "Medium", reason: "Slow progress on RTW", source: "manual", lastChecked: new Date().toISOString() },
+    currentStatus: "In Progress",
+    nextStep: "Review capacity certificate",
+    owner: "CLC Team",
+    dueDate: "2024-12-18",
+    summary: "Knee injury from slip and fall. Gradual return to work in progress.",
+    ticketIds: ["MOCK-005"],
+    ticketCount: 4,
+    aiSummary: "Worker sustained knee injury from slip and fall incident. Currently on modified duties with gradual increase in hours planned.",
+    aiSummaryGeneratedAt: new Date().toISOString(),
+    ticketLastUpdatedAt: new Date().toISOString(),
+    attachments: [],
+  },
+];
+
+class MockStorage implements IStorage {
+  async getGPNet2Cases(): Promise<WorkerCase[]> {
+    return MOCK_CASES;
+  }
+
+  async getGPNet2CaseById(id: string): Promise<WorkerCase | null> {
+    return MOCK_CASES.find((c) => c.id === id) || null;
+  }
+
+  async syncWorkerCaseFromFreshdesk(): Promise<void> {
+    console.log("[MockStorage] syncWorkerCaseFromFreshdesk called (no-op)");
+  }
+
+  async clearAllWorkerCases(): Promise<void> {
+    console.log("[MockStorage] clearAllWorkerCases called (no-op)");
+  }
+
+  async updateAISummary(): Promise<void> {
+    console.log("[MockStorage] updateAISummary called (no-op)");
+  }
+
+  async needsSummaryRefresh(): Promise<boolean> {
+    return false;
+  }
+
+  async getCaseRecoveryTimeline(): Promise<MedicalCertificate[]> {
+    return [];
+  }
+
+  async getCaseDiscussionNotes(): Promise<CaseDiscussionNote[]> {
+    return [];
+  }
+
+  async upsertCaseDiscussionNotes(): Promise<void> {
+    console.log("[MockStorage] upsertCaseDiscussionNotes called (no-op)");
+  }
+
+  async getCaseDiscussionInsights(): Promise<TranscriptInsight[]> {
+    return [];
+  }
+
+  async upsertCaseDiscussionInsights(): Promise<void> {
+    console.log("[MockStorage] upsertCaseDiscussionInsights called (no-op)");
+  }
+
+  async findCaseByWorkerName(): Promise<null> {
+    return null;
+  }
+
+  async updateClinicalStatus(): Promise<void> {
+    console.log("[MockStorage] updateClinicalStatus called (no-op)");
+  }
+
+  async getCaseTimeline(): Promise<TimelineEvent[]> {
+    return [];
+  }
+}
+
+export const storage: IStorage = USE_MOCK_DB ? new MockStorage() : new DbStorage();

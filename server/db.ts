@@ -2,11 +2,17 @@ import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "@shared/schema";
 
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
+// Allow running without database for frontend testing
+export const USE_MOCK_DB = !process.env.DATABASE_URL;
+
+if (USE_MOCK_DB) {
+  console.warn("[DB] Running in MOCK mode - no database connection");
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle(pool, { schema });
+export const pool = USE_MOCK_DB
+  ? (null as unknown as Pool)
+  : new Pool({ connectionString: process.env.DATABASE_URL });
+
+export const db = USE_MOCK_DB
+  ? (null as unknown as ReturnType<typeof drizzle>)
+  : drizzle(pool!, { schema });
