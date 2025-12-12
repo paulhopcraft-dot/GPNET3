@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { useNavigate, Navigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -33,12 +33,15 @@ export default function LoginPage() {
     },
   });
 
-  // Redirect if auth is bypassed or already authenticated
-  useEffect(() => {
-    if (DEV_BYPASS_AUTH || isAuthenticated) {
-      navigate("/");
-    }
-  }, [isAuthenticated, navigate]);
+  // Immediate redirect if auth is bypassed
+  if (DEV_BYPASS_AUTH) {
+    return <Navigate to="/" replace />;
+  }
+
+  // Redirect if already authenticated
+  if (isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
 
   // Clear error when user starts typing
   useEffect(() => {
