@@ -11,6 +11,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { Loader2 } from "lucide-react";
 
+// DEVELOPMENT: Set to true to bypass authentication (must match ProtectedRoute.tsx)
+const DEV_BYPASS_AUTH = true;
+
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(1, "Password is required"),
@@ -30,9 +33,9 @@ export default function LoginPage() {
     },
   });
 
-  // Redirect if already authenticated
+  // Redirect if auth is bypassed or already authenticated
   useEffect(() => {
-    if (isAuthenticated) {
+    if (DEV_BYPASS_AUTH || isAuthenticated) {
       navigate("/");
     }
   }, [isAuthenticated, navigate]);
