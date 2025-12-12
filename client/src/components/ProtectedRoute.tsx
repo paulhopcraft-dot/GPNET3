@@ -7,8 +7,16 @@ interface ProtectedRouteProps {
   children: ReactNode;
 }
 
+// DEVELOPMENT: Set to true to bypass authentication
+const DEV_BYPASS_AUTH = true;
+
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { isAuthenticated, isLoading } = useAuth();
+
+  // Bypass auth check for development
+  if (DEV_BYPASS_AUTH) {
+    return <>{children}</>;
+  }
 
   if (isLoading) {
     return (
