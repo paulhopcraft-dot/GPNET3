@@ -51,7 +51,12 @@
       "Bash(git -C \"C:\\Dev\\gpnet3\" push)",
       "Bash(ping:*)",
       "Bash(git -C \"C:\\Dev\\gpnet3\" remote -v)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "Bash(git -C \"C:\\Dev\\gpnet3\" diff --cached --stat)",
+      "Bash(git -C \"C:\\Dev\\gpnet3\" diff --cached server/controllers/webhooks.ts)",
+      "Bash(git -C \"C:\\Dev\\gpnet3\" diff --cached tsconfig.server.json)",
+      "Bash(git -C \"C:\\Dev\\gpnet3\" add .claude/domain_memory.json .claude/settings.local.json server/controllers/auth.ts server/middleware/auth.ts server/middleware/caseOwnership.ts server/middleware/security.ts server/routes.ts server/routes/actions.ts server/routes/emailDrafts.ts server/routes/notifications.ts server/routes/smartSummary.ts server/services/auditLogger.ts server/services/emailDraftService.ts server/services/notificationService.ts server/services/smartSummary.ts server/storage.ts shared/schema.ts migrations/0009_add_organization_to_remaining_tables.sql SECURITY_IMPLEMENTATION_STATUS.md tsconfig.server.json)"
     ],
     "deny": [],
     "ask": []

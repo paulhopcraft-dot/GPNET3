@@ -1,7 +1,8 @@
 import express, { type Request, type Response } from "express";
 import { z } from "zod";
 import { storage } from "../storage";
-import { authorize } from "../middleware/auth";
+import { authorize, type AuthRequest } from "../middleware/auth";
+import { requireCaseOwnership } from "../middleware/caseOwnership";
 import type { CaseActionStatus, CaseActionType } from "@shared/schema";
 import {
   getCaseCompliance,
@@ -22,12 +23,13 @@ const requireAuth = authorize();
  * GET /api/actions
  * Get all pending actions with case info (for Action Queue dashboard)
  */
-router.get("/", requireAuth, async (_req: Request, res: Response) => {
+router.get("/", requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const status = (_req.query.status as CaseActionStatus) || "pending";
-    const limit = parseInt(_req.query.limit as string) || 50;
+    const organizationId = req.user!.organizationId;
+    const status = (req.query.status as CaseActionStatus) || "pending";
+    const limit = parseInt(req.query.limit as string) || 50;
 
-    const actions = await storage.getAllActionsWithCaseInfo({ status, limit });
+    const actions = await storage.getAllActionsWithCaseInfo(organizationId, { status, limit });
     res.json({ success: true, data: actions });
   } catch (error: any) {
     console.error("Error fetching actions:", error);
@@ -39,10 +41,11 @@ router.get("/", requireAuth, async (_req: Request, res: Response) => {
  * GET /api/actions/pending
  * Get pending actions sorted by due date
  */
-router.get("/pending", requireAuth, async (_req: Request, res: Response) => {
+router.get("/pending", requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const limit = parseInt(_req.query.limit as string) || 10;
-    const actions = await storage.getPendingActions(limit);
+    const organizationId = req.user!.organizationId;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const actions = await storage.getPendingActions(organizationId, limit);
     res.json({ success: true, data: actions });
   } catch (error: any) {
     console.error("Error fetching pending actions:", error);
@@ -54,10 +57,11 @@ router.get("/pending", requireAuth, async (_req: Request, res: Response) => {
  * GET /api/actions/overdue
  * Get overdue actions (pending + past due date)
  */
-router.get("/overdue", requireAuth, async (_req: Request, res: Response) => {
+router.get("/overdue", requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const limit = parseInt(_req.query.limit as string) || 10;
-    const actions = await storage.getOverdueActions(limit);
+    const organizationId = req.user!.organizationId;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const actions = await storage.getOverdueActions(organizationId, limit);
     res.json({ success: true, data: actions });
   } catch (error: any) {
     console.error("Error fetching overdue actions:", error);
@@ -157,12 +161,13 @@ router.post("/:id/cancel", requireAuth, async (req: Request, res: Response) => {
 // =====================================================
 
 /**
- * GET /api/cases/:caseId/actions
+ * GET /api/actions/case/:caseId
  * Get all actions for a specific case
  */
-router.get("/case/:caseId", requireAuth, async (req: Request, res: Response) => {
+router.get("/case/:caseId", requireAuth, requireCaseOwnership(), async (req: AuthRequest, res: Response) => {
   try {
-    const actions = await storage.getActionsByCase(req.params.caseId);
+    const workerCase = req.workerCase!; // Populated by requireCaseOwnership middleware
+    const actions = await storage.getActionsByCase(workerCase.id, workerCase.organizationId);
     res.json({ success: true, data: actions });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -170,10 +175,10 @@ router.get("/case/:caseId", requireAuth, async (req: Request, res: Response) => 
 });
 
 /**
- * POST /api/cases/:caseId/actions
+ * POST /api/actions/case/:caseId
  * Create a new action for a case
  */
-router.post("/case/:caseId", requireAuth, async (req: Request, res: Response) => {
+router.post("/case/:caseId", requireAuth, requireCaseOwnership(), async (req: AuthRequest, res: Response) => {
   try {
     const createSchema = z.object({
       type: z.enum(["chase_certificate", "review_case", "follow_up"]),
@@ -183,16 +188,11 @@ router.post("/case/:caseId", requireAuth, async (req: Request, res: Response) =>
     });
 
     const data = createSchema.parse(req.body);
-    const caseId = req.params.caseId;
-
-    // Check if case exists
-    const workerCase = await storage.getGPNet2CaseById(caseId);
-    if (!workerCase) {
-      return res.status(404).json({ success: false, message: "Case not found" });
-    }
+    const workerCase = req.workerCase!; // Populated by requireCaseOwnership middleware
 
     const action = await storage.createAction({
-      caseId,
+      organizationId: workerCase.organizationId,
+      caseId: workerCase.id,
       type: data.type,
       status: "pending",
       dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
@@ -207,20 +207,14 @@ router.post("/case/:caseId", requireAuth, async (req: Request, res: Response) =>
 });
 
 /**
- * GET /api/cases/:caseId/compliance
+ * GET /api/actions/case/:caseId/compliance
  * Get certificate compliance status for a case
  */
-router.get("/case/:caseId/compliance", requireAuth, async (req: Request, res: Response) => {
+router.get("/case/:caseId/compliance", requireAuth, requireCaseOwnership(), async (req: AuthRequest, res: Response) => {
   try {
-    const caseId = req.params.caseId;
+    const workerCase = req.workerCase!; // Populated by requireCaseOwnership middleware
 
-    // Check if case exists
-    const workerCase = await storage.getGPNet2CaseById(caseId);
-    if (!workerCase) {
-      return res.status(404).json({ success: false, message: "Case not found" });
-    }
-
-    const compliance = await getCaseCompliance(storage, caseId);
+    const compliance = await getCaseCompliance(storage, workerCase.id);
     res.json({ success: true, data: compliance });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -228,20 +222,14 @@ router.get("/case/:caseId/compliance", requireAuth, async (req: Request, res: Re
 });
 
 /**
- * POST /api/cases/:caseId/compliance/sync
+ * POST /api/actions/case/:caseId/compliance/sync
  * Compute compliance and sync actions for a case
  */
-router.post("/case/:caseId/compliance/sync", requireAuth, async (req: Request, res: Response) => {
+router.post("/case/:caseId/compliance/sync", requireAuth, requireCaseOwnership(), async (req: AuthRequest, res: Response) => {
   try {
-    const caseId = req.params.caseId;
+    const workerCase = req.workerCase!; // Populated by requireCaseOwnership middleware
 
-    // Check if case exists
-    const workerCase = await storage.getGPNet2CaseById(caseId);
-    if (!workerCase) {
-      return res.status(404).json({ success: false, message: "Case not found" });
-    }
-
-    const compliance = await processComplianceForCase(storage, caseId);
+    const compliance = await processComplianceForCase(storage, workerCase.id);
     res.json({ success: true, data: compliance });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -249,20 +237,14 @@ router.post("/case/:caseId/compliance/sync", requireAuth, async (req: Request, r
 });
 
 /**
- * GET /api/cases/:caseId/certificates-with-status
+ * GET /api/actions/case/:caseId/certificates-with-status
  * Get certificates with display status (active, expiring_soon, expired)
  */
-router.get("/case/:caseId/certificates-with-status", requireAuth, async (req: Request, res: Response) => {
+router.get("/case/:caseId/certificates-with-status", requireAuth, requireCaseOwnership(), async (req: AuthRequest, res: Response) => {
   try {
-    const caseId = req.params.caseId;
+    const workerCase = req.workerCase!; // Populated by requireCaseOwnership middleware
 
-    // Check if case exists
-    const workerCase = await storage.getGPNet2CaseById(caseId);
-    if (!workerCase) {
-      return res.status(404).json({ success: false, message: "Case not found" });
-    }
-
-    const dbCerts = await storage.getCertificatesByCase(caseId);
+    const dbCerts = await storage.getCertificatesByCase(workerCase.id);
     const certificates = dbCerts.map(cert => ({
       id: cert.id,
       caseId: cert.caseId,

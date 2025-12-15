@@ -6,7 +6,8 @@
 
 import express, { Request, Response } from "express";
 import { z } from "zod";
-import { authorize } from "../middleware/auth";
+import { authorize, type AuthRequest } from "../middleware/auth";
+import { requireCaseOwnership } from "../middleware/caseOwnership";
 import { storage } from "../storage";
 import {
   generateEmailDraft,
@@ -76,19 +77,11 @@ router.get("/email-drafts/types", authorize(), async (_req: Request, res: Respon
 router.post(
   "/cases/:caseId/email-drafts/generate",
   authorize(),
+  requireCaseOwnership(),
   async (req: AuthRequest, res: Response) => {
     try {
-      const { caseId } = req.params;
+      const workerCase = req.workerCase!; // Populated by requireCaseOwnership middleware
       const userId = req.user?.id || "unknown";
-
-      // Validate case exists
-      const caseRecord = await storage.getGPNet2CaseById(caseId);
-      if (!caseRecord) {
-        return res.status(404).json({
-          success: false,
-          error: "Case not found",
-        });
-      }
 
       // Validate request body
       const parseResult = generateSchema.safeParse(req.body);
@@ -100,7 +93,7 @@ router.post(
         });
       }
 
-      const draft = await generateEmailDraft(storage, caseId, parseResult.data, userId);
+      const draft = await generateEmailDraft(storage, workerCase.id, workerCase.organizationId, parseResult.data, userId);
 
       res.json({
         success: true,
@@ -142,20 +135,12 @@ router.post(
 router.get(
   "/cases/:caseId/email-drafts",
   authorize(),
-  async (req: Request, res: Response) => {
+  requireCaseOwnership(),
+  async (req: AuthRequest, res: Response) => {
     try {
-      const { caseId } = req.params;
+      const workerCase = req.workerCase!; // Populated by requireCaseOwnership middleware
 
-      // Validate case exists
-      const caseRecord = await storage.getGPNet2CaseById(caseId);
-      if (!caseRecord) {
-        return res.status(404).json({
-          success: false,
-          error: "Case not found",
-        });
-      }
-
-      const drafts = await getEmailDraftsByCase(storage, caseId);
+      const drafts = await getEmailDraftsByCase(storage, workerCase.id, workerCase.organizationId);
 
       res.json({
         success: true,

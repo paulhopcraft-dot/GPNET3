@@ -74,17 +74,18 @@ function mapDbAction(action: CaseActionDB): CaseAction {
  */
 export async function fetchCaseContext(
   storage: IStorage,
-  caseId: string
+  caseId: string,
+  organizationId: string
 ): Promise<CaseContext> {
-  const workerCase = await storage.getGPNet2CaseById(caseId);
+  const workerCase = await storage.getGPNet2CaseById(caseId, organizationId);
   if (!workerCase) {
     throw new Error(`Case ${caseId} not found`);
   }
 
   const [timeline, dbCertificates, dbActions, compliance] = await Promise.all([
-    storage.getCaseTimeline(caseId, 20),
+    storage.getCaseTimeline(caseId, organizationId, 20),
     storage.getCertificatesByCase(caseId),
-    storage.getActionsByCase(caseId),
+    storage.getActionsByCase(caseId, organizationId),
     getCaseCompliance(storage, caseId),
   ]);
 
@@ -308,7 +309,8 @@ function parseResponse(caseId: string, responseText: string): CaseSummary {
  */
 export async function generateSmartSummary(
   storage: IStorage,
-  caseId: string
+  caseId: string,
+  organizationId: string
 ): Promise<CaseSummary> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -318,7 +320,7 @@ export async function generateSmartSummary(
   const anthropic = new Anthropic({ apiKey });
 
   // Fetch all context data
-  const context = await fetchCaseContext(storage, caseId);
+  const context = await fetchCaseContext(storage, caseId, organizationId);
 
   // Build the prompt
   const prompt = buildPrompt(context);
@@ -349,9 +351,10 @@ export async function generateSmartSummary(
  */
 export async function generateFallbackSummary(
   storage: IStorage,
-  caseId: string
+  caseId: string,
+  organizationId: string
 ): Promise<CaseSummary> {
-  const context = await fetchCaseContext(storage, caseId);
+  const context = await fetchCaseContext(storage, caseId, organizationId);
   const { workerCase, timeline, certificates, actions, compliance } = context;
 
   const risks: SummaryRisk[] = [];

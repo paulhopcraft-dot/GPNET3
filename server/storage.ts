@@ -322,22 +322,24 @@ function applyDiscussionInsights(
 }
 
 export interface IStorage {
-  getGPNet2Cases(): Promise<WorkerCase[]>;
-  getGPNet2CaseById(id: string): Promise<WorkerCase | null>;
+  // Case methods - UPDATED for multi-tenant isolation
+  getGPNet2Cases(organizationId: string): Promise<WorkerCase[]>;
+  getGPNet2CaseById(id: string, organizationId: string): Promise<WorkerCase | null>;
+  getGPNet2CaseByIdAdmin(id: string): Promise<WorkerCase | null>; // Admin-only, no org filter
   syncWorkerCaseFromFreshdesk(caseData: Partial<WorkerCase>): Promise<void>;
   clearAllWorkerCases(): Promise<void>;
   updateAISummary(caseId: string, summary: string, model: string, workStatusClassification?: string): Promise<void>;
   needsSummaryRefresh(caseId: string): Promise<boolean>;
-  getCaseRecoveryTimeline(caseId: string): Promise<MedicalCertificate[]>;
-  getCaseDiscussionNotes(caseId: string, limit?: number): Promise<CaseDiscussionNote[]>;
+  getCaseRecoveryTimeline(caseId: string, organizationId: string): Promise<MedicalCertificate[]>;
+  getCaseDiscussionNotes(caseId: string, organizationId: string, limit?: number): Promise<CaseDiscussionNote[]>;
   upsertCaseDiscussionNotes(notes: InsertCaseDiscussionNote[]): Promise<void>;
-  getCaseDiscussionInsights(caseId: string, limit?: number): Promise<TranscriptInsight[]>;
+  getCaseDiscussionInsights(caseId: string, organizationId: string, limit?: number): Promise<TranscriptInsight[]>;
   upsertCaseDiscussionInsights(insights: InsertCaseDiscussionInsight[]): Promise<void>;
   findCaseByWorkerName(
     workerName: string,
   ): Promise<{ caseId: string; workerName: string; confidence: number } | null>;
-  updateClinicalStatus(caseId: string, status: CaseClinicalStatus): Promise<void>;
-  getCaseTimeline(caseId: string, limit?: number): Promise<TimelineEvent[]>;
+  updateClinicalStatus(caseId: string, organizationId: string, status: CaseClinicalStatus): Promise<void>;
+  getCaseTimeline(caseId: string, organizationId: string, limit?: number): Promise<TimelineEvent[]>;
 
   // User invite methods
   createUserInvite(invite: InsertUserInvite): Promise<UserInviteDB>;
@@ -363,41 +365,44 @@ export interface IStorage {
   getUnacknowledgedAlerts(organizationId: string): Promise<CertificateExpiryAlertDB[]>;
   acknowledgeAlert(alertId: string, userId: string): Promise<CertificateExpiryAlertDB>;
 
-  // Action Queue v1 - Case Actions
+  // Action Queue v1 - Case Actions - UPDATED for multi-tenant isolation
   createAction(action: InsertCaseAction): Promise<CaseActionDB>;
   getActionById(id: string): Promise<CaseActionDB | null>;
-  getActionsByCase(caseId: string): Promise<CaseActionDB[]>;
-  getPendingActions(limit?: number): Promise<CaseAction[]>;
-  getOverdueActions(limit?: number): Promise<CaseAction[]>;
-  getAllActionsWithCaseInfo(options?: { status?: CaseActionStatus; limit?: number }): Promise<CaseAction[]>;
+  getActionsByCase(caseId: string, organizationId: string): Promise<CaseActionDB[]>;
+  getPendingActions(organizationId: string, limit?: number): Promise<CaseAction[]>;
+  getOverdueActions(organizationId: string, limit?: number): Promise<CaseAction[]>;
+  getAllActionsWithCaseInfo(organizationId: string, options?: { status?: CaseActionStatus; limit?: number }): Promise<CaseAction[]>;
   updateAction(id: string, updates: Partial<InsertCaseAction>): Promise<CaseActionDB>;
   markActionDone(id: string): Promise<CaseActionDB>;
   markActionCancelled(id: string): Promise<CaseActionDB>;
   findPendingActionByTypeAndCase(caseId: string, type: CaseActionType): Promise<CaseActionDB | null>;
   upsertAction(caseId: string, type: CaseActionType, dueDate?: Date, notes?: string): Promise<CaseActionDB>;
 
-  // Email Drafter v1 - Email Draft management
+  // Email Drafter v1 - Email Draft management - UPDATED for multi-tenant isolation
   createEmailDraft(draft: InsertEmailDraft): Promise<EmailDraftDB>;
   getEmailDraftById(id: string): Promise<EmailDraftDB | null>;
-  getEmailDraftsByCase(caseId: string): Promise<EmailDraftDB[]>;
+  getEmailDraftsByCase(caseId: string, organizationId: string): Promise<EmailDraftDB[]>;
   updateEmailDraft(id: string, updates: Partial<InsertEmailDraft>): Promise<EmailDraftDB>;
   deleteEmailDraft(id: string): Promise<void>;
 
-  // Notifications Engine v1 - Notification management
+  // Notifications Engine v1 - Notification management - UPDATED for multi-tenant isolation
   createNotification(notification: InsertNotification): Promise<NotificationDB>;
   getNotificationById(id: string): Promise<NotificationDB | null>;
-  getPendingNotifications(limit?: number): Promise<NotificationDB[]>;
-  getNotificationsByCase(caseId: string): Promise<NotificationDB[]>;
-  getRecentNotifications(hours?: number): Promise<NotificationDB[]>;
+  getPendingNotifications(organizationId: string, limit?: number): Promise<NotificationDB[]>;
+  getNotificationsByCase(caseId: string, organizationId: string): Promise<NotificationDB[]>;
+  getRecentNotifications(organizationId: string, hours?: number): Promise<NotificationDB[]>;
   updateNotificationStatus(id: string, status: string, failureReason?: string): Promise<NotificationDB>;
   markNotificationSent(id: string): Promise<NotificationDB>;
   notificationExistsByDedupeKey(dedupeKey: string): Promise<boolean>;
-  getNotificationStats(): Promise<{ pending: number; sent: number; failed: number }>;
+  getNotificationStats(organizationId: string): Promise<{ pending: number; sent: number; failed: number }>;
 }
 
 class DbStorage implements IStorage {
-  async getGPNet2Cases(): Promise<WorkerCase[]> {
-    const dbCases = await db.select().from(workerCases);
+  async getGPNet2Cases(organizationId: string): Promise<WorkerCase[]> {
+    const dbCases = await db
+      .select()
+      .from(workerCases)
+      .where(eq(workerCases.organizationId, organizationId));
     const caseIds = dbCases.map((dbCase) => dbCase.id);
 
     const notesByCase = new Map<string, CaseDiscussionNote[]>();
@@ -507,11 +512,14 @@ class DbStorage implements IStorage {
     return casesWithAttachments;
   }
 
-  async getGPNet2CaseById(id: string): Promise<WorkerCase | null> {
+  async getGPNet2CaseById(id: string, organizationId: string): Promise<WorkerCase | null> {
     const dbCase = await db
       .select()
       .from(workerCases)
-      .where(eq(workerCases.id, id))
+      .where(and(
+        eq(workerCases.id, id),
+        eq(workerCases.organizationId, organizationId)
+      ))
       .limit(1);
 
     if (dbCase.length === 0) {
@@ -534,12 +542,13 @@ class DbStorage implements IStorage {
       ? mapCertificateRow(latestCertificateRow[0])
       : undefined;
 
-    const discussionNotes = await this.getCaseDiscussionNotes(id, 5);
-    const discussionInsights = await this.getCaseDiscussionInsights(id, 5);
+    const discussionNotes = await this.getCaseDiscussionNotes(id, organizationId, 5);
+    const discussionInsights = await this.getCaseDiscussionInsights(id, organizationId, 5);
 
     const workerCase = dbCase[0];
     const caseData: WorkerCase = {
       id: workerCase.id,
+      organizationId: workerCase.organizationId,
       workerName: workerCase.workerName,
       company: workerCase.company as any,
       dateOfInjury: workerCase.dateOfInjury.toISOString().split('T')[0],
@@ -586,7 +595,103 @@ class DbStorage implements IStorage {
     return applyDiscussionInsights(caseData, discussionNotes, discussionInsights);
   }
 
-  async getCaseRecoveryTimeline(caseId: string): Promise<MedicalCertificate[]> {
+  async getGPNet2CaseByIdAdmin(id: string): Promise<WorkerCase | null> {
+    // Admin version - NO organization filter (can access any case)
+    const dbCase = await db
+      .select()
+      .from(workerCases)
+      .where(eq(workerCases.id, id))
+      .limit(1);
+
+    if (dbCase.length === 0) {
+      return null;
+    }
+
+    const workerCase = dbCase[0];
+    const organizationId = workerCase.organizationId;
+
+    const attachments = await db
+      .select()
+      .from(caseAttachments)
+      .where(eq(caseAttachments.caseId, id));
+
+    const latestCertificateRow = await db
+      .select()
+      .from(medicalCertificates)
+      .where(eq(medicalCertificates.caseId, id))
+      .orderBy(desc(medicalCertificates.startDate))
+      .limit(1);
+
+    const latestCertificate = latestCertificateRow[0]
+      ? mapCertificateRow(latestCertificateRow[0])
+      : undefined;
+
+    const discussionNotes = await this.getCaseDiscussionNotes(id, organizationId, 5);
+    const discussionInsights = await this.getCaseDiscussionInsights(id, organizationId, 5);
+
+    const caseData: WorkerCase = {
+      id: workerCase.id,
+      organizationId: workerCase.organizationId,
+      workerName: workerCase.workerName,
+      company: workerCase.company as any,
+      dateOfInjury: workerCase.dateOfInjury.toISOString().split('T')[0],
+      riskLevel: workerCase.riskLevel as any,
+      workStatus: workerCase.workStatus as any,
+      hasCertificate: workerCase.hasCertificate,
+      certificateUrl: workerCase.certificateUrl || undefined,
+      complianceIndicator: workerCase.complianceIndicator as any,
+      compliance: workerCase.complianceJson as any,
+      medicalConstraints: workerCase.clinicalStatusJson?.medicalConstraints,
+      functionalCapacity: workerCase.clinicalStatusJson?.functionalCapacity,
+      rtwPlanStatus: workerCase.clinicalStatusJson?.rtwPlanStatus,
+      complianceStatus: workerCase.clinicalStatusJson?.complianceStatus,
+      specialistStatus: workerCase.clinicalStatusJson?.specialistStatus,
+      specialistReportSummary: workerCase.clinicalStatusJson?.specialistReportSummary,
+      currentStatus: workerCase.currentStatus,
+      nextStep: workerCase.nextStep,
+      owner: workerCase.owner,
+      dueDate: workerCase.dueDate,
+      summary: workerCase.summary,
+      ticketIds: workerCase.ticketIds || [workerCase.id],
+      ticketCount: Number(workerCase.ticketCount) || 1,
+      aiSummary: workerCase.aiSummary || undefined,
+      aiSummaryGeneratedAt: workerCase.aiSummaryGeneratedAt?.toISOString() || undefined,
+      aiSummaryModel: workerCase.aiSummaryModel || undefined,
+      aiWorkStatusClassification: workerCase.aiWorkStatusClassification || undefined,
+      ticketLastUpdatedAt: workerCase.ticketLastUpdatedAt?.toISOString() || undefined,
+      clcLastFollowUp: workerCase.clcLastFollowUp || undefined,
+      clcNextFollowUp: workerCase.clcNextFollowUp || undefined,
+      employmentStatus: (workerCase as any).employmentStatus || "ACTIVE",
+      terminationProcessId: (workerCase as any).terminationProcessId || null,
+      terminationReason: (workerCase as any).terminationReason || null,
+      terminationAuditFlag: (workerCase as any).terminationAuditFlag || null,
+      latestCertificate,
+      attachments: attachments.map((att) => ({
+        id: att.id,
+        name: att.name,
+        type: att.type,
+        url: att.url,
+      })),
+    };
+
+    caseData.clinicalEvidence = evaluateClinicalEvidence(caseData);
+    return applyDiscussionInsights(caseData, discussionNotes, discussionInsights);
+  }
+
+  async getCaseRecoveryTimeline(caseId: string, organizationId: string): Promise<MedicalCertificate[]> {
+    // Verify case ownership before returning timeline
+    const caseCheck = await db
+      .select({ id: workerCases.id })
+      .from(workerCases)
+      .where(and(
+        eq(workerCases.id, caseId),
+        eq(workerCases.organizationId, organizationId)
+      ))
+      .limit(1);
+
+    if (caseCheck.length === 0) {
+      return []; // Case not found or access denied
+    }
     const rows = await db
       .select()
       .from(medicalCertificates)
@@ -598,8 +703,23 @@ class DbStorage implements IStorage {
 
   async getCaseDiscussionNotes(
     caseId: string,
+    organizationId: string,
     limit: number = 50,
   ): Promise<CaseDiscussionNote[]> {
+    // Verify case ownership before returning notes
+    const caseCheck = await db
+      .select({ id: workerCases.id })
+      .from(workerCases)
+      .where(and(
+        eq(workerCases.id, caseId),
+        eq(workerCases.organizationId, organizationId)
+      ))
+      .limit(1);
+
+    if (caseCheck.length === 0) {
+      return []; // Case not found or access denied
+    }
+
     const rows = await db
       .select()
       .from(caseDiscussionNotes)
@@ -635,8 +755,23 @@ class DbStorage implements IStorage {
 
   async getCaseDiscussionInsights(
     caseId: string,
+    organizationId: string,
     limit: number = 25,
   ): Promise<TranscriptInsight[]> {
+    // Verify case ownership before returning insights
+    const caseCheck = await db
+      .select({ id: workerCases.id })
+      .from(workerCases)
+      .where(and(
+        eq(workerCases.id, caseId),
+        eq(workerCases.organizationId, organizationId)
+      ))
+      .limit(1);
+
+    if (caseCheck.length === 0) {
+      return []; // Case not found or access denied
+    }
+
     const rows = await db
       .select()
       .from(caseDiscussionInsights)
@@ -905,15 +1040,18 @@ class DbStorage implements IStorage {
     await db.delete(workerCases);
   }
 
-  async updateClinicalStatus(caseId: string, status: CaseClinicalStatus): Promise<void> {
+  async updateClinicalStatus(caseId: string, organizationId: string, status: CaseClinicalStatus): Promise<void> {
     const existing = await db
       .select()
       .from(workerCases)
-      .where(eq(workerCases.id, caseId))
+      .where(and(
+        eq(workerCases.id, caseId),
+        eq(workerCases.organizationId, organizationId)
+      ))
       .limit(1);
 
     if (!existing.length) {
-      throw new Error(`Case not found: ${caseId}`);
+      throw new Error(`Case not found or access denied: ${caseId}`);
     }
 
     const merged: CaseClinicalStatus = {
@@ -927,7 +1065,10 @@ class DbStorage implements IStorage {
         clinicalStatusJson: Object.keys(merged).length > 0 ? merged : null,
         updatedAt: new Date(),
       })
-      .where(eq(workerCases.id, caseId));
+      .where(and(
+        eq(workerCases.id, caseId),
+        eq(workerCases.organizationId, organizationId)
+      ));
   }
 
   async updateAISummary(caseId: string, summary: string, model: string, workStatusClassification?: string): Promise<void> {
@@ -972,8 +1113,22 @@ class DbStorage implements IStorage {
     return false;
   }
 
-  async getCaseTimeline(caseId: string, limit: number = 50): Promise<TimelineEvent[]> {
+  async getCaseTimeline(caseId: string, organizationId: string, limit: number = 50): Promise<TimelineEvent[]> {
     const events: TimelineEvent[] = [];
+
+    // Verify case ownership before building timeline
+    const caseCheck = await db
+      .select({ id: workerCases.id })
+      .from(workerCases)
+      .where(and(
+        eq(workerCases.id, caseId),
+        eq(workerCases.organizationId, organizationId)
+      ))
+      .limit(1);
+
+    if (caseCheck.length === 0) {
+      return []; // Case not found or access denied
+    }
 
     // Fetch all sources in parallel
     const [certificates, notes, attachments, workerCaseRows, terminationRows] = await Promise.all([
@@ -1265,42 +1420,28 @@ class DbStorage implements IStorage {
     return result || null;
   }
 
-  async getActionsByCase(caseId: string): Promise<CaseActionDB[]> {
+  async getActionsByCase(caseId: string, organizationId: string): Promise<CaseActionDB[]> {
+    // Verify case ownership before returning actions
+    const caseCheck = await db
+      .select({ id: workerCases.id })
+      .from(workerCases)
+      .where(and(
+        eq(workerCases.id, caseId),
+        eq(workerCases.organizationId, organizationId)
+      ))
+      .limit(1);
+
+    if (caseCheck.length === 0) {
+      return []; // Case not found or access denied
+    }
+
     return await db.select()
       .from(caseActions)
       .where(eq(caseActions.caseId, caseId))
       .orderBy(desc(caseActions.dueDate));
   }
 
-  async getPendingActions(limit: number = 50): Promise<CaseAction[]> {
-    const results = await db.select({
-      action: caseActions,
-      workerName: workerCases.workerName,
-      company: workerCases.company,
-    })
-      .from(caseActions)
-      .innerJoin(workerCases, eq(caseActions.caseId, workerCases.id))
-      .where(eq(caseActions.status, "pending"))
-      .orderBy(asc(caseActions.dueDate))
-      .limit(limit);
-
-    return results.map(r => ({
-      id: r.action.id,
-      caseId: r.action.caseId,
-      type: r.action.type as CaseActionType,
-      status: r.action.status as CaseActionStatus,
-      dueDate: r.action.dueDate?.toISOString(),
-      priority: r.action.priority ?? 1,
-      notes: r.action.notes ?? undefined,
-      workerName: r.workerName,
-      company: r.company,
-      createdAt: r.action.createdAt?.toISOString() ?? new Date().toISOString(),
-      updatedAt: r.action.updatedAt?.toISOString() ?? new Date().toISOString(),
-    }));
-  }
-
-  async getOverdueActions(limit: number = 50): Promise<CaseAction[]> {
-    const now = new Date();
+  async getPendingActions(organizationId: string, limit: number = 50): Promise<CaseAction[]> {
     const results = await db.select({
       action: caseActions,
       workerName: workerCases.workerName,
@@ -1310,7 +1451,7 @@ class DbStorage implements IStorage {
       .innerJoin(workerCases, eq(caseActions.caseId, workerCases.id))
       .where(and(
         eq(caseActions.status, "pending"),
-        lte(caseActions.dueDate, now)
+        eq(workerCases.organizationId, organizationId)
       ))
       .orderBy(asc(caseActions.dueDate))
       .limit(limit);
@@ -1330,7 +1471,39 @@ class DbStorage implements IStorage {
     }));
   }
 
-  async getAllActionsWithCaseInfo(options?: { status?: CaseActionStatus; limit?: number }): Promise<CaseAction[]> {
+  async getOverdueActions(organizationId: string, limit: number = 50): Promise<CaseAction[]> {
+    const now = new Date();
+    const results = await db.select({
+      action: caseActions,
+      workerName: workerCases.workerName,
+      company: workerCases.company,
+    })
+      .from(caseActions)
+      .innerJoin(workerCases, eq(caseActions.caseId, workerCases.id))
+      .where(and(
+        eq(caseActions.status, "pending"),
+        lte(caseActions.dueDate, now),
+        eq(workerCases.organizationId, organizationId)
+      ))
+      .orderBy(asc(caseActions.dueDate))
+      .limit(limit);
+
+    return results.map(r => ({
+      id: r.action.id,
+      caseId: r.action.caseId,
+      type: r.action.type as CaseActionType,
+      status: r.action.status as CaseActionStatus,
+      dueDate: r.action.dueDate?.toISOString(),
+      priority: r.action.priority ?? 1,
+      notes: r.action.notes ?? undefined,
+      workerName: r.workerName,
+      company: r.company,
+      createdAt: r.action.createdAt?.toISOString() ?? new Date().toISOString(),
+      updatedAt: r.action.updatedAt?.toISOString() ?? new Date().toISOString(),
+    }));
+  }
+
+  async getAllActionsWithCaseInfo(organizationId: string, options?: { status?: CaseActionStatus; limit?: number }): Promise<CaseAction[]> {
     const limit = options?.limit ?? 100;
 
     let query = db.select({
@@ -1341,9 +1514,13 @@ class DbStorage implements IStorage {
       .from(caseActions)
       .innerJoin(workerCases, eq(caseActions.caseId, workerCases.id));
 
+    // Build WHERE clause with organization filter
+    const conditions = [eq(workerCases.organizationId, organizationId)];
     if (options?.status) {
-      query = query.where(eq(caseActions.status, options.status)) as typeof query;
+      conditions.push(eq(caseActions.status, options.status));
     }
+
+    query = query.where(and(...conditions)) as typeof query;
 
     const results = await query
       .orderBy(asc(caseActions.dueDate))
@@ -1440,7 +1617,21 @@ class DbStorage implements IStorage {
     return result || null;
   }
 
-  async getEmailDraftsByCase(caseId: string): Promise<EmailDraftDB[]> {
+  async getEmailDraftsByCase(caseId: string, organizationId: string): Promise<EmailDraftDB[]> {
+    // Verify case ownership before returning email drafts
+    const caseCheck = await db
+      .select({ id: workerCases.id })
+      .from(workerCases)
+      .where(and(
+        eq(workerCases.id, caseId),
+        eq(workerCases.organizationId, organizationId)
+      ))
+      .limit(1);
+
+    if (caseCheck.length === 0) {
+      return []; // Case not found or access denied
+    }
+
     return await db.select()
       .from(emailDrafts)
       .where(eq(emailDrafts.caseId, caseId))
@@ -1473,10 +1664,13 @@ class DbStorage implements IStorage {
     return result || null;
   }
 
-  async getPendingNotifications(limit: number = 100): Promise<NotificationDB[]> {
+  async getPendingNotifications(organizationId: string, limit: number = 100): Promise<NotificationDB[]> {
     return await db.select()
       .from(notifications)
-      .where(eq(notifications.status, "pending"))
+      .where(and(
+        eq(notifications.status, "pending"),
+        eq(notifications.organizationId, organizationId)
+      ))
       .orderBy(
         desc(sql`CASE WHEN ${notifications.priority} = 'critical' THEN 0
                       WHEN ${notifications.priority} = 'high' THEN 1
@@ -1487,18 +1681,35 @@ class DbStorage implements IStorage {
       .limit(limit);
   }
 
-  async getNotificationsByCase(caseId: string): Promise<NotificationDB[]> {
+  async getNotificationsByCase(caseId: string, organizationId: string): Promise<NotificationDB[]> {
+    // Verify case ownership before returning notifications
+    const caseCheck = await db
+      .select({ id: workerCases.id })
+      .from(workerCases)
+      .where(and(
+        eq(workerCases.id, caseId),
+        eq(workerCases.organizationId, organizationId)
+      ))
+      .limit(1);
+
+    if (caseCheck.length === 0) {
+      return []; // Case not found or access denied
+    }
+
     return await db.select()
       .from(notifications)
       .where(eq(notifications.caseId, caseId))
       .orderBy(desc(notifications.createdAt));
   }
 
-  async getRecentNotifications(hours: number = 24): Promise<NotificationDB[]> {
+  async getRecentNotifications(organizationId: string, hours: number = 24): Promise<NotificationDB[]> {
     const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
     return await db.select()
       .from(notifications)
-      .where(gte(notifications.createdAt, cutoff))
+      .where(and(
+        gte(notifications.createdAt, cutoff),
+        eq(notifications.organizationId, organizationId)
+      ))
       .orderBy(desc(notifications.createdAt));
   }
 
@@ -1535,12 +1746,13 @@ class DbStorage implements IStorage {
     return (result?.count ?? 0) > 0;
   }
 
-  async getNotificationStats(): Promise<{ pending: number; sent: number; failed: number }> {
+  async getNotificationStats(organizationId: string): Promise<{ pending: number; sent: number; failed: number }> {
     const results = await db.select({
       status: notifications.status,
       count: sql<number>`count(*)::int`,
     })
       .from(notifications)
+      .where(eq(notifications.organizationId, organizationId))
       .groupBy(notifications.status);
 
     const stats = { pending: 0, sent: 0, failed: 0 };

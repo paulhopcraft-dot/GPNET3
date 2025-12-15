@@ -376,6 +376,7 @@ export interface TranscriptInsight {
 
 export interface WorkerCase {
   id: string;
+  organizationId: string; // Organization/tenant isolation - added in migration 0003
   workerName: string;
   company: string; // Allow any company name from Freshdesk, not just predefined ones
   dateOfInjury: string;
@@ -474,6 +475,7 @@ export interface GeneratedDocument {
 // Database tables
 export const workerCases = pgTable("worker_cases", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull(), // Added in migration 0003 - tenant isolation
   workerName: text("worker_name").notNull(),
   company: text("company").notNull(),
   dateOfInjury: timestamp("date_of_injury").notNull(),
@@ -508,6 +510,7 @@ export const workerCases = pgTable("worker_cases", {
 
 export const terminationProcesses = pgTable("termination_processes", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull(), // Added in migration 0009 - tenant isolation
   workerCaseId: varchar("worker_case_id")
     .notNull()
     .references(() => workerCases.id, { onDelete: "cascade" }),
@@ -597,6 +600,7 @@ export const medicalCertificates = pgTable("medical_certificates", {
 
 export const caseAttachments = pgTable("case_attachments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull(), // Added in migration 0009 - tenant isolation
   caseId: varchar("case_id").notNull().references(() => workerCases.id),
   name: text("name").notNull(),
   type: text("type").notNull(),
@@ -606,6 +610,7 @@ export const caseAttachments = pgTable("case_attachments", {
 
 export const caseDiscussionNotes = pgTable("case_discussion_notes", {
   id: text("id").primaryKey(),
+  organizationId: varchar("organization_id").notNull(), // Added in migration 0009 - tenant isolation
   caseId: text("case_id").references(() => workerCases.id).notNull(),
   workerName: text("worker_name").notNull(),
   timestamp: timestamp("timestamp").defaultNow(),
@@ -659,7 +664,8 @@ export interface User {
   password: string; // This will be hashed
   role: UserRole;
   subrole: string | null;
-  companyId: string | null;
+  organizationId: string; // Organization/tenant isolation
+  companyId: string | null; // Deprecated - use organizationId
   insurerId: string | null;
   isActive: boolean;
   createdAt: Date;
@@ -668,11 +674,12 @@ export interface User {
 // Users table for authentication
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  email: text("email").notNull().unique(),
+  email: text("email").notNull(), // Note: Unique constraint is (email, organization_id) - see migration 0003
   password: text("password").notNull(), // bcrypt hashed
   role: text("role").notNull(), // admin | employer | clinician | insurer
   subrole: text("subrole"), // e.g., "doctor", "physio"
-  companyId: varchar("company_id"), // UUID reference to company
+  organizationId: varchar("organization_id").notNull(), // Added in migration 0003
+  companyId: varchar("company_id"), // Deprecated - use organizationId
   insurerId: varchar("insurer_id"), // UUID reference to insurer
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -826,6 +833,7 @@ export interface CaseAction {
 
 export const caseActions = pgTable("case_actions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull(), // Added in migration 0009 - tenant isolation
   caseId: varchar("case_id").notNull().references(() => workerCases.id, { onDelete: "cascade" }),
   type: text("type").notNull(), // chase_certificate, review_case, follow_up
   status: text("status").notNull().default("pending"), // pending, done, cancelled
@@ -941,6 +949,7 @@ export type EmailDraftStatus = "draft" | "sent" | "discarded";
 
 export const emailDrafts = pgTable("email_drafts", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull(), // Added in migration 0009 - tenant isolation
   caseId: varchar("case_id").notNull().references(() => workerCases.id, { onDelete: "cascade" }),
   emailType: text("email_type").notNull(),
   recipient: text("recipient").notNull(),
@@ -1009,6 +1018,7 @@ export type NotificationStatus = "pending" | "sent" | "failed" | "skipped";
 
 export const notifications = pgTable("notifications", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull(), // Added in migration 0009 - tenant isolation
   type: text("type").notNull(),
   priority: text("priority").notNull().default("medium"),
   caseId: varchar("case_id").references(() => workerCases.id, { onDelete: "cascade" }),

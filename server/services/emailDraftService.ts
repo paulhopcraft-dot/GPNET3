@@ -302,6 +302,7 @@ function parseEmailResponse(responseText: string): { subject: string; body: stri
 export async function generateEmailDraft(
   storage: IStorage,
   caseId: string,
+  organizationId: string,
   request: EmailDraftRequest,
   userId: string
 ): Promise<EmailDraft> {
@@ -313,7 +314,7 @@ export async function generateEmailDraft(
   const anthropic = new Anthropic({ apiKey });
 
   // Fetch case context (reusing from smartSummary)
-  const context = await fetchCaseContext(storage, caseId);
+  const context = await fetchCaseContext(storage, caseId, organizationId);
 
   // Build the prompt
   const prompt = buildEmailPrompt(context, request);
@@ -369,9 +370,10 @@ export async function generateEmailDraft(
  */
 export async function getEmailDraftsByCase(
   storage: IStorage,
-  caseId: string
+  caseId: string,
+  organizationId: string
 ): Promise<EmailDraft[]> {
-  const drafts = await storage.getEmailDraftsByCase(caseId);
+  const drafts = await storage.getEmailDraftsByCase(caseId, organizationId);
   return drafts.map(mapEmailDraftDbToApi);
 }
 

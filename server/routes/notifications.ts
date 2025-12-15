@@ -5,7 +5,8 @@
  */
 
 import express, { Request, Response } from "express";
-import { authorize } from "../middleware/auth";
+import { authorize, type AuthRequest } from "../middleware/auth";
+import { requireCaseOwnership } from "../middleware/caseOwnership";
 import { storage } from "../storage";
 import {
   getRecentNotifications,
@@ -13,19 +14,18 @@ import {
   getNotificationStats,
 } from "../services/notificationService";
 import { sendTestEmail } from "../services/emailService";
-import type { AuthRequest } from "../middleware/auth";
 
 const router = express.Router();
 
 /**
  * GET /api/notifications/recent
  * Get recent notifications (last 24 hours by default)
- * Admin only
  */
-router.get("/recent", authorize(), async (req: Request, res: Response) => {
+router.get("/recent", authorize(), async (req: AuthRequest, res: Response) => {
   try {
+    const organizationId = req.user!.organizationId;
     const hours = parseInt(req.query.hours as string) || 24;
-    const notifications = await getRecentNotifications(storage, hours);
+    const notifications = await getRecentNotifications(storage, organizationId, hours);
 
     res.json({
       success: true,
@@ -47,11 +47,11 @@ router.get("/recent", authorize(), async (req: Request, res: Response) => {
 /**
  * GET /api/notifications/stats
  * Get notification statistics
- * Admin only
  */
-router.get("/stats", authorize(), async (_req: Request, res: Response) => {
+router.get("/stats", authorize(), async (req: AuthRequest, res: Response) => {
   try {
-    const stats = await getNotificationStats(storage);
+    const organizationId = req.user!.organizationId;
+    const stats = await getNotificationStats(storage, organizationId);
 
     res.json({
       success: true,
@@ -70,10 +70,10 @@ router.get("/stats", authorize(), async (_req: Request, res: Response) => {
  * GET /api/notifications/case/:caseId
  * Get notifications for a specific case
  */
-router.get("/case/:caseId", authorize(), async (req: Request, res: Response) => {
+router.get("/case/:caseId", authorize(), requireCaseOwnership(), async (req: AuthRequest, res: Response) => {
   try {
-    const { caseId } = req.params;
-    const notifications = await getNotificationsByCase(storage, caseId);
+    const workerCase = req.workerCase!; // Populated by requireCaseOwnership middleware
+    const notifications = await getNotificationsByCase(storage, workerCase.id, workerCase.organizationId);
 
     res.json({
       success: true,

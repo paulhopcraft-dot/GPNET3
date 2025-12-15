@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["server/**/*", "shared/**/*"],
+  "exclude": ["node_modules", "build", "dist", "client/**/*", "**/*.test.ts", "**/*.spec.ts", "server/src/**/*"],
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node"],
+    "lib": ["esnext"]
+  }
+}

@@ -14,6 +14,9 @@ import emailDraftRoutes from "./routes/emailDrafts";
 import notificationRoutes from "./routes/notifications";
 import type { RecoveryTimelineSummary } from "@shared/schema";
 import { evaluateClinicalEvidence } from "./services/clinicalEvidence";
+import { authorize, type AuthRequest } from "./middleware/auth";
+import { requireCaseOwnership } from "./middleware/caseOwnership";
+import { logAuditEvent, AuditEventTypes, getRequestMetadata } from "./services/auditLogger";
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
@@ -94,50 +97,65 @@ export async function registerRoutes(app: Express): Promise<void> {
     }
   });
   // GPNet 2 Dashboard - Get all cases
-  app.get("/api/gpnet2/cases", async (req, res) => {
+  app.get("/api/gpnet2/cases", authorize(), async (req: AuthRequest, res) => {
     try {
-      const cases = await storage.getGPNet2Cases();
+      const organizationId = req.user!.organizationId;
+
+      // Log access
+      await logAuditEvent({
+        userId: req.user!.id,
+        organizationId,
+        eventType: AuditEventTypes.CASE_LIST,
+        ...getRequestMetadata(req),
+      });
+
+      const cases = await storage.getGPNet2Cases(organizationId);
       res.json(cases);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch cases" });
     }
   });
 
-  // Freshdesk sync endpoint
-  app.post("/api/freshdesk/sync", async (req, res) => {
+  // Freshdesk sync endpoint (admin only - syncs across all organizations)
+  app.post("/api/freshdesk/sync", authorize(["admin"]), async (req: AuthRequest, res) => {
     try {
       const freshdesk = new FreshdeskService();
       const tickets = await freshdesk.fetchTickets();
       const workerCases = await freshdesk.transformTicketsToWorkerCases(tickets);
-      
+
       for (const workerCase of workerCases) {
         await storage.syncWorkerCaseFromFreshdesk(workerCase);
       }
 
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         synced: workerCases.length,
         message: `Successfully synced ${workerCases.length} cases from Freshdesk`
       });
     } catch (error) {
       console.error("Error syncing Freshdesk tickets:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to sync Freshdesk tickets",
         details: error instanceof Error ? error.message : "Unknown error"
       });
     }
   });
 
-  app.get("/api/cases/:id/recovery-timeline", async (req, res) => {
+  app.get("/api/cases/:id/recovery-timeline", authorize(), requireCaseOwnership(), async (req: AuthRequest, res) => {
     try {
-      const caseId = req.params.id;
-      const workerCase = await storage.getGPNet2CaseById(caseId);
+      const workerCase = req.workerCase!; // Populated by requireCaseOwnership middleware
 
-      if (!workerCase) {
-        return res.status(404).json({ error: "Case not found" });
-      }
+      // Log access
+      await logAuditEvent({
+        userId: req.user!.id,
+        organizationId: req.user!.organizationId,
+        eventType: AuditEventTypes.CASE_VIEW,
+        resourceType: "recovery_timeline",
+        resourceId: workerCase.id,
+        ...getRequestMetadata(req),
+      });
 
-      const certificates = await storage.getCaseRecoveryTimeline(caseId);
+      const certificates = await storage.getCaseRecoveryTimeline(workerCase.id, workerCase.organizationId);
       const lastCertificate = certificates[certificates.length - 1];
 
       const summary: RecoveryTimelineSummary = {
@@ -171,15 +189,22 @@ export async function registerRoutes(app: Express): Promise<void> {
     }
   });
 
-  app.get("/api/cases/:id/clinical-evidence", async (req, res) => {
+  app.get("/api/cases/:id/clinical-evidence", authorize(), requireCaseOwnership(), async (req: AuthRequest, res) => {
     try {
-      const caseId = req.params.id;
-      const workerCase = await storage.getGPNet2CaseById(caseId);
-      if (!workerCase) {
-        return res.status(404).json({ error: "Case not found" });
-      }
+      const workerCase = req.workerCase!; // Populated by requireCaseOwnership middleware
+
+      // Log access
+      await logAuditEvent({
+        userId: req.user!.id,
+        organizationId: req.user!.organizationId,
+        eventType: AuditEventTypes.CASE_VIEW,
+        resourceType: "clinical_evidence",
+        resourceId: workerCase.id,
+        ...getRequestMetadata(req),
+      });
+
       const clinicalEvidence = evaluateClinicalEvidence(workerCase);
-      res.json({ caseId, clinicalEvidence });
+      res.json({ caseId: workerCase.id, clinicalEvidence });
     } catch (err) {
       console.error("Failed to evaluate clinical evidence:", err);
       res.status(500).json({
@@ -189,16 +214,23 @@ export async function registerRoutes(app: Express): Promise<void> {
     }
   });
 
-  app.get("/api/cases/:id/discussion-notes", async (req, res) => {
+  app.get("/api/cases/:id/discussion-notes", authorize(), requireCaseOwnership(), async (req: AuthRequest, res) => {
     try {
-      const caseId = req.params.id;
-      const workerCase = await storage.getGPNet2CaseById(caseId);
-      if (!workerCase) {
-        return res.status(404).json({ error: "Case not found" });
-      }
+      const workerCase = req.workerCase!; // Populated by requireCaseOwnership middleware
+
+      // Log access
+      await logAuditEvent({
+        userId: req.user!.id,
+        organizationId: req.user!.organizationId,
+        eventType: AuditEventTypes.CASE_VIEW,
+        resourceType: "discussion_notes",
+        resourceId: workerCase.id,
+        ...getRequestMetadata(req),
+      });
+
       const [notes, insights] = await Promise.all([
-        storage.getCaseDiscussionNotes(caseId, 25),
-        storage.getCaseDiscussionInsights(caseId, 25),
+        storage.getCaseDiscussionNotes(workerCase.id, workerCase.organizationId, 25),
+        storage.getCaseDiscussionInsights(workerCase.id, workerCase.organizationId, 25),
       ]);
       res.json({ notes, insights });
     } catch (err) {
@@ -210,20 +242,25 @@ export async function registerRoutes(app: Express): Promise<void> {
     }
   });
 
-  app.get("/api/cases/:id/timeline", async (req, res) => {
+  app.get("/api/cases/:id/timeline", authorize(), requireCaseOwnership(), async (req: AuthRequest, res) => {
     try {
-      const caseId = req.params.id;
+      const workerCase = req.workerCase!; // Populated by requireCaseOwnership middleware
       const limit = parseInt(req.query.limit as string) || 50;
 
-      const workerCase = await storage.getGPNet2CaseById(caseId);
-      if (!workerCase) {
-        return res.status(404).json({ error: "Case not found" });
-      }
+      // Log access
+      await logAuditEvent({
+        userId: req.user!.id,
+        organizationId: req.user!.organizationId,
+        eventType: AuditEventTypes.CASE_VIEW,
+        resourceType: "timeline",
+        resourceId: workerCase.id,
+        ...getRequestMetadata(req),
+      });
 
-      const events = await storage.getCaseTimeline(caseId, limit);
+      const events = await storage.getCaseTimeline(workerCase.id, workerCase.organizationId, limit);
 
       res.json({
-        caseId,
+        caseId: workerCase.id,
         events,
         totalEvents: events.length
       });
@@ -237,28 +274,34 @@ export async function registerRoutes(app: Express): Promise<void> {
   });
 
   // GET /api/cases/:id/summary - Returns cached summary without triggering generation
-  app.get("/api/cases/:id/summary", async (req, res) => {
+  app.get("/api/cases/:id/summary", authorize(), requireCaseOwnership(), async (req: AuthRequest, res) => {
     try {
-      const caseId = req.params.id;
-      const workerCase = await storage.getGPNet2CaseById(caseId);
+      const workerCase = req.workerCase!; // Populated by requireCaseOwnership middleware
 
-      if (!workerCase) {
-        return res.status(404).json({ error: "Case not found" });
-      }
+      // Log access
+      await logAuditEvent({
+        userId: req.user!.id,
+        organizationId: req.user!.organizationId,
+        eventType: AuditEventTypes.CASE_VIEW,
+        resourceType: "summary",
+        resourceId: workerCase.id,
+        ...getRequestMetadata(req),
+      });
+
       const [discussionNotes, discussionInsights] = await Promise.all([
-        storage.getCaseDiscussionNotes(caseId, 5),
-        storage.getCaseDiscussionInsights(caseId, 5),
+        storage.getCaseDiscussionNotes(workerCase.id, workerCase.organizationId, 5),
+        storage.getCaseDiscussionInsights(workerCase.id, workerCase.organizationId, 5),
       ]);
 
       // Return cached summary data
       res.json({
-        id: caseId,
+        id: workerCase.id,
         summary: workerCase.aiSummary || null,
         generatedAt: workerCase.aiSummaryGeneratedAt || null,
         model: workerCase.aiSummaryModel || null,
         workStatusClassification: workerCase.aiWorkStatusClassification || null,
         ticketLastUpdatedAt: workerCase.ticketLastUpdatedAt || null,
-        needsRefresh: await storage.needsSummaryRefresh(caseId),
+        needsRefresh: await storage.needsSummaryRefresh(workerCase.id),
         discussionNotes,
         discussionInsights,
       });
@@ -272,15 +315,10 @@ export async function registerRoutes(app: Express): Promise<void> {
   });
 
   // POST /api/cases/:id/summary - Validates cache and generates/refreshes summary
-  app.post("/api/cases/:id/summary", async (req, res) => {
+  app.post("/api/cases/:id/summary", authorize(), requireCaseOwnership(), async (req: AuthRequest, res) => {
     try {
-      const caseId = req.params.id;
+      const workerCase = req.workerCase!; // Populated by requireCaseOwnership middleware
       const force = req.query.force === 'true';
-      const workerCase = await storage.getGPNet2CaseById(caseId);
-
-      if (!workerCase) {
-        return res.status(404).json({ error: "Case not found" });
-      }
 
       // If force=true, always regenerate; otherwise use cached if valid
       let result;
@@ -288,9 +326,23 @@ export async function registerRoutes(app: Express): Promise<void> {
         try {
           // Force regeneration
           const generated = await summaryService.generateCaseSummary(workerCase);
-          
+
           // Store in database
-          await storage.updateAISummary(caseId, generated.summary, summaryService.model, generated.workStatusClassification);
+          await storage.updateAISummary(workerCase.id, generated.summary, summaryService.model, generated.workStatusClassification);
+
+          // Log AI summary generation
+          await logAuditEvent({
+            userId: req.user!.id,
+            organizationId: req.user!.organizationId,
+            eventType: AuditEventTypes.AI_SUMMARY_GENERATE,
+            resourceType: "worker_case",
+            resourceId: workerCase.id,
+            metadata: {
+              model: summaryService.model,
+              forced: true,
+            },
+            ...getRequestMetadata(req),
+          });
           
           result = {
             summary: generated.summary,
@@ -315,16 +367,32 @@ export async function registerRoutes(app: Express): Promise<void> {
         }
       } else {
         // Generate or fetch cached summary (API key check happens inside service if needed)
-        result = await summaryService.getCachedOrGenerateSummary(caseId);
+        result = await summaryService.getCachedOrGenerateSummary(workerCase.id);
+
+        // Log AI summary generation if it was freshly generated (not cached)
+        if (!result.cached) {
+          await logAuditEvent({
+            userId: req.user!.id,
+            organizationId: req.user!.organizationId,
+            eventType: AuditEventTypes.AI_SUMMARY_GENERATE,
+            resourceType: "worker_case",
+            resourceId: workerCase.id,
+            metadata: {
+              model: result.model,
+              forced: false,
+            },
+            ...getRequestMetadata(req),
+          });
+        }
       }
 
       const [discussionNotes, discussionInsights] = await Promise.all([
-        storage.getCaseDiscussionNotes(caseId, 5),
-        storage.getCaseDiscussionInsights(caseId, 5),
+        storage.getCaseDiscussionNotes(workerCase.id, workerCase.organizationId, 5),
+        storage.getCaseDiscussionInsights(workerCase.id, workerCase.organizationId, 5),
       ]);
 
       res.json({
-        id: caseId,
+        id: workerCase.id,
         summary: result.summary,
         cached: result.cached,
         generatedAt: result.generatedAt,

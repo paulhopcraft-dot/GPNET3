@@ -9,6 +9,8 @@ declare global {
         id: string;
         email: string;
         role: UserRole;
+        organizationId: string;
+        companyId?: string | null; // Deprecated - use organizationId
       };
     }
   }
@@ -19,6 +21,8 @@ export interface AuthRequest extends Request {
     id: string;
     email: string;
     role: UserRole;
+    organizationId: string;
+    companyId?: string | null; // Deprecated - use organizationId
   };
 }
 
@@ -26,6 +30,8 @@ export interface JWTPayload {
   id: string;
   email: string;
   role: UserRole;
+  organizationId?: string; // New field
+  companyId?: string | null; // Deprecated - fallback for old tokens
 }
 
 export function authorize(allowedRoles?: UserRole[]) {
@@ -52,10 +58,15 @@ export function authorize(allowedRoles?: UserRole[]) {
       const decoded = jwt.verify(token, process.env.JWT_SECRET) as JWTPayload;
 
       // Attach user info to request
+      // Support both organizationId (new) and companyId (legacy) for backwards compatibility
+      const organizationId = decoded.organizationId || decoded.companyId || "";
+
       req.user = {
         id: decoded.id,
         email: decoded.email,
         role: decoded.role,
+        organizationId,
+        companyId: decoded.companyId, // Keep for backwards compat
       };
 
       // Check if user role is allowed

@@ -80,7 +80,7 @@ const {
   },
   size: 64, // Token size in bytes
   ignoredMethods: ["GET", "HEAD", "OPTIONS"], // Safe methods don't need CSRF
-  getTokenFromRequest: (req) => {
+  getCsrfTokenFromRequest: (req: Request) => {
     // Check header first (preferred for API)
     return req.headers["x-csrf-token"] as string;
   },

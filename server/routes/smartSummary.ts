@@ -6,7 +6,8 @@
  */
 
 import express, { type Request, type Response } from "express";
-import { authorize } from "../middleware/auth";
+import { authorize, type AuthRequest } from "../middleware/auth";
+import { requireCaseOwnership } from "../middleware/caseOwnership";
 import { storage } from "../storage";
 import { generateSmartSummary, generateFallbackSummary } from "../services/smartSummary";
 
@@ -22,29 +23,21 @@ const router = express.Router();
 router.get(
   "/:caseId/smart-summary",
   authorize(),
-  async (req: Request, res: Response) => {
+  requireCaseOwnership(),
+  async (req: AuthRequest, res: Response) => {
     try {
-      const { caseId } = req.params;
+      const workerCase = req.workerCase!; // Populated by requireCaseOwnership middleware
       const useFallback = req.query.fallback === "true";
-
-      // Check if case exists
-      const workerCase = await storage.getGPNet2CaseById(caseId);
-      if (!workerCase) {
-        return res.status(404).json({
-          success: false,
-          error: "Case not found",
-        });
-      }
 
       let summary;
 
       if (useFallback) {
         // Use rule-based analysis (no AI)
-        summary = await generateFallbackSummary(storage, caseId);
+        summary = await generateFallbackSummary(storage, workerCase.id, workerCase.organizationId);
       } else {
         // Try AI-powered analysis, fall back to rule-based if AI unavailable
         try {
-          summary = await generateSmartSummary(storage, caseId);
+          summary = await generateSmartSummary(storage, workerCase.id, workerCase.organizationId);
         } catch (error: any) {
           const msg = error.message || "";
           const isAIUnavailable =
@@ -54,7 +47,7 @@ router.get(
             msg.startsWith("401");
           if (isAIUnavailable) {
             console.warn("AI unavailable, using fallback summary:", msg.slice(0, 100));
-            summary = await generateFallbackSummary(storage, caseId);
+            summary = await generateFallbackSummary(storage, workerCase.id, workerCase.organizationId);
           } else {
             throw error;
           }
@@ -92,27 +85,19 @@ router.get(
 router.post(
   "/:caseId/smart-summary",
   authorize(),
-  async (req: Request, res: Response) => {
+  requireCaseOwnership(),
+  async (req: AuthRequest, res: Response) => {
     try {
-      const { caseId } = req.params;
+      const workerCase = req.workerCase!; // Populated by requireCaseOwnership middleware
       const useFallback = req.query.fallback === "true";
-
-      // Check if case exists
-      const workerCase = await storage.getGPNet2CaseById(caseId);
-      if (!workerCase) {
-        return res.status(404).json({
-          success: false,
-          error: "Case not found",
-        });
-      }
 
       let summary;
 
       if (useFallback) {
-        summary = await generateFallbackSummary(storage, caseId);
+        summary = await generateFallbackSummary(storage, workerCase.id, workerCase.organizationId);
       } else {
         try {
-          summary = await generateSmartSummary(storage, caseId);
+          summary = await generateSmartSummary(storage, workerCase.id, workerCase.organizationId);
         } catch (error: any) {
           const msg = error.message || "";
           const isAIUnavailable =
@@ -122,7 +107,7 @@ router.post(
             msg.startsWith("401");
           if (isAIUnavailable) {
             console.warn("AI unavailable, using fallback summary:", msg.slice(0, 100));
-            summary = await generateFallbackSummary(storage, caseId);
+            summary = await generateFallbackSummary(storage, workerCase.id, workerCase.organizationId);
           } else {
             throw error;
           }

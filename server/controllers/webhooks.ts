@@ -2,7 +2,7 @@ import { Response } from "express";
 import type { WebhookRequest } from "../webhookSecurity";
 import type { AuthRequest } from "../middleware/auth";
 import { db } from "../db";
-import { webhookFormMappings, workerCases } from "@shared/schema";
+import { webhookFormMappings, workerCases, type RestrictionItem, type CaseClinicalStatus } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { randomBytes } from "crypto";
 
@@ -91,18 +91,26 @@ async function handleWorkerInjuryForm(formData: any, organizationId: string) {
   const injuryType = formData.q6_injuryType || formData.injury_type;
   const injuryDescription = formData.q7_description || formData.description;
 
+  // Build summary from injury type and description
+  const summaryParts = [];
+  if (injuryType) summaryParts.push(`Injury Type: ${injuryType}`);
+  if (injuryDescription) summaryParts.push(injuryDescription);
+  const summary = summaryParts.length > 0 ? summaryParts.join(". ") : "New injury report submitted via JotForm";
+
   // Create worker case with organizationId from mapping (NOT from form data)
   await db.insert(workerCases).values({
     id: `CASE-${Date.now()}-${randomBytes(4).toString("hex")}`,
     workerName: workerName || "Unknown Worker",
     company: company || "Unknown Company",
     dateOfInjury: dateOfInjury ? new Date(dateOfInjury) : new Date(),
-    injuryType: injuryType || "Unknown",
-    injuryDescription: injuryDescription,
+    riskLevel: "medium",
+    workStatus: "unknown",
+    complianceIndicator: "yellow",
     currentStatus: "Pending Review",
-    // organizationId will be added after migration 0003
-    // For now, store in companyId field temporarily
-    // companyId: organizationId,
+    nextStep: "Review injury report and assign case manager",
+    owner: "Unassigned",
+    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0], // 7 days from now
+    summary,
   });
 
   console.info("Worker injury case created", {
@@ -171,16 +179,28 @@ async function handleMedicalCertificateForm(formData: any, organizationId: strin
   }
 
   // Parse restrictions (handle JSON array or comma-separated string)
-  let restrictions: Array<{ description: string; duration?: string }> = [];
+  // RestrictionItem type: { type, description, startDate?, endDate? }
+  let restrictions: RestrictionItem[] = [];
   if (restrictionsRaw) {
     try {
       if (typeof restrictionsRaw === "string") {
         // Try JSON parse first
         const parsed = JSON.parse(restrictionsRaw);
-        restrictions = Array.isArray(parsed) ? parsed : [{ description: String(parsed) }];
+        if (Array.isArray(parsed)) {
+          restrictions = parsed.map((r: any) => ({
+            type: r.type || "other",
+            description: r.description || String(r),
+            startDate: r.startDate,
+            endDate: r.endDate,
+          }));
+        } else {
+          restrictions = [{ type: "other", description: String(parsed) }];
+        }
       } else if (Array.isArray(restrictionsRaw)) {
         restrictions = restrictionsRaw.map((r: any) =>
-          typeof r === "string" ? { description: r } : r
+          typeof r === "string"
+            ? { type: "other" as const, description: r }
+            : { type: r.type || "other", description: r.description || String(r), startDate: r.startDate, endDate: r.endDate }
         );
       }
     } catch {
@@ -189,7 +209,7 @@ async function handleMedicalCertificateForm(formData: any, organizationId: strin
         .split(",")
         .map((s: string) => s.trim())
         .filter(Boolean)
-        .map((desc: string) => ({ description: desc }));
+        .map((desc: string): RestrictionItem => ({ type: "other", description: desc }));
     }
   }
 
@@ -302,7 +322,6 @@ async function handleReturnToWorkForm(formData: any, organizationId: string) {
 
   // Build clinical status update
   const { storage } = await import("../storage");
-  const { CaseClinicalStatus } = await import("@shared/schema");
 
   // Build functional capacity object
   const functionalCapacity: any = {};
@@ -323,8 +342,8 @@ async function handleReturnToWorkForm(formData: any, organizationId: string) {
   }
 
   // Update case clinical status with RTW plan info
-  const clinicalStatusUpdate: any = {
-    rtwPlanStatus: rtwPlanStatus as any,
+  const clinicalStatusUpdate: Partial<CaseClinicalStatus> = {
+    rtwPlanStatus: rtwPlanStatus as CaseClinicalStatus["rtwPlanStatus"],
   };
 
   // Only add functionalCapacity if we have data

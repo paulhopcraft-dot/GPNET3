@@ -136,10 +136,9 @@
       "id": "F015",
       "name": "Webhook Handlers",
       "description": "Secure webhook endpoints for external integrations",
-      "passes": false,
-      "files": ["server/routes/webhooks.ts", "server/controllers/webhooks.ts"],
-      "acceptanceCriteria": ["Password verification", "Form type routing", "Error handling"],
-      "notes": "TODO: Implement medical certificate and RTW plan processing"
+      "passes": true,
+      "files": ["server/routes/webhooks.ts", "server/controllers/webhooks.ts", "server/webhookSecurity.ts"],
+      "acceptanceCriteria": ["Password verification", "Form type routing", "Error handling"]
     },
     {
       "id": "F016",
@@ -166,21 +165,22 @@
       "acceptanceCriteria": ["CSRF tokens required", "Rate limits enforced", "Headers set"]
     }
   ],
-  "incomplete": [
+  "incomplete": [],
+  "resolved": [
     {
       "id": "I001",
       "name": "Medical Certificate Webhook Processing",
-      "source": "TODO in server/controllers/webhooks.ts:124",
-      "priority": "medium"
+      "source": "server/controllers/webhooks.ts",
+      "resolvedAt": "2025-12-10",
+      "resolution": "Implemented handleMedicalCertificateForm with worker name matching, restriction parsing, and certificate creation"
     },
     {
       "id": "I002",
       "name": "RTW Plan Webhook Processing",
-      "source": "TODO in server/controllers/webhooks.ts:137",
-      "priority": "medium"
-    }
-  ],
-  "resolved": [
+      "source": "server/controllers/webhooks.ts",
+      "resolvedAt": "2025-12-10",
+      "resolution": "Implemented handleReturnToWorkForm with clinical status updates and functional capacity tracking"
+    },
     {
       "id": "I003",
       "name": "Remove Debug Tokens in Production",

@@ -10,13 +10,19 @@ import { validateInvite, useInvite } from "../inviteService";
 const SALT_ROUNDS = 10;
 const JWT_EXPIRES_IN = "15m"; // 15 minutes as per requirements
 
-function generateAccessToken(userId: string, email: string, role: string): string {
+function generateAccessToken(userId: string, email: string, role: string, organizationId: string): string {
   if (!process.env.JWT_SECRET) {
     throw new Error("JWT_SECRET not configured");
   }
 
   return jwt.sign(
-    { id: userId, email, role },
+    {
+      id: userId,
+      email,
+      role,
+      organizationId,
+      companyId: organizationId, // Backwards compatibility - keep companyId field
+    },
     process.env.JWT_SECRET,
     { expiresIn: JWT_EXPIRES_IN }
   );
@@ -80,9 +86,8 @@ export async function register(req: Request, res: Response) {
         password: hashedPassword,
         role: invite.role, // ✅ From invite, not user input
         subrole: invite.subrole || null, // ✅ From invite, not user input
-        // Note: organizationId will be added after migration 0003 is applied
-        // For now, using legacy companyId field as temporary storage
-        companyId: invite.organizationId, // Temporary until migration
+        organizationId: invite.organizationId, // ✅ From invite - tenant isolation
+        companyId: invite.organizationId, // Keep for backwards compat (deprecated)
         insurerId: null,
       })
       .returning({
@@ -90,6 +95,7 @@ export async function register(req: Request, res: Response) {
         email: users.email,
         role: users.role,
         subrole: users.subrole,
+        organizationId: users.organizationId,
         companyId: users.companyId,
         insurerId: users.insurerId,
         createdAt: users.createdAt,
@@ -100,8 +106,8 @@ export async function register(req: Request, res: Response) {
     // Mark invite as used
     await useInvite(inviteToken);
 
-    // Generate access token
-    const accessToken = generateAccessToken(user.id, user.email, user.role);
+    // Generate access token with organizationId
+    const accessToken = generateAccessToken(user.id, user.email, user.role, user.organizationId);
 
     res.status(201).json({
       success: true,
@@ -165,8 +171,8 @@ export async function login(req: Request, res: Response) {
       });
     }
 
-    // Generate access token
-    const accessToken = generateAccessToken(user.id, user.email, user.role);
+    // Generate access token with organizationId
+    const accessToken = generateAccessToken(user.id, user.email, user.role, user.organizationId);
 
     res.json({
       success: true,
@@ -177,7 +183,8 @@ export async function login(req: Request, res: Response) {
           email: user.email,
           role: user.role,
           subrole: user.subrole,
-          companyId: user.companyId,
+          organizationId: user.organizationId,
+          companyId: user.companyId, // Deprecated - backwards compat
           insurerId: user.insurerId,
         },
         accessToken,

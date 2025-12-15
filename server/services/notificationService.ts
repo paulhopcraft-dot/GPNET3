@@ -447,9 +447,10 @@ export async function processPendingNotifications(
  * Get notification statistics
  */
 export async function getNotificationStats(
-  storage: IStorage
+  storage: IStorage,
+  organizationId: string
 ): Promise<{ pending: number; sent: number; failed: number }> {
-  return storage.getNotificationStats();
+  return storage.getNotificationStats(organizationId);
 }
 
 /**
@@ -457,9 +458,10 @@ export async function getNotificationStats(
  */
 export async function getRecentNotifications(
   storage: IStorage,
+  organizationId: string,
   hours: number = 24
 ): Promise<NotificationDB[]> {
-  return storage.getRecentNotifications(hours);
+  return storage.getRecentNotifications(organizationId, hours);
 }
 
 /**
@@ -467,7 +469,8 @@ export async function getRecentNotifications(
  */
 export async function getNotificationsByCase(
   storage: IStorage,
-  caseId: string
+  caseId: string,
+  organizationId: string
 ): Promise<NotificationDB[]> {
-  return storage.getNotificationsByCase(caseId);
+  return storage.getNotificationsByCase(caseId, organizationId);
 }
