@@ -1,44 +1,22 @@
-# Code Review
+---
+description: Code review with categorized findings
+---
 
-Review recent changes in GPNet3:
+# /project:review
 
-1. **Check uncommitted changes:**
-   ```bash
-   git diff
-   git diff --staged
-   ```
+Review specified files or recent changes.
 
-2. **Review against standards:**
-   - TypeScript strict mode compliance
-   - Proper error handling
-   - Security considerations (no secrets, input validation)
-   - Test coverage for new code
+Check for:
+- Security vulnerabilities
+- Performance issues
+- Code quality problems
+- Missing error handling
+- Test coverage gaps
 
-3. **Verify patterns:**
-   - Follows existing code conventions
-   - Uses appropriate Drizzle patterns
-   - React components follow project structure
+Categorize findings:
 
-4. **Check for issues:**
-   - Console.log statements (should be removed)
-   - Commented-out code
-   - Missing type annotations
-   - Potential security vulnerabilities
+CRITICAL - Fix immediately
+MEDIUM - Fix soon (30-60 min)
+QUICK WINS - Easy fixes (<5 min)
 
-## Review Checklist
-
-- [ ] No secrets or credentials in code
-- [ ] Input validation with Zod
-- [ ] Error handling present
-- [ ] TypeScript types explicit
-- [ ] Tests for new functionality
-- [ ] Consistent naming conventions
-- [ ] No unnecessary dependencies added
-
-## Output
-
-Provide:
-- Summary of changes
-- Issues found (if any)
-- Suggestions for improvement
-- Ready for commit: Yes/No
+Output actionable recommendations for each finding.

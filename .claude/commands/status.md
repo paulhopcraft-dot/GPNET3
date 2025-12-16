@@ -1,43 +1,24 @@
-# Project Status
+---
+description: Show project progress dashboard
+---
 
-Generate a status report for GPNet3:
+# /project:status
 
-1. Read `.claude/domain_memory.json`
-2. Count features by status:
-   - Working (`passes: true`)
-   - Incomplete (`passes: false`)
-   - TODOs in `incomplete` array
-3. Check git status for pending changes
-4. List recent commits
-5. Report any blockers or issues
+Read features.json (or PROJECT_INDEX.json if no features.json) and report:
 
-## Report Format
+Progress: X/Y features complete (Z%)
 
-```
-═══════════════════════════════════════════════════════════════
-📊 GPNET3 STATUS REPORT
-═══════════════════════════════════════════════════════════════
+COMPLETED:
+- F001: [name]
+- F002: [name]
 
-Branch: [current branch]
-Last commit: [commit message]
+IN PROGRESS:
+- F00X: [name] - [status/blocker]
 
-FEATURES:
-├── Working: X/Y
-├── Incomplete: Z
-└── TODOs: N
+REMAINING:
+- F00X: [name] (depends on: F00X)
 
-NEXT PRIORITIES:
-1. [Feature name] - [brief description]
-2. [Feature name] - [brief description]
+NEXT UP: F00X - [name]
 
-GIT STATUS:
-- [staged/unstaged changes summary]
-
-═══════════════════════════════════════════════════════════════
-```
-
-## Checks
-
-- Run `npm test` for test status
-- Run `npm run build` for TypeScript status
-- Check for uncommitted changes
+BLOCKERS:
+- [list any blockers]
