@@ -1,0 +1,1414 @@
+{
+  "metadata": {
+    "project_name": "GPNet3",
+    "description": "Claims, compliance, and return-to-work (RTW) management system for WorkSafe Victoria compliance",
+    "technology_stack": {
+      "frontend": "React 18 + Vite + TypeScript + TanStack Query + Tailwind CSS",
+      "backend": "Node.js + Express + TypeScript",
+      "database": "PostgreSQL + Drizzle ORM",
+      "ai": "Anthropic Claude API",
+      "testing": "Vitest (unit) + Playwright (E2E)"
+    },
+    "generated_at": "2025-12-16",
+    "architecture": "Full-stack monorepo with client/, server/, and shared/ directories"
+  },
+
+  "structure": {
+    "root": {
+      "config_files": [
+        "package.json",
+        "tsconfig.json",
+        "vite.config.ts",
+        "tailwind.config.ts",
+        "drizzle.config.ts",
+        "playwright.config.ts",
+        "vitest.config.ts",
+        "postcss.config.js"
+      ]
+    },
+    "shared": {
+      "description": "Shared types, schemas, and utilities between frontend and backend",
+      "files": [
+        "schema.ts",
+        "complianceColors.ts"
+      ]
+    },
+    "server": {
+      "description": "Express backend with TypeScript",
+      "entry_points": [
+        "index.ts",
+        "routes.ts"
+      ],
+      "subdirectories": {
+        "controllers": ["auth.ts", "invites.ts", "webhooks.ts"],
+        "middleware": ["auth.ts", "security.ts", "caseOwnership.ts"],
+        "routes": [
+          "auth.ts",
+          "certificates.ts",
+          "actions.ts",
+          "smartSummary.ts",
+          "emailDrafts.ts",
+          "notifications.ts",
+          "termination.ts",
+          "webhooks.ts",
+          "invites.ts",
+          "cases.ts",
+          "voice.ts"
+        ],
+        "services": [
+          "freshdesk.ts",
+          "summary.ts",
+          "smartSummary.ts",
+          "certificateService.ts",
+          "certificateCompliance.ts",
+          "clinicalEvidence.ts",
+          "clinicalActions.ts",
+          "emailDraftService.ts",
+          "emailService.ts",
+          "notificationService.ts",
+          "notificationScheduler.ts",
+          "termination.ts",
+          "auditLogger.ts",
+          "transcripts/index.ts",
+          "transcripts/parser.ts",
+          "transcripts/task-agent.ts"
+        ],
+        "core": [
+          "db.ts",
+          "storage.ts",
+          "seed.ts",
+          "vite.ts"
+        ]
+      }
+    },
+    "client": {
+      "description": "React frontend with Vite",
+      "entry_points": [
+        "src/main.tsx",
+        "src/App.tsx"
+      ],
+      "subdirectories": {
+        "pages": [
+          "GPNet2Dashboard.tsx",
+          "LoginPage.tsx",
+          "TestDashboard.tsx",
+          "not-found.tsx"
+        ],
+        "components": [
+          "CasesTable.tsx",
+          "CaseDetailPanel.tsx",
+          "CompanyNav.tsx",
+          "SearchBar.tsx",
+          "WorkStatusFilter.tsx",
+          "RiskBadge.tsx",
+          "RecoveryChart.tsx",
+          "TimelineCard.tsx",
+          "ProtectedRoute.tsx",
+          "ai-assistant.tsx",
+          "app-sidebar.tsx",
+          "TerminationPanel.tsx",
+          "ActionQueueCard.tsx",
+          "CertificateCard.tsx",
+          "SummaryCard.tsx",
+          "EmailDraftButton.tsx",
+          "EmailDraftModal.tsx",
+          "case-detail-modal.tsx",
+          "cases-table.tsx",
+          "dashboard-stats.tsx",
+          "organization-card.tsx",
+          "recent-activity.tsx",
+          "theme-provider.tsx",
+          "theme-toggle.tsx"
+        ],
+        "components/ui": [
+          "accordion.tsx",
+          "alert-dialog.tsx",
+          "alert.tsx",
+          "avatar.tsx",
+          "badge.tsx",
+          "button.tsx",
+          "calendar.tsx",
+          "card.tsx",
+          "chart.tsx",
+          "checkbox.tsx",
+          "dialog.tsx",
+          "dropdown-menu.tsx",
+          "form.tsx",
+          "input.tsx",
+          "label.tsx",
+          "select.tsx",
+          "separator.tsx",
+          "sidebar.tsx",
+          "skeleton.tsx",
+          "table.tsx",
+          "tabs.tsx",
+          "textarea.tsx",
+          "toast.tsx",
+          "toaster.tsx",
+          "tooltip.tsx"
+        ],
+        "contexts": [
+          "AuthContext.tsx"
+        ],
+        "hooks": [
+          "useAuth.ts",
+          "use-toast.ts",
+          "use-mobile.tsx"
+        ],
+        "lib": [
+          "utils.ts",
+          "queryClient.ts"
+        ]
+      }
+    },
+    "docs": {
+      "description": "31 specification documents and guides",
+      "key_files": [
+        "README.md",
+        "CLAUDE.md",
+        "AI_DEV_GUIDE.md",
+        "SECURITY_STATUS.md",
+        "SECURITY_IMPLEMENTATION_STATUS.md"
+      ]
+    },
+    "migrations": {
+      "description": "9 Drizzle database migration files",
+      "pattern": "migrations/*.sql"
+    },
+    "tests": {
+      "description": "E2E tests using Playwright",
+      "files": [
+        "tests/e2e/gpnet-dashboard.spec.ts"
+      ]
+    },
+    ".claude": {
+      "description": "Claude Code configuration and project instructions",
+      "subdirectories": {
+        "commands": [
+          "think.md",
+          "fresh.md",
+          "index.md",
+          "validate.md",
+          "delegate.md"
+        ],
+        "rules": [
+          "CLAUDE.md",
+          "database.md",
+          "engineering.md",
+          "engineering-v2.md",
+          "react.md",
+          "typescript.md"
+        ]
+      }
+    }
+  },
+
+  "files": {
+    "shared/schema.ts": {
+      "type": "typescript",
+      "purpose": "Database schema and type definitions (single source of truth)",
+      "lines": 1058,
+      "exports": {
+        "types": [
+          "CompanyName",
+          "WorkStatus",
+          "RiskLevel",
+          "ComplianceIndicator",
+          "WorkCapacity",
+          "MedicalConstraints",
+          "FunctionalCapacity",
+          "RTWPlanStatus",
+          "ComplianceStatus",
+          "SpecialistStatus",
+          "CaseClinicalStatus",
+          "WorkerCase",
+          "MedicalCertificate",
+          "MedicalCertificateInput",
+          "CaseAttachment",
+          "CaseDiscussionNote",
+          "TranscriptInsight",
+          "TerminationProcess",
+          "CaseAction",
+          "EmailDraft",
+          "Notification",
+          "User",
+          "UserRole",
+          "CaseSummary",
+          "TimelineEvent"
+        ],
+        "tables": [
+          "workerCases",
+          "medicalCertificates",
+          "caseAttachments",
+          "caseDiscussionNotes",
+          "caseDiscussionInsights",
+          "terminationProcesses",
+          "documentTemplates",
+          "generatedDocuments",
+          "users",
+          "userInvites",
+          "webhookFormMappings",
+          "caseActions",
+          "certificateExpiryAlerts",
+          "emailDrafts",
+          "notifications",
+          "auditEvents"
+        ],
+        "functions": [
+          "isValidCompany(company: string): boolean",
+          "isLegitimateCase(workerCase): boolean",
+          "getSurname(workerName: string): string"
+        ]
+      },
+      "imports": {
+        "external": [
+          "drizzle-orm",
+          "drizzle-orm/pg-core",
+          "drizzle-zod",
+          "zod"
+        ]
+      },
+      "dependencies": []
+    },
+
+    "shared/complianceColors.ts": {
+      "type": "typescript",
+      "purpose": "UI color mappings for compliance indicators",
+      "exports": {
+        "constants": ["complianceColors"],
+        "functions": ["getComplianceBadgeProps(indicator): ComplianceBadgeProps"]
+      },
+      "imports": {
+        "internal": ["@shared/schema"]
+      },
+      "dependencies": ["shared/schema.ts"]
+    },
+
+    "server/index.ts": {
+      "type": "typescript",
+      "purpose": "Express server entry point with security middleware",
+      "exports": {
+        "variables": ["notificationScheduler"]
+      },
+      "imports": {
+        "external": [
+          "dotenv/config",
+          "express",
+          "cors"
+        ],
+        "internal": [
+          "./routes",
+          "./vite",
+          "./services/transcripts",
+          "./services/notificationScheduler",
+          "./storage",
+          "./middleware/security"
+        ]
+      },
+      "key_features": [
+        "Security validation on startup",
+        "Helmet security headers",
+        "CORS configuration",
+        "Rate limiting (100 req/15min general, 5 req/15min auth)",
+        "CSRF protection",
+        "Cookie parser middleware",
+        "Request logging",
+        "Transcript ingestion module",
+        "Notification scheduler"
+      ],
+      "dependencies": [
+        "server/routes.ts",
+        "server/vite.ts",
+        "server/services/transcripts/index.ts",
+        "server/services/notificationScheduler.ts",
+        "server/storage.ts",
+        "server/middleware/security.ts"
+      ]
+    },
+
+    "server/routes.ts": {
+      "type": "typescript",
+      "purpose": "Central route registration and main API endpoints",
+      "exports": {
+        "functions": ["registerRoutes(app: Express): Promise<void>"]
+      },
+      "imports": {
+        "external": ["express", "@anthropic-ai/sdk"],
+        "internal": [
+          "./storage",
+          "./services/freshdesk",
+          "./services/summary",
+          "./routes/auth",
+          "./routes/termination",
+          "./routes/invites",
+          "./routes/webhooks",
+          "./routes/certificates",
+          "./routes/actions",
+          "./routes/smartSummary",
+          "./routes/emailDrafts",
+          "./routes/notifications",
+          "./services/clinicalEvidence",
+          "./middleware/auth",
+          "./middleware/caseOwnership",
+          "./services/auditLogger",
+          "@shared/schema"
+        ]
+      },
+      "api_routes": {
+        "/api/auth/*": "Authentication routes",
+        "/api/termination/*": "Termination workflow routes",
+        "/api/admin/invites/*": "Admin invite management",
+        "/api/webhooks/*": "External webhook handlers",
+        "/api/certificates/*": "Certificate Engine v1",
+        "/api/actions/*": "Action Queue v1",
+        "/api/cases/*": "Smart Summary Engine v1",
+        "/api/email-drafts/*": "Email draft generation",
+        "/api/notifications/*": "Notification Engine v1",
+        "/api/compliance": "Claude compliance assistant",
+        "/api/gpnet2/cases": "Get all cases (multi-tenant isolated)",
+        "/api/cases/:id/summary": "Get/generate case summary",
+        "/api/cases/:id/recovery-timeline": "Certificate timeline",
+        "/api/cases/:id/clinical-evidence": "Clinical evaluation",
+        "/api/cases/:id/discussion-notes": "Transcript notes",
+        "/api/cases/:id/timeline": "Full case timeline",
+        "/api/freshdesk/sync": "Freshdesk sync (admin only)"
+      },
+      "dependencies": [
+        "server/storage.ts",
+        "server/services/*.ts",
+        "server/routes/*.ts",
+        "server/middleware/*.ts",
+        "shared/schema.ts"
+      ]
+    },
+
+    "server/storage.ts": {
+      "type": "typescript",
+      "purpose": "Data access layer - primary database operations",
+      "exports": {
+        "classes": ["Storage"],
+        "constants": ["storage"]
+      },
+      "key_methods": [
+        "getAllWorkerCases(organizationId): Promise<WorkerCase[]>",
+        "getWorkerCaseById(id, organizationId): Promise<WorkerCase | null>",
+        "createOrUpdateCase(data, organizationId): Promise<WorkerCase>",
+        "getCertificatesForCase(caseId): Promise<MedicalCertificate[]>",
+        "createCertificate(data): Promise<MedicalCertificate>",
+        "getDiscussionNotesForCase(caseId): Promise<CaseDiscussionNote[]>",
+        "createDiscussionNote(data): Promise<void>",
+        "getTimelineEvents(caseId): Promise<TimelineEvent[]>",
+        "getCaseActions(organizationId): Promise<CaseAction[]>",
+        "createCaseAction(data): Promise<CaseAction>",
+        "getUserByEmail(email, organizationId): Promise<User | null>",
+        "createUser(data): Promise<User>",
+        "createInvite(data): Promise<UserInvite>",
+        "getInviteByToken(token): Promise<UserInvite | null>"
+      ],
+      "imports": {
+        "external": ["drizzle-orm"],
+        "internal": [
+          "./db",
+          "@shared/schema",
+          "./services/clinicalEvidence"
+        ]
+      },
+      "dependencies": [
+        "server/db.ts",
+        "shared/schema.ts",
+        "server/services/clinicalEvidence.ts"
+      ]
+    },
+
+    "server/db.ts": {
+      "type": "typescript",
+      "purpose": "Database connection using Drizzle ORM",
+      "exports": {
+        "constants": ["db"]
+      },
+      "imports": {
+        "external": ["drizzle-orm/node-postgres", "pg"],
+        "internal": ["@shared/schema"]
+      },
+      "dependencies": ["shared/schema.ts"]
+    },
+
+    "server/middleware/auth.ts": {
+      "type": "typescript",
+      "purpose": "JWT authorization middleware",
+      "exports": {
+        "functions": [
+          "authorize(options?: AuthOptions): RequestHandler",
+          "requireAdmin(): RequestHandler"
+        ],
+        "types": ["AuthRequest"]
+      },
+      "features": [
+        "JWT token verification",
+        "Organization/tenant isolation",
+        "Role-based access control",
+        "User context injection"
+      ],
+      "imports": {
+        "external": ["express", "jsonwebtoken"],
+        "internal": []
+      },
+      "dependencies": []
+    },
+
+    "server/middleware/security.ts": {
+      "type": "typescript",
+      "purpose": "Security middleware (CSRF, rate limiting, helmet)",
+      "exports": {
+        "functions": [
+          "validateSecurityEnvironment()",
+          "conditionalCsrfProtection",
+          "getCsrfToken",
+          "csrfErrorHandler"
+        ],
+        "constants": [
+          "helmetConfig",
+          "cookieParserMiddleware",
+          "generalRateLimiter",
+          "authRateLimiter"
+        ]
+      },
+      "features": [
+        "Environment validation (fail-closed)",
+        "Helmet security headers",
+        "CSRF protection with token refresh",
+        "Rate limiting (general and auth-specific)",
+        "Cookie parser configuration"
+      ],
+      "imports": {
+        "external": [
+          "helmet",
+          "cookie-parser",
+          "csrf-csrf",
+          "express-rate-limit"
+        ]
+      },
+      "dependencies": []
+    },
+
+    "server/middleware/caseOwnership.ts": {
+      "type": "typescript",
+      "purpose": "Multi-tenant case ownership validation",
+      "exports": {
+        "functions": ["requireCaseOwnership(): RequestHandler"]
+      },
+      "features": [
+        "Validates case belongs to user's organization",
+        "Defense-in-depth security layer",
+        "Prevents cross-tenant data access"
+      ],
+      "imports": {
+        "internal": ["./storage", "./auth"]
+      },
+      "dependencies": [
+        "server/storage.ts",
+        "server/middleware/auth.ts"
+      ]
+    },
+
+    "server/services/freshdesk.ts": {
+      "type": "typescript",
+      "purpose": "Freshdesk API integration and ticket syncing",
+      "exports": {
+        "classes": ["FreshdeskService"]
+      },
+      "key_methods": [
+        "syncTicketsToWorkerCases(organizationId): Promise<SyncResult>",
+        "getTicket(ticketId): Promise<FreshdeskTicket>",
+        "listTickets(params): Promise<FreshdeskTicket[]>",
+        "extractCertificatesFromTicket(ticket): MedicalCertificateInput[]"
+      ],
+      "imports": {
+        "internal": ["./storage", "@shared/schema"]
+      },
+      "dependencies": ["server/storage.ts", "shared/schema.ts"]
+    },
+
+    "server/services/summary.ts": {
+      "type": "typescript",
+      "purpose": "AI-powered case summary generation using Claude",
+      "exports": {
+        "classes": ["SummaryService"]
+      },
+      "key_methods": [
+        "generateCaseSummary(caseId): Promise<string>",
+        "classifyWorkStatus(caseData): Promise<string>"
+      ],
+      "imports": {
+        "external": ["@anthropic-ai/sdk"],
+        "internal": ["./storage", "@shared/schema"]
+      },
+      "dependencies": ["server/storage.ts", "shared/schema.ts"]
+    },
+
+    "server/services/smartSummary.ts": {
+      "type": "typescript",
+      "purpose": "Smart Summary Engine v1 - Structured case analysis",
+      "exports": {
+        "functions": ["generateStructuredCaseSummary(caseId): Promise<CaseSummary>"]
+      },
+      "features": [
+        "Risk assessment",
+        "Missing information identification",
+        "Action recommendations",
+        "RTW readiness evaluation",
+        "Compliance status checking"
+      ],
+      "imports": {
+        "external": ["@anthropic-ai/sdk"],
+        "internal": ["./storage", "@shared/schema"]
+      },
+      "dependencies": ["server/storage.ts", "shared/schema.ts"]
+    },
+
+    "server/services/certificateService.ts": {
+      "type": "typescript",
+      "purpose": "Certificate CRUD operations",
+      "exports": {
+        "functions": [
+          "getCertificateById(id): Promise<MedicalCertificate>",
+          "createCertificate(data): Promise<MedicalCertificate>",
+          "updateCertificate(id, data): Promise<MedicalCertificate>",
+          "deleteCertificate(id): Promise<void>"
+        ]
+      },
+      "dependencies": ["server/storage.ts", "shared/schema.ts"]
+    },
+
+    "server/services/certificateCompliance.ts": {
+      "type": "typescript",
+      "purpose": "Certificate compliance evaluation",
+      "exports": {
+        "functions": ["evaluateCertificateCompliance(caseId): Promise<CertificateCompliance>"]
+      },
+      "features": [
+        "Certificate expiry detection",
+        "Compliance status calculation",
+        "Days until/since expiry tracking"
+      ],
+      "dependencies": ["server/storage.ts", "shared/schema.ts"]
+    },
+
+    "server/services/clinicalEvidence.ts": {
+      "type": "typescript",
+      "purpose": "Clinical evidence evaluation and flagging",
+      "exports": {
+        "functions": ["evaluateClinicalEvidence(workerCase): Promise<ClinicalEvidenceEvaluation>"]
+      },
+      "features": [
+        "Treatment plan validation",
+        "Certificate currency checking",
+        "Specialist status tracking",
+        "RTW plan evaluation",
+        "Risk flag generation"
+      ],
+      "dependencies": ["shared/schema.ts"]
+    },
+
+    "server/services/clinicalActions.ts": {
+      "type": "typescript",
+      "purpose": "Clinical action recommendations based on evidence gaps",
+      "exports": {
+        "functions": ["generateClinicalActions(evaluation): ClinicalActionRecommendation[]"]
+      },
+      "dependencies": ["shared/schema.ts"]
+    },
+
+    "server/services/emailDraftService.ts": {
+      "type": "typescript",
+      "purpose": "AI-powered email draft generation",
+      "exports": {
+        "functions": [
+          "generateEmailDraft(caseId, request): Promise<EmailDraft>",
+          "getEmailDraftsForCase(caseId): Promise<EmailDraft[]>"
+        ]
+      },
+      "features": [
+        "9 email types (initial contact, certificate chase, etc.)",
+        "Tone control (formal, supportive, firm)",
+        "Context-aware generation",
+        "Case snapshot preservation"
+      ],
+      "imports": {
+        "external": ["@anthropic-ai/sdk"],
+        "internal": ["./storage", "@shared/schema"]
+      },
+      "dependencies": ["server/storage.ts", "shared/schema.ts"]
+    },
+
+    "server/services/notificationService.ts": {
+      "type": "typescript",
+      "purpose": "Notification creation and management",
+      "exports": {
+        "functions": [
+          "createNotification(data): Promise<Notification>",
+          "getPendingNotifications(): Promise<Notification[]>",
+          "markNotificationSent(id): Promise<void>"
+        ]
+      },
+      "features": [
+        "Priority levels",
+        "Deduplication",
+        "Status tracking"
+      ],
+      "dependencies": ["server/storage.ts", "shared/schema.ts"]
+    },
+
+    "server/services/notificationScheduler.ts": {
+      "type": "typescript",
+      "purpose": "Automated notification scheduling and sending",
+      "exports": {
+        "classes": ["NotificationScheduler"]
+      },
+      "features": [
+        "Certificate expiry alerts",
+        "Action overdue notifications",
+        "Scheduled background jobs",
+        "Email sending via emailService"
+      ],
+      "imports": {
+        "internal": [
+          "./storage",
+          "./notificationService",
+          "./emailService",
+          "@shared/schema"
+        ]
+      },
+      "dependencies": [
+        "server/storage.ts",
+        "server/services/notificationService.ts",
+        "server/services/emailService.ts",
+        "shared/schema.ts"
+      ]
+    },
+
+    "server/services/transcripts/index.ts": {
+      "type": "typescript",
+      "purpose": "Transcript file watching and ingestion",
+      "exports": {
+        "classes": ["TranscriptIngestionModule"]
+      },
+      "features": [
+        "Auto-watch transcripts/ directory",
+        "Support for .txt, .md, .vtt files",
+        "Debounced file processing",
+        "Automatic case matching"
+      ],
+      "imports": {
+        "internal": [
+          "./parser",
+          "./task-agent",
+          "../storage",
+          "@shared/schema"
+        ]
+      },
+      "dependencies": [
+        "server/services/transcripts/parser.ts",
+        "server/services/transcripts/task-agent.ts",
+        "server/storage.ts",
+        "shared/schema.ts"
+      ]
+    },
+
+    "server/services/transcripts/parser.ts": {
+      "type": "typescript",
+      "purpose": "Transcript file parsing (.txt, .md, .vtt)",
+      "exports": {
+        "functions": ["parseTranscript(filePath): Promise<TranscriptData>"]
+      },
+      "dependencies": []
+    },
+
+    "server/services/transcripts/task-agent.ts": {
+      "type": "typescript",
+      "purpose": "AI-powered transcript analysis using Claude",
+      "exports": {
+        "functions": [
+          "analyzeTranscript(transcriptText, workerName): Promise<AnalysisResult>",
+          "extractInsights(analysis): TranscriptInsight[]"
+        ]
+      },
+      "imports": {
+        "external": ["@anthropic-ai/sdk"],
+        "internal": ["@shared/schema"]
+      },
+      "dependencies": ["shared/schema.ts"]
+    },
+
+    "server/services/auditLogger.ts": {
+      "type": "typescript",
+      "purpose": "Audit event logging for security and compliance",
+      "exports": {
+        "functions": [
+          "logAuditEvent(event): Promise<void>",
+          "getRequestMetadata(req): Record<string, any>"
+        ],
+        "constants": ["AuditEventTypes"]
+      },
+      "features": [
+        "User action tracking",
+        "Resource access logging",
+        "Request metadata capture"
+      ],
+      "dependencies": ["server/storage.ts", "shared/schema.ts"]
+    },
+
+    "client/src/App.tsx": {
+      "type": "typescript-react",
+      "purpose": "React app entry point with routing",
+      "exports": {
+        "default": "App component"
+      },
+      "features": [
+        "React Router v7 routing",
+        "TanStack Query integration",
+        "Theme provider",
+        "Auth context",
+        "Protected routes",
+        "CSRF initialization"
+      ],
+      "imports": {
+        "external": [
+          "react",
+          "react-router-dom",
+          "@tanstack/react-query"
+        ],
+        "internal": [
+          "./lib/queryClient",
+          "./components/ui/*",
+          "./components/theme-provider",
+          "./contexts/AuthContext",
+          "./components/ProtectedRoute",
+          "./pages/GPNet2Dashboard",
+          "./pages/LoginPage"
+        ]
+      },
+      "routes": {
+        "/login": "LoginPage",
+        "/": "GPNet2Dashboard (protected)"
+      },
+      "dependencies": [
+        "client/src/lib/queryClient.ts",
+        "client/src/contexts/AuthContext.tsx",
+        "client/src/components/ProtectedRoute.tsx",
+        "client/src/pages/GPNet2Dashboard.tsx",
+        "client/src/pages/LoginPage.tsx"
+      ]
+    },
+
+    "client/src/main.tsx": {
+      "type": "typescript-react",
+      "purpose": "React app mount point",
+      "exports": {},
+      "imports": {
+        "external": ["react-dom/client"],
+        "internal": ["./App", "./index.css"]
+      },
+      "dependencies": ["client/src/App.tsx"]
+    },
+
+    "client/src/pages/GPNet2Dashboard.tsx": {
+      "type": "typescript-react",
+      "purpose": "Main dashboard page",
+      "exports": {
+        "default": "GPNet2Dashboard component"
+      },
+      "features": [
+        "Case list with filtering",
+        "Company navigation",
+        "Search functionality",
+        "Case detail panel",
+        "AI assistant",
+        "Action queue card",
+        "Dashboard stats",
+        "Freshdesk sync",
+        "Auto-refresh (30s interval)",
+        "Surname-based sorting"
+      ],
+      "imports": {
+        "external": [
+          "react",
+          "@tanstack/react-query"
+        ],
+        "internal": [
+          "@/components/CompanyNav",
+          "@/components/SearchBar",
+          "@/components/CasesTable",
+          "@/components/CaseDetailPanel",
+          "@/components/ai-assistant",
+          "@/components/ActionQueueCard",
+          "@/components/dashboard-stats",
+          "@/hooks/use-toast",
+          "@/lib/queryClient",
+          "@shared/schema"
+        ]
+      },
+      "dependencies": [
+        "client/src/components/*.tsx",
+        "client/src/hooks/use-toast.ts",
+        "client/src/lib/queryClient.ts",
+        "shared/schema.ts"
+      ]
+    },
+
+    "client/src/pages/LoginPage.tsx": {
+      "type": "typescript-react",
+      "purpose": "Authentication page",
+      "exports": {
+        "default": "LoginPage component"
+      },
+      "features": [
+        "Email/password login",
+        "CSRF token handling",
+        "JWT token storage",
+        "Error handling",
+        "Redirect to dashboard on success"
+      ],
+      "dependencies": [
+        "client/src/contexts/AuthContext.tsx",
+        "client/src/hooks/useAuth.ts"
+      ]
+    },
+
+    "client/src/contexts/AuthContext.tsx": {
+      "type": "typescript-react",
+      "purpose": "Authentication context provider",
+      "exports": {
+        "components": ["AuthProvider"],
+        "hooks": ["useAuth"]
+      },
+      "features": [
+        "User state management",
+        "Login/logout functions",
+        "Token persistence",
+        "Organization isolation"
+      ],
+      "dependencies": []
+    },
+
+    "client/src/components/CaseDetailPanel.tsx": {
+      "type": "typescript-react",
+      "purpose": "Case detail view with tabs",
+      "exports": {
+        "default": "CaseDetailPanel component"
+      },
+      "features": [
+        "Multi-tab interface (Summary, Timeline, Certificates, Termination)",
+        "AI summary generation",
+        "Recovery timeline chart",
+        "Clinical evidence display",
+        "Discussion notes",
+        "Certificate cards",
+        "Termination workflow panel",
+        "Email draft button"
+      ],
+      "dependencies": [
+        "client/src/components/SummaryCard.tsx",
+        "client/src/components/TimelineCard.tsx",
+        "client/src/components/CertificateCard.tsx",
+        "client/src/components/TerminationPanel.tsx",
+        "client/src/components/EmailDraftButton.tsx",
+        "shared/schema.ts"
+      ]
+    },
+
+    "client/src/components/CasesTable.tsx": {
+      "type": "typescript-react",
+      "purpose": "Main cases table with sorting and filtering",
+      "exports": {
+        "components": ["CasesTable"]
+      },
+      "features": [
+        "Sortable columns",
+        "Compliance badges",
+        "Risk badges",
+        "Work status display",
+        "Clickable rows",
+        "Responsive design"
+      ],
+      "dependencies": ["shared/schema.ts", "shared/complianceColors.ts"]
+    },
+
+    "client/src/lib/queryClient.ts": {
+      "type": "typescript",
+      "purpose": "TanStack Query client configuration",
+      "exports": {
+        "constants": ["queryClient"],
+        "functions": ["initializeCsrf(): Promise<void>"]
+      },
+      "features": [
+        "Default query options",
+        "CSRF token fetching",
+        "Error handling",
+        "Refetch configuration"
+      ],
+      "dependencies": []
+    },
+
+    "client/src/lib/utils.ts": {
+      "type": "typescript",
+      "purpose": "Utility functions",
+      "exports": {
+        "functions": ["cn(...inputs): string"]
+      },
+      "features": [
+        "Tailwind class merging with clsx"
+      ],
+      "dependencies": []
+    }
+  },
+
+  "dependency_graph": {
+    "core_dependencies": {
+      "shared/schema.ts": {
+        "depended_on_by": [
+          "server/*",
+          "client/src/pages/*",
+          "client/src/components/*"
+        ],
+        "description": "Single source of truth for types and database schema"
+      },
+      "server/storage.ts": {
+        "depends_on": ["server/db.ts", "shared/schema.ts"],
+        "depended_on_by": [
+          "server/routes.ts",
+          "server/services/*",
+          "server/middleware/caseOwnership.ts"
+        ],
+        "description": "Central data access layer"
+      },
+      "server/db.ts": {
+        "depends_on": ["shared/schema.ts"],
+        "depended_on_by": ["server/storage.ts"],
+        "description": "Database connection singleton"
+      }
+    },
+
+    "middleware_layer": {
+      "server/middleware/auth.ts": {
+        "depended_on_by": [
+          "server/routes.ts",
+          "server/routes/certificates.ts",
+          "server/routes/actions.ts",
+          "server/routes/emailDrafts.ts",
+          "server/routes/notifications.ts"
+        ],
+        "description": "JWT authorization for protected routes"
+      },
+      "server/middleware/security.ts": {
+        "depended_on_by": ["server/index.ts"],
+        "description": "CSRF, rate limiting, helmet configuration"
+      },
+      "server/middleware/caseOwnership.ts": {
+        "depends_on": ["server/storage.ts", "server/middleware/auth.ts"],
+        "depended_on_by": ["server/routes.ts"],
+        "description": "Multi-tenant case access validation"
+      }
+    },
+
+    "service_layer": {
+      "server/services/freshdesk.ts": {
+        "depends_on": ["server/storage.ts", "shared/schema.ts"],
+        "depended_on_by": ["server/routes.ts"],
+        "description": "External API integration"
+      },
+      "server/services/summary.ts": {
+        "depends_on": ["server/storage.ts", "shared/schema.ts"],
+        "depended_on_by": ["server/routes.ts"],
+        "description": "AI-powered summarization"
+      },
+      "server/services/notificationScheduler.ts": {
+        "depends_on": [
+          "server/storage.ts",
+          "server/services/notificationService.ts",
+          "server/services/emailService.ts"
+        ],
+        "depended_on_by": ["server/index.ts"],
+        "description": "Background notification jobs"
+      }
+    },
+
+    "route_modules": {
+      "server/routes.ts": {
+        "depends_on": [
+          "server/storage.ts",
+          "server/services/*",
+          "server/middleware/*",
+          "server/routes/*"
+        ],
+        "depended_on_by": ["server/index.ts"],
+        "description": "Route aggregation and registration"
+      }
+    },
+
+    "frontend_core": {
+      "client/src/App.tsx": {
+        "depends_on": [
+          "client/src/lib/queryClient.ts",
+          "client/src/contexts/AuthContext.tsx",
+          "client/src/pages/*"
+        ],
+        "depended_on_by": ["client/src/main.tsx"],
+        "description": "App-level setup and routing"
+      },
+      "client/src/contexts/AuthContext.tsx": {
+        "depended_on_by": [
+          "client/src/App.tsx",
+          "client/src/pages/GPNet2Dashboard.tsx",
+          "client/src/components/ProtectedRoute.tsx"
+        ],
+        "description": "Authentication state management"
+      }
+    }
+  },
+
+  "api_endpoints": {
+    "authentication": {
+      "POST /api/auth/login": {
+        "description": "User login with email/password",
+        "auth": "none",
+        "rate_limit": "5 per 15 minutes",
+        "response": "JWT token + user data"
+      },
+      "POST /api/auth/register": {
+        "description": "User registration via invite token",
+        "auth": "none",
+        "rate_limit": "5 per 15 minutes"
+      },
+      "POST /api/auth/logout": {
+        "description": "User logout",
+        "auth": "JWT required"
+      },
+      "GET /api/csrf-token": {
+        "description": "Get CSRF token for session",
+        "auth": "none"
+      }
+    },
+
+    "cases": {
+      "GET /api/gpnet2/cases": {
+        "description": "Get all cases for user's organization",
+        "auth": "JWT required",
+        "multi_tenant": true,
+        "response": "WorkerCase[]"
+      },
+      "GET /api/cases/:id/summary": {
+        "description": "Get cached AI summary for case",
+        "auth": "JWT required",
+        "ownership_check": true
+      },
+      "POST /api/cases/:id/summary": {
+        "description": "Generate/refresh AI summary",
+        "auth": "JWT required",
+        "ownership_check": true
+      },
+      "GET /api/cases/:id/recovery-timeline": {
+        "description": "Get certificate timeline",
+        "auth": "JWT required",
+        "ownership_check": true,
+        "response": "RecoveryTimelineResponse"
+      },
+      "GET /api/cases/:id/clinical-evidence": {
+        "description": "Get clinical evidence evaluation",
+        "auth": "JWT required",
+        "ownership_check": true,
+        "response": "ClinicalEvidenceEvaluation"
+      },
+      "GET /api/cases/:id/discussion-notes": {
+        "description": "Get transcript-derived notes",
+        "auth": "JWT required",
+        "ownership_check": true,
+        "response": "CaseDiscussionNote[]"
+      },
+      "GET /api/cases/:id/timeline": {
+        "description": "Get full case timeline",
+        "auth": "JWT required",
+        "ownership_check": true,
+        "response": "TimelineResponse"
+      }
+    },
+
+    "certificates": {
+      "GET /api/certificates": {
+        "description": "List all certificates",
+        "auth": "JWT required",
+        "multi_tenant": true
+      },
+      "POST /api/certificates": {
+        "description": "Create new certificate",
+        "auth": "JWT required"
+      },
+      "GET /api/certificates/:id": {
+        "description": "Get certificate by ID",
+        "auth": "JWT required"
+      },
+      "PUT /api/certificates/:id": {
+        "description": "Update certificate",
+        "auth": "JWT required"
+      },
+      "DELETE /api/certificates/:id": {
+        "description": "Delete certificate",
+        "auth": "JWT required"
+      }
+    },
+
+    "actions": {
+      "GET /api/actions": {
+        "description": "Get action queue for organization",
+        "auth": "JWT required",
+        "multi_tenant": true,
+        "response": "CaseAction[]"
+      },
+      "POST /api/actions": {
+        "description": "Create new action",
+        "auth": "JWT required"
+      },
+      "PATCH /api/actions/:id": {
+        "description": "Update action status",
+        "auth": "JWT required"
+      }
+    },
+
+    "email_drafts": {
+      "GET /api/email-drafts/:caseId": {
+        "description": "Get email drafts for case",
+        "auth": "JWT required",
+        "ownership_check": true
+      },
+      "POST /api/email-drafts": {
+        "description": "Generate new email draft",
+        "auth": "JWT required",
+        "ai_powered": true
+      }
+    },
+
+    "notifications": {
+      "GET /api/notifications": {
+        "description": "Get notifications (admin only)",
+        "auth": "JWT + admin role",
+        "response": "Notification[]"
+      },
+      "POST /api/notifications/send-pending": {
+        "description": "Send pending notifications (admin only)",
+        "auth": "JWT + admin role"
+      }
+    },
+
+    "termination": {
+      "GET /api/termination/:caseId": {
+        "description": "Get termination process for case",
+        "auth": "JWT required",
+        "ownership_check": true
+      },
+      "POST /api/termination": {
+        "description": "Create termination process",
+        "auth": "JWT required"
+      },
+      "PATCH /api/termination/:id": {
+        "description": "Update termination process",
+        "auth": "JWT required"
+      }
+    },
+
+    "admin": {
+      "GET /api/admin/invites": {
+        "description": "List user invites (admin only)",
+        "auth": "JWT + admin role"
+      },
+      "POST /api/admin/invites": {
+        "description": "Create user invite (admin only)",
+        "auth": "JWT + admin role"
+      },
+      "POST /api/freshdesk/sync": {
+        "description": "Sync Freshdesk tickets (admin only)",
+        "auth": "JWT + admin role"
+      }
+    },
+
+    "webhooks": {
+      "POST /api/webhooks/jotform": {
+        "description": "JotForm webhook handler",
+        "auth": "Password-protected (fail-closed)",
+        "multi_tenant": true
+      }
+    }
+  },
+
+  "key_patterns": {
+    "architecture": [
+      "Three-tier monorepo (client, server, shared)",
+      "Multi-tenant row-level isolation via organizationId",
+      "Storage pattern for centralized data access",
+      "Service layer for business logic",
+      "Middleware for cross-cutting concerns (auth, security, ownership)"
+    ],
+
+    "security": [
+      "Fail-closed validation (environment, webhooks, ownership)",
+      "Defense in depth (multiple validation layers)",
+      "JWT with 15-minute expiry",
+      "CSRF protection for state-changing operations",
+      "Rate limiting (100 req/15min general, 5 req/15min auth)",
+      "Helmet security headers",
+      "Audit logging for sensitive operations",
+      "No sensitive data in logs or client responses"
+    ],
+
+    "multi_tenancy": [
+      "organizationId on all major tables",
+      "Unique constraints scoped by organization",
+      "Middleware validation (requireCaseOwnership)",
+      "Query filtering by organizationId",
+      "Invite-based registration per organization"
+    ],
+
+    "ai_integration": [
+      "Anthropic Claude API for summaries, classifications, drafts",
+      "Caching of AI results (aiSummary, aiSummaryGeneratedAt)",
+      "Context-aware prompts with case data",
+      "Structured output schemas",
+      "Model versioning (aiSummaryModel field)"
+    ],
+
+    "frontend": [
+      "React hooks (useState, useMemo, useEffect)",
+      "TanStack Query for server state",
+      "React Context for auth",
+      "Component composition",
+      "Protected routes with middleware",
+      "shadcn/ui + Radix UI components",
+      "Tailwind CSS for styling"
+    ],
+
+    "testing": [
+      "Vitest for unit tests (.test.ts files)",
+      "Playwright for E2E tests (tests/e2e/)",
+      "Test files colocated with source"
+    ]
+  },
+
+  "feature_modules": {
+    "certificate_engine_v1": {
+      "files": [
+        "server/routes/certificates.ts",
+        "server/services/certificateService.ts",
+        "server/services/certificateCompliance.ts",
+        "client/src/components/CertificateCard.tsx"
+      ],
+      "features": [
+        "CRUD operations",
+        "OCR extraction support",
+        "Expiry tracking",
+        "Compliance evaluation",
+        "Alert generation"
+      ]
+    },
+
+    "action_queue_v1": {
+      "files": [
+        "server/routes/actions.ts",
+        "client/src/components/ActionQueueCard.tsx"
+      ],
+      "features": [
+        "Action types (chase_certificate, review_case, follow_up)",
+        "Priority management",
+        "Due date tracking",
+        "Status updates (pending, done, cancelled)"
+      ]
+    },
+
+    "smart_summary_engine_v1": {
+      "files": [
+        "server/routes/smartSummary.ts",
+        "server/services/smartSummary.ts",
+        "client/src/components/SummaryCard.tsx"
+      ],
+      "features": [
+        "Risk assessment",
+        "Missing info identification",
+        "Action recommendations",
+        "RTW readiness evaluation",
+        "Compliance summary"
+      ]
+    },
+
+    "email_drafter_v1": {
+      "files": [
+        "server/routes/emailDrafts.ts",
+        "server/services/emailDraftService.ts",
+        "client/src/components/EmailDraftButton.tsx",
+        "client/src/components/EmailDraftModal.tsx"
+      ],
+      "features": [
+        "9 email types",
+        "Tone control (formal, supportive, firm)",
+        "Context-aware generation",
+        "Draft management"
+      ]
+    },
+
+    "notification_engine_v1": {
+      "files": [
+        "server/routes/notifications.ts",
+        "server/services/notificationService.ts",
+        "server/services/notificationScheduler.ts",
+        "server/services/emailService.ts"
+      ],
+      "features": [
+        "Certificate expiry alerts",
+        "Action overdue notifications",
+        "Scheduled background jobs",
+        "Deduplication",
+        "Email sending"
+      ]
+    },
+
+    "termination_workflow": {
+      "files": [
+        "server/routes/termination.ts",
+        "server/services/termination.ts",
+        "client/src/components/TerminationPanel.tsx"
+      ],
+      "features": [
+        "Multi-stage process tracking",
+        "Evidence collection",
+        "Meeting documentation",
+        "Decision recording",
+        "Document generation"
+      ]
+    },
+
+    "transcript_ingestion": {
+      "files": [
+        "server/services/transcripts/index.ts",
+        "server/services/transcripts/parser.ts",
+        "server/services/transcripts/task-agent.ts"
+      ],
+      "features": [
+        "Auto-watch transcripts/ directory",
+        "Parse .txt, .md, .vtt files",
+        "AI-powered extraction",
+        "Automatic case matching",
+        "Insight generation"
+      ]
+    },
+
+    "timeline_engine": {
+      "files": [
+        "server/routes.ts (timeline endpoints)",
+        "client/src/components/TimelineCard.tsx"
+      ],
+      "features": [
+        "Unified event history",
+        "Multiple event types",
+        "Chronological ordering",
+        "Visual representation"
+      ]
+    }
+  }
+}

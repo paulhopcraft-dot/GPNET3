@@ -72,7 +72,22 @@
       "Bash(git -C \"C:\\Dev\\gpnet3\" diff --stat)",
       "Bash(git -C \"C:\\Dev\\gpnet3\" diff server/storage.ts)",
       "Bash(git -C \"C:\\Dev\\gpnet3\" diff package.json)",
-      "Bash(git -C \"C:\\Dev\\gpnet3\" add .claude/settings.local.json claude-progress.txt package.json package-lock.json server/storage.ts server/services/*.ts server/routes/emailDrafts.ts server/seed.ts server/storage.test.ts server/controllers/webhooks.ts shared/schema.ts)"
+      "Bash(git -C \"C:\\Dev\\gpnet3\" add .claude/settings.local.json claude-progress.txt package.json package-lock.json server/storage.ts server/services/*.ts server/routes/emailDrafts.ts server/seed.ts server/storage.test.ts server/controllers/webhooks.ts shared/schema.ts)",
+      "Bash(git -C \"C:\\Dev\\gpnet3\" commit -m \"$(cat <<''EOF''\nchore: session handoff - refine security implementation\n\nStorage layer refinements:\n- Add organizationId to findCaseByWorkerName return type\n- Include organizationId in action response objects\n- Fix WorkerCase mapping to include organizationId field\n- Add organizationId fallback in syncWorkerCaseFromFreshdesk\n\nService layer updates:\n- Update notificationService with organizationId support\n- Update termination service with org filtering\n- Add type safety improvements across services\n\nDependencies:\n- Add @types/cors and @types/nodemailer for type safety\n\nSession tracking:\n- Update claude-progress.txt with final session metrics\n- Document 1,705 lines written today across 3 commits\n- Record context usage: 64% (128K/200K tokens)\n\nThis commit completes the handoff checklist for end-of-session state preservation.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(npm run db:push:*)",
+      "Bash(net start postgresql*)",
+      "Bash(docker exec:*)",
+      "Bash(npx drizzle-kit:*)",
+      "Bash(node -e:*)",
+      "Bash(npm run seed:*)",
+      "Bash(node:*)",
+      "Bash(git -C \"C:\\Dev\\gpnet3\" status --short)",
+      "Bash(git -C \"C:\\Dev\\gpnet3\" diff --name-only)",
+      "Bash(powershell -Command \"Invoke-RestMethod -Uri ''http://localhost:5000/api/auth/login'' -Method POST -ContentType ''application/json'' -Body ''{\"\"email\"\":\"\"employer@symmetry.local\"\",\"\"password\"\":\"\"ChangeMe123!\"\"}'' | ConvertTo-Json -Depth 5\")",
+      "Bash(tasklist:*)",
+      "Bash(npm run typecheck:*)",
+      "Bash(npm run build:*)",
+      "SlashCommand(/status)"
     ],
     "deny": [],
     "ask": []

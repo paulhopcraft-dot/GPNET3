@@ -17,7 +17,9 @@ import { TimelineCard } from "./TimelineCard";
 import { CertificateCard } from "./CertificateCard";
 import { SummaryCard } from "./SummaryCard";
 import { EmailDraftButton } from "./EmailDraftButton";
+import { CaseChatPanel } from "./CaseChatPanel";
 import { fetchWithCsrf } from "../lib/queryClient";
+import { Sparkles } from "lucide-react";
 
 interface CaseDetailPanelProps {
   workerCase: WorkerCase;
@@ -54,6 +56,7 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
   );
   const [discussionLoading, setDiscussionLoading] = useState(false);
   const [discussionError, setDiscussionError] = useState<string | null>(null);
+  const [showChat, setShowChat] = useState(false);
   const latestCaseIdRef = useRef(workerCase.id);
   useEffect(() => {
     latestCaseIdRef.current = workerCase.id;
@@ -346,12 +349,33 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
           {workerCase.workerName}
         </h2>
         <div className="flex items-center gap-2">
+          <Button
+            variant={showChat ? "default" : "outline"}
+            size="sm"
+            onClick={() => setShowChat(!showChat)}
+            data-testid="button-toggle-chat"
+            className="gap-1"
+          >
+            <Sparkles className="h-4 w-4" />
+            <span className="hidden sm:inline">Ask AI</span>
+          </Button>
           <EmailDraftButton caseId={workerCase.id} workerName={workerCase.workerName} />
           <Button variant="ghost" size="icon" onClick={onClose} data-testid="button-close-panel">
             <span className="material-symbols-outlined">close</span>
           </Button>
         </div>
       </div>
+
+      {/* Chat Panel - conditionally shown */}
+      {showChat && (
+        <div className="h-[400px] mb-4">
+          <CaseChatPanel
+            caseId={workerCase.id}
+            workerName={workerCase.workerName}
+            onClose={() => setShowChat(false)}
+          />
+        </div>
+      )}
 
       <ScrollArea className="h-[calc(100vh-8rem)]">
         <div className="space-y-6">

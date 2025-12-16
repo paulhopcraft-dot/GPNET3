@@ -6,6 +6,8 @@ import {
   workerCases,
   caseAttachments,
   users,
+  insurers,
+  organizations,
   type CaseCompliance,
 } from "@shared/schema";
 
@@ -367,12 +369,35 @@ const demoCases: SeedCase[] = [
 async function seed() {
   console.log("Seeding GPNet demo data...");
 
-  // Default organization for seed data
-  const defaultOrgId = "seed-organization";
-
+  // Clear existing data in correct order (respecting FK constraints)
   await db.delete(caseAttachments);
   await db.delete(workerCases);
   await db.delete(users);
+  await db.delete(organizations);
+  await db.delete(insurers);
+
+  // Seed insurers
+  console.log("Seeding insurers...");
+  const insurerData = [
+    { id: "ins-dxc", name: "DXC", code: "DXC" },
+    { id: "ins-gallagher", name: "Gallagher Bassett", code: "GB" },
+    { id: "ins-eml", name: "EML", code: "EML" },
+    { id: "ins-allianz", name: "Allianz", code: "ALZ" },
+  ];
+  await db.insert(insurers).values(insurerData);
+
+  // Seed default organization
+  console.log("Seeding organizations...");
+  const defaultOrgId = "seed-organization";
+  await db.insert(organizations).values({
+    id: defaultOrgId,
+    name: "Symmetry Manufacturing",
+    slug: "symmetry",
+    contactName: "Jane Smith",
+    contactPhone: "03 9555 1234",
+    contactEmail: "admin@symmetry.local",
+    insurerId: "ins-gallagher",
+  });
 
   const passwordHash = await bcrypt.hash("ChangeMe123!", 10);
 

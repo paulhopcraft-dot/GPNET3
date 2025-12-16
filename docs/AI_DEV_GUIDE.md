@@ -58,3 +58,108 @@ The Transcript Ingestion Module automatically watches the `transcripts/` directo
 - **Retry behaviour:** If a transcript arrives before its worker case exists (or fuzzy matching can’t find a confident candidate), the file remains pending and is retried on the next poll/watch cycle. As soon as a matching worker case is available the notes will ingest automatically—no need to re-upload the file.
 
 **Manual test:** while `npm run dev` is running, drop a transcript file such as `transcripts/jane-smith-weekly.txt`. Within a few seconds the server logs `[Transcripts] Ingested ...`, `/api/cases/:id/discussion-notes` returns the new note + insights, and the Case Detail panel shows the latest summary + badges.
+
+## Admin Portal
+
+The Admin Portal (`/admin`) provides system administrators with tools to manage organizations (companies) and insurers. Access requires `admin` role.
+
+### Features
+- **Organization Management:** Create, edit, and delete organizations. Assign workers compensation insurers.
+- **Insurer Management:** Maintain the list of available insurers (DXC, Gallagher Bassett, EML, Allianz).
+- **Role-based Redirect:** After login, admin users are redirected to `/admin`, employers to `/`.
+
+### API Routes (Admin Only)
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| GET | `/api/admin/organizations` | List all organizations |
+| POST | `/api/admin/organizations` | Create new organization |
+| GET | `/api/admin/organizations/:id` | Get organization details |
+| PUT | `/api/admin/organizations/:id` | Update organization |
+| DELETE | `/api/admin/organizations/:id` | Delete organization |
+| GET | `/api/admin/insurers` | List all insurers |
+| POST | `/api/admin/insurers` | Create new insurer |
+| PUT | `/api/admin/insurers/:id` | Update insurer |
+| DELETE | `/api/admin/insurers/:id` | Delete insurer |
+
+### Frontend Routes
+| Route | Component | Description |
+|-------|-----------|-------------|
+| `/admin` | `AdminDashboard` | Admin home with stats |
+| `/admin/companies` | `CompanyList` | List all companies |
+| `/admin/companies/new` | `CompanyForm` | Create company |
+| `/admin/companies/:id` | `CompanyForm` | Edit company |
+
+## Company Self-Service
+
+Employers can manage their own organization profile at `/settings`.
+
+### Features
+- View organization details
+- Update contact name and phone number
+- View assigned insurer (read-only)
+
+### API Routes
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| GET | `/api/organization/profile` | Get own organization profile |
+| PUT | `/api/organization/profile` | Update contact name/phone |
+| POST | `/api/organization/logo` | Upload company logo |
+
+## Logo Upload
+
+Companies and admins can upload logos for organizations. Logos are stored locally in `public/uploads/logos/`.
+
+### Supported Formats
+- JPEG, PNG, GIF, WebP, SVG
+- Maximum file size: 5MB
+
+### Admin Logo Upload
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| POST | `/api/admin/organizations/:id/logo` | Upload logo for any organization |
+| DELETE | `/api/admin/organizations/:id/logo` | Remove logo from organization |
+
+### Company Self-Service Logo Upload
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| POST | `/api/organization/logo` | Upload logo for own organization |
+
+**Request:** Multipart form data with `logo` field containing the image file.
+
+**Response:** `{ "success": true, "message": "Logo uploaded successfully", "data": { "logoUrl": "/uploads/logos/uuid.png" } }`
+
+## Case Chat (AI Query)
+
+The Case Chat feature allows users to ask natural language questions about individual cases. When viewing a case, click the "Ask AI" button to open the chat panel.
+
+### Quick Queries
+The chat panel provides quick-query buttons for common questions:
+- **Date of injury** — "What is the date of injury?"
+- **Certificates** — "Show me the first and last medical certificates"
+- **Recovery trend** — "Is the person recovering, getting worse, or stabilized?"
+- **RTW plan** — "What is the current return to work plan status?"
+- **Compliance** — "Is the worker compliant with the RTW process?"
+- **Next steps** — "What are the recommended next steps for this case?"
+
+### How It Works
+1. User asks a question about the case
+2. Backend gathers all case context (case info, certificates, timeline, discussion notes)
+3. Context is sent to Claude Sonnet 4 with the user's question
+4. AI response is displayed in the chat panel
+
+### API Route
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| POST | `/api/cases/:id/chat` | Send message, get AI response |
+
+**Request body:** `{ "message": "What is the date of injury?" }`
+
+**Response:** `{ "success": true, "data": { "response": "...", "model": "claude-sonnet-4-...", "usage": {...} } }`
+
+### Context Provided to AI
+- Case information (worker name, company, injury type, work status, risk level, compliance indicator)
+- Clinical status (RTW plan status, compliance status, specialist status)
+- Medical certificates with recovery trend analysis (Improving/Declining/Stable)
+- Recent timeline events
+- Discussion notes with risk flags
+- Previously generated AI summary

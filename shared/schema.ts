@@ -1056,3 +1056,50 @@ export interface Notification {
   metadata: Record<string, unknown> | null;
   createdAt: string;
 }
+
+// ============================================
+// INSURERS TABLE
+// ============================================
+export const insurers = pgTable("insurers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  code: varchar("code", { length: 50 }).unique(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertInsurerSchema = createInsertSchema(insurers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type Insurer = typeof insurers.$inferSelect;
+export type InsertInsurer = z.infer<typeof insertInsurerSchema>;
+
+// ============================================
+// ORGANIZATIONS TABLE
+// ============================================
+export const organizations = pgTable("organizations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  slug: varchar("slug", { length: 100 }).unique().notNull(),
+  logoUrl: text("logo_url"),
+  contactName: text("contact_name"),
+  contactPhone: varchar("contact_phone", { length: 50 }),
+  contactEmail: text("contact_email"),
+  insurerId: varchar("insurer_id").references(() => insurers.id),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertOrganizationSchema = createInsertSchema(organizations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type Organization = typeof organizations.$inferSelect;
+export type InsertOrganization = z.infer<typeof insertOrganizationSchema>;

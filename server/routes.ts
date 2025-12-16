@@ -12,6 +12,10 @@ import actionRoutes from "./routes/actions";
 import smartSummaryRoutes from "./routes/smartSummary";
 import emailDraftRoutes from "./routes/emailDrafts";
 import notificationRoutes from "./routes/notifications";
+import adminOrganizationRoutes from "./routes/admin/organizations";
+import adminInsurerRoutes from "./routes/admin/insurers";
+import organizationRoutes from "./routes/organization";
+import caseChatRoutes from "./routes/caseChat";
 import type { RecoveryTimelineSummary } from "@shared/schema";
 import { evaluateClinicalEvidence } from "./services/clinicalEvidence";
 import { authorize, type AuthRequest } from "./middleware/auth";
@@ -28,6 +32,15 @@ export async function registerRoutes(app: Express): Promise<void> {
   // Admin invite routes (requires admin authentication)
   app.use("/api/admin/invites", inviteRoutes);
 
+  // Admin organization management routes (requires admin authentication)
+  app.use("/api/admin/organizations", adminOrganizationRoutes);
+
+  // Admin insurer management routes (requires admin authentication)
+  app.use("/api/admin/insurers", adminInsurerRoutes);
+
+  // Organization self-service routes (authenticated users)
+  app.use("/api/organization", organizationRoutes);
+
   // Webhook routes (password-protected, fail-closed security)
   app.use("/api/webhooks", webhookRoutes);
 
@@ -39,6 +52,9 @@ export async function registerRoutes(app: Express): Promise<void> {
 
   // Smart Summary Engine v1 routes (JWT-protected)
   app.use("/api/cases", smartSummaryRoutes);
+
+  // Case Chat routes (JWT-protected, case ownership)
+  app.use("/api/cases", caseChatRoutes);
 
   // Email Drafts routes (JWT-protected)
   app.use("/api", emailDraftRoutes);
