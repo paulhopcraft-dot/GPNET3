@@ -65,7 +65,8 @@ export class SummaryService {
     model?: string;
     workStatusClassification?: string;
   }> {
-    const workerCase = await storage.getGPNet2CaseById(caseId);
+    // Use admin method as summary service operates across organizations
+    const workerCase = await storage.getGPNet2CaseByIdAdmin(caseId);
     
     if (!workerCase) {
       throw new Error(`Case ${caseId} not found`);

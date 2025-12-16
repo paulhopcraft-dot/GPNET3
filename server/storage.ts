@@ -337,7 +337,7 @@ export interface IStorage {
   upsertCaseDiscussionInsights(insights: InsertCaseDiscussionInsight[]): Promise<void>;
   findCaseByWorkerName(
     workerName: string,
-  ): Promise<{ caseId: string; workerName: string; confidence: number } | null>;
+  ): Promise<{ caseId: string; workerName: string; organizationId: string; confidence: number } | null>;
   updateClinicalStatus(caseId: string, organizationId: string, status: CaseClinicalStatus): Promise<void>;
   getCaseTimeline(caseId: string, organizationId: string, limit?: number): Promise<TimelineEvent[]>;
 
@@ -460,6 +460,7 @@ class DbStorage implements IStorage {
 
         const workerCase: WorkerCase = {
           id: dbCase.id,
+          organizationId: dbCase.organizationId,
           workerName: dbCase.workerName,
           company: dbCase.company as any,
           dateOfInjury: dbCase.dateOfInjury.toISOString().split('T')[0],
@@ -808,7 +809,7 @@ class DbStorage implements IStorage {
 
   async findCaseByWorkerName(
     workerName: string,
-  ): Promise<{ caseId: string; workerName: string; confidence: number } | null> {
+  ): Promise<{ caseId: string; workerName: string; organizationId: string; confidence: number } | null> {
     const normalizedTarget = normalizeWorkerNameForMatch(workerName);
     if (!normalizedTarget) {
       return null;
@@ -821,6 +822,7 @@ class DbStorage implements IStorage {
       .select({
         id: workerCases.id,
         workerName: workerCases.workerName,
+        organizationId: workerCases.organizationId,
       })
       .from(workerCases)
       .where(ilike(workerCases.workerName, `%${searchTerm}%`));
@@ -832,10 +834,11 @@ class DbStorage implements IStorage {
             .select({
               id: workerCases.id,
               workerName: workerCases.workerName,
+              organizationId: workerCases.organizationId,
             })
             .from(workerCases);
 
-    let best: { id: string; workerName: string } | null = null;
+    let best: { id: string; workerName: string; organizationId: string } | null = null;
     let bestScore = 0;
 
     for (const row of candidateRows) {
@@ -863,7 +866,7 @@ class DbStorage implements IStorage {
       return null;
     }
 
-    return { caseId: best.id, workerName: best.workerName, confidence: bestScore };
+    return { caseId: best.id, workerName: best.workerName, organizationId: best.organizationId, confidence: bestScore };
   }
 
   async syncWorkerCaseFromFreshdesk(caseData: Partial<WorkerCase>): Promise<void> {
@@ -936,6 +939,7 @@ class DbStorage implements IStorage {
 
     const dbData = {
       id: caseData.id,
+      organizationId: caseData.organizationId || existingCase[0]?.organizationId || "default",
       workerName: caseData.workerName || "Unknown",
       company: caseData.company || "Unknown",
       dateOfInjury,
@@ -1458,6 +1462,7 @@ class DbStorage implements IStorage {
 
     return results.map(r => ({
       id: r.action.id,
+      organizationId: r.action.organizationId,
       caseId: r.action.caseId,
       type: r.action.type as CaseActionType,
       status: r.action.status as CaseActionStatus,
@@ -1490,6 +1495,7 @@ class DbStorage implements IStorage {
 
     return results.map(r => ({
       id: r.action.id,
+      organizationId: r.action.organizationId,
       caseId: r.action.caseId,
       type: r.action.type as CaseActionType,
       status: r.action.status as CaseActionStatus,
@@ -1528,6 +1534,7 @@ class DbStorage implements IStorage {
 
     return results.map(r => ({
       id: r.action.id,
+      organizationId: r.action.organizationId,
       caseId: r.action.caseId,
       type: r.action.type as CaseActionType,
       status: r.action.status as CaseActionStatus,
@@ -1592,8 +1599,19 @@ class DbStorage implements IStorage {
       return existing;
     }
 
+    // Get the organizationId from the worker case
+    const [workerCase] = await db.select({ organizationId: workerCases.organizationId })
+      .from(workerCases)
+      .where(eq(workerCases.id, caseId))
+      .limit(1);
+
+    if (!workerCase) {
+      throw new Error(`Worker case not found: ${caseId}`);
+    }
+
     // Create a new action
     return await this.createAction({
+      organizationId: workerCase.organizationId,
       caseId,
       type,
       status: "pending",

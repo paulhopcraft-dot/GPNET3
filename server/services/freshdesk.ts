@@ -96,7 +96,7 @@ export class FreshdeskService {
           throw new Error(`Freshdesk API error: ${response.status} ${response.statusText}`);
         }
 
-        const tickets: FreshdeskTicket[] = await response.json();
+        const tickets = await response.json() as FreshdeskTicket[];
         
         if (tickets.length === 0) {
           break; // No more tickets
@@ -133,7 +133,7 @@ export class FreshdeskService {
         return null;
       }
 
-      return await response.json();
+      return await response.json() as FreshdeskCompany;
     } catch (error) {
       console.error(`Error fetching company ${companyId}:`, error);
       return null;
@@ -153,7 +153,7 @@ export class FreshdeskService {
         return null;
       }
 
-      return await response.json();
+      return await response.json() as FreshdeskContact;
     } catch (error) {
       console.error(`Error fetching contact ${contactId}:`, error);
       return null;

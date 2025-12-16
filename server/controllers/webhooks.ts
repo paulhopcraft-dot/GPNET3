@@ -100,6 +100,7 @@ async function handleWorkerInjuryForm(formData: any, organizationId: string) {
   // Create worker case with organizationId from mapping (NOT from form data)
   await db.insert(workerCases).values({
     id: `CASE-${Date.now()}-${randomBytes(4).toString("hex")}`,
+    organizationId,
     workerName: workerName || "Unknown Worker",
     company: company || "Unknown Company",
     dateOfInjury: dateOfInjury ? new Date(dateOfInjury) : new Date(),
@@ -351,7 +352,7 @@ async function handleReturnToWorkForm(formData: any, organizationId: string) {
     clinicalStatusUpdate.functionalCapacity = functionalCapacity;
   }
 
-  await storage.updateClinicalStatus(caseId, clinicalStatusUpdate);
+  await storage.updateClinicalStatus(caseId, organizationId, clinicalStatusUpdate);
 
   console.info("RTW plan updated from webhook", {
     caseId,

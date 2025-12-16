@@ -200,16 +200,17 @@ const ACTION_TYPE_LABELS: Record<string, string> = {
 // =====================================================
 
 /**
- * Generate certificate expiry notifications for all cases
+ * Generate certificate expiry notifications for cases in an organization
  */
 async function generateCertificateNotifications(
   storage: IStorage,
-  recipientEmail: string
+  recipientEmail: string,
+  organizationId: string
 ): Promise<number> {
   let created = 0;
 
-  // Get all cases
-  const cases = await storage.getGPNet2Cases();
+  // Get all cases for the organization
+  const cases = await storage.getGPNet2Cases(organizationId);
 
   for (const workerCase of cases) {
     try {
@@ -252,6 +253,7 @@ async function generateCertificateNotifications(
 
       // Create notification
       const notification: InsertNotification = {
+        organizationId: workerCase.organizationId,
         type,
         priority: getCertificatePriority(daysValue),
         caseId: workerCase.id,
@@ -281,14 +283,17 @@ async function generateCertificateNotifications(
 
 /**
  * Generate overdue action notifications
+ * Note: organizationId is required for tenant isolation. The notification
+ * service should be called per-organization in production.
  */
 async function generateActionNotifications(
   storage: IStorage,
-  recipientEmail: string
+  recipientEmail: string,
+  organizationId: string
 ): Promise<number> {
   let created = 0;
 
-  const overdueActions = await storage.getOverdueActions(100);
+  const overdueActions = await storage.getOverdueActions(organizationId, 100);
   const now = new Date();
 
   for (const action of overdueActions) {
@@ -322,6 +327,7 @@ async function generateActionNotifications(
 
       // Create notification
       const notification: InsertNotification = {
+        organizationId: action.organizationId,
         type: "action_overdue",
         priority: getActionPriority(daysOverdue),
         caseId: action.caseId,
@@ -350,10 +356,12 @@ async function generateActionNotifications(
 }
 
 /**
- * Generate all pending notifications
+ * Generate all pending notifications for a specific organization
+ * @param storage - Storage interface
+ * @param organizationId - Organization to generate notifications for
  */
-export async function generatePendingNotifications(storage: IStorage): Promise<number> {
-  console.log("[NotificationService] Generating pending notifications...");
+export async function generatePendingNotifications(storage: IStorage, organizationId: string): Promise<number> {
+  console.log(`[NotificationService] Generating pending notifications for org ${organizationId}...`);
 
   // Default recipient for now (in production, would query users/admins)
   const recipientEmail = process.env.NOTIFICATION_DEFAULT_EMAIL || "admin@gpnet.local";
@@ -362,12 +370,12 @@ export async function generatePendingNotifications(storage: IStorage): Promise<n
 
   try {
     // Generate certificate notifications
-    const certCount = await generateCertificateNotifications(storage, recipientEmail);
+    const certCount = await generateCertificateNotifications(storage, recipientEmail, organizationId);
     console.log(`[NotificationService] Generated ${certCount} certificate notifications`);
     total += certCount;
 
     // Generate action notifications
-    const actionCount = await generateActionNotifications(storage, recipientEmail);
+    const actionCount = await generateActionNotifications(storage, recipientEmail, organizationId);
     console.log(`[NotificationService] Generated ${actionCount} action notifications`);
     total += actionCount;
 
@@ -413,14 +421,15 @@ async function sendNotification(
 }
 
 /**
- * Process all pending notifications
+ * Process all pending notifications for a specific organization
  */
 export async function processPendingNotifications(
-  storage: IStorage
+  storage: IStorage,
+  organizationId: string
 ): Promise<{ sent: number; failed: number }> {
-  console.log("[NotificationService] Processing pending notifications...");
+  console.log(`[NotificationService] Processing pending notifications for org ${organizationId}...`);
 
-  const pending = await storage.getPendingNotifications(50);
+  const pending = await storage.getPendingNotifications(organizationId, 50);
   console.log(`[NotificationService] Found ${pending.length} pending notifications`);
 
   let sent = 0;

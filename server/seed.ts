@@ -367,6 +367,9 @@ const demoCases: SeedCase[] = [
 async function seed() {
   console.log("Seeding GPNet demo data...");
 
+  // Default organization for seed data
+  const defaultOrgId = "seed-organization";
+
   await db.delete(caseAttachments);
   await db.delete(workerCases);
   await db.delete(users);
@@ -376,6 +379,7 @@ async function seed() {
   await db.insert(users).values([
     {
       id: randomUUID(),
+      organizationId: defaultOrgId,
       email: "admin@gpnet.local",
       password: passwordHash,
       role: "admin",
@@ -385,6 +389,7 @@ async function seed() {
     },
     {
       id: randomUUID(),
+      organizationId: defaultOrgId,
       email: "employer@symmetry.local",
       password: passwordHash,
       role: "employer",
@@ -394,6 +399,7 @@ async function seed() {
     },
     {
       id: randomUUID(),
+      organizationId: defaultOrgId,
       email: "doctor@harborclinic.local",
       password: passwordHash,
       role: "clinician",
@@ -411,6 +417,7 @@ async function seed() {
 
     await db.insert(workerCases).values({
       id: caseId,
+      organizationId: defaultOrgId,
       workerName: seedCase.workerName,
       company: seedCase.company,
       dateOfInjury: new Date(seedCase.dateOfInjury),
@@ -442,6 +449,7 @@ async function seed() {
       await db.insert(caseAttachments).values(
         seedCase.attachments.map((attachment) => ({
           id: randomUUID(),
+          organizationId: defaultOrgId,
           caseId,
           name: attachment.name,
           type: attachment.type,

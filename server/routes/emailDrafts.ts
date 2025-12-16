@@ -17,7 +17,6 @@ import {
   deleteEmailDraft,
   getEmailTypes,
 } from "../services/emailDraftService";
-import type { AuthRequest } from "../middleware/auth";
 
 const router = express.Router();
 

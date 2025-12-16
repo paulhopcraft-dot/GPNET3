@@ -57,6 +57,7 @@ function mapDbCertificate(cert: MedicalCertificateDB): MedicalCertificate {
 function mapDbAction(action: CaseActionDB): CaseAction {
   return {
     id: action.id,
+    organizationId: action.organizationId,
     caseId: action.caseId,
     type: action.type as CaseAction["type"],
     status: action.status as CaseAction["status"],

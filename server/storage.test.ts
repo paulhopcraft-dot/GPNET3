@@ -24,8 +24,14 @@ describe("getCaseTimeline", () => {
       workerName: "Test Worker",
       company: "Test Company",
       dateOfInjury: new Date("2025-01-01"),
-      injuryType: "Test Injury",
+      riskLevel: "Medium",
+      workStatus: "Off work",
+      complianceIndicator: "Medium",
       currentStatus: "active",
+      nextStep: "Test next step",
+      owner: "Test Owner",
+      dueDate: "2025-01-15",
+      summary: "Test injury summary",
       createdAt: new Date("2025-01-01T10:00:00Z"),
     });
 
@@ -35,8 +41,14 @@ describe("getCaseTimeline", () => {
       workerName: "Empty Worker",
       company: "Empty Company",
       dateOfInjury: new Date("2025-01-01"),
-      injuryType: "Empty Injury",
+      riskLevel: "Low",
+      workStatus: "At work",
+      complianceIndicator: "High",
       currentStatus: "active",
+      nextStep: "No action required",
+      owner: "Test Owner",
+      dueDate: "2025-01-20",
+      summary: "Empty case for testing",
       createdAt: new Date("2025-01-01T10:00:00Z"),
     });
 
@@ -56,6 +68,8 @@ describe("getCaseTimeline", () => {
     await db.insert(caseDiscussionNotes).values({
       id: "NOTE-001",
       caseId: TEST_CASE_ID,
+      workerName: "Test Worker",
+      rawText: "Worker missed scheduled appointment. Critical compliance issue noted.",
       summary: "Worker missed appointment - critical compliance issue",
       timestamp: new Date("2025-01-10T14:00:00Z"),
       riskFlags: ["critical", "non-compliance", "escalation"],

@@ -93,12 +93,16 @@ export class NotificationScheduler {
     console.log("[NotificationScheduler] Stopped");
   }
 
+  // TODO: In future, iterate over all organizations instead of using a default
+  // For now, use default organization for system-wide notifications
+  private readonly defaultOrganizationId = process.env.DEFAULT_ORGANIZATION_ID || "default-org";
+
   /**
    * Run notification generation
    */
   private async runGeneration(): Promise<void> {
     console.log("[NotificationScheduler] Running notification generation...");
-    const count = await generatePendingNotifications(this.storage);
+    const count = await generatePendingNotifications(this.storage, this.defaultOrganizationId);
     console.log(`[NotificationScheduler] Generated ${count} notifications`);
   }
 
@@ -107,24 +111,24 @@ export class NotificationScheduler {
    */
   private async runSending(): Promise<void> {
     console.log("[NotificationScheduler] Running notification sending...");
-    const result = await processPendingNotifications(this.storage);
+    const result = await processPendingNotifications(this.storage, this.defaultOrganizationId);
     console.log(`[NotificationScheduler] Sent: ${result.sent}, Failed: ${result.failed}`);
   }
 
   /**
    * Manually trigger generation (for testing/admin)
    */
-  async triggerGeneration(): Promise<number> {
+  async triggerGeneration(organizationId?: string): Promise<number> {
     console.log("[NotificationScheduler] Manual generation triggered");
-    return await generatePendingNotifications(this.storage);
+    return await generatePendingNotifications(this.storage, organizationId || this.defaultOrganizationId);
   }
 
   /**
    * Manually trigger sending (for testing/admin)
    */
-  async triggerSending(): Promise<{ sent: number; failed: number }> {
+  async triggerSending(organizationId?: string): Promise<{ sent: number; failed: number }> {
     console.log("[NotificationScheduler] Manual sending triggered");
-    return await processPendingNotifications(this.storage);
+    return await processPendingNotifications(this.storage, organizationId || this.defaultOrganizationId);
   }
 
   /**

@@ -135,8 +135,9 @@ async function ensureWorkerCase(caseId: string): Promise<WorkerCaseDB> {
 }
 
 export class TerminationService {
-  async getOrCreateProcess(workerCaseId: string): Promise<TerminationProcess> {
-    await ensureWorkerCase(workerCaseId);
+  // Internal method that returns raw DB type for update operations
+  private async getOrCreateProcessRaw(workerCaseId: string): Promise<TerminationProcessDB> {
+    const workerCase = await ensureWorkerCase(workerCaseId);
     const existing = await db
       .select()
       .from(terminationProcesses)
@@ -144,12 +145,13 @@ export class TerminationService {
       .limit(1);
 
     if (existing.length) {
-      return mapProcess(existing[0]);
+      return existing[0];
     }
 
     const inserted = await db
       .insert(terminationProcesses)
       .values({
+        organizationId: workerCase.organizationId,
         workerCaseId,
         status: "NOT_STARTED",
         preInjuryRole: null,
@@ -164,7 +166,12 @@ export class TerminationService {
       .where(eq(workerCases.id, workerCaseId));
 
     await recordAudit(workerCaseId, "termination_process_created", { processId: newProcess.id });
-    return mapProcess(newProcess);
+    return newProcess;
+  }
+
+  async getOrCreateProcess(workerCaseId: string): Promise<TerminationProcess> {
+    const raw = await this.getOrCreateProcessRaw(workerCaseId);
+    return mapProcess(raw);
   }
 
   async initiate(workerCaseId: string, payload: { rtWAttemptsSummary: string; alternativeRolesConsideredSummary: string; hasSustainableRole: boolean; preInjuryRole?: string }) {
@@ -173,7 +180,7 @@ export class TerminationService {
       throw Object.assign(new Error("Sustainable role available – cannot initiate termination."), { status: 400 });
     }
 
-    const process = await this.getOrCreateProcess(workerCaseId);
+    const process = await this.getOrCreateProcessRaw(workerCaseId);
     const [updated] = await db
       .update(terminationProcesses)
       .set({
@@ -202,7 +209,7 @@ export class TerminationService {
   }
 
   async updateEvidence(workerCaseId: string, payload: Partial<TerminationProcess>) {
-    const process = await this.getOrCreateProcess(workerCaseId);
+    const process = await this.getOrCreateProcessRaw(workerCaseId);
     const [updated] = await db
       .update(terminationProcesses)
       .set({
@@ -222,7 +229,7 @@ export class TerminationService {
   }
 
   async updateAgentMeeting(workerCaseId: string, payload: { agentMeetingDate?: string; agentMeetingNotesId?: string }) {
-    const process = await this.getOrCreateProcess(workerCaseId);
+    const process = await this.getOrCreateProcessRaw(workerCaseId);
     const [updated] = await db
       .update(terminationProcesses)
       .set({
@@ -248,7 +255,7 @@ export class TerminationService {
       canReturnPreInjuryRole?: boolean | null;
     },
   ) {
-    const process = await this.getOrCreateProcess(workerCaseId);
+    const process = await this.getOrCreateProcessRaw(workerCaseId);
     if (payload.canReturnPreInjuryRole === true) {
       throw Object.assign(
         new Error("Consultant indicates worker can return to pre-injury role. Do not proceed to termination."),
@@ -285,7 +292,7 @@ export class TerminationService {
       payStatusDuringStandDown?: PayStatusDuringStandDown | null;
     },
   ) {
-    const process = await this.getOrCreateProcess(workerCaseId);
+    const process = await this.getOrCreateProcessRaw(workerCaseId);
     const meetingDate = new Date(payload.preTerminationMeetingDate);
     const now = new Date();
     const diffDays = (meetingDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
@@ -338,7 +345,7 @@ export class TerminationService {
       newMedicalDocsSummary?: string | null;
     },
   ) {
-    const process = await this.getOrCreateProcess(workerCaseId);
+    const process = await this.getOrCreateProcessRaw(workerCaseId);
     const [updated] = await db
       .update(terminationProcesses)
       .set({
@@ -388,7 +395,7 @@ export class TerminationService {
     });
   }
 
-  private buildTerminationLetterContext(process: TerminationProcess, workerCase: WorkerCaseDB, extra: {
+  private buildTerminationLetterContext(process: TerminationProcessDB, workerCase: WorkerCaseDB, extra: {
     medicalExplanation?: string;
     doctorName?: string;
     managerName?: string;
@@ -439,12 +446,12 @@ export class TerminationService {
     managerTitle?: string;
     managerPhone?: string;
   }) {
-    const process = await this.getOrCreateProcess(workerCaseId);
+    const process = await this.getOrCreateProcessRaw(workerCaseId);
     const workerCase = await ensureWorkerCase(workerCaseId);
     const now = new Date();
 
     let terminationLetterDocId: string | null = process.terminationLetterDocId ?? null;
-    let terminationAuditFlag: TerminationAuditFlag = workerCase.terminationAuditFlag ?? null;
+    let terminationAuditFlag: TerminationAuditFlag = workerCase.terminationAuditFlag as TerminationAuditFlag ?? null;
 
     if (payload.decision === "TERMINATE") {
       const template = await this.fetchTemplate();

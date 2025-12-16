@@ -341,6 +341,7 @@ export async function generateEmailDraft(
 
   // Save to database
   const draftInput: InsertEmailDraft = {
+    organizationId,
     caseId,
     emailType: request.emailType,
     recipient: request.recipient,

@@ -819,6 +819,7 @@ export type CaseActionStatus = "pending" | "done" | "cancelled";
 
 export interface CaseAction {
   id: string;
+  organizationId: string; // Tenant isolation
   caseId: string;
   type: CaseActionType;
   status: CaseActionStatus;
