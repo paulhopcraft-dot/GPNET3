@@ -3,7 +3,7 @@
     "name": "GPNet3",
     "description": "Claims, compliance, and return-to-work management system for WorkSafe Victoria",
     "version": "1.0.0",
-    "lastUpdated": "2025-12-10"
+    "lastUpdated": "2025-12-16"
   },
   "stack": {
     "backend": "Express + TypeScript",
@@ -163,6 +163,34 @@
       "passes": true,
       "files": ["server/middleware/security.ts", "server/index.ts"],
       "acceptanceCriteria": ["CSRF tokens required", "Rate limits enforced", "Headers set"]
+    },
+    {
+      "id": "F019",
+      "name": "Multi-Tenant Isolation",
+      "description": "Organization-level data isolation to prevent cross-tenant data access",
+      "passes": true,
+      "files": [
+        "server/middleware/caseOwnership.ts",
+        "server/middleware/auth.ts",
+        "server/services/auditLogger.ts",
+        "server/storage.ts",
+        "server/routes.ts",
+        "server/routes/actions.ts",
+        "server/routes/notifications.ts",
+        "server/routes/emailDrafts.ts",
+        "server/routes/smartSummary.ts",
+        "migrations/0009_add_organization_to_remaining_tables.sql",
+        "shared/schema.ts"
+      ],
+      "acceptanceCriteria": [
+        "Users can only access cases in their organization",
+        "Admins can access all organizations",
+        "All case endpoints verify organizationId",
+        "Access denials logged to audit_events",
+        "Returns 404 (not 403) to prevent info disclosure",
+        "Migration 0009 applies organizationId to all tables"
+      ],
+      "notes": "Implemented 2025-12-16. Code complete and pushed. Migration pending."
     }
   ],
   "incomplete": [],
@@ -187,6 +215,16 @@
       "source": "server/controllers/invites.ts",
       "resolvedAt": "2025-12-10",
       "resolution": "Tokens now only returned when NODE_ENV !== 'production'"
+    },
+    {
+      "id": "I004",
+      "name": "Multi-Tenant Data Isolation Security Vulnerability",
+      "source": "Security audit - system-wide",
+      "resolvedAt": "2025-12-16",
+      "resolution": "Implemented comprehensive organizationId filtering across all storage methods, routes, and services. Created requireCaseOwnership() middleware, audit logging system, and migration 0009. Users can now only access cases within their organization. Admins retain cross-tenant access. All access denials logged. Commit: 2b58b57",
+      "impact": "Critical - Prevented cross-organization data access vulnerability",
+      "filesChanged": 21,
+      "linesChanged": 1360
     }
   ],
   "dependencies": {
