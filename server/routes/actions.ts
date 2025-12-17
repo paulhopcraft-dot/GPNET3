@@ -1,19 +1,87 @@
-import express, { type Request, type Response } from "express";
+import express, { type Request, type Response, type NextFunction } from "express";
 import { z } from "zod";
 import { storage } from "../storage";
 import { authorize, type AuthRequest } from "../middleware/auth";
 import { requireCaseOwnership } from "../middleware/caseOwnership";
-import type { CaseActionStatus, CaseActionType } from "@shared/schema";
+import type { CaseActionStatus, CaseActionType, CaseActionDB } from "@shared/schema";
 import {
   getCaseCompliance,
   processComplianceForCase,
   getCertificatesWithStatus,
 } from "../services/certificateCompliance";
+import { logAuditEvent, AuditEventTypes } from "../services/auditLogger";
 
 const router = express.Router();
 
 // Authentication middleware
 const requireAuth = authorize();
+
+// Extend AuthRequest to include action
+interface ActionAuthRequest extends AuthRequest {
+  action?: CaseActionDB;
+}
+
+/**
+ * Middleware to verify that the authenticated user has access to the requested action.
+ *
+ * SECURITY:
+ * - Admins can access any action (cross-tenant)
+ * - Non-admin users can only access actions belonging to cases in their organization
+ * - Returns 404 (not 403) to prevent information disclosure
+ */
+function requireActionOwnership() {
+  return async (req: ActionAuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const actionId = req.params.id;
+      const user = req.user;
+
+      if (!user) {
+        return res.status(401).json({ success: false, message: "Authentication required" });
+      }
+
+      // Fetch the action
+      const action = await storage.getActionById(actionId);
+      if (!action) {
+        return res.status(404).json({ success: false, message: "Action not found" });
+      }
+
+      // Admin bypass - admins can access all actions
+      if (user.role === "admin") {
+        req.action = action;
+        return next();
+      }
+
+      // Non-admin: verify action belongs to user's organization
+      // Actions have organizationId directly on them
+      if (action.organizationId !== user.organizationId) {
+        // Log access denial
+        await logAuditEvent({
+          userId: user.id,
+          organizationId: user.organizationId,
+          eventType: AuditEventTypes.ACCESS_DENIED,
+          resourceType: "case_action",
+          resourceId: actionId,
+          metadata: {
+            reason: "action_wrong_org",
+            attemptedActionId: actionId,
+            actionOrganizationId: action.organizationId,
+            userOrganizationId: user.organizationId,
+          },
+        });
+
+        // Return 404 to prevent information disclosure
+        return res.status(404).json({ success: false, message: "Action not found" });
+      }
+
+      // Attach action to request for downstream handlers
+      req.action = action;
+      next();
+    } catch (error) {
+      console.error("[ActionOwnership] Authorization check failed:", error);
+      return res.status(500).json({ success: false, message: "Authorization check failed" });
+    }
+  };
+}
 
 // =====================================================
 // Action Queue Endpoints
@@ -72,16 +140,12 @@ router.get("/overdue", requireAuth, async (req: AuthRequest, res: Response) => {
 /**
  * GET /api/actions/:id
  * Get a single action by ID
+ * SECURITY: requireActionOwnership validates user can access this action
  */
-router.get("/:id", requireAuth, async (req: Request, res: Response) => {
+router.get("/:id", requireAuth, requireActionOwnership(), async (req: ActionAuthRequest, res: Response) => {
   try {
-    const action = await storage.getActionById(req.params.id);
-
-    if (!action) {
-      return res.status(404).json({ success: false, message: "Action not found" });
-    }
-
-    res.json({ success: true, data: action });
+    // Action already validated and attached by middleware
+    res.json({ success: true, data: req.action });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -90,8 +154,9 @@ router.get("/:id", requireAuth, async (req: Request, res: Response) => {
 /**
  * PATCH /api/actions/:id
  * Update an action (status, notes, dueDate, etc.)
+ * SECURITY: requireActionOwnership validates user can access this action
  */
-router.patch("/:id", requireAuth, async (req: Request, res: Response) => {
+router.patch("/:id", requireAuth, requireActionOwnership(), async (req: ActionAuthRequest, res: Response) => {
   try {
     const updateSchema = z.object({
       status: z.enum(["pending", "done", "cancelled"]).optional(),
@@ -101,11 +166,7 @@ router.patch("/:id", requireAuth, async (req: Request, res: Response) => {
     });
 
     const updates = updateSchema.parse(req.body);
-    const action = await storage.getActionById(req.params.id);
-
-    if (!action) {
-      return res.status(404).json({ success: false, message: "Action not found" });
-    }
+    // Action already validated by middleware
 
     const updated = await storage.updateAction(req.params.id, {
       ...updates,
@@ -121,15 +182,11 @@ router.patch("/:id", requireAuth, async (req: Request, res: Response) => {
 /**
  * POST /api/actions/:id/done
  * Mark an action as done
+ * SECURITY: requireActionOwnership validates user can access this action
  */
-router.post("/:id/done", requireAuth, async (req: Request, res: Response) => {
+router.post("/:id/done", requireAuth, requireActionOwnership(), async (req: ActionAuthRequest, res: Response) => {
   try {
-    const action = await storage.getActionById(req.params.id);
-
-    if (!action) {
-      return res.status(404).json({ success: false, message: "Action not found" });
-    }
-
+    // Action already validated by middleware
     const updated = await storage.markActionDone(req.params.id);
     res.json({ success: true, data: updated });
   } catch (error: any) {
@@ -140,15 +197,11 @@ router.post("/:id/done", requireAuth, async (req: Request, res: Response) => {
 /**
  * POST /api/actions/:id/cancel
  * Mark an action as cancelled
+ * SECURITY: requireActionOwnership validates user can access this action
  */
-router.post("/:id/cancel", requireAuth, async (req: Request, res: Response) => {
+router.post("/:id/cancel", requireAuth, requireActionOwnership(), async (req: ActionAuthRequest, res: Response) => {
   try {
-    const action = await storage.getActionById(req.params.id);
-
-    if (!action) {
-      return res.status(404).json({ success: false, message: "Action not found" });
-    }
-
+    // Action already validated by middleware
     const updated = await storage.markActionCancelled(req.params.id);
     res.json({ success: true, data: updated });
   } catch (error: any) {

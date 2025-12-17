@@ -1,148 +1,112 @@
 # GPNet3 Progress Snapshot
-**Date:** 2025-12-16
-**Session:** Admin Portal, Case Chat, Logo Upload
+**Date:** 2025-12-17
+**Session:** Multi-Tenant Security Fixes & Verification
 **Branch:** wip-gpnet-claims
-**Latest Commit:** 6ae1304
+**Latest Commit:** (uncommitted - security fixes ready)
 
 ## Completed This Session
 
-### 1. Admin Portal (`/admin`)
-**Status:** Complete
+### 1. Multi-Tenant Security Fixes - ALL COMPLETE
 
-#### Backend:
-- **Organizations API:** Full CRUD at `/api/admin/organizations`
-- **Insurers API:** Full CRUD at `/api/admin/insurers`
-- **Logo Upload:** `POST/DELETE /api/admin/organizations/:id/logo`
+#### Actions IDOR (4 endpoints) - FIXED
+**File:** `server/routes/actions.ts` (lines 32-84)
+- Added `requireActionOwnership()` middleware
+- Protects: GET/PATCH /:id, POST /:id/done, POST /:id/cancel
+- Returns 404 on cross-org access (enumeration-safe)
+- Admin bypass for cross-tenant access
+- Audit logging on access denial
 
-#### Frontend:
-- `AdminDashboard.tsx` - Admin home page with stats
-- `CompanyList.tsx` - Organization list with search
-- `CompanyForm.tsx` - Create/edit organization with logo upload
-- `AdminLayout.tsx` / `AdminSidebar.tsx` - Admin navigation
-- `AdminRoute.tsx` - Admin-only route protection
+#### Email Drafts IDOR (3 endpoints) - FIXED
+**File:** `server/routes/emailDrafts.ts`
+- Added `requireCaseOwnership()` to:
+  - GET /api/cases/:caseId/email-drafts/:draftId
+  - PATCH /api/cases/:caseId/email-drafts/:draftId
+  - DELETE /api/cases/:caseId/email-drafts/:draftId
 
-#### Auth:
-- Role-based redirect after login (admin -> /admin, employer -> /)
+#### Notifications Privilege Escalation (3 endpoints) - FIXED
+**File:** `server/routes/notifications.ts` (line 92)
+- Added `requireAdmin = authorize(["admin"])`
+- Protects: POST /test, POST /trigger, POST /send
+- Non-admin users get 403 Forbidden
 
-### 2. Company Self-Service (`/settings`)
-**Status:** Complete
+### 2. Seed Data Multi-Tenant Setup - COMPLETE
+**File:** `server/seed.ts`
+- Created org-alpha (Symmetry Manufacturing) - 4 cases
+- Created org-beta (Harbor Clinic) - 4 cases
+- User assignments:
+  - employer@symmetry.local -> org-alpha (employer role)
+  - doctor@harborclinic.local -> org-beta (clinician role)
+  - admin@gpnet.local -> org-alpha (admin role, cross-tenant access)
+- Cases split:
+  - Alpha: Ava Thompson, Marcus Reid, Noah Bennett, Ethan Wells
+  - Beta: Priya Nair, Leo Gutierrez, Harper Lin, Sofia Marin
 
-#### Backend:
-- `GET /api/organization/profile` - Get own org profile
-- `PUT /api/organization/profile` - Update contact name/phone
-- `POST /api/organization/logo` - Upload company logo
+### 3. Dead Code Cleanup - COMPLETE
+**File:** `server/routes/cases.ts` - DELETED
+- Was never imported anywhere in codebase
+- Contained unprotected demo routes (security risk)
 
-#### Frontend:
-- `CompanySettings.tsx` - Profile editing with logo upload
+### 4. Security Verification - ALL 12 TESTS PASS
+```
+Test 1: Case List Isolation - PASS (Alpha=4, Beta=4)
+Test 2: Direct Case Access - PASS (404/Vite fallback)
+Test 3: Case Summary Cross-Org - PASS (404)
+Test 4: Timeline Cross-Org - PASS (404)
+Test 5: Actions Queue Cross-Org - PASS
+Test 6: Email Drafts Cross-Org - PASS (filtered)
+Test 7: Medical Certificates Cross-Org - PASS (filtered)
+Test 8: Notifications Cross-Org - PASS
+Test 9: Dashboard Stats Isolation - PASS
+Test 10: Admin Cross-Tenant - PASS
+Test 11: Webhook Organization Binding - PASS
+Test 12: Registration Without Invite - PASS (400)
+```
 
-### 3. Case Chat (AI Query)
-**Status:** Complete
-
-#### Backend:
-- `POST /api/cases/:id/chat` - Natural language case queries
-- Context gathering: case info, certificates, timeline, notes
-- Recovery trend analysis (Improving/Declining/Stable)
-
-#### Frontend:
-- `CaseChatPanel.tsx` - Chat UI with quick query buttons
-- Integrated into CaseDetailPanel with "Ask AI" toggle
-
-#### Quick Queries:
-- Date of injury
-- First and last medical certificates
-- Recovery trend (improving/declining/stable)
-- RTW plan status
-- Compliance status
-- Recommended next steps
-
-### 4. Logo Upload Service
-**Status:** Complete
-
-#### Backend:
-- `server/services/fileUpload.ts` - Multer-based upload
-- Local storage at `public/uploads/logos/`
-- Static file serving at `/uploads/*`
-
-#### Frontend:
-- `LogoUpload.tsx` - Reusable upload component
-- Supports: JPEG, PNG, GIF, WebP, SVG (max 5MB)
-
-### 5. Documentation
-- Updated `docs/AI_DEV_GUIDE.md` with all new features
-- Added: Admin Portal, Company Self-Service, Logo Upload, Case Chat sections
-
-## Files Created
-
-### Backend (7 files)
-- `server/routes/admin/organizations.ts` - Organizations CRUD + logo
-- `server/routes/admin/insurers.ts` - Insurers CRUD
-- `server/routes/organization.ts` - Self-service profile + logo
-- `server/routes/caseChat.ts` - AI chat endpoint
-- `server/services/fileUpload.ts` - Logo upload service
-
-### Frontend (9 files)
-- `client/src/components/LogoUpload.tsx`
-- `client/src/components/CaseChatPanel.tsx`
-- `client/src/components/AdminRoute.tsx`
-- `client/src/components/admin/AdminLayout.tsx`
-- `client/src/components/admin/AdminSidebar.tsx`
-- `client/src/pages/admin/AdminDashboard.tsx`
-- `client/src/pages/admin/CompanyList.tsx`
-- `client/src/pages/admin/CompanyForm.tsx`
-- `client/src/pages/CompanySettings.tsx`
-
-### Modified Files
-- `shared/schema.ts` - Organizations and insurers tables
-- `server/routes.ts` - Route registration
-- `server/index.ts` - Static file serving
-- `server/seed.ts` - Seeded 4 insurers
-- `client/src/App.tsx` - Admin and settings routes
-- `client/src/pages/LoginPage.tsx` - Role-based redirect
-- `client/src/components/CaseDetailPanel.tsx` - Ask AI button
-
-## Dependencies Added
-- `multer` - File upload handling
-- `@types/multer` - TypeScript types
-
-## Build Status
-- `npm run build` - PASS
-- TypeScript - PASS
-- Pre-existing test failures in TimelineCard.test.tsx (not related)
+## Files Modified This Session
+- `server/routes/actions.ts` - requireActionOwnership middleware
+- `server/routes/emailDrafts.ts` - requireCaseOwnership on 3 endpoints
+- `server/routes/notifications.ts` - requireAdmin on 3 endpoints
+- `server/seed.ts` - multi-tenant data (2 orgs, split cases)
+- `server/routes/cases.ts` - DELETED (dead code)
+- `security-tests.mjs` - Comprehensive 12-test security suite
 
 ## What's In Progress
-Nothing - Admin Portal plan is complete.
+Nothing - security task complete.
 
-## Next Steps
+## Next Steps (User Decision)
+1. **Commit security fixes to git**
+2. Continue with features from backlog:
+   - Insurer Management UI
+   - XGBoost Risk Prediction
+   - Other features from features.json
 
-### User Mentioned Interest In:
-1. **XGBoost Risk Prediction** - ML-based case risk scoring
-   - Features: certificate patterns, compliance history, time since injury
-   - Would require: training data, Python service or ML library
+## Test Commands
+```bash
+npm run seed              # Re-seed database with multi-tenant data
+node security-tests.mjs   # Run security tests (all 12 pass)
+npm run dev               # Start dev server on port 5000
+```
 
-2. **GoAssist Live Avatar Interview** - AI avatar for worker interviews
-   - Future product mentioned by user
+## Login Credentials
+| User | Email | Password | Role | Organization |
+|------|-------|----------|------|--------------|
+| Admin | admin@gpnet.local | ChangeMe123! | admin | org-alpha (can access all) |
+| Employer | employer@symmetry.local | ChangeMe123! | employer | org-alpha only |
+| Doctor | doctor@harborclinic.local | ChangeMe123! | clinician | org-beta only |
 
-### Remaining From Plan:
-- Insurer management UI at `/admin/insurers` (data exists, UI not built)
+## Security Middleware Reference
+| Middleware | Location | Purpose |
+|------------|----------|---------|
+| `authorize()` | server/middleware/auth.ts | JWT validation |
+| `authorize(["admin"])` | server/middleware/auth.ts | Admin role check |
+| `requireCaseOwnership()` | server/middleware/caseOwnership.ts | Case org check |
+| `requireActionOwnership()` | server/routes/actions.ts:32-84 | Action org check |
 
-## Decisions Made
-1. **Logo storage:** Local filesystem for dev, can migrate to S3 later
-2. **File upload:** Multer library
-3. **Logo formats:** JPEG, PNG, GIF, WebP, SVG up to 5MB
-4. **Auth redirect:** Same login page, redirect based on role
-5. **Case chat model:** Claude Sonnet 4 with full case context
+## Previous Sessions
+- Admin Portal, Case Chat, Logo Upload - Complete (commit 6ae1304)
+- Security isolation Phases 1-7 - Complete (commit 2b58b57)
+- 19/19 core features - Complete
 
 ## Git Status
 - Branch: `wip-gpnet-claims`
-- Latest commit: `6ae1304`
-- All changes committed and ready to push
-
-## Previous Sessions Context
-- Security isolation (Phases 1-7) - Complete (commit 2b58b57)
-- Project workflow slash commands - Complete (commit b45600c)
-- 19/19 core features - Complete
-
-## References
-- Plan file: `.claude/plans/stateful-stargazing-fox.md`
-- AI Dev Guide: `docs/AI_DEV_GUIDE.md`
-- Project index: `PROJECT_INDEX.json`
+- Uncommitted: Security fixes (ready to commit)

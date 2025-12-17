@@ -87,7 +87,18 @@
       "Bash(tasklist:*)",
       "Bash(npm run typecheck:*)",
       "Bash(npm run build:*)",
-      "SlashCommand(/status)"
+      "SlashCommand(/status)",
+      "Bash(test:*)",
+      "Bash(git push:*)",
+      "Bash(npm run dev:*)",
+      "Bash(powershell -Command \"(Get-ChildItem -Recurse -Include *.ts,*.tsx,*.css,*.sql -Exclude node_modules | Get-Content | Measure-Object -Line).Lines\")",
+      "Bash(powershell -Command \"$loginA = Invoke-RestMethod -Uri ''http://localhost:5000/api/auth/login'' -Method Post -ContentType ''application/json'' -Body ''{\"\"email\"\":\"\"employer@symmetry.local\"\",\"\"password\"\":\"\"ChangeMe123!\"\"}''; Write-Host ''TOKEN_A:'' $loginA.token\")",
+      "Bash(powershell -ExecutionPolicy Bypass -File c:Devgpnet3security-tests.ps1)",
+      "Bash(powershell -ExecutionPolicy Bypass -File \"c:/Dev/gpnet3/security-tests.ps1\")",
+      "Bash(powershell -Command \"Start-Sleep -Seconds 5; powershell -ExecutionPolicy Bypass -File ''c:/Dev/gpnet3/security-tests.ps1''\")",
+      "Bash(powershell -Command \"Invoke-RestMethod -Uri ''http://localhost:5000/api/auth/login'' -Method Post -ContentType ''application/json'' -Body ''{\"\"email\"\":\"\"employer@symmetry.local\"\",\"\"password\"\":\"\"ChangeMe123!\"\"}'' | ConvertTo-Json\")",
+      "Bash(git commit -m \"$(cat <<''EOF''\nComplete security hardening: 13 fixes, multi-tenant verified\n\n- Add requireActionOwnership() middleware to actions.ts (4 endpoints)\n- Add requireCaseOwnership() to email drafts (3 endpoints)\n- Add requireAdmin to notification admin endpoints (3 endpoints)\n- Delete dead code server/routes/cases.ts (security risk)\n- Update seed.ts with multi-tenant data (org-alpha + org-beta)\n- All 12 security tests passing\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git reset:*)"
     ],
     "deny": [],
     "ask": []

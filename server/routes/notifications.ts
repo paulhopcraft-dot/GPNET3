@@ -88,12 +88,16 @@ router.get("/case/:caseId", authorize(), requireCaseOwnership(), async (req: Aut
   }
 });
 
+// Admin-only middleware
+const requireAdmin = authorize(["admin"]);
+
 /**
  * POST /api/notifications/test
  * Send a test notification email to the current user
  * Admin only
+ * SECURITY: requireAdmin enforces admin role check
  */
-router.post("/test", authorize(), async (req: AuthRequest, res: Response) => {
+router.post("/test", requireAdmin, async (req: AuthRequest, res: Response) => {
   try {
     const email = req.user?.email;
     if (!email) {
@@ -130,8 +134,9 @@ router.post("/test", authorize(), async (req: AuthRequest, res: Response) => {
  * POST /api/notifications/trigger
  * Manually trigger notification generation
  * Admin only - useful for testing
+ * SECURITY: requireAdmin enforces admin role check
  */
-router.post("/trigger", authorize(), async (_req: Request, res: Response) => {
+router.post("/trigger", requireAdmin, async (_req: Request, res: Response) => {
   try {
     // Import scheduler dynamically to avoid circular dependencies
     const { notificationScheduler } = await import("../index");
@@ -163,8 +168,9 @@ router.post("/trigger", authorize(), async (_req: Request, res: Response) => {
  * POST /api/notifications/send
  * Manually trigger notification sending
  * Admin only - useful for testing
+ * SECURITY: requireAdmin enforces admin role check
  */
-router.post("/send", authorize(), async (_req: Request, res: Response) => {
+router.post("/send", requireAdmin, async (_req: Request, res: Response) => {
   try {
     // Import scheduler dynamically to avoid circular dependencies
     const { notificationScheduler } = await import("../index");

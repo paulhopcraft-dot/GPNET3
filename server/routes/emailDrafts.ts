@@ -159,16 +159,19 @@ router.get(
 /**
  * GET /api/cases/:caseId/email-drafts/:draftId
  * Get a single email draft
+ * SECURITY: requireCaseOwnership validates user can access this case
  */
 router.get(
   "/cases/:caseId/email-drafts/:draftId",
   authorize(),
-  async (req: Request, res: Response) => {
+  requireCaseOwnership(),
+  async (req: AuthRequest, res: Response) => {
     try {
-      const { caseId, draftId } = req.params;
+      const { draftId } = req.params;
+      const workerCase = req.workerCase!; // Populated by requireCaseOwnership middleware
 
       const draft = await getEmailDraftById(storage, draftId);
-      if (!draft || draft.caseId !== caseId) {
+      if (!draft || draft.caseId !== workerCase.id) {
         return res.status(404).json({
           success: false,
           error: "Email draft not found",
@@ -193,17 +196,20 @@ router.get(
 /**
  * PATCH /api/cases/:caseId/email-drafts/:draftId
  * Update an email draft
+ * SECURITY: requireCaseOwnership validates user can access this case
  */
 router.patch(
   "/cases/:caseId/email-drafts/:draftId",
   authorize(),
-  async (req: Request, res: Response) => {
+  requireCaseOwnership(),
+  async (req: AuthRequest, res: Response) => {
     try {
-      const { caseId, draftId } = req.params;
+      const { draftId } = req.params;
+      const workerCase = req.workerCase!; // Populated by requireCaseOwnership middleware
 
       // Validate draft exists and belongs to case
       const existing = await getEmailDraftById(storage, draftId);
-      if (!existing || existing.caseId !== caseId) {
+      if (!existing || existing.caseId !== workerCase.id) {
         return res.status(404).json({
           success: false,
           error: "Email draft not found",
@@ -240,17 +246,20 @@ router.patch(
 /**
  * DELETE /api/cases/:caseId/email-drafts/:draftId
  * Delete an email draft
+ * SECURITY: requireCaseOwnership validates user can access this case
  */
 router.delete(
   "/cases/:caseId/email-drafts/:draftId",
   authorize(),
-  async (req: Request, res: Response) => {
+  requireCaseOwnership(),
+  async (req: AuthRequest, res: Response) => {
     try {
-      const { caseId, draftId } = req.params;
+      const { draftId } = req.params;
+      const workerCase = req.workerCase!; // Populated by requireCaseOwnership middleware
 
       // Validate draft exists and belongs to case
       const existing = await getEmailDraftById(storage, draftId);
-      if (!existing || existing.caseId !== caseId) {
+      if (!existing || existing.caseId !== workerCase.id) {
         return res.status(404).json({
           success: false,
           error: "Email draft not found",

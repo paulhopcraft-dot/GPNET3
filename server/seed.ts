@@ -49,7 +49,12 @@ const employers = [
   { id: "empl-apex", name: "Apex Labour Hire" },
 ] as const;
 
-const demoCases: SeedCase[] = [
+// Organization IDs for multi-tenant setup
+const ORG_ALPHA_ID = "org-alpha";
+const ORG_BETA_ID = "org-beta";
+
+// Cases for Org Alpha (Symmetry Manufacturing - employer-focused)
+const alphaCases: SeedCase[] = [
   {
     workerName: "Ava Thompson",
     company: employers[0].name,
@@ -136,6 +141,86 @@ const demoCases: SeedCase[] = [
       },
     ],
   },
+  {
+    workerName: "Noah Bennett",
+    company: employers[0].name,
+    dateOfInjury: "2025-01-11T00:00:00.000Z",
+    riskLevel: "Low",
+    workStatus: "At work",
+    compliance: {
+      indicator: "Medium",
+      reason: "Needs fortnightly capacity form",
+      source: "manual",
+      lastChecked: "2025-02-10T08:00:00.000Z",
+    },
+    currentStatus: "Working 6-hour shifts",
+    nextStep: "Upload GP capacity form",
+    owner: "Isla Boyd",
+    dueDate: "2025-02-12",
+    summary:
+      "Mild ankle sprain; worker overseeing training bay and avoiding ladder work per restrictions.",
+    ticketIds: ["FD-43455"],
+    ticketLastUpdatedAt: "2025-02-10T07:40:00.000Z",
+    clcLastFollowUp: "2025-02-06",
+    clcNextFollowUp: "2025-02-13",
+    aiSummary:
+      "XGBoost stability score 0.18 indicates minimal escalation risk once paperwork completed.",
+    aiWorkStatusClassification: "At work - reduced hours",
+    attachments: [
+      {
+        name: "Medical Certificate - Duty review",
+        type: "medical-certificate",
+        url: "https://files.gpnet.local/certificates/noah-bennett-duty.pdf",
+      },
+      {
+        name: "Case Notes - Toolbox Talk",
+        type: "case-note",
+        url: "https://files.gpnet.local/notes/noah-bennett-2025-02-05.txt",
+      },
+    ],
+  },
+  {
+    workerName: "Ethan Wells",
+    company: employers[1].name,
+    dateOfInjury: "2024-11-15T00:00:00.000Z",
+    riskLevel: "Medium",
+    workStatus: "Off work",
+    compliance: {
+      indicator: "Low",
+      reason: "No updated medical received in 6 weeks",
+      source: "manual",
+      lastChecked: "2025-01-12T09:20:00.000Z",
+    },
+    currentStatus: "Overdue - chasing medical",
+    nextStep: "Arrange GP booking",
+    owner: "Jules Kramer",
+    dueDate: "2024-11-30",
+    summary:
+      "Knee injury stuck in limbo; worker unreachable and certificates expired. Needs escalation.",
+    ticketIds: ["FD-42940"],
+    ticketLastUpdatedAt: "2025-01-12T09:05:00.000Z",
+    clcLastFollowUp: "2024-12-22",
+    clcNextFollowUp: "2025-01-08",
+    aiSummary:
+      "XGBoost risk 0.84 suggests probable long-tail cost without immediate contact.",
+    aiWorkStatusClassification: "Off work - disengaged",
+    attachments: [
+      {
+        name: "Medical Certificate - Expired",
+        type: "medical-certificate",
+        url: "https://files.gpnet.local/certificates/ethan-wells-expired.pdf",
+      },
+      {
+        name: "Case Notes - Worksite Attempt",
+        type: "case-note",
+        url: "https://files.gpnet.local/notes/ethan-wells-2024-12-20.txt",
+      },
+    ],
+  },
+];
+
+// Cases for Org Beta (Harbor Clinic - clinician-focused)
+const betaCases: SeedCase[] = [
   {
     workerName: "Priya Nair",
     company: employers[2].name,
@@ -251,44 +336,6 @@ const demoCases: SeedCase[] = [
     ],
   },
   {
-    workerName: "Noah Bennett",
-    company: employers[0].name,
-    dateOfInjury: "2025-01-11T00:00:00.000Z",
-    riskLevel: "Low",
-    workStatus: "At work",
-    compliance: {
-      indicator: "Medium",
-      reason: "Needs fortnightly capacity form",
-      source: "manual",
-      lastChecked: "2025-02-10T08:00:00.000Z",
-    },
-    currentStatus: "Working 6-hour shifts",
-    nextStep: "Upload GP capacity form",
-    owner: "Isla Boyd",
-    dueDate: "2025-02-12",
-    summary:
-      "Mild ankle sprain; worker overseeing training bay and avoiding ladder work per restrictions.",
-    ticketIds: ["FD-43455"],
-    ticketLastUpdatedAt: "2025-02-10T07:40:00.000Z",
-    clcLastFollowUp: "2025-02-06",
-    clcNextFollowUp: "2025-02-13",
-    aiSummary:
-      "XGBoost stability score 0.18 indicates minimal escalation risk once paperwork completed.",
-    aiWorkStatusClassification: "At work - reduced hours",
-    attachments: [
-      {
-        name: "Medical Certificate - Duty review",
-        type: "medical-certificate",
-        url: "https://files.gpnet.local/certificates/noah-bennett-duty.pdf",
-      },
-      {
-        name: "Case Notes - Toolbox Talk",
-        type: "case-note",
-        url: "https://files.gpnet.local/notes/noah-bennett-2025-02-05.txt",
-      },
-    ],
-  },
-  {
     workerName: "Sofia Marin",
     company: employers[2].name,
     dateOfInjury: "2024-11-29T00:00:00.000Z",
@@ -326,48 +373,10 @@ const demoCases: SeedCase[] = [
       },
     ],
   },
-  {
-    workerName: "Ethan Wells",
-    company: employers[1].name,
-    dateOfInjury: "2024-11-15T00:00:00.000Z",
-    riskLevel: "Medium",
-    workStatus: "Off work",
-    compliance: {
-      indicator: "Low",
-      reason: "No updated medical received in 6 weeks",
-      source: "manual",
-      lastChecked: "2025-01-12T09:20:00.000Z",
-    },
-    currentStatus: "Overdue - chasing medical",
-    nextStep: "Arrange GP booking",
-    owner: "Jules Kramer",
-    dueDate: "2024-11-30",
-    summary:
-      "Knee injury stuck in limbo; worker unreachable and certificates expired. Needs escalation.",
-    ticketIds: ["FD-42940"],
-    ticketLastUpdatedAt: "2025-01-12T09:05:00.000Z",
-    clcLastFollowUp: "2024-12-22",
-    clcNextFollowUp: "2025-01-08",
-    aiSummary:
-      "XGBoost risk 0.84 suggests probable long-tail cost without immediate contact.",
-    aiWorkStatusClassification: "Off work - disengaged",
-    attachments: [
-      {
-        name: "Medical Certificate - Expired",
-        type: "medical-certificate",
-        url: "https://files.gpnet.local/certificates/ethan-wells-expired.pdf",
-      },
-      {
-        name: "Case Notes - Worksite Attempt",
-        type: "case-note",
-        url: "https://files.gpnet.local/notes/ethan-wells-2024-12-20.txt",
-      },
-    ],
-  },
 ];
 
 async function seed() {
-  console.log("Seeding GPNet demo data...");
+  console.log("Seeding GPNet multi-tenant demo data...");
 
   // Clear existing data in correct order (respecting FK constraints)
   await db.delete(caseAttachments);
@@ -386,25 +395,37 @@ async function seed() {
   ];
   await db.insert(insurers).values(insurerData);
 
-  // Seed default organization
+  // Seed organizations (multi-tenant setup)
   console.log("Seeding organizations...");
-  const defaultOrgId = "seed-organization";
-  await db.insert(organizations).values({
-    id: defaultOrgId,
-    name: "Symmetry Manufacturing",
-    slug: "symmetry",
-    contactName: "Jane Smith",
-    contactPhone: "03 9555 1234",
-    contactEmail: "admin@symmetry.local",
-    insurerId: "ins-gallagher",
-  });
+  await db.insert(organizations).values([
+    {
+      id: ORG_ALPHA_ID,
+      name: "Symmetry Manufacturing",
+      slug: "symmetry",
+      contactName: "Jane Smith",
+      contactPhone: "03 9555 1234",
+      contactEmail: "admin@symmetry.local",
+      insurerId: "ins-gallagher",
+    },
+    {
+      id: ORG_BETA_ID,
+      name: "Harbor Clinic",
+      slug: "harborclinic",
+      contactName: "Dr. Michael Chen",
+      contactPhone: "03 9555 5678",
+      contactEmail: "admin@harborclinic.local",
+      insurerId: "ins-eml",
+    },
+  ]);
 
   const passwordHash = await bcrypt.hash("ChangeMe123!", 10);
 
+  // Seed users with proper organization assignments
+  console.log("Seeding users...");
   await db.insert(users).values([
     {
       id: randomUUID(),
-      organizationId: defaultOrgId,
+      organizationId: ORG_ALPHA_ID, // Admin belongs to alpha but can access all
       email: "admin@gpnet.local",
       password: passwordHash,
       role: "admin",
@@ -414,7 +435,7 @@ async function seed() {
     },
     {
       id: randomUUID(),
-      organizationId: defaultOrgId,
+      organizationId: ORG_ALPHA_ID, // Employer in org-alpha
       email: "employer@symmetry.local",
       password: passwordHash,
       role: "employer",
@@ -424,7 +445,7 @@ async function seed() {
     },
     {
       id: randomUUID(),
-      organizationId: defaultOrgId,
+      organizationId: ORG_BETA_ID, // Doctor in org-beta (different org!)
       email: "doctor@harborclinic.local",
       password: passwordHash,
       role: "clinician",
@@ -434,7 +455,9 @@ async function seed() {
     },
   ]);
 
-  for (const seedCase of demoCases) {
+  // Seed cases for Org Alpha
+  console.log("Seeding cases for Org Alpha (Symmetry Manufacturing)...");
+  for (const seedCase of alphaCases) {
     const caseId = randomUUID();
     const certificateAttachment = seedCase.attachments.find(
       (attachment) => attachment.type === "medical-certificate",
@@ -442,7 +465,7 @@ async function seed() {
 
     await db.insert(workerCases).values({
       id: caseId,
-      organizationId: defaultOrgId,
+      organizationId: ORG_ALPHA_ID,
       workerName: seedCase.workerName,
       company: seedCase.company,
       dateOfInjury: new Date(seedCase.dateOfInjury),
@@ -474,7 +497,7 @@ async function seed() {
       await db.insert(caseAttachments).values(
         seedCase.attachments.map((attachment) => ({
           id: randomUUID(),
-          organizationId: defaultOrgId,
+          organizationId: ORG_ALPHA_ID,
           caseId,
           name: attachment.name,
           type: attachment.type,
@@ -485,7 +508,66 @@ async function seed() {
     }
   }
 
-  console.log("Demo data inserted successfully.");
+  // Seed cases for Org Beta
+  console.log("Seeding cases for Org Beta (Harbor Clinic)...");
+  for (const seedCase of betaCases) {
+    const caseId = randomUUID();
+    const certificateAttachment = seedCase.attachments.find(
+      (attachment) => attachment.type === "medical-certificate",
+    );
+
+    await db.insert(workerCases).values({
+      id: caseId,
+      organizationId: ORG_BETA_ID,
+      workerName: seedCase.workerName,
+      company: seedCase.company,
+      dateOfInjury: new Date(seedCase.dateOfInjury),
+      riskLevel: seedCase.riskLevel,
+      workStatus: seedCase.workStatus,
+      hasCertificate: Boolean(certificateAttachment),
+      certificateUrl: certificateAttachment?.url ?? null,
+      complianceIndicator: seedCase.compliance.indicator,
+      complianceJson: seedCase.compliance,
+      currentStatus: seedCase.currentStatus,
+      nextStep: seedCase.nextStep,
+      owner: seedCase.owner,
+      dueDate: seedCase.dueDate,
+      summary: seedCase.summary,
+      ticketIds: seedCase.ticketIds,
+      ticketCount: String(seedCase.ticketIds.length),
+      aiSummary: seedCase.aiSummary,
+      aiSummaryGeneratedAt: new Date(),
+      aiSummaryModel: "gpnet-xgboost-lab",
+      aiWorkStatusClassification: seedCase.aiWorkStatusClassification,
+      ticketLastUpdatedAt: new Date(seedCase.ticketLastUpdatedAt),
+      clcLastFollowUp: seedCase.clcLastFollowUp,
+      clcNextFollowUp: seedCase.clcNextFollowUp,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    if (seedCase.attachments.length > 0) {
+      await db.insert(caseAttachments).values(
+        seedCase.attachments.map((attachment) => ({
+          id: randomUUID(),
+          organizationId: ORG_BETA_ID,
+          caseId,
+          name: attachment.name,
+          type: attachment.type,
+          url: attachment.url,
+          createdAt: new Date(),
+        })),
+      );
+    }
+  }
+
+  console.log("\nMulti-tenant demo data inserted successfully!");
+  console.log(`  - Org Alpha (${ORG_ALPHA_ID}): ${alphaCases.length} cases`);
+  console.log(`  - Org Beta (${ORG_BETA_ID}): ${betaCases.length} cases`);
+  console.log("\nTest users:");
+  console.log("  - admin@gpnet.local (admin, can access all)");
+  console.log("  - employer@symmetry.local (org-alpha only)");
+  console.log("  - doctor@harborclinic.local (org-beta only)");
 }
 
 seed()
