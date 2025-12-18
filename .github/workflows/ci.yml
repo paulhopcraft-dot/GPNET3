@@ -16,6 +16,8 @@ jobs:
   # Critical: Multi-tenant security tests (MUST pass)
   security-tests:
     runs-on: ubuntu-latest
+    env:
+      NODE_ENV: development  # Override global test mode
 
     services:
       postgres:
@@ -67,8 +69,6 @@ jobs:
           PGPASSWORD=postgres psql -h localhost -U postgres -d gpnet3 -c "SELECT 'users' as tbl, COUNT(*) FROM users UNION ALL SELECT 'worker_cases', COUNT(*) FROM worker_cases;"
 
       - name: Start server
-        env:
-          NODE_ENV: development
         run: |
           echo "Starting server..."
           npx tsx server/index.ts > server.log 2>&1 &
@@ -95,8 +95,6 @@ jobs:
             -d '{"email":"admin@gpnet.local","password":"ChangeMe123!"}' 2>&1 | head -50
 
       - name: Run multi-tenant security tests
-        env:
-          NODE_ENV: development
         run: |
           node security-tests.mjs || {
             echo ""
