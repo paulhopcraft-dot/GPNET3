@@ -54,6 +54,13 @@ jobs:
       - name: Seed multi-tenant test data
         run: npm run seed
 
+      - name: Verify seed data
+        run: |
+          echo "Checking if users were seeded..."
+          PGPASSWORD=postgres psql -h localhost -U postgres -d gpnet3 -c "SELECT email, role, organization_id FROM users LIMIT 10;"
+          echo "Checking if cases were seeded..."
+          PGPASSWORD=postgres psql -h localhost -U postgres -d gpnet3 -c "SELECT id, worker_name, organization_id FROM worker_cases LIMIT 10;"
+
       - name: Start server
         env:
           NODE_ENV: development
