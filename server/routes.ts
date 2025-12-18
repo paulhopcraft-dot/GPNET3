@@ -317,7 +317,7 @@ export async function registerRoutes(app: Express): Promise<void> {
         model: workerCase.aiSummaryModel || null,
         workStatusClassification: workerCase.aiWorkStatusClassification || null,
         ticketLastUpdatedAt: workerCase.ticketLastUpdatedAt || null,
-        needsRefresh: await storage.needsSummaryRefresh(workerCase.id),
+        needsRefresh: await storage.needsSummaryRefresh(workerCase.id, workerCase.organizationId),
         discussionNotes,
         discussionInsights,
       });

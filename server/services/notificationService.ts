@@ -214,7 +214,7 @@ async function generateCertificateNotifications(
 
   for (const workerCase of cases) {
     try {
-      const compliance = await getCaseCompliance(storage, workerCase.id);
+      const compliance = await getCaseCompliance(storage, workerCase.id, workerCase.organizationId);
 
       // Skip compliant or no-certificate cases (no-certificate has its own action flow)
       if (compliance.status === "compliant" || compliance.status === "no_certificate") {

@@ -328,8 +328,8 @@ export interface IStorage {
   getGPNet2CaseByIdAdmin(id: string): Promise<WorkerCase | null>; // Admin-only, no org filter
   syncWorkerCaseFromFreshdesk(caseData: Partial<WorkerCase>): Promise<void>;
   clearAllWorkerCases(): Promise<void>;
-  updateAISummary(caseId: string, summary: string, model: string, workStatusClassification?: string): Promise<void>;
-  needsSummaryRefresh(caseId: string): Promise<boolean>;
+  updateAISummary(caseId: string, organizationId: string, summary: string, model: string, workStatusClassification?: string): Promise<void>;
+  needsSummaryRefresh(caseId: string, organizationId: string): Promise<boolean>;
   getCaseRecoveryTimeline(caseId: string, organizationId: string): Promise<MedicalCertificate[]>;
   getCaseDiscussionNotes(caseId: string, organizationId: string, limit?: number): Promise<CaseDiscussionNote[]>;
   upsertCaseDiscussionNotes(notes: InsertCaseDiscussionNote[]): Promise<void>;
@@ -348,17 +348,17 @@ export interface IStorage {
   updateUserInvite(id: string, updates: Partial<UserInviteDB>): Promise<UserInviteDB>;
   getUserInvitesByOrg(organizationId: string): Promise<UserInviteDB[]>;
 
-  // Certificate Engine v1 - Certificate management
+  // Certificate Engine v1 - Certificate management (all methods require organizationId for tenant isolation)
   createCertificate(certificate: InsertMedicalCertificate): Promise<MedicalCertificateDB>;
-  getCertificate(id: string): Promise<MedicalCertificateDB | null>;
-  getCertificatesByCase(caseId: string): Promise<MedicalCertificateDB[]>;
-  getCertificatesByWorker(workerId: string): Promise<MedicalCertificateDB[]>;
+  getCertificate(id: string, organizationId: string): Promise<MedicalCertificateDB | null>;
+  getCertificatesByCase(caseId: string, organizationId: string): Promise<MedicalCertificateDB[]>;
+  getCertificatesByWorker(workerId: string, organizationId: string): Promise<MedicalCertificateDB[]>;
   getCertificatesByOrganization(organizationId: string): Promise<MedicalCertificateDB[]>;
-  updateCertificate(id: string, updates: Partial<InsertMedicalCertificate>): Promise<MedicalCertificateDB>;
-  deleteCertificate(id: string): Promise<void>;
-  getCurrentCertificates(workerId: string): Promise<MedicalCertificateDB[]>;
+  updateCertificate(id: string, organizationId: string, updates: Partial<InsertMedicalCertificate>): Promise<MedicalCertificateDB>;
+  deleteCertificate(id: string, organizationId: string): Promise<void>;
+  getCurrentCertificates(workerId: string, organizationId: string): Promise<MedicalCertificateDB[]>;
   getExpiringCertificates(organizationId: string, daysAhead: number): Promise<MedicalCertificateDB[]>;
-  markCertificateAsReviewed(id: string, reviewDate: Date): Promise<MedicalCertificateDB>;
+  markCertificateAsReviewed(id: string, organizationId: string, reviewDate: Date): Promise<MedicalCertificateDB>;
 
   // Certificate Engine v1 - Alert management
   createExpiryAlert(alert: InsertCertificateExpiryAlert): Promise<CertificateExpiryAlertDB>;
@@ -367,7 +367,8 @@ export interface IStorage {
 
   // Action Queue v1 - Case Actions - UPDATED for multi-tenant isolation
   createAction(action: InsertCaseAction): Promise<CaseActionDB>;
-  getActionById(id: string): Promise<CaseActionDB | null>;
+  getActionById(id: string, organizationId: string): Promise<CaseActionDB | null>;
+  getActionByIdAdmin(id: string): Promise<CaseActionDB | null>; // Admin-only, no org filter
   getActionsByCase(caseId: string, organizationId: string): Promise<CaseActionDB[]>;
   getPendingActions(organizationId: string, limit?: number): Promise<CaseAction[]>;
   getOverdueActions(organizationId: string, limit?: number): Promise<CaseAction[]>;
@@ -387,7 +388,7 @@ export interface IStorage {
 
   // Notifications Engine v1 - Notification management - UPDATED for multi-tenant isolation
   createNotification(notification: InsertNotification): Promise<NotificationDB>;
-  getNotificationById(id: string): Promise<NotificationDB | null>;
+  getNotificationById(id: string, organizationId: string): Promise<NotificationDB | null>;
   getPendingNotifications(organizationId: string, limit?: number): Promise<NotificationDB[]>;
   getNotificationsByCase(caseId: string, organizationId: string): Promise<NotificationDB[]>;
   getRecentNotifications(organizationId: string, hours?: number): Promise<NotificationDB[]>;
@@ -1075,7 +1076,8 @@ class DbStorage implements IStorage {
       ));
   }
 
-  async updateAISummary(caseId: string, summary: string, model: string, workStatusClassification?: string): Promise<void> {
+  async updateAISummary(caseId: string, organizationId: string, summary: string, model: string, workStatusClassification?: string): Promise<void> {
+    // Only update if the case belongs to the organization
     await db
       .update(workerCases)
       .set({
@@ -1085,18 +1087,24 @@ class DbStorage implements IStorage {
         aiWorkStatusClassification: workStatusClassification,
         updatedAt: new Date(),
       })
-      .where(eq(workerCases.id, caseId));
+      .where(and(
+        eq(workerCases.id, caseId),
+        eq(workerCases.organizationId, organizationId)
+      ));
   }
 
-  async needsSummaryRefresh(caseId: string): Promise<boolean> {
+  async needsSummaryRefresh(caseId: string, organizationId: string): Promise<boolean> {
     const dbCase = await db
       .select()
       .from(workerCases)
-      .where(eq(workerCases.id, caseId))
+      .where(and(
+        eq(workerCases.id, caseId),
+        eq(workerCases.organizationId, organizationId)
+      ))
       .limit(1);
 
     if (dbCase.length === 0) {
-      return false;
+      return false; // Case not found or access denied
     }
 
     const workerCase = dbCase[0];
@@ -1302,25 +1310,45 @@ class DbStorage implements IStorage {
     return result;
   }
 
-  async getCertificate(id: string): Promise<MedicalCertificateDB | null> {
+  async getCertificate(id: string, organizationId: string): Promise<MedicalCertificateDB | null> {
     const result = await db.select()
       .from(medicalCertificates)
-      .where(eq(medicalCertificates.id, id))
+      .where(and(
+        eq(medicalCertificates.id, id),
+        eq(medicalCertificates.organizationId, organizationId)
+      ))
       .limit(1);
     return result[0] || null;
   }
 
-  async getCertificatesByCase(caseId: string): Promise<MedicalCertificateDB[]> {
+  async getCertificatesByCase(caseId: string, organizationId: string): Promise<MedicalCertificateDB[]> {
+    // Verify case ownership before returning certificates
+    const caseCheck = await db
+      .select({ id: workerCases.id })
+      .from(workerCases)
+      .where(and(
+        eq(workerCases.id, caseId),
+        eq(workerCases.organizationId, organizationId)
+      ))
+      .limit(1);
+
+    if (caseCheck.length === 0) {
+      return []; // Case not found or access denied
+    }
+
     return await db.select()
       .from(medicalCertificates)
       .where(eq(medicalCertificates.caseId, caseId))
       .orderBy(desc(medicalCertificates.issueDate));
   }
 
-  async getCertificatesByWorker(workerId: string): Promise<MedicalCertificateDB[]> {
+  async getCertificatesByWorker(workerId: string, organizationId: string): Promise<MedicalCertificateDB[]> {
     return await db.select()
       .from(medicalCertificates)
-      .where(eq(medicalCertificates.workerId, workerId))
+      .where(and(
+        eq(medicalCertificates.workerId, workerId),
+        eq(medicalCertificates.organizationId, organizationId)
+      ))
       .orderBy(desc(medicalCertificates.issueDate));
   }
 
@@ -1331,24 +1359,31 @@ class DbStorage implements IStorage {
       .orderBy(desc(medicalCertificates.issueDate));
   }
 
-  async updateCertificate(id: string, updates: Partial<InsertMedicalCertificate>): Promise<MedicalCertificateDB> {
+  async updateCertificate(id: string, organizationId: string, updates: Partial<InsertMedicalCertificate>): Promise<MedicalCertificateDB> {
     const [result] = await db.update(medicalCertificates)
       .set({ ...updates, updatedAt: new Date() })
-      .where(eq(medicalCertificates.id, id))
+      .where(and(
+        eq(medicalCertificates.id, id),
+        eq(medicalCertificates.organizationId, organizationId)
+      ))
       .returning();
     return result;
   }
 
-  async deleteCertificate(id: string): Promise<void> {
+  async deleteCertificate(id: string, organizationId: string): Promise<void> {
     await db.delete(medicalCertificates)
-      .where(eq(medicalCertificates.id, id));
+      .where(and(
+        eq(medicalCertificates.id, id),
+        eq(medicalCertificates.organizationId, organizationId)
+      ));
   }
 
-  async getCurrentCertificates(workerId: string): Promise<MedicalCertificateDB[]> {
+  async getCurrentCertificates(workerId: string, organizationId: string): Promise<MedicalCertificateDB[]> {
     return await db.select()
       .from(medicalCertificates)
       .where(and(
         eq(medicalCertificates.workerId, workerId),
+        eq(medicalCertificates.organizationId, organizationId),
         eq(medicalCertificates.isCurrentCertificate, true)
       ))
       .orderBy(desc(medicalCertificates.endDate));
@@ -1368,10 +1403,13 @@ class DbStorage implements IStorage {
       .orderBy(medicalCertificates.endDate);
   }
 
-  async markCertificateAsReviewed(id: string, reviewDate: Date): Promise<MedicalCertificateDB> {
+  async markCertificateAsReviewed(id: string, organizationId: string, reviewDate: Date): Promise<MedicalCertificateDB> {
     const [result] = await db.update(medicalCertificates)
       .set({ requiresReview: false, reviewDate, updatedAt: new Date() })
-      .where(eq(medicalCertificates.id, id))
+      .where(and(
+        eq(medicalCertificates.id, id),
+        eq(medicalCertificates.organizationId, organizationId)
+      ))
       .returning();
     return result;
   }
@@ -1416,7 +1454,19 @@ class DbStorage implements IStorage {
     return result;
   }
 
-  async getActionById(id: string): Promise<CaseActionDB | null> {
+  async getActionById(id: string, organizationId: string): Promise<CaseActionDB | null> {
+    const [result] = await db.select()
+      .from(caseActions)
+      .where(and(
+        eq(caseActions.id, id),
+        eq(caseActions.organizationId, organizationId)
+      ))
+      .limit(1);
+    return result || null;
+  }
+
+  async getActionByIdAdmin(id: string): Promise<CaseActionDB | null> {
+    // Admin version - NO organization filter (can access any action)
     const [result] = await db.select()
       .from(caseActions)
       .where(eq(caseActions.id, id))
@@ -1674,10 +1724,13 @@ class DbStorage implements IStorage {
     return result;
   }
 
-  async getNotificationById(id: string): Promise<NotificationDB | null> {
+  async getNotificationById(id: string, organizationId: string): Promise<NotificationDB | null> {
     const [result] = await db.select()
       .from(notifications)
-      .where(eq(notifications.id, id))
+      .where(and(
+        eq(notifications.id, id),
+        eq(notifications.organizationId, organizationId)
+      ))
       .limit(1);
     return result || null;
   }

@@ -39,8 +39,11 @@ function requireActionOwnership() {
         return res.status(401).json({ success: false, message: "Authentication required" });
       }
 
-      // Fetch the action
-      const action = await storage.getActionById(actionId);
+      // Fetch the action - use admin method for admins (cross-tenant access)
+      const action = user.role === "admin"
+        ? await storage.getActionByIdAdmin(actionId)
+        : await storage.getActionById(actionId, user.organizationId);
+
       if (!action) {
         return res.status(404).json({ success: false, message: "Action not found" });
       }
@@ -267,7 +270,7 @@ router.get("/case/:caseId/compliance", requireAuth, requireCaseOwnership(), asyn
   try {
     const workerCase = req.workerCase!; // Populated by requireCaseOwnership middleware
 
-    const compliance = await getCaseCompliance(storage, workerCase.id);
+    const compliance = await getCaseCompliance(storage, workerCase.id, workerCase.organizationId);
     res.json({ success: true, data: compliance });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -282,7 +285,7 @@ router.post("/case/:caseId/compliance/sync", requireAuth, requireCaseOwnership()
   try {
     const workerCase = req.workerCase!; // Populated by requireCaseOwnership middleware
 
-    const compliance = await processComplianceForCase(storage, workerCase.id);
+    const compliance = await processComplianceForCase(storage, workerCase.id, workerCase.organizationId);
     res.json({ success: true, data: compliance });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -297,7 +300,7 @@ router.get("/case/:caseId/certificates-with-status", requireAuth, requireCaseOwn
   try {
     const workerCase = req.workerCase!; // Populated by requireCaseOwnership middleware
 
-    const dbCerts = await storage.getCertificatesByCase(workerCase.id);
+    const dbCerts = await storage.getCertificatesByCase(workerCase.id, workerCase.organizationId);
     const certificates = dbCerts.map(cert => ({
       id: cert.id,
       caseId: cert.caseId,

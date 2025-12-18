@@ -85,9 +85,9 @@ export async function fetchCaseContext(
 
   const [timeline, dbCertificates, dbActions, compliance] = await Promise.all([
     storage.getCaseTimeline(caseId, organizationId, 20),
-    storage.getCertificatesByCase(caseId),
+    storage.getCertificatesByCase(caseId, organizationId),
     storage.getActionsByCase(caseId, organizationId),
-    getCaseCompliance(storage, caseId),
+    getCaseCompliance(storage, caseId, organizationId),
   ]);
 
   const certificates = dbCertificates.map(mapDbCertificate);

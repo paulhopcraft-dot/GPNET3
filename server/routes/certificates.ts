@@ -32,15 +32,14 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
 // GET /api/certificates/:id - Get certificate by ID
 router.get("/:id", requireAuth, async (req: Request, res: Response) => {
   try {
-    const certificate = await storage.getCertificate(req.params.id);
+    const organizationId = req.user!.role === "admin" ? (req.query.organizationId as string || req.user!.companyId) : req.user!.companyId;
+    if (!organizationId) {
+      return res.status(400).json({ success: false, message: "Organization ID required" });
+    }
+    const certificate = await storage.getCertificate(req.params.id, organizationId);
 
     if (!certificate) {
       return res.status(404).json({ success: false, message: "Certificate not found" });
-    }
-
-    // Check authorization
-    if (req.user!.role !== "admin" && certificate.organizationId !== req.user!.companyId) {
-      return res.status(403).json({ success: false, message: "Access denied" });
     }
 
     res.json({ success: true, data: certificate });
@@ -52,7 +51,11 @@ router.get("/:id", requireAuth, async (req: Request, res: Response) => {
 // GET /api/certificates/case/:caseId - Get certificates by case
 router.get("/case/:caseId", requireAuth, async (req: Request, res: Response) => {
   try {
-    const certificates = await storage.getCertificatesByCase(req.params.caseId);
+    const organizationId = req.user!.role === "admin" ? (req.query.organizationId as string || req.user!.companyId) : req.user!.companyId;
+    if (!organizationId) {
+      return res.status(400).json({ success: false, message: "Organization ID required" });
+    }
+    const certificates = await storage.getCertificatesByCase(req.params.caseId, organizationId);
     res.json({ success: true, data: certificates });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -62,7 +65,11 @@ router.get("/case/:caseId", requireAuth, async (req: Request, res: Response) => 
 // GET /api/certificates/worker/:workerId - Get certificates by worker
 router.get("/worker/:workerId", requireAuth, async (req: Request, res: Response) => {
   try {
-    const certificates = await storage.getCertificatesByWorker(req.params.workerId);
+    const organizationId = req.user!.role === "admin" ? (req.query.organizationId as string || req.user!.companyId) : req.user!.companyId;
+    if (!organizationId) {
+      return res.status(400).json({ success: false, message: "Organization ID required" });
+    }
+    const certificates = await storage.getCertificatesByWorker(req.params.workerId, organizationId);
     res.json({ success: true, data: certificates });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -90,17 +97,18 @@ router.get("/organization/:organizationId", requireAdminOrEmployer, async (req: 
 router.patch("/:id", requireAuth, async (req: Request, res: Response) => {
   try {
     const updates = insertMedicalCertificateSchema.partial().parse(req.body);
+    const organizationId = req.user!.role === "admin" ? (req.query.organizationId as string || req.user!.companyId) : req.user!.companyId;
+    if (!organizationId) {
+      return res.status(400).json({ success: false, message: "Organization ID required" });
+    }
 
-    // Check authorization
-    const existing = await storage.getCertificate(req.params.id);
+    // Check if certificate exists for this organization
+    const existing = await storage.getCertificate(req.params.id, organizationId);
     if (!existing) {
       return res.status(404).json({ success: false, message: "Certificate not found" });
     }
-    if (req.user!.role !== "admin" && existing.organizationId !== req.user!.companyId) {
-      return res.status(403).json({ success: false, message: "Access denied" });
-    }
 
-    const certificate = await storage.updateCertificate(req.params.id, updates);
+    const certificate = await storage.updateCertificate(req.params.id, organizationId, updates);
     res.json({ success: true, data: certificate });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
@@ -110,16 +118,18 @@ router.patch("/:id", requireAuth, async (req: Request, res: Response) => {
 // DELETE /api/certificates/:id - Delete certificate
 router.delete("/:id", requireAdminOrEmployer, async (req: Request, res: Response) => {
   try {
-    // Check authorization
-    const existing = await storage.getCertificate(req.params.id);
+    const organizationId = req.user!.role === "admin" ? (req.query.organizationId as string || req.user!.companyId) : req.user!.companyId;
+    if (!organizationId) {
+      return res.status(400).json({ success: false, message: "Organization ID required" });
+    }
+
+    // Check if certificate exists for this organization
+    const existing = await storage.getCertificate(req.params.id, organizationId);
     if (!existing) {
       return res.status(404).json({ success: false, message: "Certificate not found" });
     }
-    if (req.user!.role !== "admin" && existing.organizationId !== req.user!.companyId) {
-      return res.status(403).json({ success: false, message: "Access denied" });
-    }
 
-    await storage.deleteCertificate(req.params.id);
+    await storage.deleteCertificate(req.params.id, organizationId);
     res.json({ success: true, message: "Certificate deleted" });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -129,20 +139,19 @@ router.delete("/:id", requireAdminOrEmployer, async (req: Request, res: Response
 // POST /api/certificates/:id/extract - Extract data from certificate OCR
 router.post("/:id/extract", requireAuth, async (req: Request, res: Response) => {
   try {
-    const certificate = await storage.getCertificate(req.params.id);
+    const organizationId = req.user!.role === "admin" ? (req.query.organizationId as string || req.user!.companyId) : req.user!.companyId;
+    if (!organizationId) {
+      return res.status(400).json({ success: false, message: "Organization ID required" });
+    }
+    const certificate = await storage.getCertificate(req.params.id, organizationId);
 
     if (!certificate) {
       return res.status(404).json({ success: false, message: "Certificate not found" });
     }
 
-    // Check authorization
-    if (req.user!.role !== "admin" && certificate.organizationId !== req.user!.companyId) {
-      return res.status(403).json({ success: false, message: "Access denied" });
-    }
-
     const extractedData = await extractCertificateData(certificate);
 
-    const updated = await storage.updateCertificate(req.params.id, {
+    const updated = await storage.updateCertificate(req.params.id, organizationId, {
       rawExtractedData: extractedData as any,
       extractionConfidence: extractedData.confidence.overall.toString(),
       requiresReview: extractedData.confidence.overall < 0.8,
@@ -157,18 +166,17 @@ router.post("/:id/extract", requireAuth, async (req: Request, res: Response) => 
 // POST /api/certificates/:id/review - Mark certificate as reviewed
 router.post("/:id/review", requireAdminOrEmployerOrClinician, async (req: Request, res: Response) => {
   try {
-    const certificate = await storage.getCertificate(req.params.id);
+    const organizationId = req.user!.role === "admin" ? (req.query.organizationId as string || req.user!.companyId) : req.user!.companyId;
+    if (!organizationId) {
+      return res.status(400).json({ success: false, message: "Organization ID required" });
+    }
+    const certificate = await storage.getCertificate(req.params.id, organizationId);
 
     if (!certificate) {
       return res.status(404).json({ success: false, message: "Certificate not found" });
     }
 
-    // Check authorization
-    if (req.user!.role !== "admin" && certificate.organizationId !== req.user!.companyId) {
-      return res.status(403).json({ success: false, message: "Access denied" });
-    }
-
-    const updated = await storage.markCertificateAsReviewed(req.params.id, new Date());
+    const updated = await storage.markCertificateAsReviewed(req.params.id, organizationId, new Date());
     res.json({ success: true, data: updated });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });

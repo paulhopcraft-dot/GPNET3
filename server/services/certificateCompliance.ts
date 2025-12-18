@@ -158,9 +158,10 @@ export function computeCertificateCompliance(
  */
 export async function getCaseCompliance(
   storage: IStorage,
-  caseId: string
+  caseId: string,
+  organizationId: string
 ): Promise<CertificateCompliance> {
-  const dbCertificates = await storage.getCertificatesByCase(caseId);
+  const dbCertificates = await storage.getCertificatesByCase(caseId, organizationId);
   const certificates = dbCertificates.map(mapDbCertificate);
   return computeCertificateCompliance(certificates);
 }
@@ -234,9 +235,10 @@ export async function syncComplianceActions(
  */
 export async function processComplianceForCase(
   storage: IStorage,
-  caseId: string
+  caseId: string,
+  organizationId: string
 ): Promise<CertificateCompliance> {
-  const compliance = await getCaseCompliance(storage, caseId);
+  const compliance = await getCaseCompliance(storage, caseId, organizationId);
   await syncComplianceActions(storage, caseId, compliance);
   return compliance;
 }
