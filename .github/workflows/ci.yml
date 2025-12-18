@@ -55,8 +55,10 @@ jobs:
         run: npm run seed
 
       - name: Start server
+        env:
+          NODE_ENV: development
         run: |
-          npm run dev &
+          npx tsx server/index.ts &
           echo "Waiting for server to be ready..."
           for i in {1..30}; do
             if curl -s http://localhost:5000/api/auth/login > /dev/null 2>&1; then
@@ -66,10 +68,12 @@ jobs:
             echo "Attempt $i: Server not ready, waiting..."
             sleep 2
           done
-          # Final check
-          curl -v http://localhost:5000/api/auth/login 2>&1 || echo "Server may not be ready"
+          sleep 5  # Extra settle time
+          curl -s http://localhost:5000/api/auth/login || echo "Login endpoint check"
 
       - name: Run multi-tenant security tests
+        env:
+          NODE_ENV: development
         run: node security-tests.mjs
 
   # Non-blocking: Unit tests (pre-existing issues)
