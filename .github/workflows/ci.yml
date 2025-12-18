@@ -57,7 +57,17 @@ jobs:
       - name: Start server
         run: |
           npm run dev &
-          sleep 15
+          echo "Waiting for server to be ready..."
+          for i in {1..30}; do
+            if curl -s http://localhost:5000/api/auth/login > /dev/null 2>&1; then
+              echo "Server is ready after $i attempts"
+              break
+            fi
+            echo "Attempt $i: Server not ready, waiting..."
+            sleep 2
+          done
+          # Final check
+          curl -v http://localhost:5000/api/auth/login 2>&1 || echo "Server may not be ready"
 
       - name: Run multi-tenant security tests
         run: node security-tests.mjs
