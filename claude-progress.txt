@@ -1,8 +1,8 @@
 # GPNet3 Progress Snapshot
-**Date:** 2025-12-18
-**Session:** Security Phase 2 Complete - CI + Storage Guarantees
+**Date:** 2025-12-19
+**Session:** CI Pipeline Fixed & Passing
 **Branch:** wip-gpnet-claims
-**Latest Commit:** 9b26cb8 (feat: storage layer organizationId enforcement + CI pipeline)
+**Latest Commit:** 5087406 (fix(ci): add missing SESSION_SECRET env var)
 
 ## Completed Security Hardening - ALL PHASES COMPLETE
 
@@ -61,15 +61,16 @@ Test 12: Registration Without Invite - PASS
 
 ## Current State
 - All security hardening COMPLETE
-- CI pipeline ready (will run on push to GitHub)
-- All 12 multi-tenant security tests passing
+- CI pipeline PASSING (fixed SESSION_SECRET issue)
+- All 12 multi-tenant security tests passing in CI
 - Dashboard confirmed working
+- Ready for PR to main or next feature
 
 ## Next Steps (User Decision)
-Choose from backlog:
-1. Insurer Management UI
-2. XGBoost Risk Prediction
-3. Other features
+1. Merge to main (PR or direct merge)
+2. Insurer Management UI (quick win)
+3. Predictive Analytics / XGBoost Risk Scoring
+4. Clean up CI (remove debug steps)
 
 ## Test Commands
 ```bash
@@ -87,8 +88,9 @@ npm run dev               # Dev server on port 5000
 
 ## Git History (Recent)
 ```
+5087406 fix(ci): add missing SESSION_SECRET env var ← CI NOW PASSING
+a0633a5 fix(ci): set NODE_ENV=development at job level
+5423764 debug(ci): add verbose output for debugging
 9b26cb8 feat: storage layer organizationId enforcement + CI pipeline
 b82fe18 Complete security hardening: 13 fixes, multi-tenant verified
-05b47d1 chore: session handoff - update progress snapshot
-6ae1304 feat: admin portal, case chat, logo upload, company self-service
 ```
