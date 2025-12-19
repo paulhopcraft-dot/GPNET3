@@ -1,76 +1,39 @@
 # GPNet3 Progress Snapshot
 **Date:** 2025-12-19
-**Session:** CI Pipeline Fixed & Passing
+**Session:** Commands Synced, Ready for Features
 **Branch:** wip-gpnet-claims
-**Latest Commit:** 5087406 (fix(ci): add missing SESSION_SECRET env var)
+**Latest Commit:** 1d79265 (chore: sync slash commands from claude-code-toolkit)
 
-## Completed Security Hardening - ALL PHASES COMPLETE
+## Completed This Session
 
-### Phase 1: Route-Level Security (commit b82fe18)
-- requireActionOwnership() middleware for action endpoints
-- requireCaseOwnership() for email drafts
-- requireAdmin for notification admin endpoints
-- Dead code removal (server/routes/cases.ts deleted)
-- Multi-tenant seed data (org-alpha + org-beta)
+### 1. CI Pipeline Cleanup
+- Removed debug steps from `.github/workflows/ci.yml`
+- Commit: d4b9602
 
-### Phase 2: Storage Layer Enforcement (commit 9b26cb8)
+### 2. Merge Conflicts Resolved
+- Merged main into wip-gpnet-claims
+- Resolved 7 conflicts
+- Commit: 1e2dcce
 
-#### CI Pipeline Created
-**File:** `.github/workflows/ci.yml`
-- Runs on push to main/wip-gpnet-* and PRs to main
-- PostgreSQL service container
-- Steps: checkout, setup-node, npm ci, build, test, db:push, seed, security-tests.mjs
+### 3. Slash Commands Synced
+- Copied 22 commands from claude-code-toolkit
+- New commands: anticipate, reflect, think-parallel, tdd, expert, security-scan, context, reload
+- Commit: 1d79265
 
-#### Storage Layer organizationId Added (10 methods)
-**File:** `server/storage.ts`
-- getCertificate(id, organizationId)
-- getCertificatesByCase(caseId, organizationId)
-- updateCertificate(id, organizationId, data)
-- deleteCertificate(id, organizationId)
-- markCertificateAsReviewed(id, organizationId, reviewedAt)
-- updateAISummary(caseId, organizationId, ...)
-- needsSummaryRefresh(caseId, organizationId)
-- getActionById(id, organizationId)
-- getActionByIdAdmin(id) - admin cross-tenant access
-- getNotificationById(id, organizationId)
+### 4. Artifacts Cleaned
+- Removed: GPNET3/, cross-env, docker, npm, nul, gpnet3@1.0.0
 
-#### Updated Callers
-- server/routes/certificates.ts (8 endpoints)
-- server/routes/actions.ts (compliance endpoints)
-- server/routes.ts (summary endpoint)
-- server/services/certificateCompliance.ts
-- server/services/smartSummary.ts
-- server/services/notificationService.ts
-- server/services/summary.ts
+## Next Steps
+1. Start `claims_intake_flow` feature
+2. Merge PR to main after feature complete
 
-### Security Verification - ALL 12 TESTS PASS
-```
-Test 1: Case List Isolation - PASS
-Test 2: Direct Case Access - PASS
-Test 3: Case Summary Cross-Org - PASS
-Test 4: Timeline Cross-Org - PASS
-Test 5: Actions Queue Cross-Org - PASS
-Test 6: Email Drafts Cross-Org - PASS
-Test 7: Medical Certificates Cross-Org - PASS
-Test 8: Notifications Cross-Org - PASS
-Test 9: Dashboard Stats Isolation - PASS
-Test 10: Admin Cross-Tenant - PASS
-Test 11: Webhook Organization Binding - PASS
-Test 12: Registration Without Invite - PASS
-```
+## Feature Status
+- Completed: 1/17 (initialize_harness)
+- Next: claims_intake_flow, certificate_ingestion_engine, medical_flags_and_red_risk
 
-## Current State
-- All security hardening COMPLETE
-- CI pipeline PASSING (fixed SESSION_SECRET issue)
-- All 12 multi-tenant security tests passing in CI
-- Dashboard confirmed working
-- Ready for PR to main or next feature
-
-## Next Steps (User Decision)
-1. Merge to main (PR or direct merge)
-2. Insurer Management UI (quick win)
-3. Predictive Analytics / XGBoost Risk Scoring
-4. Clean up CI (remove debug steps)
+## Security Status
+- All 12 multi-tenant security tests PASSING
+- CI pipeline functional
 
 ## Test Commands
 ```bash
@@ -85,12 +48,3 @@ npm run dev               # Dev server on port 5000
 | Admin | admin@gpnet.local | ChangeMe123! | admin | all |
 | Employer | employer@symmetry.local | ChangeMe123! | employer | org-alpha |
 | Doctor | doctor@harborclinic.local | ChangeMe123! | clinician | org-beta |
-
-## Git History (Recent)
-```
-5087406 fix(ci): add missing SESSION_SECRET env var ← CI NOW PASSING
-a0633a5 fix(ci): set NODE_ENV=development at job level
-5423764 debug(ci): add verbose output for debugging
-9b26cb8 feat: storage layer organizationId enforcement + CI pipeline
-b82fe18 Complete security hardening: 13 fixes, multi-tenant verified
-```
