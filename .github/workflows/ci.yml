@@ -10,6 +10,7 @@ env:
   DATABASE_URL: postgresql://postgres:postgres@localhost:5432/gpnet3
   JWT_SECRET: ci-test-jwt-secret-not-for-production
   CSRF_SECRET: ci-test-csrf-secret-not-for-production
+  SESSION_SECRET: ci-test-session-secret-not-for-production
   NODE_ENV: test
 
 jobs:
