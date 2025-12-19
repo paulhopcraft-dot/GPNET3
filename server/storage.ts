@@ -327,6 +327,15 @@ export interface IStorage {
   getGPNet2CaseById(id: string, organizationId: string): Promise<WorkerCase | null>;
   getGPNet2CaseByIdAdmin(id: string): Promise<WorkerCase | null>; // Admin-only, no org filter
   syncWorkerCaseFromFreshdesk(caseData: Partial<WorkerCase>): Promise<void>;
+  createCase(caseData: {
+    organizationId: string;
+    workerName: string;
+    company: string;
+    dateOfInjury: string;
+    workStatus: string;
+    riskLevel: string;
+    summary?: string;
+  }): Promise<WorkerCase>;
   clearAllWorkerCases(): Promise<void>;
   updateAISummary(caseId: string, organizationId: string, summary: string, model: string, workStatusClassification?: string): Promise<void>;
   needsSummaryRefresh(caseId: string, organizationId: string): Promise<boolean>;
@@ -678,6 +687,62 @@ class DbStorage implements IStorage {
 
     caseData.clinicalEvidence = evaluateClinicalEvidence(caseData);
     return applyDiscussionInsights(caseData, discussionNotes, discussionInsights);
+  }
+
+  async createCase(caseData: {
+    organizationId: string;
+    workerName: string;
+    company: string;
+    dateOfInjury: string;
+    workStatus: string;
+    riskLevel: string;
+    summary?: string;
+  }): Promise<WorkerCase> {
+    const now = new Date();
+    const dueDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
+
+    const [inserted] = await db
+      .insert(workerCases)
+      .values({
+        organizationId: caseData.organizationId,
+        workerName: caseData.workerName,
+        company: caseData.company,
+        dateOfInjury: new Date(caseData.dateOfInjury),
+        workStatus: caseData.workStatus,
+        riskLevel: caseData.riskLevel,
+        hasCertificate: false,
+        complianceIndicator: "Medium",
+        currentStatus: "New claim - awaiting initial assessment",
+        nextStep: "Schedule initial contact with worker",
+        owner: "Unassigned",
+        dueDate: dueDate.toISOString().split("T")[0],
+        summary: caseData.summary || `New claim for ${caseData.workerName}`,
+        ticketIds: [],
+        ticketCount: "1",
+      })
+      .returning();
+
+    // Return the created case in WorkerCase format
+    const workerCase: WorkerCase = {
+      id: inserted.id,
+      organizationId: inserted.organizationId,
+      workerName: inserted.workerName,
+      company: inserted.company as any,
+      dateOfInjury: inserted.dateOfInjury.toISOString().split("T")[0],
+      riskLevel: inserted.riskLevel as any,
+      workStatus: inserted.workStatus as any,
+      hasCertificate: false,
+      complianceIndicator: inserted.complianceIndicator as any,
+      currentStatus: inserted.currentStatus,
+      nextStep: inserted.nextStep,
+      owner: inserted.owner,
+      dueDate: inserted.dueDate,
+      summary: inserted.summary,
+      ticketIds: [],
+      ticketCount: 1,
+    };
+
+    return workerCase;
   }
 
   async getCaseRecoveryTimeline(caseId: string, organizationId: string): Promise<MedicalCertificate[]> {

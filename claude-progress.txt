@@ -1,45 +1,45 @@
 # GPNet3 Progress Snapshot
 **Date:** 2025-12-19
-**Session:** Commands Synced, Ready for Features
+**Session:** Claims Intake Flow Implemented
 **Branch:** wip-gpnet-claims
-**Latest Commit:** 1d79265 (chore: sync slash commands from claude-code-toolkit)
+**Latest Commit:** (pending commit)
 
 ## Completed This Session
 
-### 1. CI Pipeline Cleanup
-- Removed debug steps from `.github/workflows/ci.yml`
-- Commit: d4b9602
-
-### 2. Merge Conflicts Resolved
-- Merged main into wip-gpnet-claims
-- Resolved 7 conflicts
-- Commit: 1e2dcce
-
-### 3. Slash Commands Synced
+### 1. Slash Commands Synced
 - Copied 22 commands from claude-code-toolkit
 - New commands: anticipate, reflect, think-parallel, tdd, expert, security-scan, context, reload
 - Commit: 1d79265
 
-### 4. Artifacts Cleaned
-- Removed: GPNET3/, cross-env, docker, npm, nul, gpnet3@1.0.0
-
-## Next Steps
-1. Start `claims_intake_flow` feature
-2. Merge PR to main after feature complete
+### 2. Claims Intake Flow (FEATURE COMPLETE)
+- Added `storage.createCase()` function in server/storage.ts
+- Added `POST /api/cases` endpoint in server/routes.ts with Zod validation
+- Connected NewClaimPage.tsx to real API (was simulated)
+- Added integration tests in server/routes/cases.test.ts
+- CSRF protection and audit logging included
 
 ## Feature Status
-- Completed: 1/17 (initialize_harness)
-- Next: claims_intake_flow, certificate_ingestion_engine, medical_flags_and_red_risk
+- Completed: 2/17 (initialize_harness, claims_intake_flow)
+- Next: certificate_ingestion_engine, medical_flags_and_red_risk
+
+## Files Changed This Session
+- server/storage.ts - Added createCase() method + IStorage interface
+- server/routes.ts - Added POST /api/cases endpoint
+- client/src/pages/NewClaimPage.tsx - Connected to real API
+- server/routes/cases.test.ts - New integration test file
+- factori/features.json - Updated claims_intake_flow to pass
 
 ## Security Status
 - All 12 multi-tenant security tests PASSING
-- CI pipeline functional
+- CSRF protection on all state-changing endpoints
+- Audit logging for case creation (CASE_CREATE event)
 
 ## Test Commands
 ```bash
 npm run seed              # Re-seed multi-tenant data
 node security-tests.mjs   # Run 12 security tests
 npm run dev               # Dev server on port 5000
+npm test -- server/routes/cases.test.ts  # Claims tests (needs DB)
 ```
 
 ## Login Credentials

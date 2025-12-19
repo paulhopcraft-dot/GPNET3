@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import { z } from "zod";
 import { storage } from "./storage";
 import { FreshdeskService } from "./services/freshdesk";
 import { summaryService } from "./services/summary";
@@ -129,6 +130,66 @@ export async function registerRoutes(app: Express): Promise<void> {
       res.json(cases);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch cases" });
+    }
+  });
+
+  // Create new case (claims intake)
+  const createCaseSchema = z.object({
+    workerName: z.string().min(1, "Worker name is required"),
+    company: z.string().min(1, "Company is required"),
+    dateOfInjury: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD format"),
+    workStatus: z.enum(["At work", "Off work"]),
+    riskLevel: z.enum(["Low", "Medium", "High"]),
+    summary: z.string().optional(),
+  });
+
+  app.post("/api/cases", authorize(), async (req: AuthRequest, res) => {
+    try {
+      const organizationId = req.user!.organizationId;
+
+      // Validate request body
+      const validationResult = createCaseSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({
+          error: "Validation failed",
+          details: validationResult.error.errors,
+        });
+      }
+
+      const caseData = validationResult.data;
+
+      // Create the case
+      const newCase = await storage.createCase({
+        organizationId,
+        workerName: caseData.workerName,
+        company: caseData.company,
+        dateOfInjury: caseData.dateOfInjury,
+        workStatus: caseData.workStatus,
+        riskLevel: caseData.riskLevel,
+        summary: caseData.summary,
+      });
+
+      // Log audit event
+      await logAuditEvent({
+        userId: req.user!.id,
+        organizationId,
+        eventType: AuditEventTypes.CASE_CREATE,
+        resourceType: "case",
+        resourceId: newCase.id,
+        metadata: {
+          workerName: caseData.workerName,
+          company: caseData.company,
+        },
+        ...getRequestMetadata(req),
+      });
+
+      res.status(201).json(newCase);
+    } catch (error) {
+      console.error("Error creating case:", error);
+      res.status(500).json({
+        error: "Failed to create case",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
     }
   });
 
