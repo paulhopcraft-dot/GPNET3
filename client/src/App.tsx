@@ -15,6 +15,15 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import CompanyList from "./pages/admin/CompanyList";
 import CompanyForm from "./pages/admin/CompanyForm";
 import CompanySettings from "./pages/CompanySettings";
+import CasesPage from "./pages/CasesPage";
+import CaseSummaryPage from "./pages/CaseSummaryPage";
+import NewClaimPage from "./pages/NewClaimPage";
+import RTWPlannerPage from "./pages/RTWPlannerPage";
+import CheckInsPage from "./pages/CheckInsPage";
+import FinancialsPage from "./pages/FinancialsPage";
+import PredictionsPage from "./pages/PredictionsPage";
+import RiskDashboardPage from "./pages/RiskDashboardPage";
+import AuditLogPage from "./pages/AuditLogPage";
 
 export default function App() {
   // Initialize CSRF token on app mount
@@ -43,6 +52,78 @@ export default function App() {
                   element={
                     <ProtectedRoute>
                       <CompanySettings />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/cases"
+                  element={
+                    <ProtectedRoute>
+                      <CasesPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/summary/:id"
+                  element={
+                    <ProtectedRoute>
+                      <CaseSummaryPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/claims/new"
+                  element={
+                    <ProtectedRoute>
+                      <NewClaimPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/rtw-planner"
+                  element={
+                    <ProtectedRoute>
+                      <RTWPlannerPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/checkins"
+                  element={
+                    <ProtectedRoute>
+                      <CheckInsPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/financials"
+                  element={
+                    <ProtectedRoute>
+                      <FinancialsPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/predictions"
+                  element={
+                    <ProtectedRoute>
+                      <PredictionsPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/risk"
+                  element={
+                    <ProtectedRoute>
+                      <RiskDashboardPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/audit"
+                  element={
+                    <ProtectedRoute>
+                      <AuditLogPage />
                     </ProtectedRoute>
                   }
                 />

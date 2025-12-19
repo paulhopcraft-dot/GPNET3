@@ -40,6 +40,11 @@ export default function GPNet2Dashboard() {
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/gpnet2/cases"] });
+      // Only show toast if Freshdesk is configured or if manually triggered
+      if (data.configured === false) {
+        // Silently skip notification for unconfigured Freshdesk on initial load
+        return;
+      }
       toast({
         title: "Sync Complete",
         description: `Successfully synced ${data.synced} cases from Freshdesk`,

@@ -134,6 +134,17 @@ export async function registerRoutes(app: Express): Promise<void> {
 
   // Freshdesk sync endpoint (admin only - syncs across all organizations)
   app.post("/api/freshdesk/sync", authorize(["admin"]), async (req: AuthRequest, res) => {
+    // Check if Freshdesk is configured before attempting sync
+    if (!process.env.FRESHDESK_DOMAIN || !process.env.FRESHDESK_API_KEY) {
+      // Return success with 0 synced - graceful degradation when Freshdesk isn't configured
+      return res.json({
+        success: true,
+        synced: 0,
+        message: "Freshdesk sync skipped - not configured",
+        configured: false
+      });
+    }
+
     try {
       const freshdesk = new FreshdeskService();
       const tickets = await freshdesk.fetchTickets();
@@ -146,7 +157,8 @@ export async function registerRoutes(app: Express): Promise<void> {
       res.json({
         success: true,
         synced: workerCases.length,
-        message: `Successfully synced ${workerCases.length} cases from Freshdesk`
+        message: `Successfully synced ${workerCases.length} cases from Freshdesk`,
+        configured: true
       });
     } catch (error) {
       console.error("Error syncing Freshdesk tickets:", error);
