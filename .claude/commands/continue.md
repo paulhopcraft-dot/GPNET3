@@ -1,17 +1,29 @@
 ---
-description: Pick next incomplete feature and implement it
+description: Continue working on next incomplete task
 ---
 
-# /project:continue
+## Orientation
+1. Run `pwd` to confirm directory
+2. Read `git log --oneline -5` for recent changes
+3. Read @claude-progress.txt for previous session notes
+4. Read @features.json for current status
 
-1. Read features.json, find next "passes": false feature
-2. Check dependencies are satisfied (skip if blocked)
-3. Implement the feature with tests
-4. Run tests, verify end-to-end
-5. Update features.json: set passes: true
-6. Update claude-progress.txt with what was done
-7. Commit with conventional message (feat:/fix:/etc)
+## Work Loop
+1. Find next feature with "passes": false (respect dependencies)
+2. Implement with tests
+3. Run tests - fix any failures
+4. Verify end-to-end (not just unit tests)
+5. Update features.json: set "passes": true, update "verified_at"
+6. Commit with conventional message (feat/fix/docs/refactor)
+7. Update claude-progress.txt
 
-If no features.json exists, say so and suggest /project:status first.
+## Verification Checklist
+Before marking any feature "passes": true:
+- [ ] Tests written and passing
+- [ ] Tested end-to-end manually or with automation
+- [ ] Edge cases checked
+- [ ] No regressions in other features
+
+Report what you completed, then continue to next task.
 
 $ARGUMENTS

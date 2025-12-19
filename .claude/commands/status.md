@@ -1,24 +1,31 @@
 ---
-description: Show project progress dashboard
+description: Show current project progress and status
 ---
 
-# /project:status
+Read @features.json and @claude-progress.txt, then report:
 
-Read features.json (or PROJECT_INDEX.json if no features.json) and report:
+## Progress Summary
+```
+Total Features: X
+Completed: Y (Z%)
+In Progress: A
+Remaining: B
+```
 
-Progress: X/Y features complete (Z%)
+## Current Status
+- Last completed: [feature name]
+- Currently working on: [feature name or "none"]
+- Blockers: [list any blockers]
 
-COMPLETED:
-- F001: [name]
-- F002: [name]
+## Next Up
+1. [Next feature by priority/dependency]
+2. [Following feature]
+3. [Following feature]
 
-IN PROGRESS:
-- F00X: [name] - [status/blocker]
+## Recent Activity
+[Last 5 entries from claude-progress.txt]
 
-REMAINING:
-- F00X: [name] (depends on: F00X)
-
-NEXT UP: F00X - [name]
-
-BLOCKERS:
-- [list any blockers]
+## Health Check
+- [ ] Tests passing
+- [ ] No uncommitted changes (or list them)
+- [ ] No merge conflicts

@@ -2,11 +2,39 @@
 description: Context reset with state preservation
 ---
 
-Before clearing:
-1. Write state to claude-progress.txt (done, in progress, next step)
-2. Update features.json
-3. Run /project:index if structure changed
+Perform a context reset while preserving all project state.
 
-After /clear read: CLAUDE.md, PROJECT_INDEX.json, features.json, claude-progress.txt
+## Pre-Reset Checklist
+1. Read current @features.json
+2. Read current @claude-progress.txt  
+3. Review uncommitted changes (git status)
+4. Note current task/position
 
-Then state current task and next action.
+## State Preservation
+Update @claude-progress.txt with:
+- Current date/time
+- Task in progress (if any)
+- Recent accomplishments (last 3-5 items)
+- Next planned task
+- Any blockers or notes
+
+Format:
+```
+[YYYY-MM-DD HH:MM] - Context reset
+- Completed: [list recent work]
+- In progress: [current task]
+- Next: [planned task]
+- Notes: [any important context]
+```
+
+## Instructions for User
+After state is saved, instruct user:
+
+"✅ State preserved to claude-progress.txt. 
+
+**Next steps:**
+1. Run `/clear` to reset context
+2. After clear, I'll automatically reload project context
+3. Continue from: [current task]"
+
+Then wait for user to run /clear.

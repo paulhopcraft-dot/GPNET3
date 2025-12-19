@@ -1,22 +1,50 @@
 ---
-description: Code review with categorized findings
+description: Code review current work and suggest improvements
 ---
 
-# /project:review
+Review the code changes since last commit (or specified files).
 
-Review specified files or recent changes.
+## Review Checklist
 
-Check for:
-- Security vulnerabilities
-- Performance issues
-- Code quality problems
-- Missing error handling
-- Test coverage gaps
+### Correctness
+- [ ] Logic is correct
+- [ ] Edge cases handled
+- [ ] Error handling appropriate
+- [ ] No obvious bugs
 
-Categorize findings:
+### Security
+- [ ] No hardcoded secrets
+- [ ] Input validation present
+- [ ] SQL injection prevented
+- [ ] Auth/authz correct
 
-CRITICAL - Fix immediately
-MEDIUM - Fix soon (30-60 min)
-QUICK WINS - Easy fixes (<5 min)
+### Quality
+- [ ] Code is readable
+- [ ] Functions are focused (single responsibility)
+- [ ] No unnecessary complexity
+- [ ] Tests cover the changes
 
-Output actionable recommendations for each finding.
+### Performance
+- [ ] No obvious N+1 queries
+- [ ] No blocking calls in async code
+- [ ] Appropriate caching considered
+
+## Output Format
+
+```
+Code Review: [files reviewed]
+================================
+
+✅ Good:
+- [What's done well]
+
+⚠️ Suggestions:
+- [Improvements to consider]
+
+❌ Issues (must fix):
+- [Problems that need addressing]
+
+Overall: [APPROVE / NEEDS CHANGES]
+```
+
+$ARGUMENTS

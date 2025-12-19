@@ -1,53 +1,49 @@
-# Branch Management
+---
+description: Manage feature branches
+---
 
-Create and manage feature branches for GPNet3:
+## Branch Operations
 
-## Create New Branch
-
-For new features:
+### Create Branch
 ```bash
-git checkout main
-git pull origin main
-git checkout -b wip-gpnet-<feature-name>
+git checkout -b feature/[feature-id]-[short-name]
 ```
 
-Branch naming convention: `wip-gpnet-<feature>`
-
-Examples:
-- `wip-gpnet-email-templates`
-- `wip-gpnet-rtw-wizard`
-- `wip-gpnet-bulk-actions`
+### Branch Naming Convention
+- `feature/F001-user-auth` - New features
+- `fix/F001-login-bug` - Bug fixes
+- `refactor/F001-cleanup` - Refactoring
+- `docs/F001-api-docs` - Documentation
 
 ## When to Branch
 
 Create a new branch when:
-- Task affects >5 files
-- Adding new API endpoints
-- Schema changes required
-- High-priority work that needs isolation
-- Task estimated >2 hours
+- Starting a feature that touches >5 files
+- Work might take >2 hours
+- Changes are risky/experimental
+- Multiple features in parallel
 
-## Merge Back
+Stay on main when:
+- Quick fix (<30 min)
+- Single file change
+- Documentation only
 
-After feature complete:
-1. Run full test suite: `npm test && npm run test:e2e`
-2. Ensure build passes: `npm run build`
-3. Push branch: `git push -u origin wip-gpnet-<feature>`
-4. Create PR to main
-5. Wait for review/CI
+## Merge Workflow
 
-## Cleanup
-
-After merge:
-```bash
-git checkout main
-git pull origin main
-git branch -d wip-gpnet-<feature>
-```
+1. Ensure all tests pass
+2. Update features.json
+3. Commit with conventional message
+4. Merge to main:
+   ```bash
+   git checkout main
+   git merge feature/[branch-name]
+   git branch -d feature/[branch-name]
+   ```
 
 ## Current Branches
 
-List all branches:
 ```bash
 git branch -a
 ```
+
+$ARGUMENTS
