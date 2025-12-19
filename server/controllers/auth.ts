@@ -5,17 +5,24 @@ import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import type { AuthRequest } from "../middleware/auth";
+import { validateInvite, useInvite } from "../inviteService";
 
 const SALT_ROUNDS = 10;
 const JWT_EXPIRES_IN = "15m"; // 15 minutes as per requirements
 
-function generateAccessToken(userId: string, email: string, role: string): string {
+function generateAccessToken(userId: string, email: string, role: string, organizationId: string): string {
   if (!process.env.JWT_SECRET) {
     throw new Error("JWT_SECRET not configured");
   }
 
   return jwt.sign(
-    { id: userId, email, role },
+    {
+      id: userId,
+      email,
+      role,
+      organizationId,
+      companyId: organizationId, // Backwards compatibility - keep companyId field
+    },
     process.env.JWT_SECRET,
     { expiresIn: JWT_EXPIRES_IN }
   );
@@ -23,30 +30,41 @@ function generateAccessToken(userId: string, email: string, role: string): strin
 
 export async function register(req: Request, res: Response) {
   try {
-    const { email, password, role, subrole, companyId, insurerId } = req.body;
+    const { email, password, inviteToken } = req.body;
 
     // Validate required fields
-    if (!email || !password || !role) {
+    if (!email || !password || !inviteToken) {
       return res.status(400).json({
         error: "Bad Request",
-        message: "Email, password, and role are required",
+        message: "Email, password, and invite token are required",
       });
     }
 
-    // Validate role
-    const validRoles = ["admin", "employer", "clinician", "insurer"];
-    if (!validRoles.includes(role)) {
-      return res.status(400).json({
-        error: "Bad Request",
-        message: `Role must be one of: ${validRoles.join(", ")}`,
+    // Validate invite token
+    const inviteValidation = await validateInvite(inviteToken);
+
+    if (!inviteValidation.valid || !inviteValidation.invite) {
+      return res.status(403).json({
+        error: "Forbidden",
+        message: inviteValidation.error || "Invalid invite token",
       });
     }
 
-    // Check if user already exists
+    const invite = inviteValidation.invite;
+
+    // Verify email matches invite
+    if (email.toLowerCase().trim() !== invite.email.toLowerCase().trim()) {
+      return res.status(403).json({
+        error: "Forbidden",
+        message: "Email does not match the invited email address",
+      });
+    }
+
+    // Check if user already exists with this email
     const existingUser = await db
       .select()
       .from(users)
-      .where(eq(users.email, email))
+      .where(eq(users.email, email.toLowerCase().trim()))
       .limit(1);
 
     if (existingUser.length > 0) {
@@ -59,22 +77,25 @@ export async function register(req: Request, res: Response) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
-    // Create user
+    // Create user with organizationId and role FROM THE INVITE
+    // User cannot choose these - they come from the invite only
     const newUser = await db
       .insert(users)
       .values({
-        email,
+        email: invite.email,
         password: hashedPassword,
-        role,
-        subrole: subrole || null,
-        companyId: companyId || null,
-        insurerId: insurerId || null,
+        role: invite.role, // ✅ From invite, not user input
+        subrole: invite.subrole || null, // ✅ From invite, not user input
+        organizationId: invite.organizationId, // ✅ From invite - tenant isolation
+        companyId: invite.organizationId, // Keep for backwards compat (deprecated)
+        insurerId: null,
       })
       .returning({
         id: users.id,
         email: users.email,
         role: users.role,
         subrole: users.subrole,
+        organizationId: users.organizationId,
         companyId: users.companyId,
         insurerId: users.insurerId,
         createdAt: users.createdAt,
@@ -82,15 +103,11 @@ export async function register(req: Request, res: Response) {
 
     const user = newUser[0];
 
-    if (user.isActive === false) {
-      return res.status(403).json({
-        error: "Forbidden",
-        message: "This account has been deactivated. Please contact support.",
-      });
-    }
+    // Mark invite as used
+    await useInvite(inviteToken);
 
-    // Generate access token
-    const accessToken = generateAccessToken(user.id, user.email, user.role);
+    // Generate access token with organizationId
+    const accessToken = generateAccessToken(user.id, user.email, user.role, user.organizationId);
 
     res.status(201).json({
       success: true,
@@ -101,8 +118,7 @@ export async function register(req: Request, res: Response) {
           email: user.email,
           role: user.role,
           subrole: user.subrole,
-          companyId: user.companyId,
-          insurerId: user.insurerId,
+          organizationId: invite.organizationId,
           createdAt: user.createdAt,
         },
         accessToken,
@@ -155,8 +171,8 @@ export async function login(req: Request, res: Response) {
       });
     }
 
-    // Generate access token
-    const accessToken = generateAccessToken(user.id, user.email, user.role);
+    // Generate access token with organizationId
+    const accessToken = generateAccessToken(user.id, user.email, user.role, user.organizationId);
 
     res.json({
       success: true,
@@ -167,7 +183,8 @@ export async function login(req: Request, res: Response) {
           email: user.email,
           role: user.role,
           subrole: user.subrole,
-          companyId: user.companyId,
+          organizationId: user.organizationId,
+          companyId: user.companyId, // Deprecated - backwards compat
           insurerId: user.insurerId,
         },
         accessToken,

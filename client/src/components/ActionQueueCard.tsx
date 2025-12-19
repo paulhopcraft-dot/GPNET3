@@ -1,0 +1,224 @@
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
+import type { CaseAction, CaseActionType } from "@shared/schema";
+
+interface ActionQueueCardProps {
+  onCaseClick?: (caseId: string) => void;
+  limit?: number;
+}
+
+export function ActionQueueCard({ onCaseClick, limit = 5 }: ActionQueueCardProps) {
+  const [actions, setActions] = useState<CaseAction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchActions = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await fetch(`/api/actions/pending?limit=${limit}`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch actions");
+        }
+        const data = await response.json();
+        if (cancelled) return;
+        setActions(data.data || []);
+      } catch (err) {
+        if (cancelled) return;
+        setError(err instanceof Error ? err.message : "Actions unavailable");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    fetchActions();
+    return () => {
+      cancelled = true;
+    };
+  }, [limit]);
+
+  const actionTypeLabel = (type: CaseActionType): string => {
+    switch (type) {
+      case "chase_certificate":
+        return "Chase certificate";
+      case "review_case":
+        return "Review case";
+      case "follow_up":
+        return "Follow up";
+      default:
+        return type;
+    }
+  };
+
+  const actionTypeIcon = (type: CaseActionType): string => {
+    switch (type) {
+      case "chase_certificate":
+        return "clinical_notes";
+      case "review_case":
+        return "fact_check";
+      case "follow_up":
+        return "phone_callback";
+      default:
+        return "task";
+    }
+  };
+
+  const getDueDateInfo = (dueDate?: string): { text: string; isOverdue: boolean; urgency: "high" | "medium" | "low" } => {
+    if (!dueDate) return { text: "No due date", isOverdue: false, urgency: "low" };
+
+    const due = new Date(dueDate);
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    due.setHours(0, 0, 0, 0);
+
+    const diffDays = Math.floor((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) {
+      const overdueDays = Math.abs(diffDays);
+      return {
+        text: `Overdue by ${overdueDays} day${overdueDays === 1 ? "" : "s"}`,
+        isOverdue: true,
+        urgency: "high",
+      };
+    } else if (diffDays === 0) {
+      return { text: "Due today", isOverdue: false, urgency: "high" };
+    } else if (diffDays === 1) {
+      return { text: "Due tomorrow", isOverdue: false, urgency: "medium" };
+    } else if (diffDays <= 3) {
+      return { text: `Due in ${diffDays} days`, isOverdue: false, urgency: "medium" };
+    } else {
+      return { text: `Due in ${diffDays} days`, isOverdue: false, urgency: "low" };
+    }
+  };
+
+  const urgencyBadgeClass = (urgency: "high" | "medium" | "low", isOverdue: boolean) => {
+    if (isOverdue) {
+      return "bg-red-100 text-red-800 border-red-200";
+    }
+    switch (urgency) {
+      case "high":
+        return "bg-amber-100 text-amber-800 border-amber-200";
+      case "medium":
+        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      default:
+        return "bg-slate-100 text-slate-800 border-slate-200";
+    }
+  };
+
+  const handleActionClick = (action: CaseAction) => {
+    if (onCaseClick) {
+      onCaseClick(action.caseId);
+    }
+  };
+
+  return (
+    <Card data-testid="card-action-queue">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <span className="material-symbols-outlined text-primary">pending_actions</span>
+            Action Queue
+          </CardTitle>
+          {actions.length > 0 && (
+            <Badge variant="secondary" className="text-xs">
+              {actions.length} pending
+            </Badge>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        {loading && (
+          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+            <span className="material-symbols-outlined animate-spin text-primary">progress_activity</span>
+            <span>Loading actions...</span>
+          </div>
+        )}
+
+        {error && (
+          <div className="text-sm text-muted-foreground flex items-center gap-2">
+            <span className="material-symbols-outlined text-warning text-base">error</span>
+            {error}
+          </div>
+        )}
+
+        {!loading && !error && actions.length === 0 && (
+          <div className="text-center py-4">
+            <span className="material-symbols-outlined text-3xl text-emerald-500/60 mb-2">
+              check_circle
+            </span>
+            <p className="text-sm text-muted-foreground">
+              No pending actions. All caught up!
+            </p>
+          </div>
+        )}
+
+        {!loading && !error && actions.length > 0 && (
+          <div className="space-y-2">
+            {actions.map((action) => {
+              const dueInfo = getDueDateInfo(action.dueDate);
+              return (
+                <button
+                  key={action.id}
+                  onClick={() => handleActionClick(action)}
+                  className={`w-full text-left rounded-md border p-3 transition-colors hover:bg-accent/50 ${
+                    dueInfo.isOverdue
+                      ? "border-red-200 bg-red-50/30"
+                      : dueInfo.urgency === "high"
+                      ? "border-amber-200 bg-amber-50/30"
+                      : "border-border"
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ${
+                      dueInfo.isOverdue
+                        ? "bg-red-100 text-red-600"
+                        : dueInfo.urgency === "high"
+                        ? "bg-amber-100 text-amber-600"
+                        : "bg-slate-100 text-slate-600"
+                    }`}>
+                      <span className="material-symbols-outlined text-sm">
+                        {actionTypeIcon(action.type)}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium text-sm text-card-foreground">
+                          {actionTypeLabel(action.type)}
+                        </span>
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] ${urgencyBadgeClass(dueInfo.urgency, dueInfo.isOverdue)}`}
+                        >
+                          {dueInfo.text}
+                        </Badge>
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1 truncate">
+                        Case: {action.workerName || "Unknown"}
+                        {action.company && (
+                          <span className="text-muted-foreground/70"> ({action.company})</span>
+                        )}
+                      </div>
+                      {action.notes && (
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                          {action.notes}
+                        </p>
+                      )}
+                    </div>
+                    <span className="material-symbols-outlined text-muted-foreground text-sm flex-shrink-0">
+                      chevron_right
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}

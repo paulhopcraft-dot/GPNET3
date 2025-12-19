@@ -19,7 +19,7 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
-  const { login, isLoading, error, isAuthenticated, clearError } = useAuth();
+  const { login, isLoading, error, isAuthenticated, user, clearError } = useAuth();
   const navigate = useNavigate();
 
   const form = useForm<LoginFormData>({
@@ -30,12 +30,16 @@ export default function LoginPage() {
     },
   });
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated - route based on role
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate("/");
+    if (isAuthenticated && user) {
+      if (user.role === "admin") {
+        navigate("/admin");
+      } else {
+        navigate("/");
+      }
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, user, navigate]);
 
   // Clear error when user starts typing
   useEffect(() => {

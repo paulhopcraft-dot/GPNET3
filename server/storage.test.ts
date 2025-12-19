@@ -21,22 +21,36 @@ describe("getCaseTimeline", () => {
     // Create test worker case
     await db.insert(workerCases).values({
       id: TEST_CASE_ID,
+      organizationId: "TEST-ORG",
       workerName: "Test Worker",
       company: "Test Company",
       dateOfInjury: new Date("2025-01-01"),
-      injuryType: "Test Injury",
+      riskLevel: "Medium",
+      workStatus: "Off work",
+      complianceIndicator: "Medium",
       currentStatus: "active",
+      nextStep: "Test next step",
+      owner: "Test Owner",
+      dueDate: "2025-01-15",
+      summary: "Test injury summary",
       createdAt: new Date("2025-01-01T10:00:00Z"),
     });
 
     // Create empty worker case
     await db.insert(workerCases).values({
       id: EMPTY_CASE_ID,
+      organizationId: "TEST-ORG",
       workerName: "Empty Worker",
       company: "Empty Company",
       dateOfInjury: new Date("2025-01-01"),
-      injuryType: "Empty Injury",
+      riskLevel: "Low",
+      workStatus: "At work",
+      complianceIndicator: "High",
       currentStatus: "active",
+      nextStep: "No action required",
+      owner: "Test Owner",
+      dueDate: "2025-01-20",
+      summary: "Empty case for testing",
       createdAt: new Date("2025-01-01T10:00:00Z"),
     });
 
@@ -55,7 +69,10 @@ describe("getCaseTimeline", () => {
     // Create test discussion note with critical risk flags
     await db.insert(caseDiscussionNotes).values({
       id: "NOTE-001",
+      organizationId: "TEST-ORG",
       caseId: TEST_CASE_ID,
+      workerName: "Test Worker",
+      rawText: "Worker missed scheduled appointment. Critical compliance issue noted.",
       summary: "Worker missed appointment - critical compliance issue",
       timestamp: new Date("2025-01-10T14:00:00Z"),
       riskFlags: ["critical", "non-compliance", "escalation"],
@@ -67,6 +84,7 @@ describe("getCaseTimeline", () => {
     // Create test attachment
     await db.insert(caseAttachments).values({
       id: "ATT-001",
+      organizationId: "TEST-ORG",
       caseId: TEST_CASE_ID,
       name: "medical-report.pdf",
       type: "application/pdf",
@@ -86,7 +104,7 @@ describe("getCaseTimeline", () => {
   });
 
   it("returns timeline events for a valid case", async () => {
-    const events = await storage.getCaseTimeline(TEST_CASE_ID);
+    const events = await storage.getCaseTimeline(TEST_CASE_ID, "TEST-ORG");
 
     expect(events).toBeDefined();
     expect(Array.isArray(events)).toBe(true);
@@ -106,7 +124,7 @@ describe("getCaseTimeline", () => {
   });
 
   it("returns empty array for case with no events", async () => {
-    const events = await storage.getCaseTimeline(EMPTY_CASE_ID);
+    const events = await storage.getCaseTimeline(EMPTY_CASE_ID, "TEST-ORG");
 
     expect(events).toBeDefined();
     expect(Array.isArray(events)).toBe(true);
@@ -116,7 +134,7 @@ describe("getCaseTimeline", () => {
   });
 
   it("sorts events by timestamp descending (newest first)", async () => {
-    const events = await storage.getCaseTimeline(TEST_CASE_ID);
+    const events = await storage.getCaseTimeline(TEST_CASE_ID, "TEST-ORG");
 
     expect(events.length).toBeGreaterThan(1);
 
@@ -130,7 +148,7 @@ describe("getCaseTimeline", () => {
 
   it("respects the limit parameter", async () => {
     const limit = 2;
-    const events = await storage.getCaseTimeline(TEST_CASE_ID, limit);
+    const events = await storage.getCaseTimeline(TEST_CASE_ID, "TEST-ORG", limit);
 
     expect(events).toBeDefined();
     expect(Array.isArray(events)).toBe(true);
@@ -138,7 +156,7 @@ describe("getCaseTimeline", () => {
   });
 
   it("applies correct severity levels to events", async () => {
-    const events = await storage.getCaseTimeline(TEST_CASE_ID);
+    const events = await storage.getCaseTimeline(TEST_CASE_ID, "TEST-ORG");
 
     // Find the certificate event (unfit capacity should be "warning")
     const certEvent = events.find((e) => e.eventType === "certificate_added");
@@ -157,7 +175,7 @@ describe("getCaseTimeline", () => {
   });
 
   it("preserves event metadata", async () => {
-    const events = await storage.getCaseTimeline(TEST_CASE_ID);
+    const events = await storage.getCaseTimeline(TEST_CASE_ID, "TEST-ORG");
 
     // Check certificate metadata
     const certEvent = events.find((e) => e.eventType === "certificate_added");
@@ -184,7 +202,7 @@ describe("getCaseTimeline", () => {
   });
 
   it("includes all expected event types", async () => {
-    const events = await storage.getCaseTimeline(TEST_CASE_ID);
+    const events = await storage.getCaseTimeline(TEST_CASE_ID, "TEST-ORG");
 
     const eventTypes = events.map((e) => e.eventType);
 
@@ -196,7 +214,7 @@ describe("getCaseTimeline", () => {
   });
 
   it("assigns correct icons to event types", async () => {
-    const events = await storage.getCaseTimeline(TEST_CASE_ID);
+    const events = await storage.getCaseTimeline(TEST_CASE_ID, "TEST-ORG");
 
     const certEvent = events.find((e) => e.eventType === "certificate_added");
     expect(certEvent!.icon).toBe("medical_information");

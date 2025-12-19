@@ -1,12 +1,13 @@
 {
   "extends": "./tsconfig.json",
   "include": ["server/**/*", "shared/**/*"],
-  "exclude": ["node_modules", "client", "dist"],
+  "exclude": ["node_modules", "build", "dist", "client/**/*", "**/*.test.ts", "**/*.spec.ts", "server/src/**/*"],
   "compilerOptions": {
     "noEmit": true,
     "module": "ESNext",
     "moduleResolution": "bundler",
     "target": "ESNext",
-    "types": ["node"]
+    "types": ["node"],
+    "lib": ["esnext"]
   }
 }

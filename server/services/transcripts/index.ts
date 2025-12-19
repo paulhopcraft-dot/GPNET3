@@ -219,6 +219,7 @@ export class TranscriptIngestionModule {
       const noteId = this.createNoteId(filePath, note);
       const row: InsertCaseDiscussionNote = {
         id: noteId,
+        organizationId: resolution.organizationId,
         caseId: resolution.caseId,
         workerName: resolution.workerName,
         timestamp: note.timestamp,
@@ -257,7 +258,7 @@ export class TranscriptIngestionModule {
     }
 
     if (this.taskAgent && notificationEvents.size > 0) {
-      for (const [, event] of notificationEvents) {
+      for (const event of Array.from(notificationEvents.values())) {
         await this.taskAgent.notifyNewDiscussionNotes(event);
       }
     }

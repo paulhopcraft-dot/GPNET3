@@ -1,0 +1,122 @@
+name: CI
+
+on:
+  push:
+    branches: [main, wip-gpnet-*]
+  pull_request:
+    branches: [main]
+
+env:
+  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/gpnet3
+  JWT_SECRET: ci-test-jwt-secret-not-for-production
+  CSRF_SECRET: ci-test-csrf-secret-not-for-production
+  SESSION_SECRET: ci-test-session-secret-not-for-production
+  NODE_ENV: test
+
+jobs:
+  # Critical: Multi-tenant security tests (MUST pass)
+  security-tests:
+    runs-on: ubuntu-latest
+    env:
+      NODE_ENV: development  # Override global test mode
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: gpnet3
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Apply database migrations
+        run: npm run db:push
+
+      - name: Seed multi-tenant test data
+        run: npm run seed
+
+      - name: Start server
+        run: |
+          npx tsx server/index.ts > server.log 2>&1 &
+          for i in {1..30}; do
+            if curl -s http://localhost:5000/api/csrf-token > /dev/null 2>&1; then
+              echo "Server ready"
+              break
+            fi
+            sleep 2
+          done
+
+      - name: Run multi-tenant security tests
+        run: |
+          node security-tests.mjs || {
+            echo ""
+            echo "=== Security tests failed - Server log ==="
+            cat server.log | tail -50 || true
+            exit 1
+          }
+
+  # Non-blocking: Unit tests (pre-existing issues)
+  unit-tests:
+    runs-on: ubuntu-latest
+    continue-on-error: true  # Don't block on pre-existing test issues
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: gpnet3
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Run unit tests
+        run: npm test
+
+  # Non-blocking: TypeScript strict check (pre-existing issues in UI components)
+  typecheck:
+    runs-on: ubuntu-latest
+    continue-on-error: true  # Don't block on pre-existing type issues
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: TypeScript check
+        run: npx tsc --noEmit

@@ -65,14 +65,15 @@ export class SummaryService {
     model?: string;
     workStatusClassification?: string;
   }> {
-    const workerCase = await storage.getGPNet2CaseById(caseId);
+    // Use admin method as summary service operates across organizations
+    const workerCase = await storage.getGPNet2CaseByIdAdmin(caseId);
     
     if (!workerCase) {
       throw new Error(`Case ${caseId} not found`);
     }
 
     // Check if we need to refresh the summary
-    const needsRefresh = await storage.needsSummaryRefresh(caseId);
+    const needsRefresh = await storage.needsSummaryRefresh(caseId, workerCase.organizationId);
 
     // If summary exists and doesn't need refresh, return cached version
     if (!needsRefresh && workerCase.aiSummary) {
@@ -87,9 +88,9 @@ export class SummaryService {
 
     // Generate new summary
     const result = await this.generateCaseSummary(workerCase);
-    
+
     // Store in database
-    await storage.updateAISummary(caseId, result.summary, this.model, result.workStatusClassification);
+    await storage.updateAISummary(caseId, workerCase.organizationId, result.summary, this.model, result.workStatusClassification);
 
     return {
       summary: result.summary,
