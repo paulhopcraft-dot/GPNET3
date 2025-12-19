@@ -55,45 +55,18 @@ jobs:
         run: npm run db:push
 
       - name: Seed multi-tenant test data
-        run: |
-          npm run seed || { echo "SEED FAILED"; exit 1; }
-
-      - name: Verify seed data
-        run: |
-          echo "=== Users table ==="
-          PGPASSWORD=postgres psql -h localhost -U postgres -d gpnet3 -c "SELECT email, role, organization_id FROM users;"
-          echo ""
-          echo "=== Worker cases table ==="
-          PGPASSWORD=postgres psql -h localhost -U postgres -d gpnet3 -c "SELECT worker_name, organization_id FROM worker_cases;"
-          echo ""
-          echo "=== Row counts ==="
-          PGPASSWORD=postgres psql -h localhost -U postgres -d gpnet3 -c "SELECT 'users' as tbl, COUNT(*) FROM users UNION ALL SELECT 'worker_cases', COUNT(*) FROM worker_cases;"
+        run: npm run seed
 
       - name: Start server
         run: |
-          echo "Starting server..."
           npx tsx server/index.ts > server.log 2>&1 &
-          SERVER_PID=$!
-          echo "Server PID: $SERVER_PID"
-
-          echo "Waiting for server..."
           for i in {1..30}; do
-            if curl -s http://localhost:5000/api/auth/login > /dev/null 2>&1; then
-              echo "Server ready after $i attempts"
+            if curl -s http://localhost:5000/api/csrf-token > /dev/null 2>&1; then
+              echo "Server ready"
               break
             fi
             sleep 2
           done
-
-          sleep 5
-          echo "=== Server log ==="
-          cat server.log | tail -30 || true
-
-          echo ""
-          echo "=== Test login ==="
-          curl -v -X POST http://localhost:5000/api/auth/login \
-            -H "Content-Type: application/json" \
-            -d '{"email":"admin@gpnet.local","password":"ChangeMe123!"}' 2>&1 | head -50
 
       - name: Run multi-tenant security tests
         run: |
