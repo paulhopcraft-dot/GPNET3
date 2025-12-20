@@ -367,6 +367,7 @@ export interface IStorage {
   deleteCertificate(id: string, organizationId: string): Promise<void>;
   getCurrentCertificates(workerId: string, organizationId: string): Promise<MedicalCertificateDB[]>;
   getExpiringCertificates(organizationId: string, daysAhead: number): Promise<MedicalCertificateDB[]>;
+  getCertificatesRequiringReview(organizationId: string): Promise<MedicalCertificateDB[]>;
   markCertificateAsReviewed(id: string, organizationId: string, reviewDate: Date): Promise<MedicalCertificateDB>;
 
   // Certificate Engine v1 - Alert management
@@ -1466,6 +1467,16 @@ class DbStorage implements IStorage {
         gte(medicalCertificates.endDate, new Date())
       ))
       .orderBy(medicalCertificates.endDate);
+  }
+
+  async getCertificatesRequiringReview(organizationId: string): Promise<MedicalCertificateDB[]> {
+    return await db.select()
+      .from(medicalCertificates)
+      .where(and(
+        eq(medicalCertificates.organizationId, organizationId),
+        eq(medicalCertificates.requiresReview, true)
+      ))
+      .orderBy(desc(medicalCertificates.createdAt));
   }
 
   async markCertificateAsReviewed(id: string, organizationId: string, reviewDate: Date): Promise<MedicalCertificateDB> {

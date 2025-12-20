@@ -201,6 +201,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       return res.json({
         success: true,
         synced: 0,
+        certificates: 0,
         message: "Freshdesk sync skipped - not configured",
         configured: false
       });
@@ -211,14 +212,49 @@ export async function registerRoutes(app: Express): Promise<void> {
       const tickets = await freshdesk.fetchTickets();
       const workerCases = await freshdesk.transformTicketsToWorkerCases(tickets);
 
+      // Sync worker cases
       for (const workerCase of workerCases) {
         await storage.syncWorkerCaseFromFreshdesk(workerCase);
+      }
+
+      // Process certificate attachments (async, don't block response)
+      // Certificate processing happens in background
+      let certificatesProcessed = 0;
+      const processCertificates = req.query.processCertificates !== "false";
+
+      if (processCertificates && process.env.ANTHROPIC_API_KEY) {
+        // Import dynamically to avoid circular deps
+        const { processCertificatesFromTickets } = await import("./services/certificatePipeline");
+        const { isCertificateAttachment } = await import("./services/pdfProcessor");
+
+        // Build list of tickets with attachments
+        const ticketsWithAttachments = tickets
+          .filter((t: any) => t.attachments && t.attachments.length > 0)
+          .filter((t: any) => t.attachments.some(isCertificateAttachment))
+          .map((t: any) => {
+            // Find matching case
+            const matchingCase = workerCases.find((c: any) => c.ticketIds?.includes(`FD-${t.id}`));
+            return {
+              ticketId: `FD-${t.id}`,
+              caseId: matchingCase?.id || `FD-${t.id}`,
+              organizationId: matchingCase?.organizationId || "default",
+              attachments: t.attachments,
+            };
+          })
+          .filter((t: any) => t.caseId);
+
+        if (ticketsWithAttachments.length > 0) {
+          console.log(`[Freshdesk Sync] Processing certificates from ${ticketsWithAttachments.length} tickets`);
+          const certResult = await processCertificatesFromTickets(ticketsWithAttachments, storage);
+          certificatesProcessed = certResult.successful;
+        }
       }
 
       res.json({
         success: true,
         synced: workerCases.length,
-        message: `Successfully synced ${workerCases.length} cases from Freshdesk`,
+        certificates: certificatesProcessed,
+        message: `Successfully synced ${workerCases.length} cases and ${certificatesProcessed} certificates from Freshdesk`,
         configured: true
       });
     } catch (error) {

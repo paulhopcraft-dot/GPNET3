@@ -2,7 +2,7 @@
   "initialize_harness": { "pass": true, "notes": "System boots: PostgreSQL, migrations, seed data, API, and Vite frontend all working. Pre-existing test failures in TimelineCard.test.tsx noted." },
 
   "claims_intake_flow": { "pass": true, "notes": "POST /api/cases endpoint, storage.createCase(), NewClaimPage.tsx connected. Tests in server/routes/cases.test.ts" },
-  "certificate_ingestion_engine": { "pass": false, "notes": "" },
+  "certificate_ingestion_engine": { "pass": true, "notes": "Claude Vision OCR for PDF/images. Freshdesk sync processes attachments. Review queue at /certificates/review. Services: certificateService.ts, pdfProcessor.ts, certificatePipeline.ts" },
   "medical_flags_and_red_risk": { "pass": false, "notes": "" },
   "return_to_work_planner": { "pass": false, "notes": "" },
 
