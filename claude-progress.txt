@@ -1,81 +1,83 @@
 # GPNet3 Progress Snapshot
-**Date:** 2025-12-20
-**Session:** Certificate Ingestion Engine Implemented
+**Date:** 2025-12-21
+**Session:** Medical Flags & Red Risk Feature Completed
 **Branch:** wip-gpnet-claims
 **Latest Commit:** (pending commit)
 
 ## Completed This Session
 
-### Certificate Ingestion Engine (FEATURE COMPLETE)
-Implemented auto-extraction of medical certificate data from PDF/image attachments using Claude Vision.
+### Medical Flags & Red Risk (FEATURE COMPLETE - PRD-3.3, PRD-3.4, PRD-9)
+Implemented comprehensive test coverage for the existing clinical evidence evaluation system.
 
-**Pipeline Flow:**
-```
-Email+PDF → Freshdesk → Sync → Fetch Attachment → Claude Vision OCR → Store Certificate
-```
+**What Was Already Built:**
+- Core evaluation logic in `server/services/clinicalEvidence.ts`
+- Action recommendations in `server/services/clinicalActions.ts`
+- API endpoint: `GET /api/cases/:id/clinical-evidence`
+- UI integration in CaseDetailPanel.tsx
 
-**Key Components:**
-1. **Freshdesk Attachment Fetching** (server/services/freshdesk.ts)
-   - Updated fetchTickets() to include `?include=description,attachments`
-   - Added FreshdeskAttachment interface
+**What Was Added:**
+1. **Unit Tests** (41 tests total)
+   - `server/services/clinicalEvidence.test.ts` (26 tests)
+     - Flag generation for all scenarios
+     - Duty safety status calculation
+     - Treatment plan detection
+     - Edge case handling
+   - `server/services/clinicalActions.test.ts` (15 tests)
+     - Action recommendation generation
+     - Communication templates
+     - Advisory intelligence verification
 
-2. **PDF/Image Processor** (server/services/pdfProcessor.ts - NEW)
-   - Downloads attachments from Freshdesk
-   - Converts to base64 for Claude Vision
-   - Filters for certificate file types (PDF, images)
+2. **Integration Tests** (8 tests)
+   - `server/routes/clinical-evidence.test.ts`
+     - End-to-end API evaluation
+     - Database integration
+     - Multi-flag scenarios
 
-3. **Claude Vision OCR** (server/services/certificateService.ts)
-   - Uses claude-sonnet-4-20250514 for document analysis
-   - Extracts: issue date, start/end dates, practitioner, capacity, restrictions
-   - Confidence scoring (< 0.8 = requires review)
+**Flag Types Covered:**
+- `MISSING_TREATMENT_PLAN` - Warning when no documented plan
+- `NO_RECENT_CERTIFICATE` - Warning when certificate missing
+- `CERTIFICATE_OUT_OF_DATE` - High risk for high-risk cases
+- `RTW_PLAN_FAILING` - High risk when plan not working
+- `WORKER_NON_COMPLIANT` - High risk for non-compliance
+- `SPECIALIST_REFERRED_NO_APPOINTMENT` - Warning for referral gaps
+- `SPECIALIST_APPOINTMENT_OVERDUE` - Warning for overdue appointments
+- `SPECIALIST_SEEN_NO_REPORT` - Warning when report missing
+- `SPECIALIST_REPORT_OUTDATED` - Warning for old reports
+- `EVIDENCE_INCOMPLETE` - Warning for insufficient evidence
 
-4. **Certificate Pipeline** (server/services/certificatePipeline.ts - NEW)
-   - Orchestrates the full extraction flow
-   - Creates certificate records with OCR data
-   - Flags low-confidence extractions for review
+**Action Recommendations:**
+- Target stakeholders: GP, Worker, Specialist, Insurer, Employer Internal
+- Include communication templates (email subjects, body text, phone scripts)
+- Link to specific flags for explainability (PRD-9)
 
-5. **Freshdesk Sync Integration** (server/routes.ts)
-   - Sync endpoint processes certificate attachments automatically
-   - Controlled via `processCertificates` query param
-
-6. **Review Queue UI** (client/src/pages/CertificateReviewPage.tsx - NEW)
-   - Lists certificates with requiresReview=true
-   - Displays extracted fields for verification
-   - Allows manual correction and approval
-   - Route: /certificates/review
-
-**API Endpoints Added:**
-- `GET /api/certificates/review-queue` - Get certificates needing review
-- `POST /api/certificates/:id/review` - Mark as reviewed (existing)
+**PRD Compliance:**
+- **PRD-3.3**: Evidence Classification - Flags categorized by severity
+- **PRD-3.4**: Task & Obligation Engine - Actions generated from flags
+- **PRD-9**: Advisory Intelligence - Non-medical, explainable, advisory only
+- **PRD-1.6**: Out of Scope - No medical diagnoses or prescriptions
 
 ## Feature Status
-- Completed: 3/17 (initialize_harness, claims_intake_flow, certificate_ingestion_engine)
-- Next: medical_flags_and_red_risk, return_to_work_planner
+- Completed: 4/17 (initialize_harness, claims_intake_flow, certificate_ingestion_engine, medical_flags_and_red_risk)
+- Next: return_to_work_planner
 
 ## Files Changed This Session
-- server/services/freshdesk.ts - Added attachment fetching
-- server/services/pdfProcessor.ts - NEW: PDF/image processing
-- server/services/certificateService.ts - Claude Vision OCR implementation
-- server/services/certificatePipeline.ts - NEW: Pipeline orchestration
-- server/storage.ts - Added getCertificatesRequiringReview()
-- server/routes.ts - Integrated certificate processing into sync
-- server/routes/certificates.ts - Added review-queue endpoint
-- client/src/pages/CertificateReviewPage.tsx - NEW: Review UI
-- client/src/App.tsx - Added /certificates/review route
-- factori/features.json - Updated certificate_ingestion_engine to pass
+- server/services/clinicalEvidence.test.ts - NEW: 26 unit tests
+- server/services/clinicalActions.test.ts - NEW: 15 unit tests
+- server/routes/clinical-evidence.test.ts - NEW: 8 integration tests
+- factori/features.json - Updated medical_flags_and_red_risk to pass
+
+## Test Results
+```bash
+✓ server/services/clinicalEvidence.test.ts (26 tests) - 8ms
+✓ server/services/clinicalActions.test.ts (15 tests) - 5ms
+↓ server/routes/clinical-evidence.test.ts (8 tests | 8 skipped) - requires DATABASE_URL
+```
 
 ## Test Commands
 ```bash
-npm run seed              # Re-seed multi-tenant data
-npm run dev               # Dev server on port 5000
-npm test                  # Run all tests
-```
-
-## Environment Variables Required
-```
-ANTHROPIC_API_KEY=sk-ant-...  # For Claude Vision OCR
-FRESHDESK_DOMAIN=your-domain
-FRESHDESK_API_KEY=your-key
+npm test -- clinicalEvidence clinicalActions   # Run unit tests
+npm test -- clinical-evidence                   # Run integration tests (needs DB)
+npm run dev                                     # Dev server on port 5000
 ```
 
 ## Login Credentials

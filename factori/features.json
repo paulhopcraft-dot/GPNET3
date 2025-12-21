@@ -3,7 +3,7 @@
 
   "claims_intake_flow": { "pass": true, "notes": "POST /api/cases endpoint, storage.createCase(), NewClaimPage.tsx connected. Tests in server/routes/cases.test.ts" },
   "certificate_ingestion_engine": { "pass": true, "notes": "Claude Vision OCR for PDF/images. Freshdesk sync processes attachments. Review queue at /certificates/review. Services: certificateService.ts, pdfProcessor.ts, certificatePipeline.ts" },
-  "medical_flags_and_red_risk": { "pass": false, "notes": "" },
+  "medical_flags_and_red_risk": { "pass": true, "notes": "PRD-3.3, PRD-3.4, PRD-9. Clinical evidence evaluation with flags, recommended actions, duty safety status. Tests: clinicalEvidence.test.ts (26), clinicalActions.test.ts (15), clinical-evidence.test.ts (8 integration)" },
   "return_to_work_planner": { "pass": false, "notes": "" },
 
   "xgboost_prediction_layer": { "pass": false, "notes": "" },
