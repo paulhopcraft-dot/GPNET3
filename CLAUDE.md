@@ -36,9 +36,40 @@ JWT_SECRET=your-secret
 CSRF_SECRET=your-secret
 ```
 
+## Product Requirements Document (PRD)
+
+**AUTHORITATIVE REFERENCE:** `docs/PRD/GPNet3-PRD.md` (v1.3)
+
+This PRD is the canonical product contract. All features MUST align with PRD boundaries.
+
+### PRD Compliance Rules
+
+1. **Read Before Implementing**: Read relevant PRD section(s) before starting any feature
+2. **Reference PRD Codes**: All commits MUST reference PRD codes (e.g., "PRD-3.5: Certificate Engine")
+3. **Verify Boundaries**: Ensure features stay within PRD scope:
+   - ✅ Coordination, documentation, advisory support
+   - ❌ Legal/liability determinations, medical diagnosis, autonomous decisions, payments
+4. **PRD is LOCKED**: Any scope change requires PRD amendment first
+
+### PRD Section Codes
+
+| Code | Section |
+|------|---------|
+| PRD-1 | Executive Summary & Vision |
+| PRD-2 | Stakeholders & Personas |
+| PRD-3 | Functional Requirements |
+| PRD-4 | Logical Architecture |
+| PRD-5 | Data Models |
+| PRD-6 | Non-Functional Requirements |
+| PRD-7 | Integrations |
+| PRD-8 | User Journeys & Workflows |
+| PRD-9 | AI & Intelligence Layer |
+| PRD-10 | Success Metrics & KPIs |
+
 ## Existing Documentation
 
 - `README.md` - Full setup guide
 - `docs/AI_DEV_GUIDE.md` - AI assistant workflow
 - `docs/spec/` - System specifications (01-29)
 - `docs/SECURITY_STATUS.md` - Security implementation status
+- `docs/PRD/GPNet3-PRD.md` - **Canonical Product Requirements (MUST READ)**
