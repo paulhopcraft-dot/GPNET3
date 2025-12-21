@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { vi } from "vitest";
 import type { InsertCaseDiscussionNote } from "@shared/schema";
 
 vi.mock("../../storage", () => ({

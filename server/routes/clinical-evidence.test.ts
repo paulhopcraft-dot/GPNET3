@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+// vitest globals are available (describe, it, expect, etc.)
 
 /**
  * Clinical Evidence API - Integration Tests (PRD-3.3, PRD-3.4)

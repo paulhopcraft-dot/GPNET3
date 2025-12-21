@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+
 import { evaluateClinicalEvidence } from "./clinicalEvidence";
 import type { WorkerCase } from "../../shared/schema";
 

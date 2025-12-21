@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+
 import type { WorkerCase } from "@shared/schema";
 import { deriveSummaryMetaFromCase } from "./CaseDetailPanel";
 

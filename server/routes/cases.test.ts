@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
+// vitest globals are available (describe, it, expect, etc.)
 
 /**
  * Claims Intake Flow - Integration Tests
