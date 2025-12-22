@@ -9,6 +9,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { DashboardStats } from "@/components/dashboard-stats";
 import { ActionQueueCard } from "@/components/ActionQueueCard";
+import { ClaimsIntakeModal } from "@/components/ClaimsIntakeModal";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import type { WorkerCase } from "@shared/schema";
@@ -18,6 +19,7 @@ export default function GPNet2Dashboard() {
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
+  const [showClaimsIntake, setShowClaimsIntake] = useState(false);
   const { toast } = useToast();
 
   const { data: cases = [], isLoading } = useQuery<WorkerCase[]>({
@@ -107,6 +109,14 @@ export default function GPNet2Dashboard() {
     setSelectedCaseId(null);
   };
 
+  const handleClaimsIntakeSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/gpnet2/cases"] });
+    toast({
+      title: "Case Created",
+      description: "New claim has been added to the system",
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -163,10 +173,24 @@ export default function GPNet2Dashboard() {
                 <SearchBar value={searchQuery} onChange={setSearchQuery} />
                 <div className="flex items-center gap-2">
                   <Button
+                    onClick={() => setShowClaimsIntake(true)}
+                    data-testid="button-new-claim"
+                    size="sm"
+                    variant="default"
+                  >
+                    <span className="material-symbols-outlined text-base">
+                      person_add
+                    </span>
+                    <span className="font-bold hidden sm:inline">
+                      New Claim
+                    </span>
+                  </Button>
+                  <Button
                     onClick={() => syncMutation.mutate()}
                     disabled={syncMutation.isPending}
                     data-testid="button-sync-freshdesk"
                     size="sm"
+                    variant="outline"
                   >
                     <span className="material-symbols-outlined text-base">
                       {syncMutation.isPending ? "sync" : "refresh"}
@@ -197,6 +221,12 @@ export default function GPNet2Dashboard() {
       </main>
       
       <AIAssistant />
+
+      <ClaimsIntakeModal
+        open={showClaimsIntake}
+        onOpenChange={setShowClaimsIntake}
+        onSuccess={handleClaimsIntakeSuccess}
+      />
     </div>
   );
 }

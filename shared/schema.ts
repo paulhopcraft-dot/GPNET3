@@ -719,6 +719,19 @@ export const insertWorkerCaseSchema = createInsertSchema(workerCases).omit({
   updatedAt: true,
 });
 
+// Claims Intake Flow - minimal required fields for manual case creation
+export const claimsIntakeSchema = z.object({
+  workerName: z.string().min(2, "Worker name must be at least 2 characters"),
+  company: z.string().min(1, "Company is required"),
+  dateOfInjury: z.string().refine((val) => !isNaN(Date.parse(val)), {
+    message: "Invalid date format",
+  }),
+  injuryDescription: z.string().optional(),
+  owner: z.string().optional(),
+});
+
+export type ClaimsIntakeInput = z.infer<typeof claimsIntakeSchema>;
+
 export const insertCaseAttachmentSchema = createInsertSchema(caseAttachments).omit({
   id: true,
   createdAt: true,
