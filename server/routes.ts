@@ -21,6 +21,7 @@ import predictionRoutes from "./routes/predictions";
 import freshdeskRoutes from "./routes/freshdesk";
 import ragRoutes from "./routes/rag";
 import treatmentPlanRoutes from "./routes/treatmentPlan";
+import recoveryEstimatorRoutes from "./routes/recoveryEstimator";
 import type { RecoveryTimelineSummary } from "@shared/schema";
 import { evaluateClinicalEvidence } from "./services/clinicalEvidence";
 import { authorize, type AuthRequest } from "./middleware/auth";
@@ -79,6 +80,9 @@ export async function registerRoutes(app: Express): Promise<void> {
 
   // Treatment Plan Generator routes (PRD-3.2.3, Spec-21)
   app.use("/api/treatment-plans", treatmentPlanRoutes);
+
+  // Recovery Estimator routes (PRD-25, Spec-14)
+  app.use("/api/recovery", recoveryEstimatorRoutes);
 
   // Email Drafts routes (JWT-protected)
   app.use("/api", emailDraftRoutes);

@@ -11,7 +11,7 @@
   "pinecone_rag_integration": { "pass": true, "notes": "RAG service with three-tier knowledge hierarchy (local, industry, global). TF-IDF based retrieval with pre-loaded WorkSafe Victoria industry knowledge. API: GET /api/rag/status, POST /api/rag/query, POST /api/rag/case-guidance/:caseId, GET/POST /api/rag/documents. 29 unit tests for retrieval, knowledge layers, and PRD-9 compliance." },
 
   "treatment_plan_generator": { "pass": true, "notes": "Treatment plan generator with phased hours progression, duty modifications, review milestones, warning signals, and safety considerations. API: GET/POST /api/treatment-plans/:caseId, /progression, /milestones, /duties, /validate. WorkSafe Victoria compliance notes included. 44 unit tests for plan generation logic." },
-  "timeline_and_recovery_estimator": { "pass": false, "notes": "" },
+  "timeline_and_recovery_estimator": { "pass": true, "notes": "Recovery estimator service with clinical pathway-based duration estimation, progress tracking, trajectory generation, and milestone monitoring. Injury classification (soft_tissue, musculoskeletal, spinal, surgical, psychological, chronic). API: GET /api/recovery/:caseId/estimate, /trajectory, /milestones, /factors, GET /api/recovery/summary. 44 unit tests." },
   "provider_chat_workflow": { "pass": false, "notes": "" },
 
   "weekly_checkin_engine": { "pass": false, "notes": "" },
