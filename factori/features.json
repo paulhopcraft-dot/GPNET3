@@ -2,7 +2,7 @@
   "initialize_harness": { "pass": true, "notes": "System boots: PostgreSQL, migrations, seed data, API, and Vite frontend all working. Pre-existing test failures in TimelineCard.test.tsx noted." },
 
   "claims_intake_flow": { "pass": true, "notes": "POST /api/cases endpoint with Zod validation, ClaimsIntakeModal frontend component, integrated into dashboard with New Claim button. 6 unit tests added." },
-  "certificate_ingestion_engine": { "pass": false, "notes": "" },
+  "certificate_ingestion_engine": { "pass": true, "notes": "Certificate CRUD API, upload endpoint with OCR extraction, expiry alerts, webhook ingestion. 6 unit tests for service layer." },
   "medical_flags_and_red_risk": { "pass": false, "notes": "" },
   "return_to_work_planner": { "pass": false, "notes": "" },
 
