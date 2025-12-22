@@ -2,148 +2,112 @@
 
 **Date:** 2025-12-22
 **Branch:** wip-gpnet-claims
-**Latest Commit:** 3d421c1 (fix: vitest Node.js 24/Windows)
-**Status:** Ready for next feature
+**Latest Commit:** 2c373c6 feat(PRD-3.2.3, PRD-3.4): implement RTW planner with state transitions
 
 ---
 
-## Session Summary
+## Progress Summary
 
-### Completed This Session
+```
+Total Features: 17
+Completed: 12 (71%)
+Partial: 3 (need backend work)
+Not Started: 2
+```
 
-**Feature 5/17: Return to Work Planner (PRD-3.2.3, PRD-3.4)**
+---
 
-Implemented RTW plan status management with state transition validation:
+## Session Completed
 
-**API Endpoints Created:**
-- `GET /api/cases/:id/rtw-plan` - Get current RTW plan status
-- `PUT /api/cases/:id/rtw-plan` - Update RTW plan status with validation
-- `GET /api/rtw/overview` - RTW statistics across all cases
+### Feature: Return to Work Planner (PRD-3.2.3, PRD-3.4)
+- Created RTW plan API endpoints (GET/PUT /api/cases/:id/rtw-plan)
+- Added state transition validation (7 states, enforced transitions)
+- Updated RTWPlannerPage UI with status update dialog
+- 36 unit tests for state transitions
+- Committed: 2c373c6
 
-**Key Features:**
-- 7 RTW plan states: not_planned → planned_not_started → in_progress → working_well/failing/on_hold → completed
-- State transition validation (prevents invalid transitions)
-- Admin force override for exceptional cases
-- Reason required for all status changes
-- Full audit logging of all transitions
+### Codebase Audit
+Discovered features.json was out of sync. Updated to reflect reality:
+- 7 features were already implemented but marked incomplete
+- Updated all feature statuses with accurate notes
 
-**UI Updates:**
-- RTWPlannerPage.tsx now has "Update Status" button
-- Status update dialog with dropdown showing only valid transitions
-- Reason input required for all changes
-- Real-time refresh after updates
+---
 
-**Test Files Created:**
-- `server/routes/rtw.test.ts` - 36 unit tests for state transitions
+## In Progress
 
-**Test Results:**
-- 36 RTW-specific tests passing
-- 95 total tests passing (excluding storage.test.ts which requires DB)
-- All PRD compliance checks verified
+### Feature: xgboost_prediction_layer (PRD-9)
+**Status:** Ready to implement
 
-**PRD Compliance Verified:**
-- **PRD-3.2.3**: Case lifecycle states (SUITABLE_DUTIES_ACTIVE)
-- **PRD-3.4**: Task & obligation engine integration
-- All transitions logged per PRD requirements
+**What exists:**
+- PredictionsPage.tsx with mock client-side predictions
+- RiskDashboardPage.tsx for risk analysis
 
-### Features Completed (5/17)
+**What's needed:**
+1. Backend prediction service with rule-based scoring
+2. API endpoints: GET /api/predictions, GET /api/cases/:id/prediction
+3. Connect UI to backend API
+4. Tests for prediction engine
 
-1. initialize_harness - System boots, tests run
-2. claims_intake_flow - POST /api/cases, NewClaimPage
-3. certificate_ingestion_engine - Claude Vision OCR, review queue
-4. medical_flags_and_red_risk - Clinical evidence evaluation, flags, actions
-5. **return_to_work_planner** - RTW plan status, state transitions, UI
+**Approach chosen:** Rule-based engine (heuristics, explainable, can swap for ML later)
 
 ---
 
 ## Next Steps
 
-### Next Feature: xgboost_prediction_layer (Feature 6/17)
-
-**Likely involves:**
-- PRD-9: Predictive & advisory intelligence
-- XGBoost or similar ML model for case outcome prediction
-- Risk scoring and time-to-recovery estimation
-- Integration with case dashboard
-
-**Recommended approach:**
-1. Review PRD-9 for prediction requirements
-2. Design prediction model interface
-3. Implement mock predictions initially
-4. Add real ML model when training data available
-
-**Start command:** `/continue`
+1. **Start:** `/continue` to implement xgboost_prediction_layer
+2. Create `server/services/predictionEngine.ts` with rule-based scoring
+3. Add prediction routes in `server/routes/predictions.ts`
+4. Update PredictionsPage.tsx to call backend API
+5. Write tests
 
 ---
 
-## Recent Commits
+## Features Status (Updated)
 
-```
-3d421c1 fix: resolve vitest 'No test suite found' on Node.js 24/Windows
-2869387 test(PRD-3.3, PRD-3.4, PRD-9): medical flags & red risk tests
-d232010 docs: reference canonical PRD in CLAUDE.md
-c08204a docs: add canonical GPNet3 Product Requirements Document (v1.3)
-242c74a feat: add decide, constraints, perspectives commands
-```
-
----
-
-## Important Notes for Next Session
-
-### Files Modified This Session
-- `server/routes/rtw.ts` - New RTW plan API routes
-- `server/routes.ts` - Registered RTW routes
-- `server/routes/rtw.test.ts` - RTW state transition tests
-- `client/src/pages/RTWPlannerPage.tsx` - Added status update UI
-- `factori/features.json` - Marked return_to_work_planner as complete
-
-### Pre-existing Issues (not blockers)
-- Avatar pipeline TypeScript errors (missing schema types)
-- storage.test.ts requires DATABASE_URL to run
-
-### Test Coverage
-- 95 tests passing
-- 14 tests skipped (require specific environment)
-- 1 test file fails without DATABASE_URL (expected)
+| Feature | Status | Notes |
+|---------|--------|-------|
+| initialize_harness | DONE | System boots |
+| claims_intake_flow | DONE | POST /api/cases |
+| certificate_ingestion_engine | DONE | Claude Vision OCR |
+| medical_flags_and_red_risk | DONE | Clinical evidence evaluation |
+| return_to_work_planner | DONE | State transitions, UI |
+| xgboost_prediction_layer | PARTIAL | UI only, need backend |
+| freshdesk_ticket_mirroring | DONE | FreshdeskService |
+| pinecone_rag_integration | NOT STARTED | No RAG exists |
+| treatment_plan_generator | NOT STARTED | Nothing exists |
+| timeline_and_recovery_estimator | PARTIAL | UI exists, hardcoded 12-week |
+| provider_chat_workflow | DONE | CaseChatPanel + API |
+| weekly_checkin_engine | PARTIAL | UI only, no scheduler |
+| risk_dashboard | DONE | RiskDashboardPage |
+| claimant_profile_summary | DONE | CaseSummaryPage |
+| unit_tests | DONE | 95+ tests |
+| e2e_tests | DONE | Playwright tests |
+| deployment_pipeline | DONE | GitHub Actions + Docker |
 
 ---
 
-## Quick Start Commands
+## Quick Commands
 
 ```bash
-# Development
-npm run dev              # Start server on port 5000
-npm run db:push          # Apply schema changes
-
-# Testing
-npm test                 # Run all tests
-npm test -- rtw          # Run RTW-specific tests
-
-# Git
-git log --oneline -10    # Recent commits
-git status               # Check changes
+npm run dev          # Start dev server
+npm test             # Run tests (95 passing)
+npm run build        # Build (avatar pipeline errors are pre-existing)
 ```
 
 ---
 
-## Login Credentials (Seeded Data)
+## Known Issues
 
-| User | Email | Password | Role | Org |
-|------|-------|----------|------|-----|
-| Admin | admin@gpnet.local | ChangeMe123! | admin | all |
-| Employer | employer@symmetry.local | ChangeMe123! | employer | org-alpha |
-| Doctor | doctor@harborclinic.local | ChangeMe123! | clinician | org-beta |
+- Avatar pipeline TypeScript errors (missing schema types) - pre-existing, not a blocker
+- storage.test.ts requires DATABASE_URL to run
 
 ---
 
-## Session End
+## To Resume
 
-- All work committed (pending)
-- Tests passing (95/109)
-- features.json updated (5/17 complete)
-- Ready for commit and next feature
+```
+/reload              # Load context
+/continue            # Start xgboost_prediction_layer
+```
 
-**To resume:**
-1. `/clear` - Clear context
-2. `/reload` - Read CLAUDE.md, features.json, this file
-3. `/continue` - Start next feature (xgboost_prediction_layer)
+Or directly: "implement the prediction engine with rule-based scoring"
