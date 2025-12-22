@@ -19,6 +19,7 @@ import caseRoutes from "./routes/cases";
 import rtwRoutes from "./routes/rtw";
 import predictionRoutes from "./routes/predictions";
 import freshdeskRoutes from "./routes/freshdesk";
+import ragRoutes from "./routes/rag";
 import type { RecoveryTimelineSummary } from "@shared/schema";
 import { evaluateClinicalEvidence } from "./services/clinicalEvidence";
 import { authorize, type AuthRequest } from "./middleware/auth";
@@ -71,6 +72,9 @@ export async function registerRoutes(app: Express): Promise<void> {
 
   // Freshdesk Mirroring routes (PRD-7, PRD-3.6)
   app.use("/api/freshdesk", freshdeskRoutes);
+
+  // RAG Knowledge Base routes (PRD-9, Spec-11)
+  app.use("/api/rag", ragRoutes);
 
   // Email Drafts routes (JWT-protected)
   app.use("/api", emailDraftRoutes);

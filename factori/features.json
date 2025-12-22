@@ -8,7 +8,7 @@
 
   "xgboost_prediction_layer": { "pass": true, "notes": "Prediction service with feature extraction, RTW probability, escalation/cost/deterioration risk scores. API: GET /api/predictions, GET /api/predictions/summary, GET /api/predictions/high-risk, GET /api/predictions/:caseId. 25 unit tests for prediction logic." },
   "freshdesk_ticket_mirroring": { "pass": true, "notes": "Freshdesk webhook handler, conversation mirroring service, real-time sync via POST /api/freshdesk/webhook. Mirror case conversations with POST /api/freshdesk/mirror/:caseId. 16 unit tests for payload validation and storage integration." },
-  "pinecone_rag_integration": { "pass": false, "notes": "" },
+  "pinecone_rag_integration": { "pass": true, "notes": "RAG service with three-tier knowledge hierarchy (local, industry, global). TF-IDF based retrieval with pre-loaded WorkSafe Victoria industry knowledge. API: GET /api/rag/status, POST /api/rag/query, POST /api/rag/case-guidance/:caseId, GET/POST /api/rag/documents. 29 unit tests for retrieval, knowledge layers, and PRD-9 compliance." },
 
   "treatment_plan_generator": { "pass": false, "notes": "" },
   "timeline_and_recovery_estimator": { "pass": false, "notes": "" },
