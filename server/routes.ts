@@ -18,6 +18,7 @@ import adminInsurerRoutes from "./routes/admin/insurers";
 import organizationRoutes from "./routes/organization";
 import caseChatRoutes from "./routes/caseChat";
 import rtwRoutes from "./routes/rtw";
+import predictionRoutes from "./routes/predictions";
 import type { RecoveryTimelineSummary } from "@shared/schema";
 import { evaluateClinicalEvidence } from "./services/clinicalEvidence";
 import { authorize, type AuthRequest } from "./middleware/auth";
@@ -61,6 +62,10 @@ export async function registerRoutes(app: Express): Promise<void> {
   // RTW Plan routes (JWT-protected, case ownership)
   app.use("/api/cases", rtwRoutes);
   app.use("/api/rtw", rtwRoutes);
+
+  // Prediction Engine routes (PRD-9: AI & Intelligence Layer)
+  app.use("/api/predictions", predictionRoutes);
+  app.use("/api/cases", predictionRoutes);
 
   // Email Drafts routes (JWT-protected)
   app.use("/api", emailDraftRoutes);
