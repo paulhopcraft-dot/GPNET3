@@ -2,7 +2,7 @@
 
 **Date:** 2025-12-22
 **Branch:** wip-gpnet-claims
-**Latest Commit:** 2c373c6 feat(PRD-3.2.3, PRD-3.4): implement RTW planner with state transitions
+**Latest Commit:** 45c5d8b feat(PRD-9): implement prediction engine with rule-based scoring
 
 ---
 
@@ -10,8 +10,8 @@
 
 ```
 Total Features: 17
-Completed: 12 (71%)
-Partial: 3 (need backend work)
+Completed: 13 (76%)
+Partial: 2 (need backend work)
 Not Started: 2
 ```
 
@@ -19,46 +19,20 @@ Not Started: 2
 
 ## Session Completed
 
-### Feature: Return to Work Planner (PRD-3.2.3, PRD-3.4)
-- Created RTW plan API endpoints (GET/PUT /api/cases/:id/rtw-plan)
-- Added state transition validation (7 states, enforced transitions)
-- Updated RTWPlannerPage UI with status update dialog
-- 36 unit tests for state transitions
-- Committed: 2c373c6
+### Feature: Prediction Engine (PRD-9)
+- Created `server/services/predictionEngine.ts` with rule-based scoring
+- RTW probability, cost risk, escalation risk calculations
+- Explainability factors (PRD-9 compliance: advisory only)
+- API: GET /api/predictions, GET /api/cases/:id/prediction
+- Connected PredictionsPage.tsx to backend API
+- Added factor tooltips for transparency
+- 20 unit tests
+- Committed: 45c5d8b
 
-### Codebase Audit
-Discovered features.json was out of sync. Updated to reflect reality:
-- 7 features were already implemented but marked incomplete
-- Updated all feature statuses with accurate notes
-
----
-
-## In Progress
-
-### Feature: xgboost_prediction_layer (PRD-9)
-**Status:** Ready to implement
-
-**What exists:**
-- PredictionsPage.tsx with mock client-side predictions
-- RiskDashboardPage.tsx for risk analysis
-
-**What's needed:**
-1. Backend prediction service with rule-based scoring
-2. API endpoints: GET /api/predictions, GET /api/cases/:id/prediction
-3. Connect UI to backend API
-4. Tests for prediction engine
-
-**Approach chosen:** Rule-based engine (heuristics, explainable, can swap for ML later)
-
----
-
-## Next Steps
-
-1. **Start:** `/continue` to implement xgboost_prediction_layer
-2. Create `server/services/predictionEngine.ts` with rule-based scoring
-3. Add prediction routes in `server/routes/predictions.ts`
-4. Update PredictionsPage.tsx to call backend API
-5. Write tests
+### Workflow Used
+1. `/tdd` - Test-driven development (RED → GREEN → REFACTOR)
+2. `/validate` - Blind validation caught 8 type errors
+3. `/review` - Code review approved
 
 ---
 
@@ -71,18 +45,46 @@ Discovered features.json was out of sync. Updated to reflect reality:
 | certificate_ingestion_engine | DONE | Claude Vision OCR |
 | medical_flags_and_red_risk | DONE | Clinical evidence evaluation |
 | return_to_work_planner | DONE | State transitions, UI |
-| xgboost_prediction_layer | PARTIAL | UI only, need backend |
+| xgboost_prediction_layer | DONE | Rule-based engine, 20 tests |
 | freshdesk_ticket_mirroring | DONE | FreshdeskService |
-| pinecone_rag_integration | NOT STARTED | No RAG exists |
-| treatment_plan_generator | NOT STARTED | Nothing exists |
-| timeline_and_recovery_estimator | PARTIAL | UI exists, hardcoded 12-week |
 | provider_chat_workflow | DONE | CaseChatPanel + API |
-| weekly_checkin_engine | PARTIAL | UI only, no scheduler |
 | risk_dashboard | DONE | RiskDashboardPage |
 | claimant_profile_summary | DONE | CaseSummaryPage |
-| unit_tests | DONE | 95+ tests |
+| unit_tests | DONE | 115+ tests |
 | e2e_tests | DONE | Playwright tests |
 | deployment_pipeline | DONE | GitHub Actions + Docker |
+| timeline_and_recovery_estimator | PARTIAL | UI exists, hardcoded 12-week |
+| weekly_checkin_engine | PARTIAL | UI only, no scheduler |
+| pinecone_rag_integration | NOT STARTED | No RAG exists |
+| treatment_plan_generator | NOT STARTED | Nothing exists |
+
+---
+
+## Next Steps
+
+### Recommended: timeline_and_recovery_estimator (Quick Win)
+**What exists:**
+- TimelineCard.tsx, RecoveryChart.tsx
+- Hardcoded 12-week recovery assumption
+
+**What's needed:**
+1. Dynamic estimation based on injury type, risk level
+2. Backend service for timeline calculations
+3. Connect UI to dynamic data
+
+**Recommended workflow:**
+```
+/anticipate → /constraints → /tdd → /validate → /review
+```
+
+### Alternative: weekly_checkin_engine (Medium effort)
+**What exists:**
+- CheckInsPage.tsx UI
+
+**What's needed:**
+1. Backend scheduler service
+2. Notification engine integration
+3. API endpoints for check-in management
 
 ---
 
@@ -90,16 +92,29 @@ Discovered features.json was out of sync. Updated to reflect reality:
 
 ```bash
 npm run dev          # Start dev server
-npm test             # Run tests (95 passing)
-npm run build        # Build (avatar pipeline errors are pre-existing)
+npm test             # Run tests (115 passing)
+npm run build        # Build
 ```
+
+---
+
+## Slash Commands Learned
+
+| Command | Purpose | When to Use |
+|---------|---------|-------------|
+| /tdd | Test-driven development | New features |
+| /validate | Blind verification | After implementation |
+| /review | Code review | Before commit |
+| /anticipate | Devil's advocate | Before complex features |
+| /constraints | Define boundaries | Complex features |
+| /think-parallel | DPPM planning | Large features |
 
 ---
 
 ## Known Issues
 
-- Avatar pipeline TypeScript errors (missing schema types) - pre-existing, not a blocker
-- storage.test.ts requires DATABASE_URL to run
+- storage.test.ts requires DATABASE_URL to run (expected)
+- Pre-existing TypeScript errors in avatar pipeline (not a blocker)
 
 ---
 
@@ -107,7 +122,7 @@ npm run build        # Build (avatar pipeline errors are pre-existing)
 
 ```
 /reload              # Load context
-/continue            # Start xgboost_prediction_layer
+/continue            # Pick next feature
 ```
 
-Or directly: "implement the prediction engine with rule-based scoring"
+Or directly: "implement timeline_and_recovery_estimator with dynamic estimation"
