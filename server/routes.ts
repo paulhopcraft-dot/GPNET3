@@ -1,6 +1,5 @@
 import type { Express } from "express";
 import { storage } from "./storage";
-import { FreshdeskService } from "./services/freshdesk";
 import { summaryService } from "./services/summary";
 import Anthropic from "@anthropic-ai/sdk";
 import authRoutes from "./routes/auth";
@@ -19,6 +18,7 @@ import caseChatRoutes from "./routes/caseChat";
 import caseRoutes from "./routes/cases";
 import rtwRoutes from "./routes/rtw";
 import predictionRoutes from "./routes/predictions";
+import freshdeskRoutes from "./routes/freshdesk";
 import type { RecoveryTimelineSummary } from "@shared/schema";
 import { evaluateClinicalEvidence } from "./services/clinicalEvidence";
 import { authorize, type AuthRequest } from "./middleware/auth";
@@ -68,6 +68,9 @@ export async function registerRoutes(app: Express): Promise<void> {
 
   // Prediction Layer routes (JWT-protected) - PRD-25
   app.use("/api/predictions", predictionRoutes);
+
+  // Freshdesk Mirroring routes (PRD-7, PRD-3.6)
+  app.use("/api/freshdesk", freshdeskRoutes);
 
   // Email Drafts routes (JWT-protected)
   app.use("/api", emailDraftRoutes);
@@ -198,43 +201,6 @@ export async function registerRoutes(app: Express): Promise<void> {
     } catch (error) {
       console.error("Failed to fetch red flag cases:", error);
       res.status(500).json({ error: "Failed to fetch red flag cases" });
-    }
-  });
-
-  // Freshdesk sync endpoint (admin only - syncs across all organizations)
-  app.post("/api/freshdesk/sync", authorize(["admin"]), async (req: AuthRequest, res) => {
-    // Check if Freshdesk is configured before attempting sync
-    if (!process.env.FRESHDESK_DOMAIN || !process.env.FRESHDESK_API_KEY) {
-      // Return success with 0 synced - graceful degradation when Freshdesk isn't configured
-      return res.json({
-        success: true,
-        synced: 0,
-        message: "Freshdesk sync skipped - not configured",
-        configured: false
-      });
-    }
-
-    try {
-      const freshdesk = new FreshdeskService();
-      const tickets = await freshdesk.fetchTickets();
-      const workerCases = await freshdesk.transformTicketsToWorkerCases(tickets);
-
-      for (const workerCase of workerCases) {
-        await storage.syncWorkerCaseFromFreshdesk(workerCase);
-      }
-
-      res.json({
-        success: true,
-        synced: workerCases.length,
-        message: `Successfully synced ${workerCases.length} cases from Freshdesk`,
-        configured: true
-      });
-    } catch (error) {
-      console.error("Error syncing Freshdesk tickets:", error);
-      res.status(500).json({
-        error: "Failed to sync Freshdesk tickets",
-        details: error instanceof Error ? error.message : "Unknown error"
-      });
     }
   });
 

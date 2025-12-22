@@ -43,6 +43,9 @@ export const AuditEventTypes = {
   WEBHOOK_PROCESSED: "webhook.processed",
   WEBHOOK_FAILED: "webhook.failed",
 
+  // Freshdesk Integration
+  FRESHDESK_SYNC: "freshdesk.sync",
+
   // Invites
   INVITE_CREATED: "invite.created",
   INVITE_ACCEPTED: "invite.accepted",
