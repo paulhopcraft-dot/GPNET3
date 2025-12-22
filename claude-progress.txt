@@ -1,88 +1,149 @@
-# GPNet3 Progress Snapshot
-**Date:** 2025-12-21
-**Session:** Medical Flags & Red Risk Feature Completed
+# GPNet3 Progress Snapshot - Session Handoff
+
+**Date:** 2025-12-22
 **Branch:** wip-gpnet-claims
-**Latest Commit:** (pending commit)
+**Latest Commit:** 3d421c1 (fix: vitest Node.js 24/Windows)
+**Status:** Ready for next feature
 
-## Completed This Session
+---
 
-### Medical Flags & Red Risk (FEATURE COMPLETE - PRD-3.3, PRD-3.4, PRD-9)
-Implemented comprehensive test coverage for the existing clinical evidence evaluation system.
+## Session Summary
 
-**What Was Already Built:**
-- Core evaluation logic in `server/services/clinicalEvidence.ts`
-- Action recommendations in `server/services/clinicalActions.ts`
-- API endpoint: `GET /api/cases/:id/clinical-evidence`
-- UI integration in CaseDetailPanel.tsx
+### Completed This Session
 
-**What Was Added:**
-1. **Unit Tests** (41 tests total)
-   - `server/services/clinicalEvidence.test.ts` (26 tests)
-     - Flag generation for all scenarios
-     - Duty safety status calculation
-     - Treatment plan detection
-     - Edge case handling
-   - `server/services/clinicalActions.test.ts` (15 tests)
-     - Action recommendation generation
-     - Communication templates
-     - Advisory intelligence verification
+**Feature 5/17: Return to Work Planner (PRD-3.2.3, PRD-3.4)**
 
-2. **Integration Tests** (8 tests)
-   - `server/routes/clinical-evidence.test.ts`
-     - End-to-end API evaluation
-     - Database integration
-     - Multi-flag scenarios
+Implemented RTW plan status management with state transition validation:
 
-**Flag Types Covered:**
-- `MISSING_TREATMENT_PLAN` - Warning when no documented plan
-- `NO_RECENT_CERTIFICATE` - Warning when certificate missing
-- `CERTIFICATE_OUT_OF_DATE` - High risk for high-risk cases
-- `RTW_PLAN_FAILING` - High risk when plan not working
-- `WORKER_NON_COMPLIANT` - High risk for non-compliance
-- `SPECIALIST_REFERRED_NO_APPOINTMENT` - Warning for referral gaps
-- `SPECIALIST_APPOINTMENT_OVERDUE` - Warning for overdue appointments
-- `SPECIALIST_SEEN_NO_REPORT` - Warning when report missing
-- `SPECIALIST_REPORT_OUTDATED` - Warning for old reports
-- `EVIDENCE_INCOMPLETE` - Warning for insufficient evidence
+**API Endpoints Created:**
+- `GET /api/cases/:id/rtw-plan` - Get current RTW plan status
+- `PUT /api/cases/:id/rtw-plan` - Update RTW plan status with validation
+- `GET /api/rtw/overview` - RTW statistics across all cases
 
-**Action Recommendations:**
-- Target stakeholders: GP, Worker, Specialist, Insurer, Employer Internal
-- Include communication templates (email subjects, body text, phone scripts)
-- Link to specific flags for explainability (PRD-9)
+**Key Features:**
+- 7 RTW plan states: not_planned → planned_not_started → in_progress → working_well/failing/on_hold → completed
+- State transition validation (prevents invalid transitions)
+- Admin force override for exceptional cases
+- Reason required for all status changes
+- Full audit logging of all transitions
 
-**PRD Compliance:**
-- **PRD-3.3**: Evidence Classification - Flags categorized by severity
-- **PRD-3.4**: Task & Obligation Engine - Actions generated from flags
-- **PRD-9**: Advisory Intelligence - Non-medical, explainable, advisory only
-- **PRD-1.6**: Out of Scope - No medical diagnoses or prescriptions
+**UI Updates:**
+- RTWPlannerPage.tsx now has "Update Status" button
+- Status update dialog with dropdown showing only valid transitions
+- Reason input required for all changes
+- Real-time refresh after updates
 
-## Feature Status
-- Completed: 4/17 (initialize_harness, claims_intake_flow, certificate_ingestion_engine, medical_flags_and_red_risk)
-- Next: return_to_work_planner
+**Test Files Created:**
+- `server/routes/rtw.test.ts` - 36 unit tests for state transitions
 
-## Files Changed This Session
-- server/services/clinicalEvidence.test.ts - NEW: 26 unit tests
-- server/services/clinicalActions.test.ts - NEW: 15 unit tests
-- server/routes/clinical-evidence.test.ts - NEW: 8 integration tests
-- factori/features.json - Updated medical_flags_and_red_risk to pass
+**Test Results:**
+- 36 RTW-specific tests passing
+- 95 total tests passing (excluding storage.test.ts which requires DB)
+- All PRD compliance checks verified
 
-## Test Results
-```bash
-✓ server/services/clinicalEvidence.test.ts (26 tests) - 8ms
-✓ server/services/clinicalActions.test.ts (15 tests) - 5ms
-↓ server/routes/clinical-evidence.test.ts (8 tests | 8 skipped) - requires DATABASE_URL
+**PRD Compliance Verified:**
+- **PRD-3.2.3**: Case lifecycle states (SUITABLE_DUTIES_ACTIVE)
+- **PRD-3.4**: Task & obligation engine integration
+- All transitions logged per PRD requirements
+
+### Features Completed (5/17)
+
+1. initialize_harness - System boots, tests run
+2. claims_intake_flow - POST /api/cases, NewClaimPage
+3. certificate_ingestion_engine - Claude Vision OCR, review queue
+4. medical_flags_and_red_risk - Clinical evidence evaluation, flags, actions
+5. **return_to_work_planner** - RTW plan status, state transitions, UI
+
+---
+
+## Next Steps
+
+### Next Feature: xgboost_prediction_layer (Feature 6/17)
+
+**Likely involves:**
+- PRD-9: Predictive & advisory intelligence
+- XGBoost or similar ML model for case outcome prediction
+- Risk scoring and time-to-recovery estimation
+- Integration with case dashboard
+
+**Recommended approach:**
+1. Review PRD-9 for prediction requirements
+2. Design prediction model interface
+3. Implement mock predictions initially
+4. Add real ML model when training data available
+
+**Start command:** `/continue`
+
+---
+
+## Recent Commits
+
+```
+3d421c1 fix: resolve vitest 'No test suite found' on Node.js 24/Windows
+2869387 test(PRD-3.3, PRD-3.4, PRD-9): medical flags & red risk tests
+d232010 docs: reference canonical PRD in CLAUDE.md
+c08204a docs: add canonical GPNet3 Product Requirements Document (v1.3)
+242c74a feat: add decide, constraints, perspectives commands
 ```
 
-## Test Commands
+---
+
+## Important Notes for Next Session
+
+### Files Modified This Session
+- `server/routes/rtw.ts` - New RTW plan API routes
+- `server/routes.ts` - Registered RTW routes
+- `server/routes/rtw.test.ts` - RTW state transition tests
+- `client/src/pages/RTWPlannerPage.tsx` - Added status update UI
+- `factori/features.json` - Marked return_to_work_planner as complete
+
+### Pre-existing Issues (not blockers)
+- Avatar pipeline TypeScript errors (missing schema types)
+- storage.test.ts requires DATABASE_URL to run
+
+### Test Coverage
+- 95 tests passing
+- 14 tests skipped (require specific environment)
+- 1 test file fails without DATABASE_URL (expected)
+
+---
+
+## Quick Start Commands
+
 ```bash
-npm test -- clinicalEvidence clinicalActions   # Run unit tests
-npm test -- clinical-evidence                   # Run integration tests (needs DB)
-npm run dev                                     # Dev server on port 5000
+# Development
+npm run dev              # Start server on port 5000
+npm run db:push          # Apply schema changes
+
+# Testing
+npm test                 # Run all tests
+npm test -- rtw          # Run RTW-specific tests
+
+# Git
+git log --oneline -10    # Recent commits
+git status               # Check changes
 ```
 
-## Login Credentials
+---
+
+## Login Credentials (Seeded Data)
+
 | User | Email | Password | Role | Org |
 |------|-------|----------|------|-----|
 | Admin | admin@gpnet.local | ChangeMe123! | admin | all |
 | Employer | employer@symmetry.local | ChangeMe123! | employer | org-alpha |
 | Doctor | doctor@harborclinic.local | ChangeMe123! | clinician | org-beta |
+
+---
+
+## Session End
+
+- All work committed (pending)
+- Tests passing (95/109)
+- features.json updated (5/17 complete)
+- Ready for commit and next feature
+
+**To resume:**
+1. `/clear` - Clear context
+2. `/reload` - Read CLAUDE.md, features.json, this file
+3. `/continue` - Start next feature (xgboost_prediction_layer)

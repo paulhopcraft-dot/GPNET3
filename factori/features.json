@@ -4,7 +4,7 @@
   "claims_intake_flow": { "pass": true, "notes": "POST /api/cases endpoint, storage.createCase(), NewClaimPage.tsx connected. Tests in server/routes/cases.test.ts" },
   "certificate_ingestion_engine": { "pass": true, "notes": "Claude Vision OCR for PDF/images. Freshdesk sync processes attachments. Review queue at /certificates/review. Services: certificateService.ts, pdfProcessor.ts, certificatePipeline.ts" },
   "medical_flags_and_red_risk": { "pass": true, "notes": "PRD-3.3, PRD-3.4, PRD-9. Clinical evidence evaluation with flags, recommended actions, duty safety status. Tests: clinicalEvidence.test.ts (26), clinicalActions.test.ts (15), clinical-evidence.test.ts (8 integration)" },
-  "return_to_work_planner": { "pass": false, "notes": "" },
+  "return_to_work_planner": { "pass": true, "notes": "PRD-3.2.3, PRD-3.4. RTW plan status management with state transition validation. API: GET/PUT /api/cases/:id/rtw-plan, GET /api/rtw/overview. UI: RTWPlannerPage with status update dialog. Tests: rtw.test.ts (36 tests)" },
 
   "xgboost_prediction_layer": { "pass": false, "notes": "" },
   "freshdesk_ticket_mirroring": { "pass": false, "notes": "" },

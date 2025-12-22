@@ -1,23 +1,208 @@
-import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { PageLayout } from "@/components/PageLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import type { WorkerCase } from "@shared/schema";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import type { WorkerCase, RTWPlanStatus } from "@shared/schema";
 import { isLegitimateCase } from "@shared/schema";
 
+// Valid RTW plan status transitions (PRD-3.2.3)
+const VALID_TRANSITIONS: Record<RTWPlanStatus, RTWPlanStatus[]> = {
+  not_planned: ["planned_not_started"],
+  planned_not_started: ["in_progress", "on_hold", "not_planned"],
+  in_progress: ["working_well", "failing", "on_hold", "completed"],
+  working_well: ["in_progress", "completed", "on_hold"],
+  failing: ["in_progress", "on_hold", "not_planned"],
+  on_hold: ["planned_not_started", "in_progress", "not_planned"],
+  completed: [],
+};
+
+const RTW_STATUS_LABELS: Record<RTWPlanStatus, string> = {
+  not_planned: "Not Planned",
+  planned_not_started: "Planned - Not Started",
+  in_progress: "In Progress",
+  working_well: "Working Well",
+  failing: "Plan Failing",
+  on_hold: "On Hold",
+  completed: "Completed",
+};
+
+function rtwStatusColor(status?: string): string {
+  switch (status) {
+    case "completed":
+    case "working_well":
+      return "bg-emerald-100 text-emerald-800";
+    case "in_progress":
+      return "bg-blue-100 text-blue-800";
+    case "planned_not_started":
+      return "bg-amber-100 text-amber-800";
+    case "failing":
+      return "bg-red-100 text-red-800";
+    case "on_hold":
+      return "bg-slate-100 text-slate-800";
+    default:
+      return "bg-slate-100 text-slate-600";
+  }
+}
+
+interface UpdateStatusDialogProps {
+  workerCase: WorkerCase;
+  isOpen: boolean;
+  onClose: () => void;
+  onUpdate: (caseId: string, status: RTWPlanStatus, reason: string) => void;
+  isUpdating: boolean;
+}
+
+function UpdateStatusDialog({
+  workerCase,
+  isOpen,
+  onClose,
+  onUpdate,
+  isUpdating,
+}: UpdateStatusDialogProps) {
+  const currentStatus = (workerCase.rtwPlanStatus || "not_planned") as RTWPlanStatus;
+  const validTransitions = VALID_TRANSITIONS[currentStatus];
+  const [selectedStatus, setSelectedStatus] = useState<RTWPlanStatus | "">("");
+  const [reason, setReason] = useState("");
+
+  const handleSubmit = () => {
+    if (selectedStatus && reason.trim()) {
+      onUpdate(workerCase.id, selectedStatus, reason);
+      setSelectedStatus("");
+      setReason("");
+    }
+  };
+
+  const handleClose = () => {
+    setSelectedStatus("");
+    setReason("");
+    onClose();
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Update RTW Plan Status</DialogTitle>
+          <DialogDescription>
+            {workerCase.workerName} - Currently: {RTW_STATUS_LABELS[currentStatus]}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid gap-2">
+            <Label htmlFor="status">New Status</Label>
+            {validTransitions.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                This plan is completed. No further transitions are allowed.
+              </p>
+            ) : (
+              <Select
+                value={selectedStatus}
+                onValueChange={(v) => setSelectedStatus(v as RTWPlanStatus)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select new status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {validTransitions.map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {RTW_STATUS_LABELS[status]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="reason">Reason for Change</Label>
+            <Textarea
+              id="reason"
+              placeholder="Explain why the status is changing..."
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              disabled={validTransitions.length === 0}
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={handleClose}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={!selectedStatus || !reason.trim() || isUpdating}
+          >
+            {isUpdating ? "Updating..." : "Update Status"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function RTWPlannerPage() {
+  const queryClient = useQueryClient();
+  const [selectedCase, setSelectedCase] = useState<WorkerCase | null>(null);
+
   const { data: cases = [], isLoading } = useQuery<WorkerCase[]>({
     queryKey: ["/api/gpnet2/cases"],
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async ({
+      caseId,
+      rtwPlanStatus,
+      reason,
+    }: {
+      caseId: string;
+      rtwPlanStatus: RTWPlanStatus;
+      reason: string;
+    }) => {
+      const response = await fetch(`/api/cases/${caseId}/rtw-plan`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ rtwPlanStatus, reason }),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update RTW status");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/gpnet2/cases"] });
+      setSelectedCase(null);
+    },
+  });
+
+  const handleUpdateStatus = (caseId: string, status: RTWPlanStatus, reason: string) => {
+    updateMutation.mutate({ caseId, rtwPlanStatus: status, reason });
+  };
+
   const rtwCases = useMemo(() => {
     return cases.filter((c) => {
       if (!isLegitimateCase(c)) return false;
-      // Focus on cases that are off work or have RTW plans
       return c.workStatus === "Off work" || c.rtwPlanStatus;
     });
   }, [cases]);
@@ -31,34 +216,6 @@ export default function RTWPlannerPage() {
       completed: rtwCases.filter((c) => c.rtwPlanStatus === "completed").length,
     };
   }, [rtwCases]);
-
-  const rtwStatusLabel: Record<string, string> = {
-    not_planned: "Not Planned",
-    planned_not_started: "Planned - Not Started",
-    in_progress: "In Progress",
-    working_well: "Working Well",
-    failing: "Plan Failing",
-    on_hold: "On Hold",
-    completed: "Completed",
-  };
-
-  const rtwStatusColor = (status?: string) => {
-    switch (status) {
-      case "completed":
-      case "working_well":
-        return "bg-emerald-100 text-emerald-800";
-      case "in_progress":
-        return "bg-blue-100 text-blue-800";
-      case "planned_not_started":
-        return "bg-amber-100 text-amber-800";
-      case "failing":
-        return "bg-red-100 text-red-800";
-      case "on_hold":
-        return "bg-slate-100 text-slate-800";
-      default:
-        return "bg-slate-100 text-slate-600";
-    }
-  };
 
   const calculateRecoveryProgress = (dateOfInjury: string) => {
     const injury = new Date(dateOfInjury);
@@ -148,7 +305,7 @@ export default function RTWPlannerPage() {
                       <p className="text-sm text-muted-foreground">{workerCase.company}</p>
                     </div>
                     <Badge className={rtwStatusColor(workerCase.rtwPlanStatus)}>
-                      {rtwStatusLabel[workerCase.rtwPlanStatus || "not_planned"] || "Not Planned"}
+                      {RTW_STATUS_LABELS[(workerCase.rtwPlanStatus || "not_planned") as RTWPlanStatus]}
                     </Badge>
                   </div>
                 </CardHeader>
@@ -181,11 +338,20 @@ export default function RTWPlannerPage() {
                     </div>
                   )}
 
-                  <div className="pt-2 border-t">
-                    <Link to={`/summary/${workerCase.id}`}>
+                  <div className="pt-2 border-t flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => setSelectedCase(workerCase)}
+                    >
+                      <span className="material-symbols-outlined text-sm mr-2">edit</span>
+                      Update Status
+                    </Button>
+                    <Link to={`/summary/${workerCase.id}`} className="flex-1">
                       <Button variant="outline" size="sm" className="w-full">
                         <span className="material-symbols-outlined text-sm mr-2">open_in_new</span>
-                        View Full Case
+                        View Case
                       </Button>
                     </Link>
                   </div>
@@ -195,6 +361,17 @@ export default function RTWPlannerPage() {
           )}
         </div>
       </div>
+
+      {/* Update Status Dialog */}
+      {selectedCase && (
+        <UpdateStatusDialog
+          workerCase={selectedCase}
+          isOpen={!!selectedCase}
+          onClose={() => setSelectedCase(null)}
+          onUpdate={handleUpdateStatus}
+          isUpdating={updateMutation.isPending}
+        />
+      )}
     </PageLayout>
   );
 }

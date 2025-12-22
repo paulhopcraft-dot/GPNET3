@@ -17,6 +17,7 @@ import adminOrganizationRoutes from "./routes/admin/organizations";
 import adminInsurerRoutes from "./routes/admin/insurers";
 import organizationRoutes from "./routes/organization";
 import caseChatRoutes from "./routes/caseChat";
+import rtwRoutes from "./routes/rtw";
 import type { RecoveryTimelineSummary } from "@shared/schema";
 import { evaluateClinicalEvidence } from "./services/clinicalEvidence";
 import { authorize, type AuthRequest } from "./middleware/auth";
@@ -56,6 +57,10 @@ export async function registerRoutes(app: Express): Promise<void> {
 
   // Case Chat routes (JWT-protected, case ownership)
   app.use("/api/cases", caseChatRoutes);
+
+  // RTW Plan routes (JWT-protected, case ownership)
+  app.use("/api/cases", rtwRoutes);
+  app.use("/api/rtw", rtwRoutes);
 
   // Email Drafts routes (JWT-protected)
   app.use("/api", emailDraftRoutes);
