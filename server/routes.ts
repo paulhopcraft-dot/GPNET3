@@ -136,6 +136,62 @@ export async function registerRoutes(app: Express): Promise<void> {
     }
   });
 
+  // Medical Flags & Red Risk - Get cases with high-risk flags
+  app.get("/api/gpnet2/red-flags", authorize(), async (req: AuthRequest, res) => {
+    try {
+      const organizationId = req.user!.organizationId;
+
+      // Log access
+      await logAuditEvent({
+        userId: req.user!.id,
+        organizationId,
+        eventType: AuditEventTypes.CASE_LIST,
+        metadata: { filter: "red_flags" },
+        ...getRequestMetadata(req),
+      });
+
+      const cases = await storage.getGPNet2Cases(organizationId);
+
+      // Filter and evaluate cases for high-risk flags
+      const redFlagCases = cases
+        .map((workerCase) => {
+          const evidence = evaluateClinicalEvidence(workerCase);
+          const highRiskFlags = evidence.flags.filter((f) => f.severity === "high_risk");
+          const warningFlags = evidence.flags.filter((f) => f.severity === "warning");
+
+          return {
+            caseId: workerCase.id,
+            workerName: workerCase.workerName,
+            company: workerCase.company,
+            riskLevel: workerCase.riskLevel,
+            workStatus: workerCase.workStatus,
+            dutySafetyStatus: evidence.dutySafetyStatus,
+            highRiskFlags,
+            warningFlags,
+            totalFlags: evidence.flags.length,
+            hasHighRisk: highRiskFlags.length > 0,
+            recommendedActions: evidence.recommendedActions?.slice(0, 3),
+          };
+        })
+        .filter((c) => c.hasHighRisk || c.riskLevel === "High")
+        .sort((a, b) => b.highRiskFlags.length - a.highRiskFlags.length);
+
+      res.json({
+        success: true,
+        data: redFlagCases,
+        summary: {
+          totalCases: cases.length,
+          redFlagCases: redFlagCases.length,
+          highRiskCount: redFlagCases.filter((c) => c.hasHighRisk).length,
+          unsafeDutyCount: redFlagCases.filter((c) => c.dutySafetyStatus === "unsafe").length,
+        },
+      });
+    } catch (error) {
+      console.error("Failed to fetch red flag cases:", error);
+      res.status(500).json({ error: "Failed to fetch red flag cases" });
+    }
+  });
+
   // Freshdesk sync endpoint (admin only - syncs across all organizations)
   app.post("/api/freshdesk/sync", authorize(["admin"]), async (req: AuthRequest, res) => {
     // Check if Freshdesk is configured before attempting sync
