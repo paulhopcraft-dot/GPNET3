@@ -10,7 +10,7 @@
   "freshdesk_ticket_mirroring": { "pass": true, "notes": "Freshdesk webhook handler, conversation mirroring service, real-time sync via POST /api/freshdesk/webhook. Mirror case conversations with POST /api/freshdesk/mirror/:caseId. 16 unit tests for payload validation and storage integration." },
   "pinecone_rag_integration": { "pass": true, "notes": "RAG service with three-tier knowledge hierarchy (local, industry, global). TF-IDF based retrieval with pre-loaded WorkSafe Victoria industry knowledge. API: GET /api/rag/status, POST /api/rag/query, POST /api/rag/case-guidance/:caseId, GET/POST /api/rag/documents. 29 unit tests for retrieval, knowledge layers, and PRD-9 compliance." },
 
-  "treatment_plan_generator": { "pass": false, "notes": "" },
+  "treatment_plan_generator": { "pass": true, "notes": "Treatment plan generator with phased hours progression, duty modifications, review milestones, warning signals, and safety considerations. API: GET/POST /api/treatment-plans/:caseId, /progression, /milestones, /duties, /validate. WorkSafe Victoria compliance notes included. 44 unit tests for plan generation logic." },
   "timeline_and_recovery_estimator": { "pass": false, "notes": "" },
   "provider_chat_workflow": { "pass": false, "notes": "" },
 
