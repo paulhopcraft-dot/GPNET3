@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import type {
   WorkerCase,
   MedicalCertificate,
@@ -36,10 +37,21 @@ export function deriveSummaryMetaFromCase(workerCase: WorkerCase) {
 }
 
 export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
-  // Calculate expected recovery date (12 weeks from injury)
+  // Fetch dynamic timeline estimate
+  const { data: timelineEstimate } = useQuery({
+    queryKey: [`/api/cases/${workerCase.id}/timeline-estimate`],
+  });
+
+  // Calculate expected recovery date - use dynamic estimate if available, fallback to 12 weeks
   const injuryDate = new Date(workerCase.dateOfInjury);
-  const expectedRecoveryDate = new Date(injuryDate);
-  expectedRecoveryDate.setDate(expectedRecoveryDate.getDate() + (12 * 7)); // 12 weeks
+  const expectedRecoveryDate = timelineEstimate?.estimatedCompletionDate
+    ? new Date(timelineEstimate.estimatedCompletionDate)
+    : (() => {
+        const fallback = new Date(injuryDate);
+        fallback.setDate(fallback.getDate() + 12 * 7);
+        return fallback;
+      })();
+
   const [aiSummary, setAiSummary] = useState<string | null>(workerCase.aiSummary || null);
   const [summaryMeta, setSummaryMeta] = useState(deriveSummaryMetaFromCase(workerCase));
   const [loadingSummary, setLoadingSummary] = useState(false);

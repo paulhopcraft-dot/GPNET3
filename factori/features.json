@@ -11,7 +11,7 @@
   "pinecone_rag_integration": { "pass": false, "notes": "NOT STARTED: No vector DB or RAG implementation exists." },
 
   "treatment_plan_generator": { "pass": false, "notes": "NOT STARTED: No treatment plan services or UI." },
-  "timeline_and_recovery_estimator": { "pass": false, "notes": "PARTIAL: TimelineCard.tsx and RecoveryChart.tsx exist. Estimator uses hardcoded 12-week assumption. Needs dynamic estimation." },
+  "timeline_and_recovery_estimator": { "pass": true, "notes": "COMPLETE: Dynamic timeline estimation based on injury type, risk level, and clinical flags. Backend service (recoveryEstimator.ts), API endpoint (GET /api/cases/:id/timeline-estimate), frontend integration in CaseSummaryPage and CaseDetailPanel. Includes explainability factors, graceful fallback to 12-week default." },
   "provider_chat_workflow": { "pass": true, "notes": "CaseChatPanel.tsx + server/routes/caseChat.ts. Claude AI integration, case context, quick query templates." },
 
   "weekly_checkin_engine": { "pass": false, "notes": "PARTIAL: CheckInsPage.tsx UI exists. Missing backend scheduler/notification engine." },

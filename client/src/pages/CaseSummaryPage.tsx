@@ -17,6 +17,12 @@ export default function CaseSummaryPage() {
 
   const workerCase = cases.find((c) => c.id === id);
 
+  // Fetch dynamic timeline estimate
+  const { data: timelineEstimate } = useQuery({
+    queryKey: [`/api/cases/${id}/timeline-estimate`],
+    enabled: !!id,
+  });
+
   if (isLoading) {
     return (
       <PageLayout title="Case Summary" subtitle="Loading...">
@@ -60,8 +66,14 @@ export default function CaseSummaryPage() {
     }
   };
 
-  const expectedRecoveryDate = new Date(workerCase.dateOfInjury);
-  expectedRecoveryDate.setDate(expectedRecoveryDate.getDate() + 12 * 7);
+  // Use dynamic timeline estimate if available, fallback to 12-week default
+  const expectedRecoveryDate = timelineEstimate?.estimatedCompletionDate
+    ? new Date(timelineEstimate.estimatedCompletionDate)
+    : (() => {
+        const fallback = new Date(workerCase.dateOfInjury);
+        fallback.setDate(fallback.getDate() + 12 * 7);
+        return fallback;
+      })();
 
   return (
     <PageLayout
