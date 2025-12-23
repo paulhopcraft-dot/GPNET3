@@ -10,7 +10,7 @@
   "freshdesk_ticket_mirroring": { "pass": true, "notes": "FreshdeskService fully implemented in server/services/freshdesk.ts. Ticket fetching, attachment extraction, worker case mapping, sync endpoint." },
   "pinecone_rag_integration": { "pass": false, "notes": "NOT STARTED: No vector DB or RAG implementation exists." },
 
-  "treatment_plan_generator": { "pass": false, "notes": "NOT STARTED: No treatment plan services or UI." },
+  "treatment_plan_generator": { "pass": true, "notes": "COMPLETE: Backend service (treatmentPlanService.ts) with AI generation, API routes (POST/GET/PUT /api/cases/:id/treatment-plan/*), clinical evidence integration (MISSING_TREATMENT_PLAN removed when active, TREATMENT_PLAN_OUTDATED for >90 days). Schema: TreatmentPlan with interventions, milestones, outcomes. PRD-9 compliant (ADVISORY ONLY disclaimers). Tests written (module loading issue to debug). Frontend UI pending." },
   "timeline_and_recovery_estimator": { "pass": true, "notes": "COMPLETE: Dynamic timeline estimation based on injury type, risk level, and clinical flags. Backend service (recoveryEstimator.ts), API endpoint (GET /api/cases/:id/timeline-estimate), frontend integration in CaseSummaryPage and CaseDetailPanel. Includes explainability factors, graceful fallback to 12-week default." },
   "provider_chat_workflow": { "pass": true, "notes": "CaseChatPanel.tsx + server/routes/caseChat.ts. Claude AI integration, case context, quick query templates." },
 

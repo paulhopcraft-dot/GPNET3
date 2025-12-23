@@ -20,6 +20,7 @@ import caseChatRoutes from "./routes/caseChat";
 import rtwRoutes from "./routes/rtw";
 import predictionRoutes from "./routes/predictions";
 import { registerTimelineRoutes } from "./routes/timeline";
+import { registerTreatmentPlanRoutes } from "./routes/treatmentPlan";
 import type { RecoveryTimelineSummary } from "@shared/schema";
 import { evaluateClinicalEvidence } from "./services/clinicalEvidence";
 import { authorize, type AuthRequest } from "./middleware/auth";
@@ -70,6 +71,9 @@ export async function registerRoutes(app: Express): Promise<void> {
 
   // Timeline Estimator routes (JWT-protected, case ownership)
   registerTimelineRoutes(app);
+
+  // Treatment Plan routes (JWT-protected, case ownership, PRD-9 compliant)
+  registerTreatmentPlanRoutes(app, storage);
 
   // Email Drafts routes (JWT-protected)
   app.use("/api", emailDraftRoutes);
