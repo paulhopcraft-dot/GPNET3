@@ -1012,7 +1012,8 @@ export type NotificationType =
   | "certificate_expired"
   | "action_overdue"
   | "case_attention_needed"
-  | "weekly_digest";
+  | "weekly_digest"
+  | "check_in_follow_up";
 
 export type NotificationPriority = "low" | "medium" | "high" | "critical";
 export type NotificationStatus = "pending" | "sent" | "failed" | "skipped";
