@@ -3,7 +3,7 @@
     "name": "GPNet3",
     "description": "Claims, compliance, and return-to-work management system for WorkSafe Victoria",
     "version": "1.0.0",
-    "lastUpdated": "2025-12-16"
+    "lastUpdated": "2025-12-24"
   },
   "stack": {
     "backend": "Express + TypeScript",
@@ -193,7 +193,31 @@
       "notes": "Implemented 2025-12-16. Code complete and pushed. Migration pending."
     }
   ],
-  "incomplete": [],
+  "incomplete": [
+    {
+      "id": "F020",
+      "name": "Weekly Check-ins",
+      "description": "Context-aware worker check-in system with conversational engine supporting form (V1) and voice/avatar (V2)",
+      "status": "planned",
+      "branch": "claude/weekly-checkins-xg7ww",
+      "handoff": ".claude/handoff-weekly-checkins.md",
+      "files": [],
+      "acceptanceCriteria": [
+        "Context-aware conversation scripts generated per case",
+        "Physio, mental health, general templates available",
+        "Certificate expiry prompts included when relevant",
+        "Workers receive check-in links via email",
+        "SMS reminder sent after 24-48hrs if no response",
+        "Check-in form works on mobile without login",
+        "Responses stored with extracted metrics",
+        "Pain/mood/compliance trends visible on case detail",
+        "Escalation triggers create notifications",
+        "SMS usage tracked for billing",
+        "Provider-agnostic (Twilio/Vonage/Plivo via config)"
+      ],
+      "notes": "Designed 2025-12-24. Full spec in handoff doc. V1=typing, V2=voice+avatar."
+    }
+  ],
   "resolved": [
     {
       "id": "I001",

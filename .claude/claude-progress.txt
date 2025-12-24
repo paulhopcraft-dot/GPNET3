@@ -1,0 +1,63 @@
+# Claude Progress - Session 2025-12-24
+
+## Session Summary
+
+Designed the Weekly Check-ins feature (F020) through collaborative discussion.
+
+## What Was Completed
+
+1. Reviewed domain_memory.json - all 19 existing features complete
+2. Identified Weekly Check-ins (spec 09) as next priority feature
+3. Designed full conversational architecture through discussion:
+   - Context-aware question generation based on case state
+   - Case-type templates (physio, mental health, general)
+   - Multi-channel delivery (email, SMS, Zoom, voice)
+   - V1 = typing (web form), V2 = voice + avatar
+   - Escalation triggers and data flow
+4. Created comprehensive handoff document
+5. Created and pushed feature branch
+
+## What's In Progress
+
+- **Feature:** Weekly Check-ins (F020)
+- **Branch:** `claude/weekly-checkins-xg7ww`
+- **Handoff:** `.claude/handoff-weekly-checkins.md`
+- **Status:** Planned, ready for implementation
+
+## Exact Next Step
+
+1. Checkout branch: `git checkout claude/weekly-checkins-xg7ww`
+2. Read handoff: `.claude/handoff-weekly-checkins.md`
+3. Start with Implementation Step 1: Schema + Migration
+
+## Key Decisions Made
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| Interaction versioning | V1=form, V2=voice+avatar | Build data layer first, add renderers later |
+| SMS provider | Abstract (Twilio/Vonage/Plivo) | Config-based selection, no vendor lock-in |
+| Question generation | Context-aware, not static | Reviews case type, cert status, trends before asking |
+| Pain scale | 1=none, 10=severe | Medical convention |
+| Check-in target | Active RTW cases only | ~100 workers/week expected volume |
+| Architecture | Conversation nodes with branching | Supports future voice/avatar without rewrite |
+
+## Blockers
+
+None.
+
+## Files Changed This Session
+
+- `.claude/handoff-weekly-checkins.md` (created, updated)
+- `.claude/domain_memory.json` (updated - added F020 to incomplete)
+
+## Commits Made
+
+1. `1702796` - docs: add weekly check-ins feature implementation plan
+2. `10e0c96` - docs: update weekly check-ins with conversational architecture
+
+## To Resume
+
+```bash
+git checkout claude/weekly-checkins-xg7ww
+# Then say: "Continue with weekly check-ins - see handoff doc"
+```
