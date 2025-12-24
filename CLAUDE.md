@@ -3,6 +3,27 @@
 <!-- Import project instructions -->
 @import .claude/CLAUDE.md
 
+## Autonomous Mode: ENABLED
+
+**User Preference: Operate autonomously with proactive command usage.**
+
+### Automatic (No Permission Required):
+- `/prd-check` - Before any changes (regulated healthcare project)
+- `/verify` - After completing features
+- `/constraints` - For complex features upfront
+- Task agents - For efficiency (exploration, verification)
+- `/project:status` - When resuming work
+
+### Suggest & Execute:
+- `/decide` - High-stakes decisions (announce, then execute)
+- `/perspectives` - Major architectural choices (announce, then execute)
+- `/project:handoff` - End of session (suggest first)
+
+### Never Without Asking:
+- Destructive operations (delete, force push)
+- Major architectural changes
+- Changing project structure
+
 ## Workspace Management
 
 When a task is substantial (>2hrs estimated, >5 files affected, new API endpoints, schema changes, or high priority), create a feature branch and prompt the user to open a new Claude Code window for focused work.
