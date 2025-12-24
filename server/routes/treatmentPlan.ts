@@ -10,11 +10,25 @@
  */
 
 import type { Express, Request, Response } from "express";
+import { z } from "zod";
 import type { GenerateTreatmentPlanRequest, UpdateTreatmentPlanRequest } from "../services/treatmentPlanService";
 import { generateTreatmentPlan, getTreatmentPlan, updateTreatmentPlan } from "../services/treatmentPlanService";
 import type { IStorage } from "../storage";
 import { requireCaseOwnership } from "../middleware/caseOwnership";
 import { csrfProtection } from "../middleware/security";
+
+// Input validation schemas
+const GeneratePlanSchema = z.object({
+  additionalContext: z.string().max(10000).optional(),
+});
+
+const UpdatePlanSchema = z.object({
+  status: z.enum(["active", "completed", "archived"]).optional(),
+  notes: z.string().max(5000).optional(),
+}).refine(
+  (data) => data.status !== undefined || data.notes !== undefined,
+  { message: "At least one field (status or notes) must be provided" }
+);
 
 export function registerTreatmentPlanRoutes(app: Express, storage: IStorage) {
   /**
@@ -28,17 +42,25 @@ export function registerTreatmentPlanRoutes(app: Express, storage: IStorage) {
     async (req: Request, res: Response) => {
       try {
         const { id: caseId } = req.params;
-        const { additionalContext } = req.body;
         const organizationId = (req.user as any)?.organizationId;
 
         if (!organizationId) {
           return res.status(401).json({ error: "Unauthorized" });
         }
 
+        // Validate input
+        const validation = GeneratePlanSchema.safeParse(req.body);
+        if (!validation.success) {
+          return res.status(400).json({
+            error: "Invalid request body",
+            details: validation.error.errors[0].message,
+          });
+        }
+
         const request: GenerateTreatmentPlanRequest = {
           caseId,
           organizationId,
-          additionalContext: additionalContext || "",
+          additionalContext: validation.data.additionalContext || "",
         };
 
         const plan = await generateTreatmentPlan(storage, request);
@@ -47,7 +69,6 @@ export function registerTreatmentPlanRoutes(app: Express, storage: IStorage) {
         console.error("[TreatmentPlanRoutes] Error generating plan:", error);
         return res.status(500).json({
           error: "Failed to generate treatment plan",
-          details: error instanceof Error ? error.message : "Unknown error",
         });
       }
     }
@@ -79,7 +100,6 @@ export function registerTreatmentPlanRoutes(app: Express, storage: IStorage) {
         console.error("[TreatmentPlanRoutes] Error fetching plan:", error);
         return res.status(500).json({
           error: "Failed to fetch treatment plan",
-          details: error instanceof Error ? error.message : "Unknown error",
         });
       }
     }
@@ -96,20 +116,27 @@ export function registerTreatmentPlanRoutes(app: Express, storage: IStorage) {
     async (req: Request, res: Response) => {
       try {
         const { id: caseId, planId } = req.params;
-        const updates: UpdateTreatmentPlanRequest = req.body;
         const organizationId = (req.user as any)?.organizationId;
 
         if (!organizationId) {
           return res.status(401).json({ error: "Unauthorized" });
         }
 
-        const plan = await updateTreatmentPlan(storage, caseId, organizationId, planId, updates);
+        // Validate input
+        const validation = UpdatePlanSchema.safeParse(req.body);
+        if (!validation.success) {
+          return res.status(400).json({
+            error: "Invalid request body",
+            details: validation.error.errors[0].message,
+          });
+        }
+
+        const plan = await updateTreatmentPlan(storage, caseId, organizationId, planId, validation.data);
         return res.json(plan);
       } catch (error) {
         console.error("[TreatmentPlanRoutes] Error updating plan:", error);
         return res.status(500).json({
           error: "Failed to update treatment plan",
-          details: error instanceof Error ? error.message : "Unknown error",
         });
       }
     }
@@ -142,7 +169,6 @@ export function registerTreatmentPlanRoutes(app: Express, storage: IStorage) {
         console.error("[TreatmentPlanRoutes] Error fetching history:", error);
         return res.status(500).json({
           error: "Failed to fetch treatment plan history",
-          details: error instanceof Error ? error.message : "Unknown error",
         });
       }
     }
