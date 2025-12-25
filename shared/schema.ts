@@ -1103,3 +1103,283 @@ export const insertOrganizationSchema = createInsertSchema(organizations).omit({
 
 export type Organization = typeof organizations.$inferSelect;
 export type InsertOrganization = z.infer<typeof insertOrganizationSchema>;
+
+// =====================================================
+// Weekly Check-ins Engine v1 - Worker Welfare Monitoring
+// =====================================================
+
+// Case types for check-in context
+export type CheckInCaseType = "physio" | "mental_health" | "msk" | "general";
+export type RTWStage = "not_started" | "early" | "mid" | "near_completion" | "completed";
+export type CurrentDuties = "not_working" | "modified" | "full";
+export type CertificateStatus = "valid" | "expiring_soon" | "expired" | "none";
+export type TrendDirection = "improving" | "stable" | "declining" | "unknown";
+
+// Check-in delivery and interaction
+export type DeliveryChannel = "email" | "sms" | "zoom" | "voice";
+export type InteractionMode = "form" | "voice" | "avatar";
+export type CheckInStatus = "pending" | "scheduled" | "sent" | "reminded" | "in_progress" | "completed" | "expired" | "missed";
+
+// Conversation node types
+export type ConversationNodeType = "statement" | "question" | "conditional";
+export type ResponseType = "scale" | "choice" | "yes_no" | "free_text" | "number" | "none";
+export type ConditionOperator = "lt" | "gt" | "eq" | "lte" | "gte" | "contains";
+
+export interface ConversationNodeCondition {
+  field: string;
+  operator: ConditionOperator;
+  value: string | number | boolean;
+}
+
+export interface ConversationNodeBranch {
+  condition: string;
+  nextNodeId: string;
+}
+
+export interface ConversationNode {
+  id: string;
+  type: ConversationNodeType;
+  prompt: string;
+  responseType: ResponseType;
+  options?: string[];
+  scaleMin?: number;
+  scaleMax?: number;
+  scaleLabels?: { min: string; max: string };
+  extractAs?: string; // e.g., "painScore", "moodScore"
+  showWhen?: ConversationNodeCondition[];
+  branches?: ConversationNodeBranch[];
+  defaultNextNodeId?: string;
+}
+
+export interface CaseContext {
+  caseId: string;
+  caseType: CheckInCaseType;
+  rtwStage: RTWStage;
+  currentDuties: CurrentDuties;
+  certificateStatus: CertificateStatus;
+  certificateExpiresInDays?: number;
+  certificateExpiryDate?: string;
+  lastCheckIn?: {
+    painScore?: number;
+    moodScore?: number;
+    exerciseCompliance?: number;
+    date: string;
+  };
+  trend: TrendDirection;
+  openActions: string[];
+  workerName: string;
+}
+
+// Escalation trigger types
+export type EscalationSeverity = "high" | "medium" | "low";
+export type EscalationReason =
+  | "pain_spike"
+  | "severe_pain"
+  | "mood_crash"
+  | "declining_trend"
+  | "low_compliance"
+  | "concerning_language"
+  | "disengagement"
+  | "certificate_not_booked";
+
+export interface EscalationTrigger {
+  reason: EscalationReason;
+  severity: EscalationSeverity;
+  message: string;
+  details?: string;
+}
+
+// Conversation scripts table
+export const conversationScripts = pgTable("conversation_scripts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 255 }).notNull(),
+  caseType: varchar("case_type", { length: 50 }), // null = all case types
+  nodes: jsonb("nodes").notNull().$type<ConversationNode[]>(),
+  startNodeId: varchar("start_node_id", { length: 50 }).notNull(),
+  isActive: boolean("is_active").default(true),
+  isSystem: boolean("is_system").default(false), // true for built-in templates
+  organizationId: varchar("organization_id"), // null = system-wide default
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Check-ins table
+export const checkIns = pgTable("check_ins", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  caseId: varchar("case_id").notNull().references(() => workerCases.id, { onDelete: "cascade" }),
+  workerId: varchar("worker_id"), // Denormalized for lookup
+  scriptId: varchar("script_id").references(() => conversationScripts.id),
+
+  // Access token for unauthenticated form access
+  token: varchar("token", { length: 64 }).notNull().unique(),
+
+  // Delivery configuration
+  deliveryChannel: varchar("delivery_channel", { length: 20 }).notNull().default("email"),
+  interactionMode: varchar("interaction_mode", { length: 20 }).notNull().default("form"),
+
+  // Scheduling
+  scheduledFor: timestamp("scheduled_for").notNull(),
+  expiresAt: timestamp("expires_at"),
+
+  // Zoom integration (V2)
+  zoomMeetingId: varchar("zoom_meeting_id", { length: 255 }),
+  zoomJoinUrl: varchar("zoom_join_url", { length: 500 }),
+
+  // Status tracking
+  status: varchar("status", { length: 50 }).notNull().default("pending"),
+  sentAt: timestamp("sent_at"),
+  reminderSentAt: timestamp("reminder_sent_at"),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+
+  // Context snapshot at time of generation
+  contextSnapshot: jsonb("context_snapshot").$type<CaseContext>(),
+
+  organizationId: varchar("organization_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Check-in transcripts (responses)
+export const checkInTranscripts = pgTable("check_in_transcripts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  checkInId: varchar("check_in_id").notNull().references(() => checkIns.id, { onDelete: "cascade" }),
+
+  // The conversation
+  scriptUsed: jsonb("script_used").$type<ConversationNode[]>(),
+  responses: jsonb("responses").$type<Record<string, string | number | boolean>>(),
+  fullTranscript: text("full_transcript"), // Human-readable, especially for voice/avatar
+
+  // Extracted metrics for trend analysis
+  painScore: integer("pain_score"),
+  moodScore: integer("mood_score"),
+  exerciseCompliance: integer("exercise_compliance"), // days 0-7
+  dutyFeedback: varchar("duty_feedback", { length: 50 }),
+  certificateBooked: boolean("certificate_booked"),
+
+  // Analysis
+  escalationTriggered: boolean("escalation_triggered").default(false),
+  escalationReasons: jsonb("escalation_reasons").$type<EscalationTrigger[]>(),
+  sentiment: varchar("sentiment", { length: 20 }), // positive, neutral, negative, concerning
+
+  submittedAt: timestamp("submitted_at").defaultNow(),
+});
+
+// Worker check-in preferences
+export const workerCheckInPreferences = pgTable("worker_check_in_preferences", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  workerId: varchar("worker_id").notNull(),
+  caseId: varchar("case_id").references(() => workerCases.id, { onDelete: "cascade" }),
+
+  preferredChannel: varchar("preferred_channel", { length: 20 }).default("email"),
+  preferredMode: varchar("preferred_mode", { length: 20 }).default("form"),
+  preferredDay: varchar("preferred_day", { length: 10 }), // monday, tuesday, etc
+  preferredTime: varchar("preferred_time", { length: 5 }), // HH:MM
+  timezone: varchar("timezone", { length: 50 }).default("Australia/Melbourne"),
+  language: varchar("language", { length: 10 }).default("en"),
+  accessibilityNeeds: jsonb("accessibility_needs").$type<string[]>(),
+
+  // Contact info
+  phoneNumber: varchar("phone_number", { length: 20 }),
+  email: varchar("email", { length: 255 }),
+
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Message send log (for billing and tracking)
+export const messageSendLog = pgTable("message_send_log", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull(),
+  checkInId: varchar("check_in_id").references(() => checkIns.id, { onDelete: "set null" }),
+
+  // Message details
+  channel: varchar("channel", { length: 20 }).notNull(), // sms, email, voice, zoom
+  provider: varchar("provider", { length: 50 }), // twilio, vonage, plivo
+  recipient: varchar("recipient", { length: 255 }).notNull(),
+  messageType: varchar("message_type", { length: 50 }), // check_in_link, reminder, etc
+
+  // Status
+  status: varchar("status", { length: 50 }).notNull(), // pending, sent, delivered, failed
+  providerMessageId: varchar("provider_message_id", { length: 255 }),
+  failureReason: text("failure_reason"),
+
+  // Billing
+  costCents: integer("cost_cents"),
+  billedCents: integer("billed_cents"),
+
+  sentAt: timestamp("sent_at").defaultNow(),
+  deliveredAt: timestamp("delivered_at"),
+});
+
+// Check-in insights (computed after each check-in)
+export const checkInInsights = pgTable("check_in_insights", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  caseId: varchar("case_id").notNull().references(() => workerCases.id, { onDelete: "cascade" }),
+  checkInId: varchar("check_in_id").notNull().references(() => checkIns.id, { onDelete: "cascade" }),
+
+  // Trend analysis
+  painTrend: varchar("pain_trend", { length: 20 }),
+  moodTrend: varchar("mood_trend", { length: 20 }),
+  complianceTrend: varchar("compliance_trend", { length: 20 }),
+
+  // Computed recommendations
+  recommendations: jsonb("recommendations").$type<string[]>(),
+
+  // Risk scoring
+  riskScore: integer("risk_score"), // 0-100
+  riskFactors: jsonb("risk_factors").$type<string[]>(),
+
+  // Feed into smart summary
+  summaryContext: text("summary_context"),
+
+  computedAt: timestamp("computed_at").defaultNow(),
+});
+
+// Insert schemas
+export const insertConversationScriptSchema = createInsertSchema(conversationScripts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCheckInSchema = createInsertSchema(checkIns).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCheckInTranscriptSchema = createInsertSchema(checkInTranscripts).omit({
+  id: true,
+  submittedAt: true,
+});
+
+export const insertWorkerCheckInPreferencesSchema = createInsertSchema(workerCheckInPreferences).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertMessageSendLogSchema = createInsertSchema(messageSendLog).omit({
+  id: true,
+  sentAt: true,
+});
+
+export const insertCheckInInsightsSchema = createInsertSchema(checkInInsights).omit({
+  id: true,
+  computedAt: true,
+});
+
+// Types
+export type ConversationScriptDB = typeof conversationScripts.$inferSelect;
+export type InsertConversationScript = z.infer<typeof insertConversationScriptSchema>;
+export type CheckInDB = typeof checkIns.$inferSelect;
+export type InsertCheckIn = z.infer<typeof insertCheckInSchema>;
+export type CheckInTranscriptDB = typeof checkInTranscripts.$inferSelect;
+export type InsertCheckInTranscript = z.infer<typeof insertCheckInTranscriptSchema>;
+export type WorkerCheckInPreferencesDB = typeof workerCheckInPreferences.$inferSelect;
+export type InsertWorkerCheckInPreferences = z.infer<typeof insertWorkerCheckInPreferencesSchema>;
+export type MessageSendLogDB = typeof messageSendLog.$inferSelect;
+export type InsertMessageSendLog = z.infer<typeof insertMessageSendLogSchema>;
+export type CheckInInsightsDB = typeof checkInInsights.$inferSelect;
+export type InsertCheckInInsights = z.infer<typeof insertCheckInInsightsSchema>;
