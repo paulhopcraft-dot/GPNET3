@@ -16,6 +16,7 @@ import { Badge } from "./ui/badge";
 import { TerminationPanel } from "./TerminationPanel";
 import { TimelineCard } from "./TimelineCard";
 import { CertificateCard } from "./CertificateCard";
+import { TreatmentPlanCard } from "./TreatmentPlanCard";
 import { SummaryCard } from "./SummaryCard";
 import { EmailDraftButton } from "./EmailDraftButton";
 import { CaseChatPanel } from "./CaseChatPanel";
@@ -686,6 +687,8 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
           <TimelineCard caseId={workerCase.id} />
 
           <CertificateCard caseId={workerCase.id} />
+
+          <TreatmentPlanCard caseId={workerCase.id} />
 
           <div>
             <h3 className="text-sm font-medium text-muted-foreground mb-2">Company</h3>
