@@ -38,6 +38,23 @@ All treatment decisions must be made by qualified healthcare professionals. This
 
 WorkSafe Victoria compliance: This is a coordination tool, not a medical directive.`;
 
+/**
+ * Sanitize user input to prevent prompt injection attacks
+ * - Removes control characters that could break prompt structure
+ * - Limits length (already enforced by Zod, but defensive)
+ * - Escapes XML special characters for safe interpolation
+ */
+function sanitizeUserInput(input: string): string {
+  return input
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "") // Remove control chars
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;")
+    .substring(0, 5000); // Hard limit, even though Zod validates at 10000
+}
+
 export interface GenerateTreatmentPlanRequest {
   caseId: string;
   organizationId: string;
@@ -116,7 +133,7 @@ RECOVERY ESTIMATE:
 CLINICAL FLAGS:
 ${clinicalFlags.length > 0 ? clinicalFlags.map((f) => `- ${f}`).join("\n") : "No clinical flags"}
 
-${additionalContext ? `ADDITIONAL CONTEXT:\n${additionalContext}\n` : ""}
+${additionalContext ? `<user_provided_context>\n${sanitizeUserInput(additionalContext)}\n</user_provided_context>\n` : ""}
 
 Generate a structured treatment plan with:
 1. **Interventions**: Specific treatment types (physiotherapy, medication, specialist referrals, workplace modifications, etc.)
@@ -302,11 +319,14 @@ export async function generateTreatmentPlan(
     const history = existingStatus.treatmentPlanHistory || [];
 
     if (existingPlan && existingPlan.status === "active") {
-      // Mark old plan as superseded
-      existingPlan.status = "superseded";
-      existingPlan.supersededAt = now;
-      existingPlan.supersededBy = id;
-      history.push(existingPlan);
+      // Create new superseded plan object (immutable update)
+      const supersededPlan: TreatmentPlan = {
+        ...existingPlan,
+        status: "superseded",
+        supersededAt: now,
+        supersededBy: id,
+      };
+      history.push(supersededPlan);
     }
 
     // Update case with new plan

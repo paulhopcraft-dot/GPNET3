@@ -15,7 +15,7 @@ import type { GenerateTreatmentPlanRequest, UpdateTreatmentPlanRequest } from ".
 import { generateTreatmentPlan, getTreatmentPlan, updateTreatmentPlan } from "../services/treatmentPlanService";
 import type { IStorage } from "../storage";
 import { requireCaseOwnership } from "../middleware/caseOwnership";
-import { csrfProtection } from "../middleware/security";
+import { csrfProtection, aiRateLimiter } from "../middleware/security";
 
 // Input validation schemas
 const GeneratePlanSchema = z.object({
@@ -34,9 +34,11 @@ export function registerTreatmentPlanRoutes(app: Express, storage: IStorage) {
   /**
    * POST /api/cases/:id/treatment-plan/generate
    * Generate new treatment plan with AI
+   * Rate limited: 3 requests per hour per IP (expensive Claude API calls)
    */
   app.post(
     "/api/cases/:id/treatment-plan/generate",
+    aiRateLimiter,
     csrfProtection,
     requireCaseOwnership(),
     async (req: Request, res: Response) => {
