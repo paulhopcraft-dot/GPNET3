@@ -1,15 +1,19 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import type { IStorage } from "../storage";
-import type { WorkerCase, TreatmentPlan, InsertNotification } from "@shared/schema";
+import type { WorkerCase, TreatmentPlan, CaseClinicalStatus } from "@shared/schema";
 
-// Mock Anthropic SDK
+// Create a shared mock function that can be configured per test
+const mockMessagesCreate = vi.fn();
+
+// Mock Anthropic SDK with shared mock function
 vi.mock("@anthropic-ai/sdk", () => {
-  const MockAnthropic = vi.fn().mockImplementation(() => ({
-    messages: {
-      create: vi.fn(),
-    },
-  }));
-  return { default: MockAnthropic };
+  return {
+    default: vi.fn().mockImplementation(() => ({
+      messages: {
+        create: mockMessagesCreate,
+      },
+    })),
+  };
 });
 
 // Mock audit logger
@@ -105,10 +109,8 @@ describe("Treatment Plan Service", () => {
 
       vi.mocked(storage.getGPNet2CaseById).mockResolvedValue(mockCase);
 
-      // Mock AI response
-      const Anthropic = (await import("@anthropic-ai/sdk")).default;
-      const mockClient = new Anthropic({ apiKey: "test-key" });
-      vi.mocked(mockClient.messages.create).mockResolvedValue({
+      // Mock AI response using shared mock function
+      mockMessagesCreate.mockResolvedValue({
         content: [
           {
             type: "text",
@@ -135,7 +137,7 @@ describe("Treatment Plan Service", () => {
             }),
           },
         ],
-      } as any);
+      });
 
       // Act
       const result = await generateTreatmentPlan(storage, {
@@ -181,9 +183,8 @@ describe("Treatment Plan Service", () => {
       } as WorkerCase;
       vi.mocked(storage.getGPNet2CaseById).mockResolvedValue(mockCase);
 
-      const Anthropic = (await import("@anthropic-ai/sdk")).default;
-      const mockClient = new Anthropic({ apiKey: "test-key" });
-      vi.mocked(mockClient.messages.create).mockRejectedValue(new Error("Timeout"));
+      // Mock AI timeout using shared mock function
+      mockMessagesCreate.mockRejectedValue(new Error("Timeout"));
 
       // Act & Assert
       await expect(
@@ -202,11 +203,10 @@ describe("Treatment Plan Service", () => {
       } as WorkerCase;
       vi.mocked(storage.getGPNet2CaseById).mockResolvedValue(mockCase);
 
-      const Anthropic = (await import("@anthropic-ai/sdk")).default;
-      const mockClient = new Anthropic({ apiKey: "test-key" });
-      vi.mocked(mockClient.messages.create).mockResolvedValue({
+      // Mock malformed AI response using shared mock function
+      mockMessagesCreate.mockResolvedValue({
         content: [{ type: "text", text: "INVALID JSON {{{" }],
-      } as any);
+      });
 
       // Act
       const result = await generateTreatmentPlan(storage, {
@@ -251,9 +251,8 @@ describe("Treatment Plan Service", () => {
       } as WorkerCase;
       vi.mocked(storage.getGPNet2CaseById).mockResolvedValue(mockCase);
 
-      const Anthropic = (await import("@anthropic-ai/sdk")).default;
-      const mockClient = new Anthropic({ apiKey: "test-key" });
-      vi.mocked(mockClient.messages.create).mockResolvedValue({
+      // Mock AI response for superseding using shared mock function
+      mockMessagesCreate.mockResolvedValue({
         content: [
           {
             type: "text",
@@ -266,7 +265,7 @@ describe("Treatment Plan Service", () => {
             }),
           },
         ],
-      } as any);
+      });
 
       // Act
       const result = await generateTreatmentPlan(storage, {
@@ -278,10 +277,10 @@ describe("Treatment Plan Service", () => {
       // Assert: Old plan should be superseded
       const updateCall = vi.mocked(storage.updateClinicalStatus).mock.calls[0];
       expect(updateCall).toBeDefined();
-      const updatedStatus = updateCall[1];
+      const updatedStatus = updateCall[2] as CaseClinicalStatus;
       expect(updatedStatus.treatmentPlanHistory).toHaveLength(1);
-      expect(updatedStatus.treatmentPlanHistory[0].status).toBe("superseded");
-      expect(updatedStatus.treatmentPlanHistory[0].supersededBy).toBe(result.id);
+      expect(updatedStatus.treatmentPlanHistory![0].status).toBe("superseded");
+      expect(updatedStatus.treatmentPlanHistory![0].supersededBy).toBe(result.id);
     });
 
     it("should include confidence score based on data quality", async () => {
@@ -299,9 +298,8 @@ describe("Treatment Plan Service", () => {
       } as WorkerCase;
       vi.mocked(storage.getGPNet2CaseById).mockResolvedValue(mockCase);
 
-      const Anthropic = (await import("@anthropic-ai/sdk")).default;
-      const mockClient = new Anthropic({ apiKey: "test-key" });
-      vi.mocked(mockClient.messages.create).mockResolvedValue({
+      // Mock AI response for confidence score using shared mock function
+      mockMessagesCreate.mockResolvedValue({
         content: [
           {
             type: "text",
@@ -314,7 +312,7 @@ describe("Treatment Plan Service", () => {
             }),
           },
         ],
-      } as any);
+      });
 
       // Act
       const result = await generateTreatmentPlan(storage, {
