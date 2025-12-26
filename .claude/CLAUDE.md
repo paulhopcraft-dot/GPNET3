@@ -1,5 +1,19 @@
 # GPNet3 Project Instructions
 
+## Toolkit Version: v3.0 (Context-Optimized Mode)
+
+**Status**: ACTIVE ✓
+
+When v3.0 is active, use the template-based command generation system:
+- Read `.claude/v3/context-strategy.json` at session start
+- Use templates from `.claude/v3/templates/` instead of individual commands
+- Apply meta-prompting with RAG for specialized command generation
+- Cache generated commands in `.claude/v3/cache/` for session reuse
+
+**Fallback**: If v3.0 files not found, use v2.4 commands from `.claude/commands/`
+
+---
+
 ## Project Overview
 
 GPNet3 is a claims, compliance, and return-to-work (RTW) management system for WorkSafe Victoria compliance. It aggregates Freshdesk tickets into worker cases, tracks medical certificates, and surfaces compliance indicators for clinicians, employers, and insurers.
