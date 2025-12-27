@@ -1,24 +1,121 @@
 ---
-description: Show project progress dashboard
+name: status
+version: 2.0.0
+description: Show current project progress and status (with optional board view)
 ---
 
-# /project:status
+# Status: $ARGUMENTS
 
-Read features.json (or PROJECT_INDEX.json if no features.json) and report:
+Read @features.json and @claude-progress.txt, then report.
 
-Progress: X/Y features complete (Z%)
+---
 
-COMPLETED:
-- F001: [name]
-- F002: [name]
+## Options
 
-IN PROGRESS:
-- F00X: [name] - [status/blocker]
+- `/status` - Standard summary view
+- `/status --board` - Kanban-style board view
+- `/status --compact` - One-line summary
 
-REMAINING:
-- F00X: [name] (depends on: F00X)
+---
 
-NEXT UP: F00X - [name]
+## Standard View (Default)
 
-BLOCKERS:
-- [list any blockers]
+### Progress Summary
+```
+Total Features: X
+Completed: Y (Z%)
+In Progress: A
+Remaining: B
+```
+
+### Current Status
+- Last completed: [feature name]
+- Currently working on: [feature name or "none"]
+- Blockers: [list any blockers]
+
+### Next Up
+1. [Next feature by priority/dependency]
+2. [Following feature]
+3. [Following feature]
+
+### Recent Activity
+[Last 5 entries from claude-progress.txt]
+
+### Health Check
+- [ ] Tests passing
+- [ ] No uncommitted changes (or list them)
+- [ ] No merge conflicts
+
+---
+
+## Board View (/status --board)
+
+Display features in Kanban-style columns:
+
+```
+Project Board: [project-name]
+
++------------------+------------------+------------------+
+|    TODO (3)      |  IN PROGRESS (1) |    DONE (5)      |
++------------------+------------------+------------------+
+| F010: API Auth   | F009: Login UI   | F001: Setup      |
+| F011: Dashboard  |                  | F002: Database   |
+| F012: Reports    |                  | F003: Models     |
+|                  |                  | F004: API Base   |
+|                  |                  | F005: Tests      |
++------------------+------------------+------------------+
+
+Progress: [==========----] 5/8 (62%)
+
+Worktrees Active: 1
+  - F009: ../worktrees/F009-login-ui
+```
+
+### Board Generation Logic
+
+1. Read features.json
+2. Categorize by status:
+   - passes: false, status: pending -> TODO
+   - passes: false, status: in_progress -> IN PROGRESS
+   - passes: true -> DONE
+3. Format as columns
+4. Show active worktrees
+5. Calculate progress bar
+
+---
+
+## Compact View (/status --compact)
+
+One-line summary:
+
+```
+govertical: 5/8 features (62%) | In Progress: F009 | Tests: PASS
+```
+
+---
+
+## Integration with Worktrees
+
+Show worktree status alongside features:
+
+```
+IN PROGRESS (1)
+  F009: Login UI
+    - Worktree: ../worktrees/F009-login-ui
+    - Branch: feature/F009-login-ui
+    - Status: 3 uncommitted changes
+```
+
+---
+
+## Health Indicators
+
+| Indicator | Good | Warning | Bad |
+|-----------|------|---------|-----|
+| Tests | All passing | Some skipped | Failing |
+| Git | Clean | Uncommitted | Conflicts |
+| Build | Success | Warnings | Failed |
+
+---
+
+**Show project status in the requested format.**

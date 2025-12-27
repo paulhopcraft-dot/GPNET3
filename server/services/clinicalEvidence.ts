@@ -35,6 +35,13 @@ function latestCertificateDate(workerCase: WorkerCase): Date | null {
 }
 
 function hasMeaningfulTreatmentPlan(workerCase: WorkerCase): boolean {
+  // Check for active AI-generated treatment plan
+  const treatmentPlan = workerCase.clinical_status_json?.treatmentPlan;
+  if (treatmentPlan && treatmentPlan.status === "active") {
+    return true;
+  }
+
+  // Fallback: check for medical constraints or functional capacity documentation
   const constraints = workerCase.medicalConstraints;
   const functional = workerCase.functionalCapacity;
   const specialistFunctional = workerCase.specialistReportSummary?.functionalSummary;
@@ -70,6 +77,20 @@ export function evaluateClinicalEvidence(workerCase: WorkerCase): ClinicalEviden
       severity: "warning",
       message: "No clear treatment plan, constraints, or capacity documented.",
     });
+  }
+
+  // Check for outdated treatment plan (>90 days old)
+  const treatmentPlan = workerCase.clinical_status_json?.treatmentPlan;
+  if (treatmentPlan && treatmentPlan.status === "active" && treatmentPlan.generatedAt) {
+    const planAge = daysSince(new Date(treatmentPlan.generatedAt));
+    if (planAge > 90) {
+      addFlag(flags, {
+        code: "TREATMENT_PLAN_OUTDATED",
+        severity: "warning",
+        message: `Treatment plan is ${planAge} days old and may need review.`,
+        details: `Plan generated on ${new Date(treatmentPlan.generatedAt).toLocaleDateString("en-AU")}`,
+      });
+    }
   }
 
   let hasCurrentCertificate = false;

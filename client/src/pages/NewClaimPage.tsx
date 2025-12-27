@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { PageLayout } from "@/components/PageLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,10 +15,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function NewClaimPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -34,20 +37,38 @@ export default function NewClaimPage() {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Simulate API call - in production this would POST to an API
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Build summary from injury type and description
+      const summary = formData.injuryDescription
+        ? `${formData.injuryType}: ${formData.injuryDescription}`
+        : formData.injuryType || undefined;
+
+      const response = await apiRequest("POST", "/api/cases", {
+        workerName: formData.workerName,
+        company: formData.company,
+        dateOfInjury: formData.dateOfInjury,
+        workStatus: formData.workStatus,
+        riskLevel: formData.riskLevel,
+        summary,
+      });
+
+      const newCase = await response.json();
+
+      // Invalidate cases query to refresh the list
+      await queryClient.invalidateQueries({ queryKey: ["/api/gpnet2/cases"] });
 
       toast({
         title: "Claim Created",
         description: `New claim for ${formData.workerName} has been created successfully.`,
       });
 
-      navigate("/cases");
+      // Navigate to the new case detail page
+      navigate(`/cases/${newCase.id}`);
     } catch (error) {
+      console.error("Error creating claim:", error);
       toast({
         title: "Error",
-        description: "Failed to create claim. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to create claim. Please try again.",
         variant: "destructive",
       });
     } finally {

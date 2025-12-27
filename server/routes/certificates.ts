@@ -183,6 +183,23 @@ router.post("/:id/review", requireAdminOrEmployerOrClinician, async (req: Reques
   }
 });
 
+// GET /api/certificates/review-queue - Get certificates requiring manual review
+router.get("/review-queue", requireAdminOrEmployerOrClinician, async (req: Request, res: Response) => {
+  try {
+    const organizationId = req.user!.role === "admin"
+      ? (req.query.organizationId as string || req.user!.companyId)
+      : req.user!.companyId;
+    if (!organizationId) {
+      return res.status(400).json({ success: false, message: "Organization ID required" });
+    }
+
+    const certificates = await storage.getCertificatesRequiringReview(organizationId);
+    res.json({ success: true, data: certificates });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // GET /api/certificates/alerts/unacknowledged - Get unacknowledged alerts
 router.get("/alerts/unacknowledged", requireAdminOrEmployer, async (req: Request, res: Response) => {
   try {

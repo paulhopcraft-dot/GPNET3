@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import { z } from "zod";
 import { storage } from "./storage";
 import { FreshdeskService } from "./services/freshdesk";
 import { summaryService } from "./services/summary";
@@ -16,6 +17,10 @@ import adminOrganizationRoutes from "./routes/admin/organizations";
 import adminInsurerRoutes from "./routes/admin/insurers";
 import organizationRoutes from "./routes/organization";
 import caseChatRoutes from "./routes/caseChat";
+import rtwRoutes from "./routes/rtw";
+import predictionRoutes from "./routes/predictions";
+import { registerTimelineRoutes } from "./routes/timeline";
+import { registerTreatmentPlanRoutes } from "./routes/treatmentPlan";
 import type { RecoveryTimelineSummary } from "@shared/schema";
 import { evaluateClinicalEvidence } from "./services/clinicalEvidence";
 import { authorize, type AuthRequest } from "./middleware/auth";
@@ -55,6 +60,20 @@ export async function registerRoutes(app: Express): Promise<void> {
 
   // Case Chat routes (JWT-protected, case ownership)
   app.use("/api/cases", caseChatRoutes);
+
+  // RTW Plan routes (JWT-protected, case ownership)
+  app.use("/api/cases", rtwRoutes);
+  app.use("/api/rtw", rtwRoutes);
+
+  // Prediction Engine routes (PRD-9: AI & Intelligence Layer)
+  app.use("/api/predictions", predictionRoutes);
+  app.use("/api/cases", predictionRoutes);
+
+  // Timeline Estimator routes (JWT-protected, case ownership)
+  registerTimelineRoutes(app);
+
+  // Treatment Plan routes (JWT-protected, case ownership, PRD-9 compliant)
+  registerTreatmentPlanRoutes(app, storage);
 
   // Email Drafts routes (JWT-protected)
   app.use("/api", emailDraftRoutes);
@@ -132,6 +151,66 @@ export async function registerRoutes(app: Express): Promise<void> {
     }
   });
 
+  // Create new case (claims intake)
+  const createCaseSchema = z.object({
+    workerName: z.string().min(1, "Worker name is required"),
+    company: z.string().min(1, "Company is required"),
+    dateOfInjury: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD format"),
+    workStatus: z.enum(["At work", "Off work"]),
+    riskLevel: z.enum(["Low", "Medium", "High"]),
+    summary: z.string().optional(),
+  });
+
+  app.post("/api/cases", authorize(), async (req: AuthRequest, res) => {
+    try {
+      const organizationId = req.user!.organizationId;
+
+      // Validate request body
+      const validationResult = createCaseSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({
+          error: "Validation failed",
+          details: validationResult.error.errors,
+        });
+      }
+
+      const caseData = validationResult.data;
+
+      // Create the case
+      const newCase = await storage.createCase({
+        organizationId,
+        workerName: caseData.workerName,
+        company: caseData.company,
+        dateOfInjury: caseData.dateOfInjury,
+        workStatus: caseData.workStatus,
+        riskLevel: caseData.riskLevel,
+        summary: caseData.summary,
+      });
+
+      // Log audit event
+      await logAuditEvent({
+        userId: req.user!.id,
+        organizationId,
+        eventType: AuditEventTypes.CASE_CREATE,
+        resourceType: "case",
+        resourceId: newCase.id,
+        metadata: {
+          workerName: caseData.workerName,
+          company: caseData.company,
+        },
+        ...getRequestMetadata(req),
+      });
+
+      res.status(201).json(newCase);
+    } catch (error) {
+      console.error("Error creating case:", error);
+      res.status(500).json({
+        error: "Failed to create case",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  });
+
   // Freshdesk sync endpoint (admin only - syncs across all organizations)
   app.post("/api/freshdesk/sync", authorize(["admin"]), async (req: AuthRequest, res) => {
     // Check if Freshdesk is configured before attempting sync
@@ -140,6 +219,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       return res.json({
         success: true,
         synced: 0,
+        certificates: 0,
         message: "Freshdesk sync skipped - not configured",
         configured: false
       });
@@ -150,14 +230,49 @@ export async function registerRoutes(app: Express): Promise<void> {
       const tickets = await freshdesk.fetchTickets();
       const workerCases = await freshdesk.transformTicketsToWorkerCases(tickets);
 
+      // Sync worker cases
       for (const workerCase of workerCases) {
         await storage.syncWorkerCaseFromFreshdesk(workerCase);
+      }
+
+      // Process certificate attachments (async, don't block response)
+      // Certificate processing happens in background
+      let certificatesProcessed = 0;
+      const processCertificates = req.query.processCertificates !== "false";
+
+      if (processCertificates && process.env.ANTHROPIC_API_KEY) {
+        // Import dynamically to avoid circular deps
+        const { processCertificatesFromTickets } = await import("./services/certificatePipeline");
+        const { isCertificateAttachment } = await import("./services/pdfProcessor");
+
+        // Build list of tickets with attachments
+        const ticketsWithAttachments = tickets
+          .filter((t: any) => t.attachments && t.attachments.length > 0)
+          .filter((t: any) => t.attachments.some(isCertificateAttachment))
+          .map((t: any) => {
+            // Find matching case
+            const matchingCase = workerCases.find((c: any) => c.ticketIds?.includes(`FD-${t.id}`));
+            return {
+              ticketId: `FD-${t.id}`,
+              caseId: matchingCase?.id || `FD-${t.id}`,
+              organizationId: matchingCase?.organizationId || "default",
+              attachments: t.attachments,
+            };
+          })
+          .filter((t: any) => t.caseId);
+
+        if (ticketsWithAttachments.length > 0) {
+          console.log(`[Freshdesk Sync] Processing certificates from ${ticketsWithAttachments.length} tickets`);
+          const certResult = await processCertificatesFromTickets(ticketsWithAttachments, storage);
+          certificatesProcessed = certResult.successful;
+        }
       }
 
       res.json({
         success: true,
         synced: workerCases.length,
-        message: `Successfully synced ${workerCases.length} cases from Freshdesk`,
+        certificates: certificatesProcessed,
+        message: `Successfully synced ${workerCases.length} cases and ${certificatesProcessed} certificates from Freshdesk`,
         configured: true
       });
     } catch (error) {

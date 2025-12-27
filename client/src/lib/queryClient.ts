@@ -84,8 +84,8 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-function getAuthHeaders(includeAuth: boolean = true): HeadersInit {
-  const headers: HeadersInit = {};
+function getAuthHeaders(includeAuth: boolean = true): Record<string, string> {
+  const headers: Record<string, string> = {};
 
   if (includeAuth) {
     const token = getAuthToken();
@@ -134,7 +134,7 @@ export async function apiRequest(
   const authHeaders = getAuthHeaders(includeAuth);
 
   // Build headers
-  const headers: HeadersInit = {
+  const headers: Record<string, string> = {
     ...(data ? { "Content-Type": "application/json" } : {}),
     ...authHeaders,
   };

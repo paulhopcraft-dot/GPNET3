@@ -11,6 +11,16 @@ import { isValidCompany, isLegitimateCase } from "@shared/schema";
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 
+export interface FreshdeskAttachment {
+  id: number;
+  name: string;
+  content_type: string;
+  size: number;
+  attachment_url: string;
+  created_at: string;
+  updated_at: string;
+}
+
 interface FreshdeskTicket {
   id: number;
   subject: string;
@@ -24,6 +34,7 @@ interface FreshdeskTicket {
   due_by?: string;
   responder_id?: number;
   company_id?: number;
+  attachments?: FreshdeskAttachment[];
 }
 
 interface FreshdeskCompany {
@@ -83,7 +94,7 @@ export class FreshdeskService {
       
       while (true) {
         const response = await fetch(
-          `${this.baseUrl}/tickets?per_page=${perPage}&page=${page}&include=description&updated_since=${dateFilter}`, 
+          `${this.baseUrl}/tickets?per_page=${perPage}&page=${page}&include=description,attachments&updated_since=${dateFilter}`, 
           {
             headers: {
               'Authorization': this.getAuthHeader(),

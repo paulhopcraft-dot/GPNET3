@@ -8,3 +8,7 @@ coverage/
 server/public
 vite.config.ts.*
 *.tar.gz
+.claude/v3/
+.claude/skills/react/
+.claude/skills/
+gh-cli/

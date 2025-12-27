@@ -1,19 +1,62 @@
 ---
-description: Save state for next session
+description: Prepare for session end, save state for next session
 ---
 
-# /project:handoff
+Prepare handoff for next session:
 
-End of session save:
+## 1. Commit any uncommitted work
+- Use conventional commit message
+- Don't leave work in progress uncommitted
 
-1. Check for uncommitted changes - commit them with WIP message if needed
-2. Update features.json with current status
-3. Write to claude-progress.txt:
-   - What was completed this session
-   - What's in progress (with file locations)
-   - Exact next step
-   - Decisions made
-   - Any blockers
-4. Push to remote if configured
+## 2. Update features.json
+- Ensure all "passes" values are accurate
+- Update "last_updated" timestamps
 
-Output confirmation of what was saved.
+## 3. Save to Structured Memory (v3.4)
+
+Store important context using /remember:
+
+```
+/remember decision: [Any architectural decisions made this session]
+/remember learning: [What worked well, what didn't]
+/remember context: [Current focus and state]
+```
+
+Auto-save these to memory files:
+- `.claude/v3/memory/decisions.json` - Architectural choices
+- `.claude/v3/memory/learnings.json` - Patterns discovered
+- `.claude/v3/memory/project.json` - Project context
+
+## 4. Write to claude-progress.txt
+
+```
+## Session [N] - [DATE]
+
+### Completed
+- [What was accomplished]
+
+### In Progress
+- [What's partially done]
+
+### Next Steps
+- [What to work on next]
+
+### Blockers
+- [Any issues preventing progress]
+
+### Notes
+- [Important observations for next session]
+```
+
+## 5. Check Active Worktrees (v3.4)
+
+If using git worktrees:
+```bash
+git worktree list
+```
+
+Note any active worktrees in progress log for next session.
+
+## 6. Push to remote (if configured)
+
+The next session should be able to pick up immediately using /reload.

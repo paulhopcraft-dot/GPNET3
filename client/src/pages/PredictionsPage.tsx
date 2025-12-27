@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { PageLayout } from "@/components/PageLayout";
@@ -6,67 +5,61 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import type { WorkerCase } from "@shared/schema";
-import { isLegitimateCase } from "@shared/schema";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import type { RiskLevel } from "@shared/schema";
+
+interface PredictionFactor {
+  description: string;
+  impact: "positive" | "negative" | "neutral";
+  weight: number;
+}
+
+interface CasePrediction {
+  caseId: string;
+  rtwProbability: number;
+  expectedWeeksRemaining: number;
+  weeksElapsed: number;
+  costRisk: "High" | "Medium" | "Low";
+  escalationRisk: "High" | "Medium" | "Low";
+  factors: PredictionFactor[];
+  generatedAt: string;
+  // Enriched from API
+  workerName?: string;
+  company?: string;
+  workStatus?: string;
+  riskLevel?: RiskLevel;
+}
+
+interface PredictionsResponse {
+  predictions: CasePrediction[];
+  stats: {
+    total: number;
+    avgRtwProbability: number;
+    highRtwProbability: number;
+    lowRtwProbability: number;
+    highEscalationRisk: number;
+    highCostRisk: number;
+  };
+  generatedAt: string;
+}
 
 export default function PredictionsPage() {
-  const { data: cases = [], isLoading } = useQuery<WorkerCase[]>({
-    queryKey: ["/api/gpnet2/cases"],
+  const { data, isLoading, error } = useQuery<PredictionsResponse>({
+    queryKey: ["/api/predictions"],
   });
 
-  const predictions = useMemo(() => {
-    const legitimate = cases.filter(isLegitimateCase);
-
-    // Generate mock predictions based on case data
-    return legitimate.map((c) => {
-      const injuryDate = new Date(c.dateOfInjury);
-      const now = new Date();
-      const weeksElapsed = Math.floor((now.getTime() - injuryDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
-
-      // Mock ML predictions based on simple heuristics
-      const rtwProbability =
-        c.workStatus === "At work" ? 85 + Math.random() * 10 :
-        c.riskLevel === "Low" ? 70 + Math.random() * 15 :
-        c.riskLevel === "Medium" ? 50 + Math.random() * 20 :
-        30 + Math.random() * 20;
-
-      const expectedWeeksRemaining =
-        c.workStatus === "At work" ? 0 :
-        c.riskLevel === "Low" ? Math.max(0, 4 - weeksElapsed) :
-        c.riskLevel === "Medium" ? Math.max(0, 8 - weeksElapsed) :
-        Math.max(0, 12 - weeksElapsed);
-
-      const costRisk =
-        c.riskLevel === "High" ? "High" :
-        c.riskLevel === "Medium" ? "Medium" :
-        "Low";
-
-      const escalationRisk =
-        c.riskLevel === "High" && weeksElapsed > 8 ? "High" :
-        c.riskLevel === "High" || weeksElapsed > 12 ? "Medium" :
-        "Low";
-
-      return {
-        ...c,
-        rtwProbability: Math.round(rtwProbability),
-        expectedWeeksRemaining: Math.round(expectedWeeksRemaining),
-        weeksElapsed,
-        costRisk,
-        escalationRisk,
-      };
-    });
-  }, [cases]);
-
-  const stats = useMemo(() => {
-    return {
-      highRtwProbability: predictions.filter((p) => p.rtwProbability >= 70).length,
-      lowRtwProbability: predictions.filter((p) => p.rtwProbability < 50).length,
-      highEscalation: predictions.filter((p) => p.escalationRisk === "High").length,
-      avgRtwProbability: Math.round(
-        predictions.reduce((sum, p) => sum + p.rtwProbability, 0) / predictions.length || 0
-      ),
-    };
-  }, [predictions]);
+  const predictions = data?.predictions ?? [];
+  const stats = data?.stats ?? {
+    avgRtwProbability: 0,
+    highRtwProbability: 0,
+    lowRtwProbability: 0,
+    highEscalationRisk: 0,
+  };
 
   const riskColor = (risk: string) => {
     switch (risk) {
@@ -79,6 +72,28 @@ export default function PredictionsPage() {
     }
   };
 
+  const impactIcon = (impact: "positive" | "negative" | "neutral") => {
+    switch (impact) {
+      case "positive":
+        return "arrow_upward";
+      case "negative":
+        return "arrow_downward";
+      default:
+        return "remove";
+    }
+  };
+
+  const impactColor = (impact: "positive" | "negative" | "neutral") => {
+    switch (impact) {
+      case "positive":
+        return "text-emerald-600";
+      case "negative":
+        return "text-red-600";
+      default:
+        return "text-gray-500";
+    }
+  };
+
   if (isLoading) {
     return (
       <PageLayout title="ML Predictions" subtitle="Loading...">
@@ -87,6 +102,19 @@ export default function PredictionsPage() {
             progress_activity
           </span>
         </div>
+      </PageLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <PageLayout title="ML Predictions" subtitle="Error loading predictions">
+        <Card>
+          <CardContent className="py-12 text-center">
+            <span className="material-symbols-outlined text-4xl text-red-500 mb-4">error</span>
+            <p className="text-muted-foreground">Failed to load predictions. Please try again.</p>
+          </CardContent>
+        </Card>
       </PageLayout>
     );
   }
@@ -135,7 +163,7 @@ export default function PredictionsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-amber-600">{stats.highEscalation}</div>
+              <div className="text-2xl font-bold text-amber-600">{stats.highEscalationRisk}</div>
             </CardContent>
           </Card>
         </div>
@@ -156,14 +184,14 @@ export default function PredictionsPage() {
               .sort((a, b) => a.rtwProbability - b.rtwProbability)
               .slice(0, 10)
               .map((prediction) => (
-                <Card key={prediction.id}>
+                <Card key={prediction.caseId}>
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <div>
                         <CardTitle className="text-base">{prediction.workerName}</CardTitle>
                         <CardDescription>{prediction.company}</CardDescription>
                       </div>
-                      <Badge className={riskColor(prediction.riskLevel)}>
+                      <Badge className={riskColor(prediction.riskLevel || "Medium")}>
                         {prediction.riskLevel} Risk
                       </Badge>
                     </div>
@@ -172,7 +200,29 @@ export default function PredictionsPage() {
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">RTW Probability</span>
-                        <span className="font-medium">{prediction.rtwProbability}%</span>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="font-medium cursor-help flex items-center gap-1">
+                                {prediction.rtwProbability}%
+                                <span className="material-symbols-outlined text-xs text-muted-foreground">info</span>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                              <p className="font-medium mb-2">Contributing Factors:</p>
+                              <ul className="space-y-1 text-xs">
+                                {prediction.factors.slice(0, 5).map((factor, i) => (
+                                  <li key={i} className="flex items-center gap-1">
+                                    <span className={`material-symbols-outlined text-xs ${impactColor(factor.impact)}`}>
+                                      {impactIcon(factor.impact)}
+                                    </span>
+                                    {factor.description}
+                                  </li>
+                                ))}
+                              </ul>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
                       <Progress
                         value={prediction.rtwProbability}
@@ -207,7 +257,7 @@ export default function PredictionsPage() {
                     </div>
 
                     <div className="pt-2 border-t">
-                      <Link to={`/summary/${prediction.id}`}>
+                      <Link to={`/summary/${prediction.caseId}`}>
                         <Button variant="outline" size="sm" className="w-full">
                           <span className="material-symbols-outlined text-sm mr-2">open_in_new</span>
                           View Case Details
@@ -230,19 +280,20 @@ export default function PredictionsPage() {
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground space-y-2">
             <p>
-              Predictions are generated using machine learning models trained on historical workers'
-              compensation data. Factors considered include:
+              Predictions are generated using a rule-based scoring engine that evaluates multiple
+              case factors. Each prediction is fully explainable - hover over the probability
+              score to see contributing factors.
             </p>
             <ul className="list-disc list-inside space-y-1 ml-2">
-              <li>Injury type and severity</li>
-              <li>Time since injury</li>
               <li>Current work status</li>
-              <li>Compliance history</li>
-              <li>Historical case outcomes from similar profiles</li>
+              <li>Case risk level</li>
+              <li>Time since injury</li>
+              <li>Clinical evidence and treatment plans</li>
+              <li>Recovery progress indicators</li>
             </ul>
             <p className="mt-4 text-xs">
-              Note: These predictions are for informational purposes and should be used alongside
-              professional judgment.
+              Note: These predictions are advisory only (PRD-9 compliant) and should be used
+              alongside professional judgment.
             </p>
           </CardContent>
         </Card>

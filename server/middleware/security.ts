@@ -52,6 +52,20 @@ export const webhookRateLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// AI operations rate limiter: 3 requests per hour (expensive Claude API calls)
+export const aiRateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 3, // Limit each IP to 3 AI operations per hour
+  message: {
+    error: "Too Many Requests",
+    message: "AI generation rate limit exceeded. You can generate up to 3 treatment plans per hour. Please try again later.",
+    retryAfter: "1 hour",
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipFailedRequests: false, // Count all attempts (prevent retry spam)
+});
+
 /**
  * CSRF Protection Configuration
  */

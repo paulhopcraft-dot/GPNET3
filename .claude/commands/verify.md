@@ -1,16 +1,38 @@
 ---
-description: Re-test all completed features for regressions
+description: Verify all passing features actually work
 ---
 
-# /project:verify
+<instructions>
+Use subagents to thoroughly verify all features marked "passes": true in @features.json.
+</instructions>
 
-Run verification on all features with passes: true
+<verification_steps>
+For each feature:
+1. Run related tests
+2. Test end-to-end as a user would
+3. Check edge cases
+4. Verify acceptance_criteria are actually met
+</verification_steps>
 
-For each completed feature:
-1. Run its test suite
-2. Check acceptance criteria still met
-3. Report PASS or FAIL
+<failure_handling>
+If anything is broken:
+- Set "passes": false in features.json
+- Note what's wrong in the feature's "notes" field
+</failure_handling>
 
-Output results showing which passed and which failed.
+<output_format>
+```
+Feature Verification Report
+===========================
 
-If any fail, suggest fixes or flip passes back to false.
+Verified: X features
+Actually Working: Y
+Found Broken: Z
+
+Broken Features:
+- F00X: [name] - [what's wrong]
+- F00X: [name] - [what's wrong]
+
+Remaining Unverified: A
+```
+</output_format>

@@ -1,53 +1,57 @@
-# Branch Management
+---
+description: Manage feature branches
+---
 
-Create and manage feature branches for GPNet3:
-
-## Create New Branch
-
-For new features:
+<branch_operations>
+<create_branch>
 ```bash
-git checkout main
-git pull origin main
-git checkout -b wip-gpnet-<feature-name>
+git checkout -b feature/[feature-id]-[short-name]
 ```
+</create_branch>
 
-Branch naming convention: `wip-gpnet-<feature>`
+<naming_convention>
+- `feature/F001-user-auth` - New features
+- `fix/F001-login-bug` - Bug fixes
+- `refactor/F001-cleanup` - Refactoring
+- `docs/F001-api-docs` - Documentation
+</naming_convention>
+</branch_operations>
 
-Examples:
-- `wip-gpnet-email-templates`
-- `wip-gpnet-rtw-wizard`
-- `wip-gpnet-bulk-actions`
-
-## When to Branch
-
+<branching_strategy>
+<when_to_branch>
 Create a new branch when:
-- Task affects >5 files
-- Adding new API endpoints
-- Schema changes required
-- High-priority work that needs isolation
-- Task estimated >2 hours
+- Starting a feature that touches >5 files
+- Work might take >2 hours
+- Changes are risky/experimental
+- Multiple features in parallel
+</when_to_branch>
 
-## Merge Back
+<stay_on_main>
+Stay on main when:
+- Quick fix (<30 min)
+- Single file change
+- Documentation only
+</stay_on_main>
+</branching_strategy>
 
-After feature complete:
-1. Run full test suite: `npm test && npm run test:e2e`
-2. Ensure build passes: `npm run build`
-3. Push branch: `git push -u origin wip-gpnet-<feature>`
-4. Create PR to main
-5. Wait for review/CI
+<merge_workflow>
+<steps>
+1. Ensure all tests pass
+2. Update features.json
+3. Commit with conventional message
+4. Merge to main:
+   ```bash
+   git checkout main
+   git merge feature/[branch-name]
+   git branch -d feature/[branch-name]
+   ```
+</steps>
+</merge_workflow>
 
-## Cleanup
-
-After merge:
-```bash
-git checkout main
-git pull origin main
-git branch -d wip-gpnet-<feature>
-```
-
-## Current Branches
-
-List all branches:
+<current_branches>
 ```bash
 git branch -a
 ```
+</current_branches>
+
+<arguments>$ARGUMENTS</arguments>

@@ -101,6 +101,21 @@ View case: {{caseUrl}}
 `,
   },
 
+  check_in_follow_up: {
+    subject: "Check-in required: {{workerName}} - {{company}}",
+    body: `A check-in is required for {{workerName}} ({{company}}).
+
+The worker has been off work for more than 7 days without a recent follow-up.
+
+Last follow-up: {{lastFollowUp}}
+Days since follow-up: {{daysSinceFollowUp}}
+
+Please contact the worker to check on their recovery progress.
+
+View case: {{caseUrl}}
+`,
+  },
+
   weekly_digest: {
     subject: "Weekly Case Summary - {{weekOf}}",
     body: `Your weekly case management summary:
@@ -166,6 +181,12 @@ function getActionDedupeKey(actionId: string, daysOverdue: number): string {
     bucket = 1;
   }
   return `action:${actionId}:${bucket}`;
+}
+
+function getCheckInDedupeKey(caseId: string, daysSinceFollowUp: number): string {
+  // Bucket days: 7-day intervals (7, 14, 21, etc.)
+  const bucket = Math.floor(daysSinceFollowUp / 7) * 7;
+  return `checkin:${caseId}:${bucket}`;
 }
 
 // =====================================================
@@ -356,6 +377,103 @@ async function generateActionNotifications(
 }
 
 /**
+ * Generate weekly check-in notifications for workers off work >7 days
+ */
+async function generateCheckInNotifications(
+  storage: IStorage,
+  recipientEmail: string,
+  organizationId: string
+): Promise<number> {
+  let created = 0;
+  const now = new Date();
+  const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+
+  // Get all cases for the organization
+  const cases = await storage.getGPNet2Cases(organizationId);
+
+  for (const workerCase of cases) {
+    try {
+      // Filter: Only active employment, off work
+      if (workerCase.employmentStatus !== "ACTIVE") {
+        continue;
+      }
+      if (workerCase.workStatus !== "Off work") {
+        continue;
+      }
+
+      // Determine reference date: clcLastFollowUp or dateOfInjury
+      let referenceDate: Date | null = null;
+      if (workerCase.clcLastFollowUp) {
+        referenceDate = new Date(workerCase.clcLastFollowUp);
+      } else if (workerCase.dateOfInjury) {
+        referenceDate = new Date(workerCase.dateOfInjury);
+      }
+
+      // Skip if no reference date
+      if (!referenceDate) {
+        continue;
+      }
+
+      // Calculate days since follow-up
+      const daysSinceFollowUp = Math.floor((now.getTime() - referenceDate.getTime()) / (1000 * 60 * 60 * 24));
+
+      // Only generate if >7 days
+      if (daysSinceFollowUp < 7) {
+        continue;
+      }
+
+      // Generate dedupe key
+      const dedupeKey = getCheckInDedupeKey(workerCase.id, daysSinceFollowUp);
+
+      // Check if notification already exists
+      const exists = await storage.notificationExistsByDedupeKey(dedupeKey);
+      if (exists) {
+        continue;
+      }
+
+      // Build notification content
+      const lastFollowUpStr = workerCase.clcLastFollowUp
+        ? new Date(workerCase.clcLastFollowUp).toLocaleDateString("en-AU")
+        : "Initial injury date";
+
+      const { subject, body } = buildNotificationContent("check_in_follow_up", {
+        workerName: workerCase.workerName,
+        company: workerCase.company,
+        lastFollowUp: lastFollowUpStr,
+        daysSinceFollowUp,
+        caseUrl: `${APP_URL}/cases/${workerCase.id}`,
+      });
+
+      // Create notification
+      const notification: InsertNotification = {
+        organizationId: workerCase.organizationId,
+        type: "check_in_follow_up",
+        priority: "medium",
+        caseId: workerCase.id,
+        recipientEmail,
+        recipientName: null,
+        subject,
+        body,
+        status: "pending",
+        dedupeKey,
+        metadata: {
+          workerName: workerCase.workerName,
+          company: workerCase.company,
+          daysSinceFollowUp,
+        },
+      };
+
+      await storage.createNotification(notification);
+      created++;
+    } catch (error) {
+      console.error(`[NotificationService] Error processing case ${workerCase.id}:`, error);
+    }
+  }
+
+  return created;
+}
+
+/**
  * Generate all pending notifications for a specific organization
  * @param storage - Storage interface
  * @param organizationId - Organization to generate notifications for
@@ -378,6 +496,11 @@ export async function generatePendingNotifications(storage: IStorage, organizati
     const actionCount = await generateActionNotifications(storage, recipientEmail, organizationId);
     console.log(`[NotificationService] Generated ${actionCount} action notifications`);
     total += actionCount;
+
+    // Generate check-in notifications
+    const checkInCount = await generateCheckInNotifications(storage, recipientEmail, organizationId);
+    console.log(`[NotificationService] Generated ${checkInCount} check-in notifications`);
+    total += checkInCount;
 
     console.log(`[NotificationService] Total notifications generated: ${total}`);
   } catch (error) {

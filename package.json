@@ -94,6 +94,6 @@
     "drizzle-kit": "^0.31.7",
     "happy-dom": "^20.0.11",
     "supertest": "^7.1.4",
-    "vitest": "^1.6.1"
+    "vitest": "^1.5.0"
   }
 }

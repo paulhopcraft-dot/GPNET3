@@ -76,6 +76,59 @@ export interface SpecialistReportSummary {
   rawSource?: string;
 }
 
+export type TreatmentPlanStatus = "active" | "completed" | "superseded" | "archived";
+
+export type TreatmentInterventionType =
+  | "physiotherapy"
+  | "medication"
+  | "specialist"
+  | "surgical"
+  | "workplace_modification"
+  | "psychological"
+  | "other";
+
+export type TreatmentPriority = "critical" | "recommended" | "optional";
+
+export interface TreatmentIntervention {
+  type: TreatmentInterventionType;
+  description: string;
+  frequency?: string;
+  duration?: string;
+  priority?: TreatmentPriority;
+}
+
+export interface TreatmentMilestone {
+  weekNumber: number;
+  description: string;
+  expectedOutcome: string;
+  completed?: boolean;
+  completedDate?: string;
+}
+
+export interface TreatmentPlan {
+  id: string;
+  status: TreatmentPlanStatus;
+  generatedAt: string;
+  generatedBy: "ai" | "clinician" | "manual";
+  aiModel?: string;
+  confidence: number; // 0-100
+  injuryType: string;
+  diagnosisSummary?: string;
+  functionalLimitations?: string[];
+  interventions: TreatmentIntervention[];
+  specialistReferrals?: string[];
+  expectedDurationWeeks: number;
+  milestones: TreatmentMilestone[];
+  expectedOutcomes: string[];
+  successCriteria?: string[];
+  factorsConsidered: string[];
+  disclaimerText: string;
+  completedAt?: string;
+  supersededAt?: string;
+  supersededBy?: string;
+  notes?: string;
+}
+
 export interface CaseClinicalStatus {
   medicalConstraints?: MedicalConstraints;
   functionalCapacity?: FunctionalCapacity;
@@ -83,6 +136,8 @@ export interface CaseClinicalStatus {
   complianceStatus?: ComplianceStatus;
   specialistStatus?: SpecialistStatus;
   specialistReportSummary?: SpecialistReportSummary;
+  treatmentPlan?: TreatmentPlan;
+  treatmentPlanHistory?: TreatmentPlan[];
 }
 
 export type DutySafetyStatus = "safe" | "unsafe" | "unknown";
@@ -90,6 +145,7 @@ export type DutySafetyStatus = "safe" | "unsafe" | "unknown";
 export interface ClinicalEvidenceFlag {
   code:
     | "MISSING_TREATMENT_PLAN"
+    | "TREATMENT_PLAN_OUTDATED"
     | "CERTIFICATE_OUT_OF_DATE"
     | "NO_RECENT_CERTIFICATE"
     | "NOT_IMPROVING_AGAINST_EXPECTED_TIMELINE"
@@ -392,6 +448,7 @@ export interface WorkerCase {
   complianceStatus?: ComplianceStatus;
   specialistStatus?: SpecialistStatus;
   specialistReportSummary?: SpecialistReportSummary;
+  clinical_status_json?: CaseClinicalStatus; // JSONB column (treatment plans, medical constraints)
   clinicalEvidence?: ClinicalEvidenceEvaluation;
   currentStatus: string;
   nextStep: string;
@@ -1012,7 +1069,8 @@ export type NotificationType =
   | "certificate_expired"
   | "action_overdue"
   | "case_attention_needed"
-  | "weekly_digest";
+  | "weekly_digest"
+  | "check_in_follow_up";
 
 export type NotificationPriority = "low" | "medium" | "high" | "critical";
 export type NotificationStatus = "pending" | "sent" | "failed" | "skipped";
