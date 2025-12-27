@@ -20,7 +20,11 @@
       "Skill(reflect)",
       "Skill(reflect:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git fetch:*)",
+      "Bash(git merge:*)",
+      "Bash(git checkout:*)",
+      "Bash(npm install)"
     ]
   },
   "dangerouslySkipPermissions": true
