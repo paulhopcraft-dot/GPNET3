@@ -1,3 +1,27 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(npm test:*)",
+      "Bash(where:*)",
+      "Bash(winget install:*)",
+      "Bash(gh --version:*)",
+      "Bash(\"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" --version)",
+      "Bash(\"C:\\\\Program Files \\(x86\\)\\\\GitHub CLI\\\\gh.exe\" --version)",
+      "Bash(git remote get-url:*)",
+      "Bash(git push:*)",
+      "Bash(start \"https://github.com/paulhopcraft-dot/GPNET3/compare/main...wip-gpnet-claims?expand=1\")",
+      "Bash(curl:*)",
+      "Bash(msiexec /i gh.msi /quiet /qn /norestart)",
+      "Bash(powershell:*)",
+      "Bash(dir gh-cli:*)",
+      "Bash(./gh-cli/bin/gh.exe:*)",
+      "Skill(status)",
+      "Skill(status:*)",
+      "Skill(reflect)",
+      "Skill(reflect:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ]
+  },
   "dangerouslySkipPermissions": true
 }
