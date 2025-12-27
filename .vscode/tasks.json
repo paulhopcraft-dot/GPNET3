@@ -25,21 +25,7 @@
         }
       },
       "isBackground": true,
-      "problemMatcher": [
-        {
-          "owner": "gpnet",
-          "pattern": [
-            {
-              "regexp": "^(?!x)x"
-            }
-          ],
-          "background": {
-            "activeOnStart": true,
-            "beginsPattern": ".",
-            "endsPattern": "^__never__?$"
-          }
-        }
-      ],
+      "problemMatcher": "$tsc-watch",
       "presentation": {
         "panel": "dedicated",
         "clear": true,
