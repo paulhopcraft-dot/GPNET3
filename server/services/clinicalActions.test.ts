@@ -17,16 +17,9 @@ describe("Clinical Action Recommendations (PRD-3.4 Task & Obligation Engine)", (
     nextStep: "Await certificate",
     owner: "Test Manager",
     dueDate: "2025-02-01",
-    freshdeskTicketId: null,
-    ticketUrl: null,
-    ticketSubject: null,
-    ticketPriority: null,
-    ticketLastUpdatedAt: null,
-    aiSummary: null,
-    freshdeskRawData: null,
-    latestCertificate: null,
-    certificateHistory: null,
-    attachments: [],
+    summary: "Test case summary",
+    ticketIds: [],
+    ticketCount: 0,
   };
 
   const baseEvaluation: ClinicalEvidenceEvaluation = {

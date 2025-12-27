@@ -17,16 +17,9 @@ describe("Clinical Evidence Evaluation (PRD-3.3, PRD-3.4, PRD-9)", () => {
     nextStep: "Await certificate",
     owner: "Test Manager",
     dueDate: "2025-02-01",
-    freshdeskTicketId: null,
-    ticketUrl: null,
-    ticketSubject: null,
-    ticketPriority: null,
-    ticketLastUpdatedAt: null,
-    aiSummary: null,
-    freshdeskRawData: null,
-    latestCertificate: null,
-    certificateHistory: null,
-    attachments: [],
+    summary: "Test case summary",
+    ticketIds: [],
+    ticketCount: 0,
   };
 
   describe("Flag Generation - PRD-3.3.2 Evidence Classification", () => {
@@ -365,7 +358,7 @@ describe("Clinical Evidence Evaluation (PRD-3.3, PRD-3.4, PRD-9)", () => {
       const noDatesCase: WorkerCase = {
         ...baseCase,
         dateOfInjury: "",
-        latestCertificate: null,
+        latestCertificate: undefined,
       };
 
       const evaluation = evaluateClinicalEvidence(noDatesCase);

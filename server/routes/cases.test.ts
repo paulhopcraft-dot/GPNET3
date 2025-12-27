@@ -12,9 +12,9 @@
  */
 
 // Skip database tests if DATABASE_URL not set
-const skipDbTests = !process.env.DATABASE_URL;
+const skipCasesDbTests = !process.env.DATABASE_URL;
 
-describe.skipIf(skipDbTests)("createCase", () => {
+describe.skipIf(skipCasesDbTests)("createCase", () => {
   // Dynamic imports to avoid initialization errors when DB not configured
   let db: any;
   let storage: any;

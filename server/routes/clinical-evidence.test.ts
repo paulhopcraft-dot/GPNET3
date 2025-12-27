@@ -12,9 +12,9 @@
  */
 
 // Skip database tests if DATABASE_URL not set
-const skipDbTests = !process.env.DATABASE_URL;
+const skipClinicalDbTests = !process.env.DATABASE_URL;
 
-describe.skipIf(skipDbTests)("Clinical Evidence Evaluation API - PRD-3.3, PRD-3.4", () => {
+describe.skipIf(skipClinicalDbTests)("Clinical Evidence Evaluation API - PRD-3.3, PRD-3.4", () => {
   // Dynamic imports to avoid initialization errors when DB not configured
   let db: any;
   let storage: any;

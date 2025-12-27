@@ -28,7 +28,12 @@ interface CaseDetailPanelProps {
   onClose: () => void;
 }
 
-export function deriveSummaryMetaFromCase(workerCase: WorkerCase) {
+export function deriveSummaryMetaFromCase(workerCase: WorkerCase): {
+  generatedAt: string | undefined;
+  model: string | undefined;
+  cached: boolean | undefined;
+  needsRefresh: boolean | undefined;
+} {
   return {
     generatedAt: workerCase.aiSummaryGeneratedAt,
     model: workerCase.aiSummaryModel,
@@ -39,7 +44,7 @@ export function deriveSummaryMetaFromCase(workerCase: WorkerCase) {
 
 export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
   // Fetch dynamic timeline estimate
-  const { data: timelineEstimate } = useQuery({
+  const { data: timelineEstimate } = useQuery<{ estimatedCompletionDate?: string }>({
     queryKey: [`/api/cases/${workerCase.id}/timeline-estimate`],
   });
 
@@ -154,6 +159,7 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
       setSummaryMeta({
         generatedAt: data.generatedAt,
         model: data.model,
+        cached: data.cached,
         needsRefresh: data.needsRefresh,
       });
       if (Array.isArray(data.discussionNotes)) {

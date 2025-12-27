@@ -18,7 +18,7 @@ export default function CaseSummaryPage() {
   const workerCase = cases.find((c) => c.id === id);
 
   // Fetch dynamic timeline estimate
-  const { data: timelineEstimate } = useQuery({
+  const { data: timelineEstimate } = useQuery<{ estimatedCompletionDate?: string }>({
     queryKey: [`/api/cases/${id}/timeline-estimate`],
     enabled: !!id,
   });

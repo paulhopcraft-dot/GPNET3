@@ -239,7 +239,7 @@ describe("Treatment Plan Service", () => {
         disclaimerText: "ADVISORY ONLY",
       };
 
-      const mockCase: WorkerCase = {
+      const mockCase = {
         id: caseId,
         organizationId,
         summary: "Test injury",
@@ -248,7 +248,7 @@ describe("Treatment Plan Service", () => {
           treatmentPlan: existingPlan,
           treatmentPlanHistory: [],
         },
-      } as WorkerCase;
+      } as unknown as WorkerCase;
       vi.mocked(storage.getGPNet2CaseById).mockResolvedValue(mockCase);
 
       // Mock AI response for superseding using shared mock function

@@ -31,10 +31,18 @@ const companySchema = z.object({
   contactPhone: z.string().optional(),
   contactEmail: z.string().email("Invalid email").optional().or(z.literal("")),
   insurerId: z.string().optional(),
-  isActive: z.boolean().default(true),
+  isActive: z.boolean().optional().transform((v) => v ?? true),
 });
 
-type CompanyFormData = z.infer<typeof companySchema>;
+type CompanyFormData = {
+  name: string;
+  slug: string;
+  contactName?: string;
+  contactPhone?: string;
+  contactEmail?: string;
+  insurerId?: string;
+  isActive: boolean;
+};
 
 interface Organization {
   id: string;
@@ -74,7 +82,7 @@ export default function CompanyForm() {
   const insurers = insurersData?.data?.filter((i) => i.isActive) || [];
 
   const form = useForm<CompanyFormData>({
-    resolver: zodResolver(companySchema),
+    resolver: zodResolver(companySchema) as any,
     defaultValues: {
       name: "",
       slug: "",
@@ -218,7 +226,7 @@ export default function CompanyForm() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit as any)} className="space-y-6">
             {/* Logo Upload - only when editing */}
             {isEditing && (
               <div className="space-y-2">
