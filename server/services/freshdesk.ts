@@ -94,7 +94,7 @@ export class FreshdeskService {
       
       while (true) {
         const response = await fetch(
-          `${this.baseUrl}/tickets?per_page=${perPage}&page=${page}&include=description,attachments&updated_since=${dateFilter}`, 
+          `${this.baseUrl}/tickets?per_page=${perPage}&page=${page}&include=description&updated_since=${dateFilter}`, 
           {
             headers: {
               'Authorization': this.getAuthHeader(),

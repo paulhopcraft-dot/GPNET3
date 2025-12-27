@@ -8,7 +8,7 @@ interface ProtectedRouteProps {
 }
 
 // DEVELOPMENT: Set to true to bypass authentication
-const DEV_BYPASS_AUTH = true;
+const DEV_BYPASS_AUTH = false;
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { isAuthenticated, isLoading } = useAuth();
