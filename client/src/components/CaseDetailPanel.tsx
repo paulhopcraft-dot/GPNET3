@@ -144,7 +144,7 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
   const fetchCachedSummary = async (): Promise<boolean> => {
     const caseId = workerCase.id;
     try {
-      const response = await fetch(`/api/cases/${caseId}/summary`);
+      const response = await fetchWithCsrf(`/api/cases/${caseId}/summary`);
       if (!response.ok) {
         throw new Error("Failed to fetch summary");
       }
@@ -258,7 +258,7 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
       setTimelineLoading(true);
       setTimelineError(null);
       try {
-        const response = await fetch(`/api/cases/${workerCase.id}/recovery-timeline`);
+        const response = await fetchWithCsrf(`/api/cases/${workerCase.id}/recovery-timeline`);
         if (!response.ok) {
           throw new Error("Failed to fetch recovery timeline");
         }
@@ -296,7 +296,7 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
       setDiscussionLoading(true);
       setDiscussionError(null);
       try {
-        const response = await fetch(`/api/cases/${workerCase.id}/discussion-notes`);
+        const response = await fetchWithCsrf(`/api/cases/${workerCase.id}/discussion-notes`);
         if (!response.ok) {
           throw new Error("Failed to fetch discussion notes");
         }

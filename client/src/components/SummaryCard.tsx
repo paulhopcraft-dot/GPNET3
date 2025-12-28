@@ -33,7 +33,7 @@ export function SummaryCard({ caseId }: SummaryCardProps) {
       const url = `/api/cases/${caseId}/smart-summary`;
       const response = regenerate
         ? await fetchWithCsrf(url, { method: "POST" })
-        : await fetch(url, { credentials: "include" });
+        : await fetchWithCsrf(url);
 
       if (!response.ok) {
         const data = await response.json();

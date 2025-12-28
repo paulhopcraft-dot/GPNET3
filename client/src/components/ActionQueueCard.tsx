@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import type { CaseAction, CaseActionType } from "@shared/schema";
+import { fetchWithCsrf } from "../lib/queryClient";
 
 interface ActionQueueCardProps {
   onCaseClick?: (caseId: string) => void;
@@ -21,7 +22,7 @@ export function ActionQueueCard({ onCaseClick, limit = 5 }: ActionQueueCardProps
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`/api/actions/pending?limit=${limit}`);
+        const response = await fetchWithCsrf(`/api/actions/pending?limit=${limit}`);
         if (!response.ok) {
           throw new Error("Failed to fetch actions");
         }

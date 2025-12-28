@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import type { TimelineEvent } from "@shared/schema";
+import { fetchWithCsrf } from "../lib/queryClient";
 
 interface TimelineCardProps {
   caseId: string;
@@ -18,7 +19,7 @@ export function TimelineCard({ caseId }: TimelineCardProps) {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`/api/cases/${caseId}/timeline`);
+        const response = await fetchWithCsrf(`/api/cases/${caseId}/timeline`);
         if (!response.ok) throw new Error("Failed to fetch timeline");
         const data = await response.json();
         if (cancelled) return;

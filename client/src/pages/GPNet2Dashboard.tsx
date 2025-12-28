@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { DashboardStats } from "@/components/dashboard-stats";
 import { ActionQueueCard } from "@/components/ActionQueueCard";
 import { useToast } from "@/hooks/use-toast";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, fetchWithCsrf } from "@/lib/queryClient";
 import type { WorkerCase } from "@shared/schema";
 import { isLegitimateCase, getSurname } from "@shared/schema";
 
@@ -27,11 +27,8 @@ export default function GPNet2Dashboard() {
 
   const syncMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch("/api/freshdesk/sync", {
+      const response = await fetchWithCsrf("/api/freshdesk/sync", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
       });
       if (!response.ok) {
         throw new Error("Failed to sync with Freshdesk");

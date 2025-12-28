@@ -10,7 +10,7 @@ import {
   DialogTrigger,
 } from "./ui/dialog";
 import type { TreatmentPlan, TreatmentIntervention, TreatmentPriority } from "@shared/schema";
-import { fetchWithCsrf } from "../lib/queryClient";
+import { fetchWithCsrf, getAuthHeaders } from "../lib/queryClient";
 
 interface TreatmentPlanCardProps {
   caseId: string;
@@ -29,7 +29,10 @@ export function TreatmentPlanCard({ caseId }: TreatmentPlanCardProps) {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`/api/cases/${caseId}/treatment-plan`);
+        const response = await fetch(`/api/cases/${caseId}/treatment-plan`, {
+          credentials: "include",
+          headers: getAuthHeaders(),
+        });
         if (response.status === 404) {
           // No plan exists yet - this is expected
           if (cancelled) return;
