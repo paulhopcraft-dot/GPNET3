@@ -211,6 +211,73 @@ export async function registerRoutes(app: Express): Promise<void> {
     }
   });
 
+  // Close case endpoint
+  const closeCaseSchema = z.object({
+    reason: z.string().optional(),
+  });
+
+  app.post("/api/cases/:id/close", authorize(), requireCaseOwnership(), async (req: AuthRequest, res) => {
+    try {
+      const workerCase = req.workerCase!;
+      const validationResult = closeCaseSchema.safeParse(req.body);
+
+      if (!validationResult.success) {
+        return res.status(400).json({
+          error: "Validation failed",
+          details: validationResult.error.errors,
+        });
+      }
+
+      const { reason } = validationResult.data;
+
+      // Update case status to closed
+      await storage.closeCase(workerCase.id, workerCase.organizationId, reason);
+
+      // Log audit event
+      await logAuditEvent({
+        userId: req.user!.id,
+        organizationId: req.user!.organizationId,
+        eventType: AuditEventTypes.CASE_UPDATE,
+        resourceType: "case",
+        resourceId: workerCase.id,
+        metadata: {
+          action: "close",
+          reason: reason || "No reason provided",
+        },
+        ...getRequestMetadata(req),
+      });
+
+      // Attempt to close the Freshdesk ticket(s) if configured
+      if (process.env.FRESHDESK_DOMAIN && process.env.FRESHDESK_API_KEY && workerCase.ticketIds?.length) {
+        try {
+          const freshdesk = new FreshdeskService();
+          for (const ticketId of workerCase.ticketIds) {
+            // Extract numeric ID from FD-123 format
+            const numericId = ticketId.replace("FD-", "");
+            if (numericId && !isNaN(Number(numericId))) {
+              await freshdesk.closeTicket(Number(numericId));
+            }
+          }
+        } catch (freshdeskError) {
+          console.error("Failed to close Freshdesk ticket(s):", freshdeskError);
+          // Don't fail the request if Freshdesk sync fails - case is already closed locally
+        }
+      }
+
+      res.json({
+        success: true,
+        message: "Case closed successfully",
+        caseId: workerCase.id,
+      });
+    } catch (error) {
+      console.error("Error closing case:", error);
+      res.status(500).json({
+        error: "Failed to close case",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  });
+
   // Freshdesk sync endpoint (admin only - syncs across all organizations)
   app.post("/api/freshdesk/sync", authorize(["admin"]), async (req: AuthRequest, res) => {
     // Check if Freshdesk is configured before attempting sync

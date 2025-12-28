@@ -45,7 +45,7 @@ import {
   notifications,
 } from "@shared/schema";
 import { evaluateClinicalEvidence } from "./services/clinicalEvidence";
-import { eq, desc, asc, inArray, ilike, sql, and, lte, gte } from "drizzle-orm";
+import { eq, desc, asc, inArray, ilike, sql, and, lte, gte, or, isNull, ne } from "drizzle-orm";
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
@@ -413,7 +413,14 @@ class DbStorage implements IStorage {
     const dbCases = await db
       .select()
       .from(workerCases)
-      .where(eq(workerCases.organizationId, organizationId));
+      .where(and(
+        eq(workerCases.organizationId, organizationId),
+        // Filter out closed cases - only show open cases by default
+        or(
+          eq(workerCases.caseStatus, "open"),
+          isNull(workerCases.caseStatus)
+        )
+      ));
     const caseIds = dbCases.map((dbCase) => dbCase.id);
 
     const notesByCase = new Map<string, CaseDiscussionNote[]>();
@@ -1151,6 +1158,21 @@ class DbStorage implements IStorage {
         aiSummaryGeneratedAt: new Date(),
         aiSummaryModel: model,
         aiWorkStatusClassification: workStatusClassification,
+        updatedAt: new Date(),
+      })
+      .where(and(
+        eq(workerCases.id, caseId),
+        eq(workerCases.organizationId, organizationId)
+      ));
+  }
+
+  async closeCase(caseId: string, organizationId: string, reason?: string): Promise<void> {
+    await db
+      .update(workerCases)
+      .set({
+        caseStatus: "closed",
+        closedAt: new Date(),
+        closedReason: reason || null,
         updatedAt: new Date(),
       })
       .where(and(

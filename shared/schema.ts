@@ -470,6 +470,9 @@ export interface WorkerCase {
   latestDiscussionNotes?: CaseDiscussionNote[];
   discussionInsights?: TranscriptInsight[];
   employmentStatus?: EmploymentStatus;
+  caseStatus?: "open" | "closed";
+  closedAt?: string;
+  closedReason?: string;
   terminationProcessId?: string | null;
   terminationReason?: TerminationReason | null;
   terminationAuditFlag?: TerminationAuditFlag;
@@ -558,6 +561,9 @@ export const workerCases = pgTable("worker_cases", {
   clcLastFollowUp: text("clc_last_follow_up"),
   clcNextFollowUp: text("clc_next_follow_up"),
   employmentStatus: text("employment_status").notNull().default("ACTIVE"),
+  caseStatus: text("case_status").notNull().default("open"), // open, closed
+  closedAt: timestamp("closed_at"),
+  closedReason: text("closed_reason"),
   terminationProcessId: varchar("termination_process_id"),
   terminationReason: text("termination_reason"),
   terminationAuditFlag: text("termination_audit_flag"),

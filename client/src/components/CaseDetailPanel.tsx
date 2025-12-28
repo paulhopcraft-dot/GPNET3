@@ -21,7 +21,9 @@ import { SummaryCard } from "./SummaryCard";
 import { EmailDraftButton } from "./EmailDraftButton";
 import { CaseChatPanel } from "./CaseChatPanel";
 import { fetchWithCsrf } from "../lib/queryClient";
-import { Sparkles } from "lucide-react";
+import { Sparkles, CheckCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "../lib/queryClient";
 
 interface CaseDetailPanelProps {
   workerCase: WorkerCase;
@@ -75,6 +77,8 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
   const [discussionLoading, setDiscussionLoading] = useState(false);
   const [discussionError, setDiscussionError] = useState<string | null>(null);
   const [showChat, setShowChat] = useState(false);
+  const [closingCase, setClosingCase] = useState(false);
+  const { toast } = useToast();
   const latestCaseIdRef = useRef(workerCase.id);
   useEffect(() => {
     latestCaseIdRef.current = workerCase.id;
@@ -352,6 +356,45 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
     not_required: "Not required",
   };
 
+  const handleCloseCase = async () => {
+    if (!confirm("Are you sure you want to close this case? This will also close the linked Freshdesk ticket(s).")) {
+      return;
+    }
+
+    setClosingCase(true);
+    try {
+      const response = await fetchWithCsrf(`/api/cases/${workerCase.id}/close`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: "Closed from dashboard" }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to close case");
+      }
+
+      toast({
+        title: "Case Closed",
+        description: `${workerCase.workerName}'s case has been closed successfully.`,
+      });
+
+      // Refresh the cases list
+      queryClient.invalidateQueries({ queryKey: ["/api/gpnet2/cases"] });
+
+      // Close the detail panel
+      onClose();
+    } catch (error) {
+      console.error("Error closing case:", error);
+      toast({
+        title: "Error",
+        description: "Failed to close the case. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setClosingCase(false);
+    }
+  };
+
   const hasClinicalStatus =
     workerCase.rtwPlanStatus ||
     workerCase.complianceStatus ||
@@ -379,6 +422,19 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
             <span className="hidden sm:inline">Ask AI</span>
           </Button>
           <EmailDraftButton caseId={workerCase.id} workerName={workerCase.workerName} />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleCloseCase}
+            disabled={closingCase || workerCase.caseStatus === "closed"}
+            data-testid="button-close-case"
+            className="gap-1 text-emerald-600 border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
+          >
+            <CheckCircle className="h-4 w-4" />
+            <span className="hidden sm:inline">
+              {closingCase ? "Closing..." : workerCase.caseStatus === "closed" ? "Closed" : "Close Case"}
+            </span>
+          </Button>
           <Button variant="ghost" size="icon" onClick={onClose} data-testid="button-close-panel">
             <span className="material-symbols-outlined">close</span>
           </Button>
