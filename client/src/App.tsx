@@ -26,6 +26,7 @@ import PredictionsPage from "./pages/PredictionsPage";
 import RiskDashboardPage from "./pages/RiskDashboardPage";
 import AuditLogPage from "./pages/AuditLogPage";
 import CertificateReviewPage from "./pages/CertificateReviewPage";
+import ReportsPage from "./pages/ReportsPage";
 
 export default function App() {
   // Initialize CSRF token on app mount
@@ -134,6 +135,14 @@ export default function App() {
                   element={
                     <ProtectedRoute>
                       <CertificateReviewPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/reports"
+                  element={
+                    <ProtectedRoute>
+                      <ReportsPage />
                     </ProtectedRoute>
                   }
                 />
