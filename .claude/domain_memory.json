@@ -191,6 +191,51 @@
         "Migration 0009 applies organizationId to all tables"
       ],
       "notes": "Implemented 2025-12-16. Code complete and pushed. Migration pending."
+    },
+    {
+      "id": "F020",
+      "name": "Close Case",
+      "description": "Close worker cases with optional reason, syncs with Freshdesk",
+      "passes": true,
+      "files": ["server/routes.ts", "server/storage.ts", "shared/schema.ts"],
+      "acceptanceCriteria": ["POST /api/cases/:id/close endpoint works", "Freshdesk tickets closed", "Audit logged"],
+      "notes": "Implemented 2025-12-30"
+    },
+    {
+      "id": "F021",
+      "name": "Compliance Override",
+      "description": "Manually override compliance status with reason",
+      "passes": true,
+      "files": ["server/routes.ts", "server/storage.ts", "shared/schema.ts", "client/src/components/CaseDetailPanel.tsx"],
+      "acceptanceCriteria": ["Set/clear override endpoints", "Reason required", "UI shows override status"],
+      "notes": "Implemented 2025-12-30"
+    },
+    {
+      "id": "F022",
+      "name": "Ticket Merge",
+      "description": "Merge multiple Freshdesk tickets into single master ticket",
+      "passes": true,
+      "files": ["server/routes.ts", "server/storage.ts", "shared/schema.ts", "client/src/components/CaseDetailPanel.tsx"],
+      "acceptanceCriteria": ["Master ticket selection", "Other tickets closed in Freshdesk", "Ticket count updated"],
+      "notes": "Implemented 2025-12-30"
+    },
+    {
+      "id": "F023",
+      "name": "Employer Dashboard",
+      "description": "Simplified dashboard for employer role users",
+      "passes": true,
+      "files": ["client/src/pages/EmployerDashboard.tsx", "client/src/components/RoleBasedDashboard.tsx", "client/src/App.tsx"],
+      "acceptanceCriteria": ["Role-based routing", "Worker list view", "Stats cards", "Case detail modal"],
+      "notes": "Implemented 2025-12-30"
+    },
+    {
+      "id": "F024",
+      "name": "Reports & Analytics",
+      "description": "Reports page with compliance and work status charts",
+      "passes": true,
+      "files": ["client/src/pages/ReportsPage.tsx", "client/src/App.tsx", "client/src/pages/GPNet2Dashboard.tsx"],
+      "acceptanceCriteria": ["Pie charts for compliance/work status", "Bar chart by company", "Cases needing attention list"],
+      "notes": "Implemented 2025-12-30"
     }
   ],
   "incomplete": [],
