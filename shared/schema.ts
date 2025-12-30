@@ -442,6 +442,11 @@ export interface WorkerCase {
   certificateUrl?: string;
   complianceIndicator: ComplianceIndicator; // Legacy field - kept for backward compatibility
   compliance?: CaseCompliance; // New structured compliance object
+  complianceOverride?: boolean;
+  complianceOverrideValue?: ComplianceIndicator;
+  complianceOverrideReason?: string;
+  complianceOverrideBy?: string;
+  complianceOverrideAt?: string;
   medicalConstraints?: MedicalConstraints;
   functionalCapacity?: FunctionalCapacity;
   rtwPlanStatus?: RTWPlanStatus;
@@ -457,6 +462,7 @@ export interface WorkerCase {
   summary: string;
   ticketIds: string[]; // Track all Freshdesk ticket IDs for this worker
   ticketCount: number; // Number of tickets merged into this case
+  masterTicketId?: string; // Primary ticket ID after merge
   aiSummary?: string; // Cached AI-generated summary
   aiSummaryGeneratedAt?: string; // When AI summary was last generated
   aiSummaryModel?: string; // AI model used for summary generation
@@ -470,6 +476,9 @@ export interface WorkerCase {
   latestDiscussionNotes?: CaseDiscussionNote[];
   discussionInsights?: TranscriptInsight[];
   employmentStatus?: EmploymentStatus;
+  caseStatus?: "open" | "closed";
+  closedAt?: string;
+  closedReason?: string;
   terminationProcessId?: string | null;
   terminationReason?: TerminationReason | null;
   terminationAuditFlag?: TerminationAuditFlag;
@@ -542,6 +551,11 @@ export const workerCases = pgTable("worker_cases", {
   certificateUrl: text("certificate_url"),
   complianceIndicator: text("compliance_indicator").notNull(),
   complianceJson: jsonb("compliance_json").$type<CaseCompliance>(),
+  complianceOverride: boolean("compliance_override").default(false),
+  complianceOverrideValue: text("compliance_override_value"), // Overridden indicator value
+  complianceOverrideReason: text("compliance_override_reason"),
+  complianceOverrideBy: text("compliance_override_by"),
+  complianceOverrideAt: timestamp("compliance_override_at"),
   clinicalStatusJson: jsonb("clinical_status_json").$type<CaseClinicalStatus | null>(),
   currentStatus: text("current_status").notNull(),
   nextStep: text("next_step").notNull(),
@@ -550,6 +564,7 @@ export const workerCases = pgTable("worker_cases", {
   summary: text("summary").notNull(),
   ticketIds: text("ticket_ids").array().notNull().default(sql`ARRAY[]::text[]`),
   ticketCount: text("ticket_count").notNull().default('1'),
+  masterTicketId: text("master_ticket_id"), // Primary ticket ID after merge
   aiSummary: text("ai_summary"),
   aiSummaryGeneratedAt: timestamp("ai_summary_generated_at"),
   aiSummaryModel: text("ai_summary_model"),
@@ -558,6 +573,9 @@ export const workerCases = pgTable("worker_cases", {
   clcLastFollowUp: text("clc_last_follow_up"),
   clcNextFollowUp: text("clc_next_follow_up"),
   employmentStatus: text("employment_status").notNull().default("ACTIVE"),
+  caseStatus: text("case_status").notNull().default("open"), // open, closed
+  closedAt: timestamp("closed_at"),
+  closedReason: text("closed_reason"),
   terminationProcessId: varchar("termination_process_id"),
   terminationReason: text("termination_reason"),
   terminationAuditFlag: text("termination_audit_flag"),

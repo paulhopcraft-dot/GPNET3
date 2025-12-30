@@ -18,9 +18,9 @@ export function CasesTable({ cases, selectedCaseId, onCaseClick }: CasesTablePro
   );
 
   return (
-    <div className="flex-1 overflow-x-auto bg-card rounded-xl border border-border">
+    <div className="flex-1 min-h-[480px] overflow-auto bg-card rounded-xl border border-border">
       <table className="w-full text-sm text-left">
-        <thead className="bg-muted border-b border-border">
+        <thead className="bg-muted border-b border-border sticky top-0 z-10">
           <tr>
             <th className="px-4 py-3 font-medium text-muted-foreground">Worker Name</th>
             <th className="px-4 py-3 font-medium text-muted-foreground">Company</th>

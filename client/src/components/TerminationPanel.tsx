@@ -268,17 +268,17 @@ export function TerminationPanel({ workerCase }: TerminationPanelProps) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-base">Termination of Employment</CardTitle>
+        <CardTitle className="text-base">Employment Capacity Review</CardTitle>
         {process && <StatusBadge status={process.status} />}
       </CardHeader>
       <CardContent className="space-y-4">
         {error && <div className="text-sm text-red-600">{error}</div>}
-        {loading && <div className="text-sm text-muted-foreground">Loading termination workflow…</div>}
+        {loading && <div className="text-sm text-muted-foreground">Loading capacity review…</div>}
         {!loading && process && (
           <div className="space-y-6">
             {highRisk && (
               <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-                Medical evidence appears stale. Termination flagged as HIGH RISK.
+                Medical evidence appears stale. Review flagged as HIGH RISK.
               </div>
             )}
 
@@ -313,7 +313,7 @@ export function TerminationPanel({ workerCase }: TerminationPanelProps) {
               <div className="flex gap-2">
                 {process.status === "NOT_STARTED" ? (
                   <Button onClick={initiate} size="sm">
-                    Initiate Termination Process
+                    Start Capacity Review
                   </Button>
                 ) : (
                   <Button onClick={updateEvidence} size="sm" variant="outline">

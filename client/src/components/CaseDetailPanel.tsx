@@ -21,7 +21,9 @@ import { SummaryCard } from "./SummaryCard";
 import { EmailDraftButton } from "./EmailDraftButton";
 import { CaseChatPanel } from "./CaseChatPanel";
 import { fetchWithCsrf } from "../lib/queryClient";
-import { Sparkles } from "lucide-react";
+import { Sparkles, CheckCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "../lib/queryClient";
 
 interface CaseDetailPanelProps {
   workerCase: WorkerCase;
@@ -75,6 +77,13 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
   const [discussionLoading, setDiscussionLoading] = useState(false);
   const [discussionError, setDiscussionError] = useState<string | null>(null);
   const [showChat, setShowChat] = useState(false);
+  const [closingCase, setClosingCase] = useState(false);
+  const [overridingCompliance, setOverridingCompliance] = useState(false);
+  const [mergingTickets, setMergingTickets] = useState(false);
+  const [showComplianceForm, setShowComplianceForm] = useState(false);
+  const [complianceValue, setComplianceValue] = useState<string>("");
+  const [complianceReason, setComplianceReason] = useState("");
+  const { toast } = useToast();
   const latestCaseIdRef = useRef(workerCase.id);
   useEffect(() => {
     latestCaseIdRef.current = workerCase.id;
@@ -144,7 +153,7 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
   const fetchCachedSummary = async (): Promise<boolean> => {
     const caseId = workerCase.id;
     try {
-      const response = await fetch(`/api/cases/${caseId}/summary`);
+      const response = await fetchWithCsrf(`/api/cases/${caseId}/summary`);
       if (!response.ok) {
         throw new Error("Failed to fetch summary");
       }
@@ -258,7 +267,7 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
       setTimelineLoading(true);
       setTimelineError(null);
       try {
-        const response = await fetch(`/api/cases/${workerCase.id}/recovery-timeline`);
+        const response = await fetchWithCsrf(`/api/cases/${workerCase.id}/recovery-timeline`);
         if (!response.ok) {
           throw new Error("Failed to fetch recovery timeline");
         }
@@ -296,7 +305,7 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
       setDiscussionLoading(true);
       setDiscussionError(null);
       try {
-        const response = await fetch(`/api/cases/${workerCase.id}/discussion-notes`);
+        const response = await fetchWithCsrf(`/api/cases/${workerCase.id}/discussion-notes`);
         if (!response.ok) {
           throw new Error("Failed to fetch discussion notes");
         }
@@ -352,6 +361,133 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
     not_required: "Not required",
   };
 
+  const handleCloseCase = async () => {
+    if (!confirm("Are you sure you want to close this case? This will also close the linked Freshdesk ticket(s).")) {
+      return;
+    }
+
+    setClosingCase(true);
+    try {
+      const response = await fetchWithCsrf(`/api/cases/${workerCase.id}/close`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: "Closed from dashboard" }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to close case");
+      }
+
+      toast({
+        title: "Case Closed",
+        description: `${workerCase.workerName}'s case has been closed successfully.`,
+      });
+
+      // Refresh the cases list
+      queryClient.invalidateQueries({ queryKey: ["/api/gpnet2/cases"] });
+
+      // Close the detail panel
+      onClose();
+    } catch (error) {
+      console.error("Error closing case:", error);
+      toast({
+        title: "Error",
+        description: "Failed to close the case. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setClosingCase(false);
+    }
+  };
+
+  const handleComplianceOverride = async () => {
+    if (!complianceValue || !complianceReason) {
+      toast({
+        title: "Missing Information",
+        description: "Please select a compliance status and provide a reason.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setOverridingCompliance(true);
+    try {
+      const response = await fetchWithCsrf(`/api/cases/${workerCase.id}/compliance-override`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ complianceValue, reason: complianceReason }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to override compliance");
+      }
+
+      toast({
+        title: "Compliance Updated",
+        description: `Compliance status set to ${complianceValue}.`,
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["/api/gpnet2/cases"] });
+      setShowComplianceForm(false);
+      setComplianceValue("");
+      setComplianceReason("");
+    } catch (error) {
+      console.error("Error overriding compliance:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update compliance status.",
+        variant: "destructive",
+      });
+    } finally {
+      setOverridingCompliance(false);
+    }
+  };
+
+  const handleMergeTickets = async () => {
+    if (!workerCase.ticketIds || workerCase.ticketIds.length < 2) {
+      toast({
+        title: "Cannot Merge",
+        description: "This case only has one ticket.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setMergingTickets(true);
+    try {
+      // Use the first ticket as master
+      const masterTicketId = workerCase.ticketIds[0];
+
+      const response = await fetchWithCsrf(`/api/cases/${workerCase.id}/merge-tickets`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ masterTicketId, closeOthers: true }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to merge tickets");
+      }
+
+      const result = await response.json();
+
+      toast({
+        title: "Tickets Merged",
+        description: `Master ticket: ${masterTicketId}. Closed ${result.closedTickets?.length || 0} other ticket(s).`,
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["/api/gpnet2/cases"] });
+    } catch (error) {
+      console.error("Error merging tickets:", error);
+      toast({
+        title: "Error",
+        description: "Failed to merge tickets.",
+        variant: "destructive",
+      });
+    } finally {
+      setMergingTickets(false);
+    }
+  };
+
   const hasClinicalStatus =
     workerCase.rtwPlanStatus ||
     workerCase.complianceStatus ||
@@ -379,6 +515,19 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
             <span className="hidden sm:inline">Ask AI</span>
           </Button>
           <EmailDraftButton caseId={workerCase.id} workerName={workerCase.workerName} />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleCloseCase}
+            disabled={closingCase || workerCase.caseStatus === "closed"}
+            data-testid="button-close-case"
+            className="gap-1 text-emerald-600 border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
+          >
+            <CheckCircle className="h-4 w-4" />
+            <span className="hidden sm:inline">
+              {closingCase ? "Closing..." : workerCase.caseStatus === "closed" ? "Closed" : "Close Case"}
+            </span>
+          </Button>
           <Button variant="ghost" size="icon" onClick={onClose} data-testid="button-close-panel">
             <span className="material-symbols-outlined">close</span>
           </Button>
@@ -715,6 +864,120 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
             <h3 className="text-sm font-medium text-muted-foreground mb-2">Due Date</h3>
             <p className="text-card-foreground">{workerCase.dueDate}</p>
           </div>
+
+          {/* Compliance Override Section */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-medium">Compliance Status</h3>
+                {workerCase.complianceOverride && (
+                  <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
+                    Override Active
+                  </Badge>
+                )}
+              </div>
+              <div className="flex items-center gap-2 mb-3">
+                <Badge
+                  className={`${
+                    workerCase.complianceIndicator === "Very High" || workerCase.complianceIndicator === "High"
+                      ? "bg-emerald-100 text-emerald-800"
+                      : workerCase.complianceIndicator === "Medium"
+                      ? "bg-amber-100 text-amber-800"
+                      : "bg-red-100 text-red-800"
+                  }`}
+                >
+                  {workerCase.complianceIndicator}
+                </Badge>
+                {workerCase.compliance?.reason && (
+                  <span className="text-xs text-muted-foreground">{workerCase.compliance.reason}</span>
+                )}
+              </div>
+              {!showComplianceForm ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowComplianceForm(true)}
+                  className="w-full text-xs"
+                >
+                  Override Compliance
+                </Button>
+              ) : (
+                <div className="space-y-2">
+                  <select
+                    value={complianceValue}
+                    onChange={(e) => setComplianceValue(e.target.value)}
+                    className="w-full p-2 text-sm border rounded-md bg-background"
+                  >
+                    <option value="">Select status...</option>
+                    <option value="Very High">Very High (Fully Compliant)</option>
+                    <option value="High">High</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Low">Low (Non-Compliant)</option>
+                    <option value="Very Low">Very Low (Non-Compliant)</option>
+                  </select>
+                  <input
+                    type="text"
+                    value={complianceReason}
+                    onChange={(e) => setComplianceReason(e.target.value)}
+                    placeholder="Reason for override..."
+                    className="w-full p-2 text-sm border rounded-md bg-background"
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={handleComplianceOverride}
+                      disabled={overridingCompliance}
+                      className="flex-1 text-xs"
+                    >
+                      {overridingCompliance ? "Saving..." : "Save"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setShowComplianceForm(false);
+                        setComplianceValue("");
+                        setComplianceReason("");
+                      }}
+                      className="text-xs"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Ticket Merge Section - only show if multiple tickets */}
+          {workerCase.ticketIds && workerCase.ticketIds.length > 1 && !workerCase.masterTicketId && (
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-medium">Linked Tickets</h3>
+                  <Badge variant="secondary" className="text-xs">
+                    {workerCase.ticketIds.length} tickets
+                  </Badge>
+                </div>
+                <div className="text-xs text-muted-foreground mb-3">
+                  {workerCase.ticketIds.slice(0, 3).join(", ")}
+                  {workerCase.ticketIds.length > 3 && ` +${workerCase.ticketIds.length - 3} more`}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleMergeTickets}
+                  disabled={mergingTickets}
+                  className="w-full text-xs"
+                >
+                  {mergingTickets ? "Merging..." : "Merge Tickets (Keep First)"}
+                </Button>
+                <p className="text-[10px] text-muted-foreground mt-2">
+                  This will close duplicate tickets in Freshdesk and keep {workerCase.ticketIds[0]} as master.
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           <div>
             <h3 className="text-sm font-medium text-muted-foreground mb-3">Recovery Timeline</h3>

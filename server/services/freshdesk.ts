@@ -882,4 +882,37 @@ export class FreshdeskService {
 
     return workerCases;
   }
+
+  /**
+   * Close a Freshdesk ticket
+   * Freshdesk ticket statuses:
+   * 2 = Open, 3 = Pending, 4 = Resolved, 5 = Closed
+   */
+  async closeTicket(ticketId: number): Promise<void> {
+    try {
+      const response = await fetch(
+        `${this.baseUrl}/tickets/${ticketId}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Authorization': this.getAuthHeader(),
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            status: 5, // 5 = Closed in Freshdesk
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to close Freshdesk ticket ${ticketId}: ${response.status} ${errorText}`);
+      }
+
+      console.log(`[Freshdesk] Closed ticket ${ticketId}`);
+    } catch (error) {
+      console.error(`[Freshdesk] Error closing ticket ${ticketId}:`, error);
+      throw error;
+    }
+  }
 }

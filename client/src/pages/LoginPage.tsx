@@ -30,14 +30,10 @@ export default function LoginPage() {
     },
   });
 
-  // Redirect if already authenticated - route based on role
+  // Redirect if already authenticated - always go to main dashboard
   useEffect(() => {
     if (isAuthenticated && user) {
-      if (user.role === "admin") {
-        navigate("/admin");
-      } else {
-        navigate("/");
-      }
+      navigate("/");
     }
   }, [isAuthenticated, user, navigate]);
 

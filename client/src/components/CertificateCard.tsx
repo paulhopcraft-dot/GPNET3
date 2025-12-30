@@ -10,6 +10,7 @@ import {
   DialogTrigger,
 } from "./ui/dialog";
 import type { WorkCapacity } from "@shared/schema";
+import { fetchWithCsrf } from "../lib/queryClient";
 
 interface CertificateWithStatus {
   id: string;
@@ -41,7 +42,7 @@ export function CertificateCard({ caseId }: CertificateCardProps) {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`/api/actions/case/${caseId}/certificates-with-status`);
+        const response = await fetchWithCsrf(`/api/actions/case/${caseId}/certificates-with-status`);
         if (!response.ok) {
           throw new Error("Failed to fetch certificates");
         }

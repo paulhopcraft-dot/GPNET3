@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import type { CaseAction, CaseActionType } from "@shared/schema";
+import { fetchWithCsrf } from "../lib/queryClient";
 
 interface ActionQueueCardProps {
   onCaseClick?: (caseId: string) => void;
@@ -21,7 +22,7 @@ export function ActionQueueCard({ onCaseClick, limit = 5 }: ActionQueueCardProps
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`/api/actions/pending?limit=${limit}`);
+        const response = await fetchWithCsrf(`/api/actions/pending?limit=${limit}`);
         if (!response.ok) {
           throw new Error("Failed to fetch actions");
         }
@@ -117,21 +118,21 @@ export function ActionQueueCard({ onCaseClick, limit = 5 }: ActionQueueCardProps
   };
 
   return (
-    <Card data-testid="card-action-queue">
-      <CardHeader>
+    <Card data-testid="card-action-queue" className="h-full flex flex-col">
+      <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <span className="material-symbols-outlined text-primary">pending_actions</span>
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <span className="material-symbols-outlined text-primary text-lg">pending_actions</span>
             Action Queue
           </CardTitle>
           {actions.length > 0 && (
             <Badge variant="secondary" className="text-xs">
-              {actions.length} pending
+              {actions.length}
             </Badge>
           )}
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-1 overflow-y-auto">
         {loading && (
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
             <span className="material-symbols-outlined animate-spin text-primary">progress_activity</span>

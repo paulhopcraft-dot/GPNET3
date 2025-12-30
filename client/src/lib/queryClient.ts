@@ -84,7 +84,7 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-function getAuthHeaders(includeAuth: boolean = true): Record<string, string> {
+export function getAuthHeaders(includeAuth: boolean = true): Record<string, string> {
   const headers: Record<string, string> = {};
 
   if (includeAuth) {
@@ -197,13 +197,21 @@ export async function apiRequest(
  */
 export async function fetchWithCsrf(
   url: string,
-  options?: RequestInit & { skipCsrf?: boolean },
+  options?: RequestInit & { skipCsrf?: boolean; skipAuth?: boolean },
 ): Promise<Response> {
-  const { skipCsrf, ...fetchOptions } = options || {};
+  const { skipCsrf, skipAuth, ...fetchOptions } = options || {};
   const method = fetchOptions.method || "GET";
 
   // Build headers
   const headers = new Headers(fetchOptions.headers);
+
+  // Add Authorization header (unless explicitly skipped)
+  if (!skipAuth) {
+    const authHeaders = getAuthHeaders(true);
+    if (authHeaders.Authorization) {
+      headers.set("Authorization", authHeaders.Authorization);
+    }
+  }
 
   // Add CSRF token for unsafe methods (unless explicitly skipped)
   if (requiresCsrf(method) && !skipCsrf) {

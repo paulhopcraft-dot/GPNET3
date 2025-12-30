@@ -10,9 +10,10 @@ import { Button } from "@/components/ui/button";
 import { DashboardStats } from "@/components/dashboard-stats";
 import { ActionQueueCard } from "@/components/ActionQueueCard";
 import { useToast } from "@/hooks/use-toast";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, fetchWithCsrf } from "@/lib/queryClient";
 import type { WorkerCase } from "@shared/schema";
 import { isLegitimateCase, getSurname } from "@shared/schema";
+import { Link } from "react-router-dom";
 
 export default function GPNet2Dashboard() {
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
@@ -27,11 +28,8 @@ export default function GPNet2Dashboard() {
 
   const syncMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch("/api/freshdesk/sync", {
+      const response = await fetchWithCsrf("/api/freshdesk/sync", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
       });
       if (!response.ok) {
         throw new Error("Failed to sync with Freshdesk");
@@ -129,12 +127,32 @@ export default function GPNet2Dashboard() {
             v2024.11.05 • {cases.length} cases loaded
           </div>
         </div>
+
+        {/* Quick Links */}
+        <div className="mb-4 pb-4 border-b border-sidebar-border">
+          <Link
+            to="/reports"
+            className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
+          >
+            <span className="material-symbols-outlined text-lg">analytics</span>
+            Reports & Analytics
+          </Link>
+          <Link
+            to="/audit"
+            className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
+          >
+            <span className="material-symbols-outlined text-lg">history</span>
+            Audit Log
+          </Link>
+        </div>
+
         <CompanyNav companies={availableCompanies} selectedCompany={selectedCompany} onSelectCompany={setSelectedCompany} />
       </aside>
 
       <main className="flex-1 flex overflow-hidden">
-        <div className="flex-1 flex flex-col p-3 sm:p-6 overflow-y-auto">
-          <div className="lg:hidden mb-4 pb-3 border-b border-border">
+        <div className="flex-1 flex flex-col p-3 sm:p-4 overflow-y-auto">
+          {/* Mobile Header */}
+          <div className="lg:hidden mb-3 pb-2 border-b border-border">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="bg-primary/20 rounded-full size-8 flex items-center justify-center">
@@ -150,45 +168,54 @@ export default function GPNet2Dashboard() {
               <ThemeToggle />
             </div>
           </div>
-          
-          {/* Dashboard Stats - Overview metrics */}
-          <div className="mb-6">
+
+          {/* Dashboard Stats - Full width overview */}
+          <div className="mb-4">
             <DashboardStats cases={filteredCases} />
           </div>
 
-          {/* Action Queue and Search Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-            <div className="lg:col-span-2">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                <SearchBar value={searchQuery} onChange={setSearchQuery} />
-                <div className="flex items-center gap-2">
-                  <Button
-                    onClick={() => syncMutation.mutate()}
-                    disabled={syncMutation.isPending}
-                    data-testid="button-sync-freshdesk"
-                    size="sm"
-                  >
-                    <span className="material-symbols-outlined text-base">
-                      {syncMutation.isPending ? "sync" : "refresh"}
-                    </span>
-                    <span className="font-bold hidden sm:inline">
-                      {syncMutation.isPending ? "Syncing..." : "Sync Freshdesk"}
-                    </span>
-                  </Button>
-                  <ThemeToggle className="hidden lg:block" />
-                </div>
-              </div>
-            </div>
-            <div className="lg:col-span-1">
-              <ActionQueueCard onCaseClick={handleCaseClick} limit={5} />
+          {/* Search and Sync Row - Full width */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
+            <SearchBar value={searchQuery} onChange={setSearchQuery} />
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={() => syncMutation.mutate()}
+                disabled={syncMutation.isPending}
+                data-testid="button-sync-freshdesk"
+                size="sm"
+              >
+                <span className="material-symbols-outlined text-base">
+                  {syncMutation.isPending ? "sync" : "refresh"}
+                </span>
+                <span className="font-bold hidden sm:inline">
+                  {syncMutation.isPending ? "Syncing..." : "Sync Freshdesk"}
+                </span>
+              </Button>
+              <ThemeToggle className="hidden lg:block" />
             </div>
           </div>
 
-          <CasesTable
-            cases={filteredCases}
-            selectedCaseId={selectedCaseId}
-            onCaseClick={handleCaseClick}
-          />
+          {/* Main Content: Cases Table + Action Queue Sidebar */}
+          <div className="flex-1 flex gap-4 min-h-0">
+            {/* Cases Table - Takes most of the space */}
+            <div className="flex-1 min-w-0">
+              <CasesTable
+                cases={filteredCases}
+                selectedCaseId={selectedCaseId}
+                onCaseClick={handleCaseClick}
+              />
+            </div>
+
+            {/* Action Queue Sidebar - Fixed width on larger screens */}
+            <div className="hidden xl:block w-80 flex-shrink-0">
+              <ActionQueueCard onCaseClick={handleCaseClick} limit={8} />
+            </div>
+          </div>
+
+          {/* Action Queue for smaller screens - below table */}
+          <div className="xl:hidden mt-4">
+            <ActionQueueCard onCaseClick={handleCaseClick} limit={5} />
+          </div>
         </div>
 
         {selectedCase && (

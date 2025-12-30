@@ -10,6 +10,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AdminRoute } from "./components/AdminRoute";
 import { AdminLayout } from "./components/admin/AdminLayout";
 import GPNet2Dashboard from "./pages/GPNet2Dashboard";
+import { RoleBasedDashboard } from "./components/RoleBasedDashboard";
 import LoginPage from "./pages/LoginPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import CompanyList from "./pages/admin/CompanyList";
@@ -25,6 +26,7 @@ import PredictionsPage from "./pages/PredictionsPage";
 import RiskDashboardPage from "./pages/RiskDashboardPage";
 import AuditLogPage from "./pages/AuditLogPage";
 import CertificateReviewPage from "./pages/CertificateReviewPage";
+import ReportsPage from "./pages/ReportsPage";
 
 export default function App() {
   // Initialize CSRF token on app mount
@@ -44,7 +46,7 @@ export default function App() {
                   path="/"
                   element={
                     <ProtectedRoute>
-                      <GPNet2Dashboard />
+                      <RoleBasedDashboard />
                     </ProtectedRoute>
                   }
                 />
@@ -133,6 +135,14 @@ export default function App() {
                   element={
                     <ProtectedRoute>
                       <CertificateReviewPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/reports"
+                  element={
+                    <ProtectedRoute>
+                      <ReportsPage />
                     </ProtectedRoute>
                   }
                 />

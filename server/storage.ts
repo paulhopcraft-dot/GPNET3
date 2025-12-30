@@ -45,7 +45,7 @@ import {
   notifications,
 } from "@shared/schema";
 import { evaluateClinicalEvidence } from "./services/clinicalEvidence";
-import { eq, desc, asc, inArray, ilike, sql, and, lte, gte } from "drizzle-orm";
+import { eq, desc, asc, inArray, ilike, sql, and, lte, gte, or, isNull, ne } from "drizzle-orm";
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
@@ -406,6 +406,18 @@ export interface IStorage {
   markNotificationSent(id: string): Promise<NotificationDB>;
   notificationExistsByDedupeKey(dedupeKey: string): Promise<boolean>;
   getNotificationStats(organizationId: string): Promise<{ pending: number; sent: number; failed: number }>;
+
+  // Case management - close/override/merge
+  closeCase(caseId: string, organizationId: string, reason?: string): Promise<void>;
+  setComplianceOverride(
+    caseId: string,
+    organizationId: string,
+    overrideValue: string,
+    reason: string,
+    overrideBy: string
+  ): Promise<void>;
+  clearComplianceOverride(caseId: string, organizationId: string): Promise<void>;
+  mergeTickets(caseId: string, organizationId: string, masterTicketId: string): Promise<void>;
 }
 
 class DbStorage implements IStorage {
@@ -413,7 +425,14 @@ class DbStorage implements IStorage {
     const dbCases = await db
       .select()
       .from(workerCases)
-      .where(eq(workerCases.organizationId, organizationId));
+      .where(and(
+        eq(workerCases.organizationId, organizationId),
+        // Filter out closed cases - only show open cases by default
+        or(
+          eq(workerCases.caseStatus, "open"),
+          isNull(workerCases.caseStatus)
+        )
+      ));
     const caseIds = dbCases.map((dbCase) => dbCase.id);
 
     const notesByCase = new Map<string, CaseDiscussionNote[]>();
@@ -481,6 +500,11 @@ class DbStorage implements IStorage {
           certificateUrl: dbCase.certificateUrl || undefined,
           complianceIndicator: dbCase.complianceIndicator as any,
           compliance: dbCase.complianceJson as any, // Parse JSONB compliance object
+          complianceOverride: (dbCase as any).complianceOverride || false,
+          complianceOverrideValue: (dbCase as any).complianceOverrideValue || undefined,
+          complianceOverrideReason: (dbCase as any).complianceOverrideReason || undefined,
+          complianceOverrideBy: (dbCase as any).complianceOverrideBy || undefined,
+          complianceOverrideAt: (dbCase as any).complianceOverrideAt?.toISOString() || undefined,
           medicalConstraints: dbCase.clinicalStatusJson?.medicalConstraints,
           functionalCapacity: dbCase.clinicalStatusJson?.functionalCapacity,
           rtwPlanStatus: dbCase.clinicalStatusJson?.rtwPlanStatus,
@@ -494,6 +518,7 @@ class DbStorage implements IStorage {
           summary: dbCase.summary,
           ticketIds: dbCase.ticketIds || [dbCase.id],
           ticketCount: Number(dbCase.ticketCount) || 1,
+          masterTicketId: (dbCase as any).masterTicketId || undefined,
           aiSummary: dbCase.aiSummary || undefined,
           aiSummaryGeneratedAt: dbCase.aiSummaryGeneratedAt?.toISOString() || undefined,
           aiSummaryModel: dbCase.aiSummaryModel || undefined,
@@ -1151,6 +1176,80 @@ class DbStorage implements IStorage {
         aiSummaryGeneratedAt: new Date(),
         aiSummaryModel: model,
         aiWorkStatusClassification: workStatusClassification,
+        updatedAt: new Date(),
+      })
+      .where(and(
+        eq(workerCases.id, caseId),
+        eq(workerCases.organizationId, organizationId)
+      ));
+  }
+
+  async closeCase(caseId: string, organizationId: string, reason?: string): Promise<void> {
+    await db
+      .update(workerCases)
+      .set({
+        caseStatus: "closed",
+        closedAt: new Date(),
+        closedReason: reason || null,
+        updatedAt: new Date(),
+      })
+      .where(and(
+        eq(workerCases.id, caseId),
+        eq(workerCases.organizationId, organizationId)
+      ));
+  }
+
+  async setComplianceOverride(
+    caseId: string,
+    organizationId: string,
+    overrideValue: string,
+    reason: string,
+    overrideBy: string
+  ): Promise<void> {
+    await db
+      .update(workerCases)
+      .set({
+        complianceOverride: true,
+        complianceOverrideValue: overrideValue,
+        complianceOverrideReason: reason,
+        complianceOverrideBy: overrideBy,
+        complianceOverrideAt: new Date(),
+        complianceIndicator: overrideValue, // Also update the main indicator
+        updatedAt: new Date(),
+      })
+      .where(and(
+        eq(workerCases.id, caseId),
+        eq(workerCases.organizationId, organizationId)
+      ));
+  }
+
+  async clearComplianceOverride(caseId: string, organizationId: string): Promise<void> {
+    await db
+      .update(workerCases)
+      .set({
+        complianceOverride: false,
+        complianceOverrideValue: null,
+        complianceOverrideReason: null,
+        complianceOverrideBy: null,
+        complianceOverrideAt: null,
+        updatedAt: new Date(),
+      })
+      .where(and(
+        eq(workerCases.id, caseId),
+        eq(workerCases.organizationId, organizationId)
+      ));
+  }
+
+  async mergeTickets(
+    caseId: string,
+    organizationId: string,
+    masterTicketId: string
+  ): Promise<void> {
+    await db
+      .update(workerCases)
+      .set({
+        masterTicketId: masterTicketId,
+        ticketCount: "1", // After merge, only master ticket counts
         updatedAt: new Date(),
       })
       .where(and(
