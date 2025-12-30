@@ -10,6 +10,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AdminRoute } from "./components/AdminRoute";
 import { AdminLayout } from "./components/admin/AdminLayout";
 import GPNet2Dashboard from "./pages/GPNet2Dashboard";
+import { RoleBasedDashboard } from "./components/RoleBasedDashboard";
 import LoginPage from "./pages/LoginPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import CompanyList from "./pages/admin/CompanyList";
@@ -44,7 +45,7 @@ export default function App() {
                   path="/"
                   element={
                     <ProtectedRoute>
-                      <GPNet2Dashboard />
+                      <RoleBasedDashboard />
                     </ProtectedRoute>
                   }
                 />
