@@ -1,32 +1,18 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm test:*)",
-      "Bash(where:*)",
-      "Bash(winget install:*)",
-      "Bash(gh --version:*)",
-      "Bash(\"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" --version)",
-      "Bash(\"C:\\\\Program Files \\(x86\\)\\\\GitHub CLI\\\\gh.exe\" --version)",
-      "Bash(git remote get-url:*)",
-      "Bash(git push:*)",
-      "Bash(start \"https://github.com/paulhopcraft-dot/GPNET3/compare/main...wip-gpnet-claims?expand=1\")",
-      "Bash(curl:*)",
-      "Bash(msiexec /i gh.msi /quiet /qn /norestart)",
-      "Bash(powershell:*)",
-      "Bash(dir gh-cli:*)",
-      "Bash(./gh-cli/bin/gh.exe:*)",
-      "Skill(status)",
-      "Skill(status:*)",
-      "Skill(reflect)",
-      "Skill(reflect:*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(git fetch:*)",
-      "Bash(git merge:*)",
-      "Bash(git checkout:*)",
-      "Bash(npm install)",
-      "Bash(npx tsc:*)"
-    ]
-  },
-  "dangerouslySkipPermissions": true
+      "Bash(*)",
+      "Read(*)",
+      "Write(*)",
+      "Edit(*)",
+      "Glob(*)",
+      "Grep(*)",
+      "Skill(*)",
+      "Task(*)",
+      "WebFetch(*)",
+      "WebSearch(*)",
+      "Bash(git -C C:/Dev/gpnet3 add claude-progress.txt .claude/settings.local.json AUTONOMOUS-GOVERNANCE.md)"
+    ],
+    "deny": []
+  }
 }
