@@ -127,7 +127,7 @@ function EmployerCaseDetail({ workerCase, onClose }: EmployerCaseDetailProps) {
                 <h3 className="font-medium mb-3">Return to Work Plan</h3>
                 <Badge
                   className={
-                    workerCase.rtwPlanStatus === "Active"
+                    workerCase.rtwPlanStatus === "working_well" || workerCase.rtwPlanStatus === "in_progress"
                       ? "bg-emerald-100 text-emerald-800"
                       : "bg-slate-100 text-slate-800"
                   }

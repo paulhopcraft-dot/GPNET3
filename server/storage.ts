@@ -406,6 +406,18 @@ export interface IStorage {
   markNotificationSent(id: string): Promise<NotificationDB>;
   notificationExistsByDedupeKey(dedupeKey: string): Promise<boolean>;
   getNotificationStats(organizationId: string): Promise<{ pending: number; sent: number; failed: number }>;
+
+  // Case management - close/override/merge
+  closeCase(caseId: string, organizationId: string, reason?: string): Promise<void>;
+  setComplianceOverride(
+    caseId: string,
+    organizationId: string,
+    overrideValue: string,
+    reason: string,
+    overrideBy: string
+  ): Promise<void>;
+  clearComplianceOverride(caseId: string, organizationId: string): Promise<void>;
+  mergeTickets(caseId: string, organizationId: string, masterTicketId: string): Promise<void>;
 }
 
 class DbStorage implements IStorage {
