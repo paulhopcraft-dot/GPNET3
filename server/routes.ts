@@ -278,6 +278,182 @@ export async function registerRoutes(app: Express): Promise<void> {
     }
   });
 
+  // Compliance override endpoint
+  const complianceOverrideSchema = z.object({
+    complianceValue: z.enum(["Very High", "High", "Medium", "Low", "Very Low"]),
+    reason: z.string().min(1, "Reason is required"),
+  });
+
+  app.post("/api/cases/:id/compliance-override", authorize(), requireCaseOwnership(), async (req: AuthRequest, res) => {
+    try {
+      const workerCase = req.workerCase!;
+      const validationResult = complianceOverrideSchema.safeParse(req.body);
+
+      if (!validationResult.success) {
+        return res.status(400).json({
+          error: "Validation failed",
+          details: validationResult.error.errors,
+        });
+      }
+
+      const { complianceValue, reason } = validationResult.data;
+      const overrideBy = req.user!.email;
+
+      await storage.setComplianceOverride(
+        workerCase.id,
+        workerCase.organizationId,
+        complianceValue,
+        reason,
+        overrideBy
+      );
+
+      // Log audit event
+      await logAuditEvent({
+        userId: req.user!.id,
+        organizationId: req.user!.organizationId,
+        eventType: AuditEventTypes.CASE_UPDATE,
+        resourceType: "case",
+        resourceId: workerCase.id,
+        metadata: {
+          action: "compliance_override",
+          previousValue: workerCase.complianceIndicator,
+          newValue: complianceValue,
+          reason,
+        },
+        ...getRequestMetadata(req),
+      });
+
+      res.json({
+        success: true,
+        message: "Compliance status overridden successfully",
+        caseId: workerCase.id,
+        complianceValue,
+      });
+    } catch (error) {
+      console.error("Error overriding compliance:", error);
+      res.status(500).json({
+        error: "Failed to override compliance",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  });
+
+  // Clear compliance override endpoint
+  app.delete("/api/cases/:id/compliance-override", authorize(), requireCaseOwnership(), async (req: AuthRequest, res) => {
+    try {
+      const workerCase = req.workerCase!;
+
+      await storage.clearComplianceOverride(workerCase.id, workerCase.organizationId);
+
+      // Log audit event
+      await logAuditEvent({
+        userId: req.user!.id,
+        organizationId: req.user!.organizationId,
+        eventType: AuditEventTypes.CASE_UPDATE,
+        resourceType: "case",
+        resourceId: workerCase.id,
+        metadata: {
+          action: "compliance_override_cleared",
+        },
+        ...getRequestMetadata(req),
+      });
+
+      res.json({
+        success: true,
+        message: "Compliance override cleared",
+        caseId: workerCase.id,
+      });
+    } catch (error) {
+      console.error("Error clearing compliance override:", error);
+      res.status(500).json({
+        error: "Failed to clear compliance override",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  });
+
+  // Merge tickets endpoint
+  const mergeTicketsSchema = z.object({
+    masterTicketId: z.string().min(1, "Master ticket ID is required"),
+    closeOthers: z.boolean().optional().default(true),
+  });
+
+  app.post("/api/cases/:id/merge-tickets", authorize(), requireCaseOwnership(), async (req: AuthRequest, res) => {
+    try {
+      const workerCase = req.workerCase!;
+      const validationResult = mergeTicketsSchema.safeParse(req.body);
+
+      if (!validationResult.success) {
+        return res.status(400).json({
+          error: "Validation failed",
+          details: validationResult.error.errors,
+        });
+      }
+
+      const { masterTicketId, closeOthers } = validationResult.data;
+
+      // Verify master ticket is in the case's ticket list
+      if (!workerCase.ticketIds?.includes(masterTicketId)) {
+        return res.status(400).json({
+          error: "Invalid master ticket",
+          details: "The specified master ticket is not associated with this case",
+        });
+      }
+
+      // Update the case with master ticket
+      await storage.mergeTickets(workerCase.id, workerCase.organizationId, masterTicketId);
+
+      // Close other tickets in Freshdesk if requested
+      let closedTickets: string[] = [];
+      if (closeOthers && process.env.FRESHDESK_DOMAIN && process.env.FRESHDESK_API_KEY) {
+        const otherTickets = workerCase.ticketIds.filter(id => id !== masterTicketId);
+        const freshdesk = new FreshdeskService();
+
+        for (const ticketId of otherTickets) {
+          try {
+            const numericId = ticketId.replace("FD-", "");
+            if (numericId && !isNaN(Number(numericId))) {
+              await freshdesk.closeTicket(Number(numericId));
+              closedTickets.push(ticketId);
+            }
+          } catch (err) {
+            console.error(`Failed to close ticket ${ticketId}:`, err);
+          }
+        }
+      }
+
+      // Log audit event
+      await logAuditEvent({
+        userId: req.user!.id,
+        organizationId: req.user!.organizationId,
+        eventType: AuditEventTypes.CASE_UPDATE,
+        resourceType: "case",
+        resourceId: workerCase.id,
+        metadata: {
+          action: "merge_tickets",
+          masterTicketId,
+          closedTickets,
+          totalTickets: workerCase.ticketIds?.length || 0,
+        },
+        ...getRequestMetadata(req),
+      });
+
+      res.json({
+        success: true,
+        message: "Tickets merged successfully",
+        caseId: workerCase.id,
+        masterTicketId,
+        closedTickets,
+      });
+    } catch (error) {
+      console.error("Error merging tickets:", error);
+      res.status(500).json({
+        error: "Failed to merge tickets",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  });
+
   // Freshdesk sync endpoint (admin only - syncs across all organizations)
   app.post("/api/freshdesk/sync", authorize(["admin"]), async (req: AuthRequest, res) => {
     // Check if Freshdesk is configured before attempting sync
