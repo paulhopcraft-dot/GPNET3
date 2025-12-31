@@ -22,6 +22,7 @@ import organizationRoutes from "./routes/organization";
 import caseChatRoutes from "./routes/caseChat";
 import rtwRoutes from "./routes/rtw";
 import predictionRoutes from "./routes/predictions";
+import narrativeRoutes from "./routes/narrative";
 import { registerTimelineRoutes } from "./routes/timeline";
 import { registerTreatmentPlanRoutes } from "./routes/treatmentPlan";
 import type { RecoveryTimelineSummary } from "@shared/schema";
@@ -71,6 +72,11 @@ export async function registerRoutes(app: Express): Promise<void> {
   // Prediction Engine routes (PRD-9: AI & Intelligence Layer)
   app.use("/api/predictions", predictionRoutes);
   app.use("/api/cases", predictionRoutes);
+
+  // Narrative API routes (Charter-compliant, system-first endpoints)
+  app.use("/api/cases", narrativeRoutes);
+  app.use("/api/reports", narrativeRoutes);
+  app.use("/api", narrativeRoutes);
 
   // Timeline Estimator routes (JWT-protected, case ownership)
   registerTimelineRoutes(app);
