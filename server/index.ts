@@ -3,10 +3,11 @@ import express, { type Request, Response, NextFunction } from "express";
 import cors from "cors";
 import path from "path";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
+import { setupVite, serveStatic } from "./vite";
 import { TranscriptIngestionModule } from "./services/transcripts";
 import { NotificationScheduler } from "./services/notificationScheduler";
 import { storage } from "./storage";
+import { logger } from "./lib/logger";
 import {
   validateSecurityEnvironment,
   helmetConfig,
@@ -74,24 +75,15 @@ app.use(conditionalCsrfProtection);
 // Request logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
-  const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
-
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
+  const reqPath = req.path;
 
   res.on("finish", () => {
     const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-      if (logLine.length > 80) logLine = logLine.slice(0, 79) + "…";
-      log(logLine);
+    if (reqPath.startsWith("/api")) {
+      logger.api.debug(`${req.method} ${reqPath}`, {
+        status: res.statusCode,
+        duration: `${duration}ms`,
+      });
     }
   });
 
@@ -109,9 +101,9 @@ const startServer = async () => {
   // Start notification scheduler if enabled
   if (process.env.ENABLE_NOTIFICATIONS === "true") {
     await notificationScheduler.start();
-    console.log("[Notifications] Notification scheduler started");
+    logger.notification.info("Notification scheduler started");
   } else {
-    console.log("[Notifications] Notification scheduler disabled (set ENABLE_NOTIFICATIONS=true to enable)");
+    logger.notification.info("Notification scheduler disabled (set ENABLE_NOTIFICATIONS=true to enable)");
   }
 
   await registerRoutes(app);
@@ -132,7 +124,7 @@ const startServer = async () => {
 
   if (isDev) {
     const server = app.listen(port, () => {
-      console.log(`Server listening on http://localhost:${port}`);
+      logger.server.info(`Server listening on http://localhost:${port}`);
     });
 
     try {
@@ -144,13 +136,13 @@ const startServer = async () => {
   } else {
     serveStatic(app);
     app.listen(port, () => {
-      console.log(`Server listening on http://localhost:${port}`);
+      logger.server.info(`Server listening on http://localhost:${port}`);
     });
   }
 };
 
 startServer().catch((error) => {
-  console.error("Failed to start server:", error);
+  logger.server.error("Failed to start server", {}, error);
   process.exit(1);
 });
 
@@ -158,15 +150,16 @@ let shuttingDown = false;
 const gracefulShutdown = async () => {
   if (shuttingDown) return;
   shuttingDown = true;
+  logger.server.info("Graceful shutdown initiated");
   try {
     await transcriptModule.stop();
   } catch (err) {
-    console.error("Transcript module shutdown error", err);
+    logger.server.error("Transcript module shutdown error", {}, err);
   }
   try {
     await notificationScheduler.stop();
   } catch (err) {
-    console.error("Notification scheduler shutdown error", err);
+    logger.notification.error("Notification scheduler shutdown error", {}, err);
   }
   process.exit(0);
 };

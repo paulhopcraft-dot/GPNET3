@@ -17,6 +17,7 @@ import type {
 } from "@shared/schema";
 import { sendEmail } from "./emailService";
 import { getCaseCompliance } from "./certificateCompliance";
+import { logger } from "../lib/logger";
 
 // =====================================================
 // Configuration
@@ -295,7 +296,7 @@ async function generateCertificateNotifications(
       await storage.createNotification(notification);
       created++;
     } catch (error) {
-      console.error(`[NotificationService] Error processing case ${workerCase.id}:`, error);
+      logger.notification.error(`Error processing case ${workerCase.id}`, {}, error);
     }
   }
 
@@ -369,7 +370,7 @@ async function generateActionNotifications(
       await storage.createNotification(notification);
       created++;
     } catch (error) {
-      console.error(`[NotificationService] Error processing action ${action.id}:`, error);
+      logger.notification.error(`Error processing action ${action.id}`, {}, error);
     }
   }
 
@@ -466,7 +467,7 @@ async function generateCheckInNotifications(
       await storage.createNotification(notification);
       created++;
     } catch (error) {
-      console.error(`[NotificationService] Error processing case ${workerCase.id}:`, error);
+      logger.notification.error(`Error processing case ${workerCase.id}`, {}, error);
     }
   }
 
@@ -479,7 +480,7 @@ async function generateCheckInNotifications(
  * @param organizationId - Organization to generate notifications for
  */
 export async function generatePendingNotifications(storage: IStorage, organizationId: string): Promise<number> {
-  console.log(`[NotificationService] Generating pending notifications for org ${organizationId}...`);
+  logger.notification.info(`Generating pending notifications`, { organizationId });
 
   // Default recipient for now (in production, would query users/admins)
   const recipientEmail = process.env.NOTIFICATION_DEFAULT_EMAIL || "admin@gpnet.local";
@@ -489,22 +490,22 @@ export async function generatePendingNotifications(storage: IStorage, organizati
   try {
     // Generate certificate notifications
     const certCount = await generateCertificateNotifications(storage, recipientEmail, organizationId);
-    console.log(`[NotificationService] Generated ${certCount} certificate notifications`);
+    logger.notification.info(`Generated certificate notifications`, { count: certCount });
     total += certCount;
 
     // Generate action notifications
     const actionCount = await generateActionNotifications(storage, recipientEmail, organizationId);
-    console.log(`[NotificationService] Generated ${actionCount} action notifications`);
+    logger.notification.info(`Generated action notifications`, { count: actionCount });
     total += actionCount;
 
     // Generate check-in notifications
     const checkInCount = await generateCheckInNotifications(storage, recipientEmail, organizationId);
-    console.log(`[NotificationService] Generated ${checkInCount} check-in notifications`);
+    logger.notification.info(`Generated check-in notifications`, { count: checkInCount });
     total += checkInCount;
 
-    console.log(`[NotificationService] Total notifications generated: ${total}`);
+    logger.notification.info(`Total notifications generated`, { total });
   } catch (error) {
-    console.error("[NotificationService] Error generating notifications:", error);
+    logger.notification.error("Error generating notifications", {}, error);
     throw error;
   }
 
@@ -550,10 +551,10 @@ export async function processPendingNotifications(
   storage: IStorage,
   organizationId: string
 ): Promise<{ sent: number; failed: number }> {
-  console.log(`[NotificationService] Processing pending notifications for org ${organizationId}...`);
+  logger.notification.info(`Processing pending notifications`, { organizationId });
 
   const pending = await storage.getPendingNotifications(organizationId, 50);
-  console.log(`[NotificationService] Found ${pending.length} pending notifications`);
+  logger.notification.info(`Found pending notifications`, { count: pending.length });
 
   let sent = 0;
   let failed = 0;
@@ -567,7 +568,7 @@ export async function processPendingNotifications(
     }
   }
 
-  console.log(`[NotificationService] Sent: ${sent}, Failed: ${failed}`);
+  logger.notification.info(`Notification processing complete`, { sent, failed });
   return { sent, failed };
 }
 

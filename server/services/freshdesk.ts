@@ -10,6 +10,7 @@ import type {
 import { isValidCompany, isLegitimateCase } from "@shared/schema";
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
+import { logger } from "../lib/logger";
 
 export interface FreshdeskAttachment {
   id: number;
@@ -72,7 +73,7 @@ export class FreshdeskService {
     this.apiKey = apiKey;
     this.baseUrl = `https://${domain}.freshdesk.com/api/v2`;
     
-    console.log(`Freshdesk service initialized with domain: ${this.domain}`);
+    logger.freshdesk.info(`Service initialized`, { domain: this.domain });
   }
 
   private getAuthHeader(): string {
@@ -90,7 +91,7 @@ export class FreshdeskService {
       let page = 1;
       const perPage = 100;
       
-      console.log(`Fetching tickets updated since ${dateFilter}...`);
+      logger.freshdesk.debug(`Fetching tickets`, { since: dateFilter });
       
       while (true) {
         const response = await fetch(
@@ -114,7 +115,7 @@ export class FreshdeskService {
         }
         
         allTickets.push(...tickets);
-        console.log(`Fetched page ${page}: ${tickets.length} tickets (total: ${allTickets.length})`);
+        logger.freshdesk.debug(`Fetched page`, { page, count: tickets.length, total: allTickets.length });
         
         if (tickets.length < perPage) {
           break; // Last page
@@ -123,10 +124,10 @@ export class FreshdeskService {
         page++;
       }
       
-      console.log(`Total tickets fetched: ${allTickets.length}`);
+      logger.freshdesk.info(`Total tickets fetched`, { count: allTickets.length });
       return allTickets;
     } catch (error) {
-      console.error('Error fetching Freshdesk tickets:', error);
+      logger.freshdesk.error('Error fetching tickets', {}, error);
       throw error;
     }
   }
@@ -146,7 +147,7 @@ export class FreshdeskService {
 
       return await response.json() as FreshdeskCompany;
     } catch (error) {
-      console.error(`Error fetching company ${companyId}:`, error);
+      logger.freshdesk.error(`Error fetching company`, { companyId }, error);
       return null;
     }
   }
@@ -166,7 +167,7 @@ export class FreshdeskService {
 
       return await response.json() as FreshdeskContact;
     } catch (error) {
-      console.error(`Error fetching contact ${contactId}:`, error);
+      logger.freshdesk.error(`Error fetching contact`, { contactId }, error);
       return null;
     }
   }
@@ -873,7 +874,7 @@ export class FreshdeskService {
 
       // Skip if not a legitimate worker injury case (filters out generic emails, claims without names, etc.)
       if (!isLegitimateCase(caseData)) {
-        console.warn(`[Freshdesk Sync] Skipping non-case email: Ticket=${ticketIds[0]}, Worker="${displayName}", Company="${companyName}"`);
+        logger.freshdesk.warn(`Skipping non-case email`, { ticketId: ticketIds[0], worker: displayName, company: companyName });
         continue;
       }
 
@@ -909,9 +910,9 @@ export class FreshdeskService {
         throw new Error(`Failed to close Freshdesk ticket ${ticketId}: ${response.status} ${errorText}`);
       }
 
-      console.log(`[Freshdesk] Closed ticket ${ticketId}`);
+      logger.freshdesk.info(`Closed ticket`, { ticketId });
     } catch (error) {
-      console.error(`[Freshdesk] Error closing ticket ${ticketId}:`, error);
+      logger.freshdesk.error(`Error closing ticket`, { ticketId }, error);
       throw error;
     }
   }

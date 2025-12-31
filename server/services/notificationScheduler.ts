@@ -10,6 +10,7 @@ import {
   generatePendingNotifications,
   processPendingNotifications,
 } from "./notificationService";
+import { logger } from "../lib/logger";
 
 // Configuration
 const GENERATION_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
@@ -30,11 +31,11 @@ export class NotificationScheduler {
    */
   async start(): Promise<void> {
     if (this.isRunning) {
-      console.log("[NotificationScheduler] Already running");
+      logger.notification.info("Scheduler already running");
       return;
     }
 
-    console.log("[NotificationScheduler] Starting...");
+    logger.notification.info("Scheduler starting...");
     this.isRunning = true;
 
     // Run immediately on startup
@@ -42,7 +43,7 @@ export class NotificationScheduler {
       await this.runGeneration();
       await this.runSending();
     } catch (error) {
-      console.error("[NotificationScheduler] Error during initial run:", error);
+      logger.notification.error("Error during initial run", {}, error);
     }
 
     // Schedule periodic generation (every hour)
@@ -50,7 +51,7 @@ export class NotificationScheduler {
       try {
         await this.runGeneration();
       } catch (error) {
-        console.error("[NotificationScheduler] Generation error:", error);
+        logger.notification.error("Generation error", {}, error);
       }
     }, GENERATION_INTERVAL_MS);
 
@@ -59,13 +60,14 @@ export class NotificationScheduler {
       try {
         await this.runSending();
       } catch (error) {
-        console.error("[NotificationScheduler] Sending error:", error);
+        logger.notification.error("Sending error", {}, error);
       }
     }, SENDING_INTERVAL_MS);
 
-    console.log("[NotificationScheduler] Started successfully");
-    console.log(`  - Generation interval: ${GENERATION_INTERVAL_MS / 1000 / 60} minutes`);
-    console.log(`  - Sending interval: ${SENDING_INTERVAL_MS / 1000 / 60} minutes`);
+    logger.notification.info("Scheduler started successfully", {
+      generationIntervalMinutes: GENERATION_INTERVAL_MS / 1000 / 60,
+      sendingIntervalMinutes: SENDING_INTERVAL_MS / 1000 / 60,
+    });
   }
 
   /**
@@ -73,11 +75,11 @@ export class NotificationScheduler {
    */
   async stop(): Promise<void> {
     if (!this.isRunning) {
-      console.log("[NotificationScheduler] Not running");
+      logger.notification.info("Scheduler not running");
       return;
     }
 
-    console.log("[NotificationScheduler] Stopping...");
+    logger.notification.info("Scheduler stopping...");
 
     if (this.generateTimer) {
       clearInterval(this.generateTimer);
@@ -90,7 +92,7 @@ export class NotificationScheduler {
     }
 
     this.isRunning = false;
-    console.log("[NotificationScheduler] Stopped");
+    logger.notification.info("Scheduler stopped");
   }
 
   // TODO: In future, iterate over all organizations instead of using a default
@@ -101,25 +103,25 @@ export class NotificationScheduler {
    * Run notification generation
    */
   private async runGeneration(): Promise<void> {
-    console.log("[NotificationScheduler] Running notification generation...");
+    logger.notification.debug("Running notification generation...");
     const count = await generatePendingNotifications(this.storage, this.defaultOrganizationId);
-    console.log(`[NotificationScheduler] Generated ${count} notifications`);
+    logger.notification.info("Generation complete", { count });
   }
 
   /**
    * Run notification sending
    */
   private async runSending(): Promise<void> {
-    console.log("[NotificationScheduler] Running notification sending...");
+    logger.notification.debug("Running notification sending...");
     const result = await processPendingNotifications(this.storage, this.defaultOrganizationId);
-    console.log(`[NotificationScheduler] Sent: ${result.sent}, Failed: ${result.failed}`);
+    logger.notification.info("Sending complete", { sent: result.sent, failed: result.failed });
   }
 
   /**
    * Manually trigger generation (for testing/admin)
    */
   async triggerGeneration(organizationId?: string): Promise<number> {
-    console.log("[NotificationScheduler] Manual generation triggered");
+    logger.notification.info("Manual generation triggered");
     return await generatePendingNotifications(this.storage, organizationId || this.defaultOrganizationId);
   }
 
@@ -127,7 +129,7 @@ export class NotificationScheduler {
    * Manually trigger sending (for testing/admin)
    */
   async triggerSending(organizationId?: string): Promise<{ sent: number; failed: number }> {
-    console.log("[NotificationScheduler] Manual sending triggered");
+    logger.notification.info("Manual sending triggered");
     return await processPendingNotifications(this.storage, organizationId || this.defaultOrganizationId);
   }
 

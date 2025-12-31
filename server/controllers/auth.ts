@@ -6,6 +6,7 @@ import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import type { AuthRequest } from "../middleware/auth";
 import { validateInvite, useInvite } from "../inviteService";
+import { logger } from "../lib/logger";
 
 const SALT_ROUNDS = 10;
 const JWT_EXPIRES_IN = "15m"; // 15 minutes as per requirements
@@ -153,7 +154,7 @@ export async function register(req: Request, res: Response) {
       },
     });
   } catch (error) {
-    console.error("Registration error:", error);
+    logger.auth.error("Registration error", {}, error);
     res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to register user",
@@ -224,7 +225,7 @@ export async function login(req: Request, res: Response) {
       },
     });
   } catch (error) {
-    console.error("Login error:", error);
+    logger.auth.error("Login error", {}, error);
     res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to log in",
@@ -270,7 +271,7 @@ export async function me(req: AuthRequest, res: Response) {
       },
     });
   } catch (error) {
-    console.error("Get user error:", error);
+    logger.auth.error("Get user error", {}, error);
     res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to fetch user details",
