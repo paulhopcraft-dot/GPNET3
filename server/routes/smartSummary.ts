@@ -9,6 +9,7 @@ import express, { type Request, type Response } from "express";
 import { authorize, type AuthRequest } from "../middleware/auth";
 import { requireCaseOwnership } from "../middleware/caseOwnership";
 import { storage } from "../storage";
+import { logger } from "../lib/logger";
 import { generateSmartSummary, generateFallbackSummary } from "../services/smartSummary";
 
 const router = express.Router();
@@ -46,7 +47,7 @@ router.get(
             msg.includes("invalid x-api-key") ||
             msg.startsWith("401");
           if (isAIUnavailable) {
-            console.warn("AI unavailable, using fallback summary:", msg.slice(0, 100));
+            logger.ai.warn("AI unavailable, using fallback summary", { errorPreview: msg.slice(0, 100) });
             summary = await generateFallbackSummary(storage, workerCase.id, workerCase.organizationId);
           } else {
             throw error;
@@ -59,7 +60,7 @@ router.get(
         data: summary,
       });
     } catch (error: any) {
-      console.error("Smart summary generation failed:", error);
+      logger.ai.error("Smart summary generation failed", {}, error);
 
       if (error.message?.includes("ANTHROPIC_API_KEY")) {
         return res.status(503).json({
@@ -106,7 +107,7 @@ router.post(
             msg.includes("invalid x-api-key") ||
             msg.startsWith("401");
           if (isAIUnavailable) {
-            console.warn("AI unavailable, using fallback summary:", msg.slice(0, 100));
+            logger.ai.warn("AI unavailable, using fallback summary", { errorPreview: msg.slice(0, 100) });
             summary = await generateFallbackSummary(storage, workerCase.id, workerCase.organizationId);
           } else {
             throw error;
@@ -120,7 +121,7 @@ router.post(
         regenerated: true,
       });
     } catch (error: any) {
-      console.error("Smart summary regeneration failed:", error);
+      logger.ai.error("Smart summary regeneration failed", {}, error);
 
       if (error.message?.includes("ANTHROPIC_API_KEY")) {
         return res.status(503).json({

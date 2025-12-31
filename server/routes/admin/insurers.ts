@@ -3,6 +3,7 @@ import { db } from "../../db";
 import { insurers, insertInsurerSchema } from "@shared/schema";
 import { eq, ilike, or, desc } from "drizzle-orm";
 import { authorize, type AuthRequest } from "../../middleware/auth";
+import { logger } from "../../lib/logger";
 
 const router = Router();
 
@@ -45,7 +46,7 @@ router.get("/", async (req: AuthRequest, res: Response) => {
       data: results,
     });
   } catch (error) {
-    console.error("Error fetching insurers:", error);
+    logger.api.error("Error fetching insurers", {}, error);
     res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to fetch insurers",
@@ -79,7 +80,7 @@ router.get("/:id", async (req: AuthRequest, res: Response) => {
       data: result[0],
     });
   } catch (error) {
-    console.error("Error fetching insurer:", error);
+    logger.api.error("Error fetching insurer", {}, error);
     res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to fetch insurer",
@@ -134,7 +135,7 @@ router.post("/", async (req: AuthRequest, res: Response) => {
       data: newInsurer[0],
     });
   } catch (error) {
-    console.error("Error creating insurer:", error);
+    logger.api.error("Error creating insurer", {}, error);
     res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to create insurer",
@@ -210,7 +211,7 @@ router.put("/:id", async (req: AuthRequest, res: Response) => {
       data: updated[0],
     });
   } catch (error) {
-    console.error("Error updating insurer:", error);
+    logger.api.error("Error updating insurer", {}, error);
     res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to update insurer",
@@ -254,7 +255,7 @@ router.delete("/:id", async (req: AuthRequest, res: Response) => {
       message: "Insurer deleted successfully",
     });
   } catch (error) {
-    console.error("Error deleting insurer:", error);
+    logger.api.error("Error deleting insurer", {}, error);
     res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to delete insurer",

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { storage } from "../storage";
 import { authorize, type AuthRequest } from "../middleware/auth";
 import { requireCaseOwnership } from "../middleware/caseOwnership";
+import { logger } from "../lib/logger";
 import type { CaseActionStatus, CaseActionType, CaseActionDB } from "@shared/schema";
 import {
   getCaseCompliance,
@@ -80,7 +81,7 @@ function requireActionOwnership() {
       req.action = action;
       next();
     } catch (error) {
-      console.error("[ActionOwnership] Authorization check failed:", error);
+      logger.api.error("Action ownership check failed", {}, error);
       return res.status(500).json({ success: false, message: "Authorization check failed" });
     }
   };
@@ -103,7 +104,7 @@ router.get("/", requireAuth, async (req: AuthRequest, res: Response) => {
     const actions = await storage.getAllActionsWithCaseInfo(organizationId, { status, limit });
     res.json({ success: true, data: actions });
   } catch (error: any) {
-    console.error("Error fetching actions:", error);
+    logger.api.error("Error fetching actions", {}, error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
@@ -119,7 +120,7 @@ router.get("/pending", requireAuth, async (req: AuthRequest, res: Response) => {
     const actions = await storage.getPendingActions(organizationId, limit);
     res.json({ success: true, data: actions });
   } catch (error: any) {
-    console.error("Error fetching pending actions:", error);
+    logger.api.error("Error fetching pending actions", {}, error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
@@ -135,7 +136,7 @@ router.get("/overdue", requireAuth, async (req: AuthRequest, res: Response) => {
     const actions = await storage.getOverdueActions(organizationId, limit);
     res.json({ success: true, data: actions });
   } catch (error: any) {
-    console.error("Error fetching overdue actions:", error);
+    logger.api.error("Error fetching overdue actions", {}, error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
