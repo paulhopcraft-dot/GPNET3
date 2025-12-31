@@ -3,6 +3,7 @@ import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 import { doubleCsrf } from "csrf-csrf";
 import cookieParser from "cookie-parser";
+import { logger } from "../lib/logger";
 
 /**
  * Rate Limiting Configuration
@@ -264,18 +265,20 @@ export function validateSecurityEnvironment() {
     for (const key of secrets) {
       const value = process.env[key]!;
       if (value.length < 32) {
-        console.warn(
-          `WARNING: ${key} is less than 32 characters. Use a stronger secret in production.`
-        );
+        logger.auth.warn("Weak secret detected", {
+          key,
+          message: "Secret is less than 32 characters. Use a stronger secret in production."
+        });
       }
       if (value.includes("dev") || value.includes("test") || value.includes("default")) {
-        console.error(
-          `CRITICAL: ${key} appears to be a development/test secret. Change it immediately!`
-        );
+        logger.auth.error("Insecure secret detected", {
+          key,
+          message: "Secret appears to be a development/test value. Change it immediately!"
+        });
         throw new Error(`Insecure ${key} detected in production`);
       }
     }
   }
 
-  console.log("✅ Security environment variables validated");
+  logger.auth.info("Security environment variables validated");
 }

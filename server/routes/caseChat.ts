@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { authorize, type AuthRequest } from "../middleware/auth";
 import { requireCaseOwnership } from "../middleware/caseOwnership";
 import { storage } from "../storage";
+import { logger } from "../lib/logger";
 
 const router = Router();
 
@@ -77,7 +78,7 @@ ${caseContext}`,
       },
     });
   } catch (error) {
-    console.error("Case chat error:", error);
+    logger.ai.error("Case chat error", {}, error);
     res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to process chat request",

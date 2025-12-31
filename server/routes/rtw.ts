@@ -5,6 +5,7 @@ import { requireCaseOwnership } from "../middleware/caseOwnership";
 import { storage } from "../storage";
 import { logAuditEvent, AuditEventTypes, getRequestMetadata } from "../services/auditLogger";
 import type { RTWPlanStatus } from "@shared/schema";
+import { logger } from "../lib/logger";
 
 const router = Router();
 
@@ -79,7 +80,7 @@ router.get("/:id/rtw-plan", authorize(), requireCaseOwnership(), async (req: Aut
       validTransitions: VALID_TRANSITIONS[workerCase.rtwPlanStatus || "not_planned"],
     });
   } catch (err) {
-    console.error("Failed to fetch RTW plan:", err);
+    logger.api.error("Failed to fetch RTW plan", {}, err);
     res.status(500).json({
       error: "Failed to fetch RTW plan",
       details: err instanceof Error ? err.message : "Unknown error",
@@ -156,7 +157,7 @@ router.put("/:id/rtw-plan", authorize(), requireCaseOwnership(), async (req: Aut
       validTransitions: VALID_TRANSITIONS[newStatus],
     });
   } catch (err) {
-    console.error("Failed to update RTW plan:", err);
+    logger.api.error("Failed to update RTW plan", {}, err);
     res.status(500).json({
       error: "Failed to update RTW plan",
       details: err instanceof Error ? err.message : "Unknown error",
@@ -214,7 +215,7 @@ router.get("/overview", authorize(), async (req: AuthRequest, res: Response) => 
         })),
     });
   } catch (err) {
-    console.error("Failed to fetch RTW overview:", err);
+    logger.api.error("Failed to fetch RTW overview", {}, err);
     res.status(500).json({
       error: "Failed to fetch RTW overview",
       details: err instanceof Error ? err.message : "Unknown error",

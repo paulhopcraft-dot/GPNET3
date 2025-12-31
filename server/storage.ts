@@ -46,6 +46,7 @@ import {
 } from "@shared/schema";
 import { evaluateClinicalEvidence } from "./services/clinicalEvidence";
 import { eq, desc, asc, inArray, ilike, sql, and, lte, gte, or, isNull, ne } from "drizzle-orm";
+import { logger } from "./lib/logger";
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
@@ -1109,11 +1110,11 @@ class DbStorage implements IStorage {
     }
 
     if (bestScore < MATCH_CONFIDENCE_THRESHOLD) {
-      console.warn(
-        `[Transcripts] Fuzzy worker match below threshold (${bestScore.toFixed(
-          2,
-        )}) for "${workerName}" => "${best.workerName}"`,
-      );
+      logger.db.warn("Fuzzy worker match below threshold", {
+        score: bestScore.toFixed(2),
+        searchedName: workerName,
+        matchedName: best.workerName,
+      });
       return null;
     }
 
@@ -1127,7 +1128,11 @@ class DbStorage implements IStorage {
 
     // Defensive guard: Skip syncing if not a legitimate case (filters out generic emails)
     if (!isLegitimateCase(caseData as WorkerCase)) {
-      console.warn(`[Storage] Skipping sync for non-legitimate case: CaseID=${caseData.id}, Worker="${caseData.workerName}", Company="${caseData.company}"`);
+      logger.db.warn("Skipping sync for non-legitimate case", {
+        caseId: caseData.id,
+        workerName: caseData.workerName,
+        company: caseData.company,
+      });
       return;
     }
 

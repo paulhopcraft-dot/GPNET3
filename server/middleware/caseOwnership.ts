@@ -3,6 +3,7 @@ import { AuthRequest } from "./auth";
 import { storage } from "../storage";
 import { WorkerCase } from "@shared/schema";
 import { logAuditEvent, AuditEventTypes } from "../services/auditLogger";
+import { logger } from "../lib/logger";
 
 /**
  * Middleware to verify that the authenticated user has access to the requested case.
@@ -111,7 +112,7 @@ export function requireCaseOwnership() {
       next();
 
     } catch (error) {
-      console.error("[CaseOwnership] Authorization check failed:", error);
+      logger.api.error("Case ownership authorization check failed", {}, error);
       return res.status(500).json({
         error: "Internal Server Error",
         message: "Authorization check failed",

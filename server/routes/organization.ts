@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { authorize, type AuthRequest } from "../middleware/auth";
 import { z } from "zod";
 import { logoUpload, getLogoUrl, deleteLogo, getFilenameFromUrl } from "../services/fileUpload";
+import { logger } from "../lib/logger";
 
 const router = Router();
 
@@ -58,7 +59,7 @@ router.get("/profile", async (req: AuthRequest, res: Response) => {
       data: result[0],
     });
   } catch (error) {
-    console.error("Error fetching organization profile:", error);
+    logger.api.error("Error fetching organization profile", {}, error);
     res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to fetch organization profile",
@@ -131,7 +132,7 @@ router.put("/profile", async (req: AuthRequest, res: Response) => {
       data: updated[0],
     });
   } catch (error) {
-    console.error("Error updating organization profile:", error);
+    logger.api.error("Error updating organization profile", {}, error);
     res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to update organization profile",
@@ -206,7 +207,7 @@ router.post(
         },
       });
     } catch (error) {
-      console.error("Error uploading logo:", error);
+      logger.api.error("Error uploading logo", {}, error);
       res.status(500).json({
         error: "Internal Server Error",
         message: "Failed to upload logo",

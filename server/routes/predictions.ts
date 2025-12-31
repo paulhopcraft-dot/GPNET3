@@ -5,6 +5,7 @@ import { storage } from "../storage";
 import { logAuditEvent, AuditEventTypes, getRequestMetadata } from "../services/auditLogger";
 import { calculatePrediction, calculatePredictions, type CasePrediction } from "../services/predictionEngine";
 import { isLegitimateCase } from "@shared/schema";
+import { logger } from "../lib/logger";
 
 const router = Router();
 
@@ -61,7 +62,7 @@ router.get("/", authorize(), async (req: AuthRequest, res: Response) => {
       generatedAt: new Date().toISOString(),
     });
   } catch (err) {
-    console.error("Failed to fetch predictions:", err);
+    logger.api.error("Failed to fetch predictions", {}, err);
     res.status(500).json({
       error: "Failed to fetch predictions",
       details: err instanceof Error ? err.message : "Unknown error",
@@ -96,7 +97,7 @@ router.get("/:id/prediction", authorize(), requireCaseOwnership(), async (req: A
       riskLevel: workerCase.riskLevel,
     });
   } catch (err) {
-    console.error("Failed to fetch case prediction:", err);
+    logger.api.error("Failed to fetch case prediction", {}, err);
     res.status(500).json({
       error: "Failed to fetch case prediction",
       details: err instanceof Error ? err.message : "Unknown error",

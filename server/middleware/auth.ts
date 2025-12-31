@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import type { UserRole } from "@shared/schema";
+import { logger } from "../lib/logger";
 
 declare global {
   namespace Express {
@@ -60,9 +61,9 @@ export function authorize(allowedRoles?: UserRole[]) {
       }
 
       if (!process.env.JWT_SECRET) {
-        console.error("JWT_SECRET is not set in environment variables");
-        return res.status(500).json({ 
-          error: "Server configuration error" 
+        logger.auth.error("JWT_SECRET is not set in environment variables");
+        return res.status(500).json({
+          error: "Server configuration error"
         });
       }
 

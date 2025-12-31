@@ -4,6 +4,7 @@ import { workerCases, medicalCertificates } from "../../shared/schema";
 import { eq } from "drizzle-orm";
 import { calculateRecoveryTimeline } from "../services/recoveryEstimator";
 import { evaluateClinicalEvidence } from "../services/clinicalEvidence";
+import { logger } from "../lib/logger";
 
 /**
  * Timeline estimation routes
@@ -41,7 +42,7 @@ export function registerTimelineRoutes(app: Express) {
 
       return res.json(estimate);
     } catch (error) {
-      console.error("[Timeline] Error calculating timeline estimate:", error);
+      logger.api.error("Error calculating timeline estimate", {}, error);
       return res.status(500).json({
         error: "Failed to calculate timeline estimate",
         details: error instanceof Error ? error.message : "Unknown error",

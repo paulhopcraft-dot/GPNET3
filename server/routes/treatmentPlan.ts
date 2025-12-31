@@ -16,6 +16,7 @@ import { generateTreatmentPlan, getTreatmentPlan, updateTreatmentPlan } from "..
 import type { IStorage } from "../storage";
 import { requireCaseOwnership } from "../middleware/caseOwnership";
 import { csrfProtection, aiRateLimiter } from "../middleware/security";
+import { logger } from "../lib/logger";
 
 // Input validation schemas
 const GeneratePlanSchema = z.object({
@@ -68,7 +69,7 @@ export function registerTreatmentPlanRoutes(app: Express, storage: IStorage) {
         const plan = await generateTreatmentPlan(storage, request);
         return res.json(plan);
       } catch (error) {
-        console.error("[TreatmentPlanRoutes] Error generating plan:", error);
+        logger.ai.error("Error generating treatment plan", {}, error);
         return res.status(500).json({
           error: "Failed to generate treatment plan",
         });
@@ -99,7 +100,7 @@ export function registerTreatmentPlanRoutes(app: Express, storage: IStorage) {
 
         return res.json(plan);
       } catch (error) {
-        console.error("[TreatmentPlanRoutes] Error fetching plan:", error);
+        logger.ai.error("Error fetching treatment plan", {}, error);
         return res.status(500).json({
           error: "Failed to fetch treatment plan",
         });
@@ -136,7 +137,7 @@ export function registerTreatmentPlanRoutes(app: Express, storage: IStorage) {
         const plan = await updateTreatmentPlan(storage, caseId, organizationId, planId, validation.data);
         return res.json(plan);
       } catch (error) {
-        console.error("[TreatmentPlanRoutes] Error updating plan:", error);
+        logger.ai.error("Error updating treatment plan", {}, error);
         return res.status(500).json({
           error: "Failed to update treatment plan",
         });
@@ -168,7 +169,7 @@ export function registerTreatmentPlanRoutes(app: Express, storage: IStorage) {
         const history = workerCase.clinical_status_json?.treatmentPlanHistory || [];
         return res.json(history);
       } catch (error) {
-        console.error("[TreatmentPlanRoutes] Error fetching history:", error);
+        logger.ai.error("Error fetching treatment plan history", {}, error);
         return res.status(500).json({
           error: "Failed to fetch treatment plan history",
         });
