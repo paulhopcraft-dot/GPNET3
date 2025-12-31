@@ -9,6 +9,7 @@ import {
 } from "../inviteService";
 import type { UserRole } from "@shared/schema";
 import { logger } from "../lib/logger";
+import { logAuditEvent, AuditEventTypes, getRequestMetadata } from "../services/auditLogger";
 
 /**
  * Create a new user invite (admin only)
@@ -66,6 +67,22 @@ export async function createUserInvite(req: AuthRequest, res: Response) {
       role,
       subrole: subrole || undefined,
       createdBy: req.user.id,
+    });
+
+    // Log invite creation
+    await logAuditEvent({
+      userId: req.user.id,
+      organizationId,
+      eventType: AuditEventTypes.INVITE_CREATED,
+      resourceType: "invite",
+      resourceId: invite.id,
+      metadata: {
+        invitedEmail: invite.email,
+        invitedRole: invite.role,
+        invitedSubrole: invite.subrole,
+        expiresAt: invite.expiresAt,
+      },
+      ...getRequestMetadata(req),
     });
 
     // In production, send email here:

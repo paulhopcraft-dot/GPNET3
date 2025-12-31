@@ -8,6 +8,7 @@ import type { AuthRequest } from "../middleware/auth";
 import { validateInvite, useInvite } from "../inviteService";
 import { logger } from "../lib/logger";
 import { validatePassword } from "../lib/passwordValidation";
+import { logAuditEvent, AuditEventTypes, getRequestMetadata } from "../services/auditLogger";
 
 const SALT_ROUNDS = 10;
 const JWT_EXPIRES_IN = "15m"; // 15 minutes as per requirements
@@ -141,6 +142,21 @@ export async function register(req: Request, res: Response) {
     // Mark invite as used
     await useInvite(inviteToken);
 
+    // Log successful registration
+    await logAuditEvent({
+      userId: user.id,
+      organizationId: user.organizationId,
+      eventType: AuditEventTypes.USER_REGISTER,
+      resourceType: "user",
+      resourceId: user.id,
+      metadata: {
+        email: user.email,
+        role: user.role,
+        inviteToken: inviteToken.substring(0, 8) + "...", // Partial token for audit trail
+      },
+      ...getRequestMetadata(req),
+    });
+
     // Generate access token with organizationId
     const accessToken = generateAccessToken(user.id, user.email, user.role, user.organizationId);
 
@@ -193,6 +209,18 @@ export async function login(req: Request, res: Response) {
       .limit(1);
 
     if (userResult.length === 0) {
+      // Log failed login attempt - user not found
+      await logAuditEvent({
+        userId: null,
+        organizationId: null,
+        eventType: AuditEventTypes.LOGIN_FAILED,
+        metadata: {
+          email,
+          reason: "user_not_found",
+        },
+        ...getRequestMetadata(req),
+      });
+
       return res.status(401).json({
         error: "Unauthorized",
         message: "Invalid email or password",
@@ -205,11 +233,39 @@ export async function login(req: Request, res: Response) {
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
+      // Log failed login attempt - wrong password
+      await logAuditEvent({
+        userId: user.id,
+        organizationId: user.organizationId,
+        eventType: AuditEventTypes.LOGIN_FAILED,
+        resourceType: "user",
+        resourceId: user.id,
+        metadata: {
+          email,
+          reason: "invalid_password",
+        },
+        ...getRequestMetadata(req),
+      });
+
       return res.status(401).json({
         error: "Unauthorized",
         message: "Invalid email or password",
       });
     }
+
+    // Log successful login
+    await logAuditEvent({
+      userId: user.id,
+      organizationId: user.organizationId,
+      eventType: AuditEventTypes.USER_LOGIN,
+      resourceType: "user",
+      resourceId: user.id,
+      metadata: {
+        email: user.email,
+        role: user.role,
+      },
+      ...getRequestMetadata(req),
+    });
 
     // Generate access token with organizationId
     const accessToken = generateAccessToken(user.id, user.email, user.role, user.organizationId);
@@ -291,6 +347,21 @@ export async function me(req: AuthRequest, res: Response) {
 }
 
 export async function logout(req: AuthRequest, res: Response) {
+  // Log logout event
+  if (req.user) {
+    await logAuditEvent({
+      userId: req.user.id,
+      organizationId: req.user.organizationId,
+      eventType: AuditEventTypes.USER_LOGOUT,
+      resourceType: "user",
+      resourceId: req.user.id,
+      metadata: {
+        email: req.user.email,
+      },
+      ...getRequestMetadata(req),
+    });
+  }
+
   // Clear the httpOnly auth cookie
   clearAuthCookie(res);
 
