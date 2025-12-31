@@ -90,12 +90,31 @@ export async function registerRoutes(app: Express): Promise<void> {
       ANTHROPIC_API_KEY: !!process.env.ANTHROPIC_API_KEY,
     });
   });
-  // Claude compliance assistant
+  // Claude compliance assistant - input validation schema
+  const complianceRequestSchema = z.object({
+    message: z.string()
+      .min(1, "Message is required")
+      .max(4000, "Message too long (max 4000 characters)")
+      .trim(),
+  });
+
   app.post("/api/compliance", async (req, res) => {
-    const { message } = req.body;
-    
-    if (!message) {
-      return res.status(400).json({ error: "Missing message" });
+    // Validate input with Zod
+    const parseResult = complianceRequestSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return res.status(400).json({
+        error: "Invalid request",
+        details: parseResult.error.errors.map(e => e.message).join(", ")
+      });
+    }
+
+    const { message } = parseResult.data;
+
+    // Check API key before making request
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return res.status(503).json({
+        error: "Compliance service unavailable",
+      });
     }
 
     try {
@@ -118,16 +137,16 @@ export async function registerRoutes(app: Express): Promise<void> {
       const content = response.content[0];
       const text = content.type === "text" ? content.text : "";
 
-      res.json({ 
+      res.json({
         response: text,
         model: response.model,
-        usage: response.usage 
+        usage: response.usage
       });
     } catch (err) {
       console.error("Claude API error:", err);
-      res.status(500).json({ 
-        error: "Compliance evaluation failed",
-        details: err instanceof Error ? err.message : "Unknown error"
+      // Don't expose internal error details to client
+      res.status(500).json({
+        error: "Compliance evaluation failed. Please try again.",
       });
     }
   });

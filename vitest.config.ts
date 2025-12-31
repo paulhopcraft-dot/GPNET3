@@ -16,7 +16,13 @@ export default defineConfig({
       "client/**/*.test.ts",
       "client/**/*.test.tsx",
     ],
+    // Default to node for server tests
     environment: "node",
+    // Use jsdom for React component tests
+    environmentMatchGlobs: [
+      ["client/**/*.test.tsx", "jsdom"],
+      ["client/**/*.test.ts", "jsdom"],
+    ],
     globals: true,
     setupFiles: ["./vitest.setup.ts"],
     coverage: {
