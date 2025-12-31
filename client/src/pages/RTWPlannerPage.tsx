@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import type { WorkerCase, RTWPlanStatus } from "@shared/schema";
+import type { WorkerCase, RTWPlanStatus, PaginatedCasesResponse } from "@shared/schema";
 import { isLegitimateCase } from "@shared/schema";
 
 // Valid RTW plan status transitions (PRD-3.2.3)
@@ -164,9 +164,10 @@ export default function RTWPlannerPage() {
   const queryClient = useQueryClient();
   const [selectedCase, setSelectedCase] = useState<WorkerCase | null>(null);
 
-  const { data: cases = [], isLoading } = useQuery<WorkerCase[]>({
+  const { data: paginatedData, isLoading } = useQuery<PaginatedCasesResponse>({
     queryKey: ["/api/gpnet2/cases"],
   });
+  const cases = paginatedData?.cases ?? [];
 
   const updateMutation = useMutation({
     mutationFn: async ({

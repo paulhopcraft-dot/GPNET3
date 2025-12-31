@@ -11,13 +11,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { WorkerCase } from "@shared/schema";
+import type { WorkerCase, PaginatedCasesResponse } from "@shared/schema";
 import { isLegitimateCase } from "@shared/schema";
 
 export default function FinancialsPage() {
-  const { data: cases = [], isLoading } = useQuery<WorkerCase[]>({
+  const { data: paginatedData, isLoading } = useQuery<PaginatedCasesResponse>({
     queryKey: ["/api/gpnet2/cases"],
   });
+  const cases = paginatedData?.cases ?? [];
 
   const financialData = useMemo(() => {
     const legitimate = cases.filter(isLegitimateCase);

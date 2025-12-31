@@ -11,7 +11,7 @@ import { DashboardStats } from "@/components/dashboard-stats";
 import { ActionQueueCard } from "@/components/ActionQueueCard";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, fetchWithCsrf } from "@/lib/queryClient";
-import type { WorkerCase } from "@shared/schema";
+import type { WorkerCase, PaginatedCasesResponse } from "@shared/schema";
 import { isLegitimateCase, getSurname } from "@shared/schema";
 import { Link } from "react-router-dom";
 
@@ -21,10 +21,11 @@ export default function GPNet2Dashboard() {
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const { data: cases = [], isLoading } = useQuery<WorkerCase[]>({
+  const { data: paginatedData, isLoading } = useQuery<PaginatedCasesResponse>({
     queryKey: ["/api/gpnet2/cases"],
     refetchInterval: 30000,
   });
+  const cases = paginatedData?.cases ?? [];
 
   const syncMutation = useMutation({
     mutationFn: async () => {

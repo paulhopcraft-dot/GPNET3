@@ -14,16 +14,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { WorkerCase } from "@shared/schema";
+import type { WorkerCase, PaginatedCasesResponse } from "@shared/schema";
 import { isLegitimateCase } from "@shared/schema";
 
 export default function CasesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
-  const { data: cases = [], isLoading } = useQuery<WorkerCase[]>({
+  const { data: paginatedData, isLoading } = useQuery<PaginatedCasesResponse>({
     queryKey: ["/api/gpnet2/cases"],
   });
+  const cases = paginatedData?.cases ?? [];
 
   const filteredCases = useMemo(() => {
     return cases.filter((c) => {

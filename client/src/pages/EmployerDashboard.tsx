@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ThemeToggle } from "@/components/theme-toggle";
-import type { WorkerCase } from "@shared/schema";
+import type { WorkerCase, PaginatedCasesResponse } from "@shared/schema";
 import { Users, Clock, CheckCircle2, AlertTriangle, FileText, Calendar } from "lucide-react";
 
 interface EmployerCaseDetailProps {
@@ -148,10 +148,11 @@ export default function EmployerDashboard() {
   const [selectedCase, setSelectedCase] = useState<WorkerCase | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
-  const { data: cases = [], isLoading } = useQuery<WorkerCase[]>({
+  const { data: paginatedData, isLoading } = useQuery<PaginatedCasesResponse>({
     queryKey: ["/api/gpnet2/cases"],
     refetchInterval: 60000,
   });
+  const cases = paginatedData?.cases ?? [];
 
   // Filter cases for this employer's company
   const companyCases = useMemo(() => {

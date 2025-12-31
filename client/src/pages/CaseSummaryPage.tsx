@@ -6,14 +6,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { RecoveryChart } from "@/components/RecoveryChart";
 import { TimelineCard } from "@/components/TimelineCard";
-import type { WorkerCase } from "@shared/schema";
+import type { WorkerCase, PaginatedCasesResponse } from "@shared/schema";
 
 export default function CaseSummaryPage() {
   const { id } = useParams<{ id: string }>();
 
-  const { data: cases = [], isLoading } = useQuery<WorkerCase[]>({
+  const { data: paginatedData, isLoading } = useQuery<PaginatedCasesResponse>({
     queryKey: ["/api/gpnet2/cases"],
   });
+  const cases = paginatedData?.cases ?? [];
 
   const workerCase = cases.find((c) => c.id === id);
 

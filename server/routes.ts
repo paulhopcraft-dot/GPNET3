@@ -150,10 +150,14 @@ export async function registerRoutes(app: Express): Promise<void> {
       });
     }
   });
-  // GPNet 2 Dashboard - Get all cases
+  // GPNet 2 Dashboard - Get all cases (paginated)
   app.get("/api/gpnet2/cases", authorize(), async (req: AuthRequest, res) => {
     try {
       const organizationId = req.user!.organizationId;
+
+      // Parse pagination params (defaults: page=1, limit=50, max limit=100)
+      const page = Math.max(1, parseInt(req.query.page as string) || 1);
+      const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
 
       // Log access
       await logAuditEvent({
@@ -163,8 +167,8 @@ export async function registerRoutes(app: Express): Promise<void> {
         ...getRequestMetadata(req),
       });
 
-      const cases = await storage.getGPNet2Cases(organizationId);
-      res.json(cases);
+      const result = await storage.getGPNet2CasesPaginated(organizationId, page, limit);
+      res.json(result);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch cases" });
     }

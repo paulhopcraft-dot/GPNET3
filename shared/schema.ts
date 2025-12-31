@@ -484,6 +484,15 @@ export interface WorkerCase {
   terminationAuditFlag?: TerminationAuditFlag;
 }
 
+// Paginated response for cases list endpoint
+export interface PaginatedCasesResponse {
+  cases: WorkerCase[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+}
+
 export interface TerminationProcess {
   id: string;
   workerCaseId: string;

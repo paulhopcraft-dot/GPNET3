@@ -321,9 +321,18 @@ function applyDiscussionInsights(
   return workerCase;
 }
 
+export interface PaginatedCasesResult {
+  cases: WorkerCase[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+}
+
 export interface IStorage {
   // Case methods - UPDATED for multi-tenant isolation
   getGPNet2Cases(organizationId: string): Promise<WorkerCase[]>;
+  getGPNet2CasesPaginated(organizationId: string, page: number, limit: number): Promise<PaginatedCasesResult>;
   getGPNet2CaseById(id: string, organizationId: string): Promise<WorkerCase | null>;
   getGPNet2CaseByIdAdmin(id: string): Promise<WorkerCase | null>; // Admin-only, no org filter
   syncWorkerCaseFromFreshdesk(caseData: Partial<WorkerCase>): Promise<void>;
@@ -547,6 +556,156 @@ class DbStorage implements IStorage {
     );
 
     return casesWithAttachments;
+  }
+
+  async getGPNet2CasesPaginated(organizationId: string, page: number, limit: number): Promise<PaginatedCasesResult> {
+    // Get total count first
+    const countResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(workerCases)
+      .where(and(
+        eq(workerCases.organizationId, organizationId),
+        or(
+          eq(workerCases.caseStatus, "open"),
+          isNull(workerCases.caseStatus)
+        )
+      ));
+
+    const total = Number(countResult[0]?.count ?? 0);
+
+    // Get paginated cases
+    const offset = (page - 1) * limit;
+    const dbCases = await db
+      .select()
+      .from(workerCases)
+      .where(and(
+        eq(workerCases.organizationId, organizationId),
+        or(
+          eq(workerCases.caseStatus, "open"),
+          isNull(workerCases.caseStatus)
+        )
+      ))
+      .orderBy(desc(workerCases.ticketLastUpdatedAt))
+      .limit(limit)
+      .offset(offset);
+
+    const caseIds = dbCases.map((dbCase) => dbCase.id);
+
+    const notesByCase = new Map<string, CaseDiscussionNote[]>();
+    const insightsByCase = new Map<string, TranscriptInsight[]>();
+
+    if (caseIds.length > 0) {
+      const [noteRows, insightRows] = await Promise.all([
+        db
+          .select()
+          .from(caseDiscussionNotes)
+          .where(inArray(caseDiscussionNotes.caseId, caseIds))
+          .orderBy(desc(caseDiscussionNotes.timestamp)),
+        db
+          .select()
+          .from(caseDiscussionInsights)
+          .where(inArray(caseDiscussionInsights.caseId, caseIds))
+          .orderBy(desc(caseDiscussionInsights.createdAt)),
+      ]);
+
+      for (const row of noteRows) {
+        const current = notesByCase.get(row.caseId) ?? [];
+        if (current.length >= 3) continue;
+        current.push(mapDiscussionNote(row));
+        notesByCase.set(row.caseId, current);
+      }
+
+      for (const row of insightRows) {
+        const list = insightsByCase.get(row.caseId) ?? [];
+        if (list.length >= 5) continue;
+        list.push(mapDiscussionInsight(row));
+        insightsByCase.set(row.caseId, list);
+      }
+    }
+
+    const casesWithAttachments = await Promise.all(
+      dbCases.map(async (dbCase: WorkerCaseDB) => {
+        const attachments = await db
+          .select()
+          .from(caseAttachments)
+          .where(eq(caseAttachments.caseId, dbCase.id));
+
+        const latestCertificateRow = await db
+          .select()
+          .from(medicalCertificates)
+          .where(eq(medicalCertificates.caseId, dbCase.id))
+          .orderBy(desc(medicalCertificates.startDate))
+          .limit(1);
+
+        const latestCertificate = latestCertificateRow[0]
+          ? mapCertificateRow(latestCertificateRow[0])
+          : undefined;
+
+        const workerCase: WorkerCase = {
+          id: dbCase.id,
+          organizationId: dbCase.organizationId,
+          workerName: dbCase.workerName,
+          company: dbCase.company as any,
+          dateOfInjury: dbCase.dateOfInjury.toISOString().split('T')[0],
+          riskLevel: dbCase.riskLevel as any,
+          workStatus: dbCase.workStatus as any,
+          hasCertificate: Boolean(dbCase.hasCertificate || latestCertificate),
+          certificateUrl: dbCase.certificateUrl || undefined,
+          complianceIndicator: dbCase.complianceIndicator as any,
+          compliance: dbCase.complianceJson as any,
+          complianceOverride: (dbCase as any).complianceOverride || false,
+          complianceOverrideValue: (dbCase as any).complianceOverrideValue || undefined,
+          complianceOverrideReason: (dbCase as any).complianceOverrideReason || undefined,
+          complianceOverrideBy: (dbCase as any).complianceOverrideBy || undefined,
+          complianceOverrideAt: (dbCase as any).complianceOverrideAt?.toISOString() || undefined,
+          medicalConstraints: dbCase.clinicalStatusJson?.medicalConstraints,
+          functionalCapacity: dbCase.clinicalStatusJson?.functionalCapacity,
+          rtwPlanStatus: dbCase.clinicalStatusJson?.rtwPlanStatus,
+          complianceStatus: dbCase.clinicalStatusJson?.complianceStatus,
+          specialistStatus: dbCase.clinicalStatusJson?.specialistStatus,
+          specialistReportSummary: dbCase.clinicalStatusJson?.specialistReportSummary,
+          currentStatus: dbCase.currentStatus,
+          nextStep: dbCase.nextStep,
+          owner: dbCase.owner,
+          dueDate: dbCase.dueDate,
+          summary: dbCase.summary,
+          ticketIds: dbCase.ticketIds || [dbCase.id],
+          ticketCount: Number(dbCase.ticketCount) || 1,
+          masterTicketId: (dbCase as any).masterTicketId || undefined,
+          aiSummary: dbCase.aiSummary || undefined,
+          aiSummaryGeneratedAt: dbCase.aiSummaryGeneratedAt?.toISOString() || undefined,
+          aiSummaryModel: dbCase.aiSummaryModel || undefined,
+          aiWorkStatusClassification: dbCase.aiWorkStatusClassification || undefined,
+          ticketLastUpdatedAt: dbCase.ticketLastUpdatedAt?.toISOString() || undefined,
+          clcLastFollowUp: dbCase.clcLastFollowUp || undefined,
+          clcNextFollowUp: dbCase.clcNextFollowUp || undefined,
+          employmentStatus: (dbCase as any).employmentStatus || "ACTIVE",
+          terminationProcessId: (dbCase as any).terminationProcessId || null,
+          terminationReason: (dbCase as any).terminationReason || null,
+          terminationAuditFlag: (dbCase as any).terminationAuditFlag || null,
+          latestCertificate,
+          attachments: attachments.map((att) => ({
+            id: att.id,
+            name: att.name,
+            type: att.type,
+            url: att.url,
+          })),
+        };
+
+        workerCase.clinicalEvidence = evaluateClinicalEvidence(workerCase);
+        const discussionNotes = notesByCase.get(dbCase.id) ?? [];
+        const discussionInsights = insightsByCase.get(dbCase.id) ?? [];
+        return applyDiscussionInsights(workerCase, discussionNotes, discussionInsights);
+      })
+    );
+
+    return {
+      cases: casesWithAttachments,
+      total,
+      page,
+      limit,
+      hasMore: offset + casesWithAttachments.length < total,
+    };
   }
 
   async getGPNet2CaseById(id: string, organizationId: string): Promise<WorkerCase | null> {
