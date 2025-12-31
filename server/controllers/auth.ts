@@ -13,6 +13,56 @@ const JWT_EXPIRES_IN = "15m"; // 15 minutes as per requirements
 const COOKIE_NAME = "gpnet_auth";
 const COOKIE_MAX_AGE = 15 * 60 * 1000; // 15 minutes in milliseconds
 
+/**
+ * Password strength requirements
+ * - Minimum 8 characters
+ * - At least one uppercase letter
+ * - At least one lowercase letter
+ * - At least one digit
+ * - At least one special character
+ */
+const PASSWORD_MIN_LENGTH = 8;
+const PASSWORD_REGEX = {
+  uppercase: /[A-Z]/,
+  lowercase: /[a-z]/,
+  digit: /[0-9]/,
+  special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/,
+};
+
+interface PasswordValidationResult {
+  valid: boolean;
+  errors: string[];
+}
+
+function validatePassword(password: string): PasswordValidationResult {
+  const errors: string[] = [];
+
+  if (password.length < PASSWORD_MIN_LENGTH) {
+    errors.push(`Password must be at least ${PASSWORD_MIN_LENGTH} characters long`);
+  }
+
+  if (!PASSWORD_REGEX.uppercase.test(password)) {
+    errors.push("Password must contain at least one uppercase letter");
+  }
+
+  if (!PASSWORD_REGEX.lowercase.test(password)) {
+    errors.push("Password must contain at least one lowercase letter");
+  }
+
+  if (!PASSWORD_REGEX.digit.test(password)) {
+    errors.push("Password must contain at least one digit");
+  }
+
+  if (!PASSWORD_REGEX.special.test(password)) {
+    errors.push("Password must contain at least one special character (!@#$%^&*()_+-=[]{}|;':\",./<>?)");
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+  };
+}
+
 // Helper to set auth cookie
 function setAuthCookie(res: Response, token: string): void {
   res.cookie(COOKIE_NAME, token, {
@@ -61,6 +111,16 @@ export async function register(req: Request, res: Response) {
       return res.status(400).json({
         error: "Bad Request",
         message: "Email, password, and invite token are required",
+      });
+    }
+
+    // Validate password strength
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.valid) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "Password does not meet security requirements",
+        details: passwordValidation.errors,
       });
     }
 
