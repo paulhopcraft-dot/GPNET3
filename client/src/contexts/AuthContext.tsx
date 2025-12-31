@@ -16,7 +16,6 @@ export interface User {
 
 interface AuthState {
   user: User | null;
-  token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
@@ -30,12 +29,9 @@ interface AuthContextValue extends AuthState {
 
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-const TOKEN_KEY = "gpnet_auth_token";
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({
     user: null,
-    token: null,
     isAuthenticated: false,
     isLoading: true,
     error: null,
@@ -43,53 +39,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const navigate = useNavigate();
 
-  // Initialize auth from localStorage on mount
+  // Initialize auth by checking with server (cookie is sent automatically)
   useEffect(() => {
     initializeAuth();
   }, []);
 
   async function initializeAuth() {
-    const token = localStorage.getItem(TOKEN_KEY);
-
-    if (!token) {
-      setState(prev => ({ ...prev, isLoading: false }));
-      return;
-    }
-
     try {
-      // Validate token by calling /api/auth/me
+      // Validate session by calling /api/auth/me
+      // httpOnly cookie is sent automatically with credentials: 'include'
       const response = await fetch("/api/auth/me", {
-        headers: {
-          "Authorization": `Bearer ${token}`,
-        },
+        credentials: "include",
       });
 
       if (response.ok) {
         const result = await response.json();
         setState({
           user: result.data.user,
-          token,
           isAuthenticated: true,
           isLoading: false,
           error: null,
         });
       } else {
-        // Token invalid or expired
-        localStorage.removeItem(TOKEN_KEY);
+        // Not authenticated or session expired
         setState({
           user: null,
-          token: null,
           isAuthenticated: false,
           isLoading: false,
-          error: response.status === 401 ? "Session expired. Please login again." : null,
+          error: response.status === 401 ? null : "Session check failed",
         });
       }
     } catch (error) {
       console.error("Auth initialization error:", error);
-      localStorage.removeItem(TOKEN_KEY);
       setState({
         user: null,
-        token: null,
         isAuthenticated: false,
         isLoading: false,
         error: "Failed to restore session",
@@ -106,20 +89,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include", // Send/receive httpOnly cookies
         body: JSON.stringify({ email, password }),
       });
 
       const result = await response.json();
 
       if (response.ok && result.success) {
-        const { user, accessToken } = result.data;
+        const { user } = result.data;
 
-        // Store token in localStorage
-        localStorage.setItem(TOKEN_KEY, accessToken);
-
+        // Cookie is set automatically by server (httpOnly)
         setState({
           user,
-          token: accessToken,
           isAuthenticated: true,
           isLoading: false,
           error: null,
@@ -146,28 +127,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function logout() {
-    const token = state.token;
-
     try {
-      // Call logout endpoint if token exists (requires CSRF token)
-      if (token) {
-        await fetchWithCsrf("/api/auth/logout", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${token}`,
-          },
-        });
-      }
+      // Call logout endpoint (cookie sent automatically, requires CSRF token)
+      await fetchWithCsrf("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
     } catch (error) {
       console.error("Logout error:", error);
       // Continue with local logout even if API call fails
     }
 
-    // Clear local state and storage
-    localStorage.removeItem(TOKEN_KEY);
+    // Clear local state (cookie is cleared by server)
     setState({
       user: null,
-      token: null,
       isAuthenticated: false,
       isLoading: false,
       error: null,
@@ -189,15 +162,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-// Helper function to get token for API calls
-export function getAuthToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY);
-}
-
-// Helper function to clear auth on 401 responses
-export function handleUnauthorized(navigate: ReturnType<typeof useNavigate>) {
-  localStorage.removeItem(TOKEN_KEY);
-  navigate("/login");
 }

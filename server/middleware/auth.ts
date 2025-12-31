@@ -34,19 +34,30 @@ export interface JWTPayload {
   companyId?: string | null; // Deprecated - fallback for old tokens
 }
 
+const COOKIE_NAME = "gpnet_auth";
+
 export function authorize(allowedRoles?: UserRole[]) {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-      const authHeader = req.headers.authorization;
+      // Try to get token from httpOnly cookie first (primary method)
+      // Fall back to Authorization header for backwards compatibility
+      let token: string | undefined;
 
-      if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        return res.status(401).json({ 
-          error: "Unauthorized", 
-          message: "No token provided" 
-        });
+      if (req.cookies && req.cookies[COOKIE_NAME]) {
+        token = req.cookies[COOKIE_NAME];
+      } else {
+        const authHeader = req.headers.authorization;
+        if (authHeader && authHeader.startsWith("Bearer ")) {
+          token = authHeader.substring(7);
+        }
       }
 
-      const token = authHeader.substring(7); // Remove "Bearer " prefix
+      if (!token) {
+        return res.status(401).json({
+          error: "Unauthorized",
+          message: "No token provided"
+        });
+      }
 
       if (!process.env.JWT_SECRET) {
         console.error("JWT_SECRET is not set in environment variables");

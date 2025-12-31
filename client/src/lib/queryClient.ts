@@ -1,5 +1,4 @@
 import { QueryClient } from "@tanstack/react-query";
-import { getAuthToken } from "../contexts/AuthContext";
 
 // ========================================
 // CSRF Token Management
@@ -84,17 +83,13 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-export function getAuthHeaders(includeAuth: boolean = true): Record<string, string> {
-  const headers: Record<string, string> = {};
-
-  if (includeAuth) {
-    const token = getAuthToken();
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
-  }
-
-  return headers;
+/**
+ * Get auth headers - now empty since auth is handled via httpOnly cookies
+ * @deprecated Auth is now cookie-based, this function exists for backwards compatibility
+ */
+export function getAuthHeaders(_includeAuth: boolean = true): Record<string, string> {
+  // Auth is now handled via httpOnly cookies sent automatically with credentials: 'include'
+  return {};
 }
 
 /**

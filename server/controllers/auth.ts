@@ -9,6 +9,29 @@ import { validateInvite, useInvite } from "../inviteService";
 
 const SALT_ROUNDS = 10;
 const JWT_EXPIRES_IN = "15m"; // 15 minutes as per requirements
+const COOKIE_NAME = "gpnet_auth";
+const COOKIE_MAX_AGE = 15 * 60 * 1000; // 15 minutes in milliseconds
+
+// Helper to set auth cookie
+function setAuthCookie(res: Response, token: string): void {
+  res.cookie(COOKIE_NAME, token, {
+    httpOnly: true, // Not accessible via JavaScript (XSS protection)
+    secure: process.env.NODE_ENV === "production", // HTTPS only in production
+    sameSite: "strict", // CSRF protection
+    maxAge: COOKIE_MAX_AGE,
+    path: "/",
+  });
+}
+
+// Helper to clear auth cookie
+function clearAuthCookie(res: Response): void {
+  res.clearCookie(COOKIE_NAME, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    path: "/",
+  });
+}
 
 function generateAccessToken(userId: string, email: string, role: string, organizationId: string): string {
   if (!process.env.JWT_SECRET) {
@@ -109,6 +132,9 @@ export async function register(req: Request, res: Response) {
     // Generate access token with organizationId
     const accessToken = generateAccessToken(user.id, user.email, user.role, user.organizationId);
 
+    // Set httpOnly cookie (primary auth method)
+    setAuthCookie(res, accessToken);
+
     res.status(201).json({
       success: true,
       message: "User registered successfully",
@@ -121,6 +147,8 @@ export async function register(req: Request, res: Response) {
           organizationId: invite.organizationId,
           createdAt: user.createdAt,
         },
+        // Token still returned for backwards compatibility during migration
+        // Client should NOT store this in localStorage
         accessToken,
       },
     });
@@ -174,6 +202,9 @@ export async function login(req: Request, res: Response) {
     // Generate access token with organizationId
     const accessToken = generateAccessToken(user.id, user.email, user.role, user.organizationId);
 
+    // Set httpOnly cookie (primary auth method)
+    setAuthCookie(res, accessToken);
+
     res.json({
       success: true,
       message: "Login successful",
@@ -187,6 +218,8 @@ export async function login(req: Request, res: Response) {
           companyId: user.companyId, // Deprecated - backwards compat
           insurerId: user.insurerId,
         },
+        // Token still returned for backwards compatibility during migration
+        // Client should NOT store this in localStorage
         accessToken,
       },
     });
@@ -246,12 +279,11 @@ export async function me(req: AuthRequest, res: Response) {
 }
 
 export async function logout(req: AuthRequest, res: Response) {
-  // Placeholder for logout logic
-  // In a stateless JWT system, logout is typically handled client-side by removing the token
-  // For refresh tokens, you would invalidate them in the database here
-  
+  // Clear the httpOnly auth cookie
+  clearAuthCookie(res);
+
   res.json({
     success: true,
-    message: "Logout successful (client should discard token)",
+    message: "Logout successful",
   });
 }
