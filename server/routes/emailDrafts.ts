@@ -9,6 +9,7 @@ import { z } from "zod";
 import { authorize, type AuthRequest } from "../middleware/auth";
 import { requireCaseOwnership } from "../middleware/caseOwnership";
 import { storage } from "../storage";
+import { logger } from "../lib/logger";
 import {
   generateEmailDraft,
   getEmailDraftsByCase,
@@ -60,7 +61,7 @@ router.get("/email-drafts/types", authorize(), async (_req: Request, res: Respon
       data: types,
     });
   } catch (error: any) {
-    console.error("Failed to get email types:", error);
+    logger.api.error("Failed to get email types", {}, error);
     res.status(500).json({
       success: false,
       error: "Failed to get email types",
@@ -99,7 +100,7 @@ router.post(
         data: draft,
       });
     } catch (error: any) {
-      console.error("Email draft generation failed:", error);
+      logger.api.error("Email draft generation failed", {}, error);
 
       // Handle specific errors
       if (error.message?.includes("ANTHROPIC_API_KEY")) {
@@ -146,7 +147,7 @@ router.get(
         data: drafts,
       });
     } catch (error: any) {
-      console.error("Failed to get email drafts:", error);
+      logger.api.error("Failed to get email drafts", {}, error);
       res.status(500).json({
         success: false,
         error: "Failed to get email drafts",
@@ -183,7 +184,7 @@ router.get(
         data: draft,
       });
     } catch (error: any) {
-      console.error("Failed to get email draft:", error);
+      logger.api.error("Failed to get email draft", {}, error);
       res.status(500).json({
         success: false,
         error: "Failed to get email draft",
@@ -233,7 +234,7 @@ router.patch(
         data: updated,
       });
     } catch (error: any) {
-      console.error("Failed to update email draft:", error);
+      logger.api.error("Failed to update email draft", {}, error);
       res.status(500).json({
         success: false,
         error: "Failed to update email draft",
@@ -273,7 +274,7 @@ router.delete(
         message: "Email draft deleted",
       });
     } catch (error: any) {
-      console.error("Failed to delete email draft:", error);
+      logger.api.error("Failed to delete email draft", {}, error);
       res.status(500).json({
         success: false,
         error: "Failed to delete email draft",

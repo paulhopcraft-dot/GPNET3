@@ -4,6 +4,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { parseTranscriptFile, ParsedTranscriptNote } from "./parser";
 import { storage } from "../../storage";
+import { createLogger } from "../../lib/logger";
 import type {
   CaseDiscussionNote,
   InsertCaseDiscussionNote,
@@ -25,6 +26,8 @@ export interface TranscriptIngestionOptions {
 const DEFAULT_POLL_INTERVAL = 30_000;
 const DEFAULT_MAX_FILE_SIZE = 750 * 1024; // ~750 KB transcripts
 const FILE_STABILITY_DELAY_MS = 200;
+
+const transcriptLogger = createLogger("Transcripts");
 
 export class TranscriptIngestionModule {
   private watcher?: fs.FSWatcher;
@@ -49,9 +52,7 @@ export class TranscriptIngestionModule {
     await this.scanExistingFiles();
     this.startWatcher();
     this.startPolling();
-    console.log(
-      `[Transcripts] Transcript ingestion module active in ${this.transcriptsDir}`,
-    );
+    transcriptLogger.info("Transcript ingestion module active", { dir: this.transcriptsDir });
   }
 
   async stop(): Promise<void> {
@@ -83,7 +84,7 @@ export class TranscriptIngestionModule {
     );
 
     this.watcher.on("error", (err) => {
-      console.error("[Transcripts] File watcher error", err);
+      transcriptLogger.error("File watcher error", {}, err);
     });
   }
 
@@ -106,7 +107,7 @@ export class TranscriptIngestionModule {
         await this.processFile(file);
       }
     } catch (error) {
-      console.error("[Transcripts] Failed to scan transcript directory", error);
+      transcriptLogger.error("Failed to scan transcript directory", {}, error);
     }
   }
 
@@ -143,14 +144,12 @@ export class TranscriptIngestionModule {
       }
 
       if (stats.size === 0) {
-        console.warn(`[Transcripts] Skipping empty transcript: ${filePath}`);
+        transcriptLogger.warn("Skipping empty transcript", { file: filePath });
         return;
       }
 
       if (stats.size > this.maxFileSizeBytes) {
-        console.warn(
-          `[Transcripts] Skipping oversized transcript (${stats.size} bytes): ${filePath}`,
-        );
+        transcriptLogger.warn("Skipping oversized transcript", { file: filePath, size: stats.size });
         return;
       }
 
@@ -179,7 +178,7 @@ export class TranscriptIngestionModule {
       if (error?.code === "ENOENT") {
         return; // File removed before processing
       }
-      console.error(`[Transcripts] Failed to process ${filePath}`, error);
+      transcriptLogger.error("Failed to process transcript", { file: filePath }, error);
     } finally {
       this.processingFiles.delete(filePath);
     }
@@ -197,11 +196,10 @@ export class TranscriptIngestionModule {
       const resolution = await storage.findCaseByWorkerName(note.workerName);
       if (!resolution) {
         if (!this.unresolvedWorkers.has(note.workerName)) {
-          console.warn(
-            `[Transcripts] Unable to resolve case for "${note.workerName}" (${path.basename(
-              filePath,
-            )})`,
-          );
+          transcriptLogger.warn("Unable to resolve case for worker", {
+            workerName: note.workerName,
+            file: path.basename(filePath),
+          });
           this.unresolvedWorkers.add(note.workerName);
         }
         continue;
@@ -209,11 +207,11 @@ export class TranscriptIngestionModule {
 
       this.unresolvedWorkers.delete(note.workerName);
       if (resolution.confidence < 0.75) {
-        console.info(
-          `[Transcripts] Matched "${note.workerName}" -> "${resolution.workerName}" (confidence ${resolution.confidence.toFixed(
-            2,
-          )})`,
-        );
+        transcriptLogger.info("Low confidence worker match", {
+          inputName: note.workerName,
+          matchedName: resolution.workerName,
+          confidence: resolution.confidence.toFixed(2),
+        });
       }
 
       const noteId = this.createNoteId(filePath, note);
@@ -263,11 +261,10 @@ export class TranscriptIngestionModule {
       }
     }
 
-    console.log(
-      `[Transcripts] Ingested ${insertRows.length} note(s) from ${path.basename(
-        filePath,
-      )}`,
-    );
+    transcriptLogger.info("Ingested transcript notes", {
+      count: insertRows.length,
+      file: path.basename(filePath),
+    });
 
     return true;
   }

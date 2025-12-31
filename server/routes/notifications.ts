@@ -8,6 +8,7 @@ import express, { Request, Response } from "express";
 import { authorize, type AuthRequest } from "../middleware/auth";
 import { requireCaseOwnership } from "../middleware/caseOwnership";
 import { storage } from "../storage";
+import { logger } from "../lib/logger";
 import {
   getRecentNotifications,
   getNotificationsByCase,
@@ -36,7 +37,7 @@ router.get("/recent", authorize(), async (req: AuthRequest, res: Response) => {
       },
     });
   } catch (error) {
-    console.error("[NotificationRoutes] Error fetching recent notifications:", error);
+    logger.notification.error("Error fetching recent notifications", {}, error);
     res.status(500).json({
       success: false,
       error: "Failed to fetch notifications",
@@ -58,7 +59,7 @@ router.get("/stats", authorize(), async (req: AuthRequest, res: Response) => {
       data: stats,
     });
   } catch (error) {
-    console.error("[NotificationRoutes] Error fetching stats:", error);
+    logger.notification.error("Error fetching stats", {}, error);
     res.status(500).json({
       success: false,
       error: "Failed to fetch notification statistics",
@@ -80,7 +81,7 @@ router.get("/case/:caseId", authorize(), requireCaseOwnership(), async (req: Aut
       data: notifications,
     });
   } catch (error) {
-    console.error("[NotificationRoutes] Error fetching case notifications:", error);
+    logger.notification.error("Error fetching case notifications", {}, error);
     res.status(500).json({
       success: false,
       error: "Failed to fetch case notifications",
@@ -122,7 +123,7 @@ router.post("/test", requireAdmin, async (req: AuthRequest, res: Response) => {
       });
     }
   } catch (error) {
-    console.error("[NotificationRoutes] Error sending test email:", error);
+    logger.notification.error("Error sending test email", {}, error);
     res.status(500).json({
       success: false,
       error: "Failed to send test email",
@@ -156,7 +157,7 @@ router.post("/trigger", requireAdmin, async (_req: Request, res: Response) => {
       count,
     });
   } catch (error) {
-    console.error("[NotificationRoutes] Error triggering notifications:", error);
+    logger.notification.error("Error triggering notifications", {}, error);
     res.status(500).json({
       success: false,
       error: "Failed to trigger notification generation",
@@ -190,7 +191,7 @@ router.post("/send", requireAdmin, async (_req: Request, res: Response) => {
       ...result,
     });
   } catch (error) {
-    console.error("[NotificationRoutes] Error sending notifications:", error);
+    logger.notification.error("Error sending notifications", {}, error);
     res.status(500).json({
       success: false,
       error: "Failed to send notifications",

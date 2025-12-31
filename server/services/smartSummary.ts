@@ -12,6 +12,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import type { IStorage } from "../storage";
+import { logger } from "../lib/logger";
 import type {
   CaseSummary,
   WorkerCase,
@@ -279,8 +280,7 @@ function parseResponse(caseId: string, responseText: string): CaseSummary {
         : 50,
     };
   } catch (error) {
-    console.error("Failed to parse LLM response:", error);
-    console.error("Response was:", cleanedResponse.slice(0, 500));
+    logger.ai.error("Failed to parse LLM response", { responsePreview: cleanedResponse.slice(0, 500) }, error);
 
     // Return a fallback summary
     return {

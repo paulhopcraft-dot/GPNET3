@@ -8,6 +8,7 @@ import {
   hasPendingInvite,
 } from "../inviteService";
 import type { UserRole } from "@shared/schema";
+import { logger } from "../lib/logger";
 
 /**
  * Create a new user invite (admin only)
@@ -96,7 +97,7 @@ export async function createUserInvite(req: AuthRequest, res: Response) {
       },
     });
   } catch (error) {
-    console.error("Create invite error:", error);
+    logger.auth.error("Create invite error", {}, error);
     res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to create user invite",
@@ -155,7 +156,7 @@ export async function listOrganizationInvites(req: AuthRequest, res: Response) {
       },
     });
   } catch (error) {
-    console.error("List invites error:", error);
+    logger.auth.error("List invites error", {}, error);
     res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to fetch user invites",
@@ -207,7 +208,7 @@ export async function cancelUserInvite(req: AuthRequest, res: Response) {
       },
     });
   } catch (error) {
-    console.error("Cancel invite error:", error);
+    logger.auth.error("Cancel invite error", {}, error);
     res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to cancel user invite",
@@ -272,7 +273,7 @@ export async function resendUserInvite(req: AuthRequest, res: Response) {
       },
     });
   } catch (error) {
-    console.error("Resend invite error:", error);
+    logger.auth.error("Resend invite error", {}, error);
 
     if (error instanceof Error) {
       if (error.message.includes("not found")) {

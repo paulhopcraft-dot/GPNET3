@@ -1,4 +1,5 @@
 import type { FreshdeskAttachment } from "./freshdesk";
+import { logger } from "../lib/logger";
 
 /**
  * PDF Processor Service
@@ -83,14 +84,14 @@ export async function processAttachment(
   attachment: FreshdeskAttachment,
   freshdeskAuthHeader: string
 ): Promise<ProcessedDocument> {
-  console.log(`[PDF Processor] Downloading attachment: ${attachment.name} (${attachment.content_type})`);
+  logger.pdf.info("Downloading attachment", { name: attachment.name, contentType: attachment.content_type });
 
   const { base64, contentType, size } = await downloadAsBase64(
     attachment.attachment_url,
     freshdeskAuthHeader
   );
 
-  console.log(`[PDF Processor] Downloaded ${size} bytes, content-type: ${contentType}`);
+  logger.pdf.debug("Download complete", { size, contentType });
 
   return {
     fileName: attachment.name,
@@ -114,7 +115,7 @@ export async function processCertificateAttachments(
     return [];
   }
 
-  console.log(`[PDF Processor] Found ${certificateAttachments.length} potential certificate attachments`);
+  logger.pdf.info("Found potential certificate attachments", { count: certificateAttachments.length });
 
   const processed: ProcessedDocument[] = [];
 
@@ -123,7 +124,7 @@ export async function processCertificateAttachments(
       const doc = await processAttachment(attachment, freshdeskAuthHeader);
       processed.push(doc);
     } catch (error) {
-      console.error(`[PDF Processor] Failed to process attachment ${attachment.name}:`, error);
+      logger.pdf.error("Failed to process attachment", { name: attachment.name }, error);
       // Continue with other attachments
     }
   }

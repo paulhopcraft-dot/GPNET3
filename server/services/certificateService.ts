@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { MedicalCertificateDB, OcrExtractedData } from "@shared/schema";
 import type { IStorage } from "../storage";
 import type { ProcessedDocument } from "./pdfProcessor";
+import { logger } from "../lib/logger";
 
 const MODEL = "claude-sonnet-4-20250514";
 const CONFIDENCE_THRESHOLD = 0.8;
@@ -84,10 +85,10 @@ If you cannot read the document or it's not a medical certificate, set overall c
 export async function extractFromDocument(
   document: ProcessedDocument
 ): Promise<OcrExtractedData> {
-  console.log(`[Certificate Service] Starting Vision OCR for: ${document.fileName}`);
+  logger.certificate.info(`Starting Vision OCR`, { fileName: document.fileName });
 
   if (!process.env.ANTHROPIC_API_KEY) {
-    console.error("[Certificate Service] ANTHROPIC_API_KEY not set");
+    logger.certificate.error("ANTHROPIC_API_KEY not set");
     throw new Error("ANTHROPIC_API_KEY is required for OCR extraction");
   }
 
@@ -173,11 +174,11 @@ export async function extractFromDocument(
       }
       parsed = JSON.parse(jsonStr.trim());
     } catch {
-      console.error("[Certificate Service] Failed to parse Vision response:", textContent.text);
+      logger.certificate.error("Failed to parse Vision response", { response: textContent.text });
       throw new Error("Failed to parse OCR response as JSON");
     }
 
-    console.log(`[Certificate Service] Vision OCR complete. Confidence: ${parsed.confidence?.overall ?? 0}`);
+    logger.certificate.info(`Vision OCR complete`, { confidence: parsed.confidence?.overall ?? 0 });
 
     // Convert to OcrExtractedData format
     const extractedData: OcrExtractedData = {
@@ -204,7 +205,7 @@ export async function extractFromDocument(
 
     return extractedData;
   } catch (error) {
-    console.error("[Certificate Service] Vision API error:", error);
+    logger.certificate.error("Vision API error", {}, error);
     throw error;
   }
 }
@@ -218,12 +219,12 @@ export async function extractFromDocument(
 export async function extractCertificateData(
   certificate: MedicalCertificateDB
 ): Promise<OcrExtractedData> {
-  console.log(`[Certificate Service] OCR extraction requested for certificate ${certificate.id}`);
+  logger.certificate.info(`OCR extraction requested`, { certificateId: certificate.id });
 
   // If certificate has a file URL, we could download and process it
   // For now, return existing data with medium confidence
   if (certificate.fileUrl) {
-    console.log(`[Certificate Service] Certificate has fileUrl, but download not implemented yet`);
+    logger.certificate.warn(`Certificate has fileUrl, but download not implemented yet`);
   }
 
   // Return existing data from the certificate record
@@ -267,7 +268,7 @@ export async function checkExpiringCertificates(
   storage: IStorage,
   organizationId: string
 ): Promise<void> {
-  console.log(`[Certificate Service] Checking for expiring certificates in organization ${organizationId}`);
+  logger.certificate.info(`Checking for expiring certificates`, { organizationId });
 
   // Get certificates expiring in next 30 days
   const expiringCertificates = await storage.getExpiringCertificates(organizationId, 30);
@@ -294,6 +295,6 @@ export async function checkExpiringCertificates(
       alertDate: new Date(),
     });
 
-    console.log(`[Certificate Service] Created ${alertType} alert for certificate ${cert.id}`);
+    logger.certificate.info(`Created alert for certificate`, { alertType, certificateId: cert.id });
   }
 }

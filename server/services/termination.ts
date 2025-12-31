@@ -14,6 +14,7 @@ import {
   type TerminationAuditFlag,
 } from "@shared/schema";
 import { db } from "../db";
+import { logger } from "../lib/logger";
 
 const TERMINATION_TEMPLATE_CODE = "TERMINATION_LETTER";
 const SIX_MONTHS_MS = 1000 * 60 * 60 * 24 * 30 * 6;
@@ -122,7 +123,7 @@ async function recordAudit(caseId: string, eventType: string, metadata?: Record<
       metadata: metadata ?? null,
     });
   } catch (err) {
-    console.warn("[Termination] Failed to record audit event", err);
+    logger.audit.warn("Failed to record termination audit event", { caseId, eventType }, err);
   }
 }
 

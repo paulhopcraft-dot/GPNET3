@@ -5,6 +5,8 @@
  * When SMTP is not configured, emails are logged to console instead of being sent.
  */
 
+import { logger } from "../lib/logger";
+
 export interface SendEmailOptions {
   to: string;
   subject: string;
@@ -48,11 +50,11 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
 
   // If SMTP is not configured, log the email (dev mode)
   if (!isSmtpConfigured()) {
-    console.log("[EmailService] SMTP not configured - logging email instead:");
-    console.log("  To:", to);
-    console.log("  Subject:", subject);
-    console.log("  Body preview:", body.substring(0, 200) + (body.length > 200 ? "..." : ""));
-    console.log("  [End of email preview]");
+    logger.email.info("SMTP not configured - logging email instead", {
+      to,
+      subject,
+      bodyPreview: body.substring(0, 200) + (body.length > 200 ? "..." : ""),
+    });
 
     return {
       success: true,
@@ -85,7 +87,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
       html: html || undefined,
     });
 
-    console.log("[EmailService] Email sent successfully:", info.messageId);
+    logger.email.info("Email sent successfully", { messageId: info.messageId });
 
     return {
       success: true,
@@ -93,7 +95,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error("[EmailService] Failed to send email:", errorMessage);
+    logger.email.error("Failed to send email", { errorMessage }, error);
 
     return {
       success: false,

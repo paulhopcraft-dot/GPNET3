@@ -13,6 +13,7 @@ import type { InsertMedicalCertificate, OcrExtractedData } from "@shared/schema"
 import type { IStorage } from "../storage";
 import { processCertificateAttachments, isCertificateAttachment } from "./pdfProcessor";
 import { extractFromDocument, requiresReview } from "./certificateService";
+import { logger } from "../lib/logger";
 
 export interface CertificateProcessingResult {
   ticketId: string;
@@ -51,11 +52,11 @@ export async function processCertificatesFromTicket(
   const certAttachments = attachments.filter(isCertificateAttachment);
 
   if (certAttachments.length === 0) {
-    console.log(`[Certificate Pipeline] No certificate attachments found for ticket ${ticketId}`);
+    logger.certificate.debug("No certificate attachments found for ticket", { ticketId });
     return results;
   }
 
-  console.log(`[Certificate Pipeline] Processing ${certAttachments.length} certificate(s) for ticket ${ticketId}`);
+  logger.certificate.info("Processing certificate attachments", { count: certAttachments.length, ticketId });
 
   const authHeader = getFreshdeskAuthHeader();
 
@@ -67,7 +68,7 @@ export async function processCertificatesFromTicket(
     const attachment = certAttachments[i];
 
     try {
-      console.log(`[Certificate Pipeline] Extracting data from: ${doc.fileName}`);
+      logger.certificate.info("Extracting data from certificate", { fileName: doc.fileName });
 
       // Run OCR extraction
       const extractedData = await extractFromDocument(doc);
@@ -106,9 +107,11 @@ export async function processCertificatesFromTicket(
 
       const certificate = await storage.createCertificate(certificateData);
 
-      console.log(
-        `[Certificate Pipeline] Created certificate ${certificate.id} (confidence: ${extractedData.confidence.overall}, review: ${needsReview})`
-      );
+      logger.certificate.info("Created certificate", {
+        certificateId: certificate.id,
+        confidence: extractedData.confidence.overall,
+        requiresReview: needsReview,
+      });
 
       results.push({
         ticketId,
@@ -119,7 +122,7 @@ export async function processCertificatesFromTicket(
         requiresReview: needsReview,
       });
     } catch (error) {
-      console.error(`[Certificate Pipeline] Failed to process ${doc.fileName}:`, error);
+      logger.certificate.error("Failed to process certificate", { fileName: doc.fileName }, error);
       results.push({
         ticketId,
         caseId,
@@ -169,9 +172,11 @@ export async function processCertificatesFromTickets(
   const failed = allResults.filter((r) => !r.success).length;
   const requiresReviewCount = allResults.filter((r) => r.requiresReview).length;
 
-  console.log(
-    `[Certificate Pipeline] Batch complete: ${successful} successful, ${failed} failed, ${requiresReviewCount} require review`
-  );
+  logger.certificate.info("Certificate batch complete", {
+    successful,
+    failed,
+    requiresReview: requiresReviewCount,
+  });
 
   return {
     processed: allResults.length,

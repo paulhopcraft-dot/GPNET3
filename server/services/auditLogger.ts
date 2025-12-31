@@ -1,6 +1,7 @@
 import { db } from "../db";
 import { auditEvents } from "@shared/schema";
 import type { Request } from "express";
+import { logger } from "../lib/logger";
 
 /**
  * Audit Event Types - Comprehensive list of security and operational events
@@ -91,14 +92,12 @@ export async function logAuditEvent(params: AuditLogParams): Promise<void> {
     });
   } catch (error) {
     // CRITICAL: Don't let audit logging failures break the application
-    // Log to console for ops monitoring, but don't throw
-    console.error("[AuditLogger] Failed to log audit event:", {
+    // Log for ops monitoring, but don't throw
+    logger.audit.error("Failed to log audit event", {
       eventType: params.eventType,
       userId: params.userId,
       organizationId: params.organizationId,
-      error: error instanceof Error ? error.message : "Unknown error",
-      stack: error instanceof Error ? error.stack : undefined,
-    });
+    }, error);
   }
 }
 

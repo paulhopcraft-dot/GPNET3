@@ -5,6 +5,7 @@ import { eq, ilike, or, desc } from "drizzle-orm";
 import { authorize, type AuthRequest } from "../../middleware/auth";
 import { z } from "zod";
 import { logoUpload, getLogoUrl, deleteLogo, getFilenameFromUrl } from "../../services/fileUpload";
+import { logger } from "../../lib/logger";
 
 const router = Router();
 
@@ -66,7 +67,7 @@ router.get("/", async (req: AuthRequest, res: Response) => {
       },
     });
   } catch (error) {
-    console.error("Error fetching organizations:", error);
+    logger.api.error("Error fetching organizations", {}, error);
     res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to fetch organizations",
@@ -114,7 +115,7 @@ router.get("/:id", async (req: AuthRequest, res: Response) => {
       data: result[0],
     });
   } catch (error) {
-    console.error("Error fetching organization:", error);
+    logger.api.error("Error fetching organization", {}, error);
     res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to fetch organization",
@@ -183,7 +184,7 @@ router.post("/", async (req: AuthRequest, res: Response) => {
       data: newOrg[0],
     });
   } catch (error) {
-    console.error("Error creating organization:", error);
+    logger.api.error("Error creating organization", {}, error);
     res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to create organization",
@@ -275,7 +276,7 @@ router.put("/:id", async (req: AuthRequest, res: Response) => {
       data: updated[0],
     });
   } catch (error) {
-    console.error("Error updating organization:", error);
+    logger.api.error("Error updating organization", {}, error);
     res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to update organization",
@@ -319,7 +320,7 @@ router.delete("/:id", async (req: AuthRequest, res: Response) => {
       message: "Organization deleted successfully",
     });
   } catch (error) {
-    console.error("Error deleting organization:", error);
+    logger.api.error("Error deleting organization", {}, error);
     res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to delete organization",
@@ -387,7 +388,7 @@ router.post(
         },
       });
     } catch (error) {
-      console.error("Error uploading logo:", error);
+      logger.api.error("Error uploading logo", {}, error);
       res.status(500).json({
         error: "Internal Server Error",
         message: "Failed to upload logo",
@@ -438,7 +439,7 @@ router.delete("/:id/logo", async (req: AuthRequest, res: Response) => {
       message: "Logo removed successfully",
     });
   } catch (error) {
-    console.error("Error removing logo:", error);
+    logger.api.error("Error removing logo", {}, error);
     res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to remove logo",

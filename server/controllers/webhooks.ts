@@ -5,6 +5,7 @@ import { db } from "../db";
 import { webhookFormMappings, workerCases, type RestrictionItem, type CaseClinicalStatus } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { randomBytes } from "crypto";
+import { logger } from "../lib/logger";
 
 /**
  * Handle JotForm webhook submission
@@ -32,7 +33,7 @@ export async function handleJotFormWebhook(req: WebhookRequest, res: Response) {
     const { organizationId, formType } = req.webhookFormMapping;
     const formData = req.body;
 
-    console.info("Processing JotForm webhook", {
+    logger.webhook.info("Processing JotForm webhook", {
       formId: req.webhookFormMapping.formId,
       organizationId,
       formType,
@@ -54,7 +55,7 @@ export async function handleJotFormWebhook(req: WebhookRequest, res: Response) {
         break;
 
       default:
-        console.warn(`Unknown form type: ${formType}`);
+        logger.webhook.warn("Unknown form type", { formType });
         return res.status(400).json({
           error: "Bad Request",
           message: `Unsupported form type: ${formType}`,
@@ -71,7 +72,7 @@ export async function handleJotFormWebhook(req: WebhookRequest, res: Response) {
       },
     });
   } catch (error) {
-    console.error("JotForm webhook processing error:", error);
+    logger.webhook.error("JotForm webhook processing error", {}, error);
     res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to process webhook",
@@ -114,7 +115,7 @@ async function handleWorkerInjuryForm(formData: any, organizationId: string) {
     summary,
   });
 
-  console.info("Worker injury case created", {
+  logger.webhook.info("Worker injury case created", {
     workerName,
     organizationId,
     submissionId: formData.submissionID,
@@ -137,7 +138,7 @@ async function handleWorkerInjuryForm(formData: any, organizationId: string) {
  * - q12_documentUrl / document_url: URL to certificate document
  */
 async function handleMedicalCertificateForm(formData: any, organizationId: string) {
-  console.info("Processing medical certificate form", {
+  logger.webhook.info("Processing medical certificate form", {
     organizationId,
     submissionId: formData.submissionID,
   });
@@ -169,7 +170,7 @@ async function handleMedicalCertificateForm(formData: any, organizationId: strin
     const match = await storage.findCaseByWorkerName(workerName);
     if (match && match.confidence >= 0.7) {
       caseId = match.caseId;
-      console.info("Matched worker to case by name", {
+      logger.webhook.info("Matched worker to case by name", {
         workerName,
         matchedCaseId: caseId,
         confidence: match.confidence,
@@ -232,7 +233,7 @@ async function handleMedicalCertificateForm(formData: any, organizationId: strin
     restrictions,
   });
 
-  console.info("Medical certificate created from webhook", {
+  logger.webhook.info("Medical certificate created from webhook", {
     certificateId: certificate.id,
     caseId,
     organizationId,
@@ -257,7 +258,7 @@ async function handleMedicalCertificateForm(formData: any, organizationId: strin
  * - q13_blockers / blockers: Current blockers to RTW
  */
 async function handleReturnToWorkForm(formData: any, organizationId: string) {
-  console.info("Processing return to work form", {
+  logger.webhook.info("Processing return to work form", {
     organizationId,
     submissionId: formData.submissionID,
   });
@@ -286,7 +287,7 @@ async function handleReturnToWorkForm(formData: any, organizationId: string) {
     const match = await storage.findCaseByWorkerName(workerName);
     if (match && match.confidence >= 0.7) {
       caseId = match.caseId;
-      console.info("Matched worker to case by name", {
+      logger.webhook.info("Matched worker to case by name", {
         workerName,
         matchedCaseId: caseId,
         confidence: match.confidence,
@@ -354,7 +355,7 @@ async function handleReturnToWorkForm(formData: any, organizationId: string) {
 
   await storage.updateClinicalStatus(caseId, organizationId, clinicalStatusUpdate);
 
-  console.info("RTW plan updated from webhook", {
+  logger.webhook.info("RTW plan updated from webhook", {
     caseId,
     organizationId,
     rtwPlanStatus,
@@ -363,7 +364,7 @@ async function handleReturnToWorkForm(formData: any, organizationId: string) {
 
   // If RTW plan is failing, this might warrant a notification or action
   if (rtwPlanStatus === "failing" && blockers) {
-    console.warn("RTW plan failing for case", {
+    logger.webhook.warn("RTW plan failing for case", {
       caseId,
       blockers,
       progressNotes,
@@ -449,7 +450,7 @@ export async function registerWebhookForm(req: AuthRequest, res: Response) {
       },
     });
   } catch (error) {
-    console.error("Register webhook form error:", error);
+    logger.webhook.error("Register webhook form error", {}, error);
     res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to register webhook form",
@@ -498,7 +499,7 @@ export async function listWebhookForms(req: AuthRequest, res: Response) {
       },
     });
   } catch (error) {
-    console.error("List webhook forms error:", error);
+    logger.webhook.error("List webhook forms error", {}, error);
     res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to list webhook forms",
@@ -546,7 +547,7 @@ export async function deactivateWebhookForm(req: AuthRequest, res: Response) {
       },
     });
   } catch (error) {
-    console.error("Deactivate webhook form error:", error);
+    logger.webhook.error("Deactivate webhook form error", {}, error);
     res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to deactivate webhook form",

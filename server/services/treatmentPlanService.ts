@@ -13,6 +13,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import type { IStorage } from "../storage";
+import { logger } from "../lib/logger";
 import type {
   TreatmentPlan,
   TreatmentIntervention,
@@ -277,7 +278,7 @@ export async function generateTreatmentPlan(
     // Parse AI response
     const textContent = response.content.find((c) => c.type === "text");
     if (!textContent || textContent.type !== "text") {
-      console.error("[TreatmentPlan] No text content in AI response");
+      logger.ai.error("No text content in AI response", { caseId });
       return createFallbackPlan(workerCase);
     }
 
@@ -285,7 +286,7 @@ export async function generateTreatmentPlan(
     try {
       aiResponse = JSON.parse(textContent.text);
     } catch (parseError) {
-      console.error("[TreatmentPlan] JSON parse error:", parseError);
+      logger.ai.error("Treatment plan JSON parse error", { caseId }, parseError);
       return createFallbackPlan(workerCase);
     }
 
@@ -352,10 +353,10 @@ export async function generateTreatmentPlan(
       },
     });
 
-    console.log(`[TreatmentPlan] Generated plan ${id} for case ${caseId} (confidence: ${confidence}%)`);
+    logger.ai.info("Generated treatment plan", { planId: id, caseId, confidence });
     return plan;
   } catch (error) {
-    console.error("[TreatmentPlan] Error generating plan:", error);
+    logger.ai.error("Error generating treatment plan", { caseId }, error);
     throw error;
   }
 }
@@ -428,6 +429,6 @@ export async function updateTreatmentPlan(
     metadata: { caseId, updates },
   });
 
-  console.log(`[TreatmentPlan] Updated plan ${planId} for case ${caseId}`);
+  logger.ai.info("Updated treatment plan", { planId, caseId });
   return plan;
 }

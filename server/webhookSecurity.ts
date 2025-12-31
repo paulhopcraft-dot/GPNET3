@@ -3,6 +3,7 @@ import { db } from "./db";
 import { webhookFormMappings } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import crypto from "crypto";
+import { logger } from "./lib/logger";
 
 export interface WebhookRequest extends Request {
   webhookFormMapping?: {
@@ -63,7 +64,7 @@ export function verifyWebhookPassword(formIdParam: string = "formID") {
 
         formMapping = result[0];
       } catch (dbError) {
-        console.error("Database error during webhook authentication:", dbError);
+        logger.webhook.error("Database error during webhook authentication", { formId }, dbError);
         // FAIL-CLOSED: Database errors block the request
         return res.status(503).json({
           error: "Service Unavailable",
@@ -95,7 +96,7 @@ export function verifyWebhookPassword(formIdParam: string = "formID") {
 
       if (!isPasswordValid) {
         // Log failed authentication attempt
-        console.warn(`Failed webhook authentication for form ${formId}`, {
+        logger.webhook.warn("Failed webhook authentication", {
           formId,
           ip: req.ip,
           userAgent: req.headers["user-agent"],
@@ -117,7 +118,7 @@ export function verifyWebhookPassword(formIdParam: string = "formID") {
       };
 
       // Log successful authentication
-      console.info(`Webhook authenticated successfully for form ${formId}`, {
+      logger.webhook.info("Webhook authenticated successfully", {
         formId,
         organizationId: formMapping.organizationId,
         formType: formMapping.formType,
@@ -126,7 +127,7 @@ export function verifyWebhookPassword(formIdParam: string = "formID") {
       next();
     } catch (error) {
       // FAIL-CLOSED: Unexpected errors block the request
-      console.error("Unexpected error in webhook authentication:", error);
+      logger.webhook.error("Unexpected error in webhook authentication", {}, error);
       return res.status(503).json({
         error: "Service Unavailable",
         message: "Webhook authentication system error",
@@ -183,7 +184,7 @@ export function verifyWebhookSignature(serviceName: string) {
       });
     } catch (error) {
       // FAIL-CLOSED: Errors block the request
-      console.error("Webhook signature verification error:", error);
+      logger.webhook.error("Webhook signature verification error", {}, error);
       return res.status(503).json({
         error: "Service Unavailable",
         message: "Signature verification system error",

@@ -4,6 +4,9 @@ import { storage } from "./storage";
 import { FreshdeskService } from "./services/freshdesk";
 import { summaryService } from "./services/summary";
 import Anthropic from "@anthropic-ai/sdk";
+import { logger, createLogger } from "./lib/logger";
+
+const routeLogger = createLogger("Routes");
 import authRoutes from "./routes/auth";
 import terminationRoutes from "./routes/termination";
 import inviteRoutes from "./routes/invites";
@@ -143,7 +146,7 @@ export async function registerRoutes(app: Express): Promise<void> {
         usage: response.usage
       });
     } catch (err) {
-      console.error("Claude API error:", err);
+      routeLogger.error("Claude API error", {}, err);
       // Don't expose internal error details to client
       res.status(500).json({
         error: "Compliance evaluation failed. Please try again.",
@@ -226,7 +229,7 @@ export async function registerRoutes(app: Express): Promise<void> {
 
       res.status(201).json(newCase);
     } catch (error) {
-      console.error("Error creating case:", error);
+      routeLogger.error("Error creating case", {}, error);
       res.status(500).json({
         error: "Failed to create case",
         details: error instanceof Error ? error.message : "Unknown error",
@@ -282,7 +285,7 @@ export async function registerRoutes(app: Express): Promise<void> {
             }
           }
         } catch (freshdeskError) {
-          console.error("Failed to close Freshdesk ticket(s):", freshdeskError);
+          routeLogger.error("Failed to close Freshdesk ticket(s)", {}, freshdeskError);
           // Don't fail the request if Freshdesk sync fails - case is already closed locally
         }
       }
@@ -293,7 +296,7 @@ export async function registerRoutes(app: Express): Promise<void> {
         caseId: workerCase.id,
       });
     } catch (error) {
-      console.error("Error closing case:", error);
+      routeLogger.error("Error closing case", {}, error);
       res.status(500).json({
         error: "Failed to close case",
         details: error instanceof Error ? error.message : "Unknown error",
@@ -353,7 +356,7 @@ export async function registerRoutes(app: Express): Promise<void> {
         complianceValue,
       });
     } catch (error) {
-      console.error("Error overriding compliance:", error);
+      routeLogger.error("Error overriding compliance", {}, error);
       res.status(500).json({
         error: "Failed to override compliance",
         details: error instanceof Error ? error.message : "Unknown error",
@@ -387,7 +390,7 @@ export async function registerRoutes(app: Express): Promise<void> {
         caseId: workerCase.id,
       });
     } catch (error) {
-      console.error("Error clearing compliance override:", error);
+      routeLogger.error("Error clearing compliance override", {}, error);
       res.status(500).json({
         error: "Failed to clear compliance override",
         details: error instanceof Error ? error.message : "Unknown error",
@@ -440,7 +443,7 @@ export async function registerRoutes(app: Express): Promise<void> {
               closedTickets.push(ticketId);
             }
           } catch (err) {
-            console.error(`Failed to close ticket ${ticketId}:`, err);
+            routeLogger.error(`Failed to close ticket`, { ticketId }, err);
           }
         }
       }
@@ -469,7 +472,7 @@ export async function registerRoutes(app: Express): Promise<void> {
         closedTickets,
       });
     } catch (error) {
-      console.error("Error merging tickets:", error);
+      routeLogger.error("Error merging tickets", {}, error);
       res.status(500).json({
         error: "Failed to merge tickets",
         details: error instanceof Error ? error.message : "Unknown error",
@@ -528,7 +531,7 @@ export async function registerRoutes(app: Express): Promise<void> {
           .filter((t: any) => t.caseId);
 
         if (ticketsWithAttachments.length > 0) {
-          console.log(`[Freshdesk Sync] Processing certificates from ${ticketsWithAttachments.length} tickets`);
+          logger.freshdesk.info(`Processing certificates from tickets`, { count: ticketsWithAttachments.length });
           const certResult = await processCertificatesFromTickets(ticketsWithAttachments, storage);
           certificatesProcessed = certResult.successful;
         }
@@ -542,7 +545,7 @@ export async function registerRoutes(app: Express): Promise<void> {
         configured: true
       });
     } catch (error) {
-      console.error("Error syncing Freshdesk tickets:", error);
+      logger.freshdesk.error("Error syncing Freshdesk tickets", {}, error);
       res.status(500).json({
         error: "Failed to sync Freshdesk tickets",
         details: error instanceof Error ? error.message : "Unknown error"
@@ -590,7 +593,7 @@ export async function registerRoutes(app: Express): Promise<void> {
         summary,
       });
     } catch (err) {
-      console.error("Failed to fetch recovery timeline:", err);
+      routeLogger.error("Failed to fetch recovery timeline", {}, err);
       res.status(500).json({
         error: "Failed to fetch recovery timeline",
         details: err instanceof Error ? err.message : "Unknown error",
@@ -615,7 +618,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       const clinicalEvidence = evaluateClinicalEvidence(workerCase);
       res.json({ caseId: workerCase.id, clinicalEvidence });
     } catch (err) {
-      console.error("Failed to evaluate clinical evidence:", err);
+      routeLogger.error("Failed to evaluate clinical evidence", {}, err);
       res.status(500).json({
         error: "Failed to evaluate clinical evidence",
         details: err instanceof Error ? err.message : "Unknown error",
@@ -643,7 +646,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       ]);
       res.json({ notes, insights });
     } catch (err) {
-      console.error("Failed to fetch discussion notes:", err);
+      routeLogger.error("Failed to fetch discussion notes", {}, err);
       res.status(500).json({
         error: "Failed to fetch discussion notes",
         details: err instanceof Error ? err.message : "Unknown error",
@@ -674,7 +677,7 @@ export async function registerRoutes(app: Express): Promise<void> {
         totalEvents: events.length
       });
     } catch (err) {
-      console.error("Failed to fetch timeline:", err);
+      routeLogger.error("Failed to fetch timeline", {}, err);
       res.status(500).json({
         error: "Failed to fetch timeline",
         details: err instanceof Error ? err.message : "Unknown error"
@@ -715,7 +718,7 @@ export async function registerRoutes(app: Express): Promise<void> {
         discussionInsights,
       });
     } catch (err) {
-      console.error("Failed to fetch summary:", err);
+      routeLogger.error("Failed to fetch summary", {}, err);
       res.status(500).json({ 
         error: "Failed to fetch summary",
         details: err instanceof Error ? err.message : "Unknown error"
@@ -811,7 +814,7 @@ export async function registerRoutes(app: Express): Promise<void> {
         discussionInsights,
       });
     } catch (err) {
-      console.error("Summary generation failed:", err);
+      routeLogger.error("Summary generation failed", {}, err);
       
       // Return 503 if API key not configured during generation attempt
       if (err instanceof Error && err.message.includes("ANTHROPIC_API_KEY")) {

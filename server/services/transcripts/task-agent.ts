@@ -1,4 +1,7 @@
 import type { CaseDiscussionNote, TranscriptInsight } from "@shared/schema";
+import { createLogger } from "../../lib/logger";
+
+const taskAgentLogger = createLogger("TranscriptTaskAgent");
 
 export interface TranscriptIngestionEvent {
   caseId: string;
@@ -22,9 +25,12 @@ export class LoggingTaskNotificationAgent implements TaskNotificationAgent {
   async notifyNewDiscussionNotes(event: TranscriptIngestionEvent): Promise<void> {
     this.events.push(event);
     const latest = event.notes[0];
-    console.log(
-      `[Transcripts][TaskAgent] Queued ${event.notes.length} note(s) for ${event.workerName} (case ${event.caseId}) - last summary: ${latest?.summary}`,
-    );
+    taskAgentLogger.info("Queued discussion notes", {
+      noteCount: event.notes.length,
+      workerName: event.workerName,
+      caseId: event.caseId,
+      lastSummary: latest?.summary,
+    });
   }
 
   getPendingEvents(): TranscriptIngestionEvent[] {

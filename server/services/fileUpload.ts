@@ -2,6 +2,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { randomUUID } from "crypto";
+import { logger } from "../lib/logger";
 
 // Ensure upload directory exists
 const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "logos");
@@ -61,7 +62,7 @@ export function deleteLogo(filename: string): boolean {
     }
     return false;
   } catch (error) {
-    console.error("Error deleting logo:", error);
+    logger.server.error("Error deleting logo", { filename }, error);
     return false;
   }
 }
