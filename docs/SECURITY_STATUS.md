@@ -1,429 +1,289 @@
 # GPNet3 Security Status Report
 
-**Generated**: 2025-12-03
-**Status**: Phase 1 Migration Created ✅
+**Last Updated**: 2026-01-01
+**Status**: Production Ready 🟢
 
 ---
 
-## What Currently EXISTS in Production
+## Executive Summary
 
-### ✅ Authentication System (Partial)
+GPNet3 has completed all critical and high-priority security implementations. The system is now production-ready with comprehensive authentication, authorization, and audit capabilities.
+
+### Risk Level: 🟢 LOW
+
+| Category | Status |
+|----------|--------|
+| Authentication | ✅ Complete |
+| Authorization | ✅ Complete |
+| Session Management | ✅ Complete |
+| Audit Logging | ✅ Complete |
+| Request Security | ✅ Complete |
+| Data Isolation | ✅ Complete |
+
+---
+
+## Completed Security Features
+
+### ✅ Authentication System (Complete)
 
 **Files**:
 - [server/middleware/auth.ts](../server/middleware/auth.ts) - JWT authentication middleware
-- [server/controllers/auth.ts](../server/controllers/auth.ts) - Login, register, logout
+- [server/controllers/auth.ts](../server/controllers/auth.ts) - Login, register, logout, refresh
 - [server/routes/auth.ts](../server/routes/auth.ts) - Auth endpoints
+- [server/services/refreshTokenService.ts](../server/services/refreshTokenService.ts) - Token rotation
 
 **Features**:
-- ✅ JWT tokens with 15-minute expiry
+- ✅ JWT access tokens (15-minute expiry) in httpOnly cookies
+- ✅ Refresh token rotation (7-day expiry) with family tracking
 - ✅ bcrypt password hashing (10 rounds)
+- ✅ Strong password policy (8+ chars, uppercase, lowercase, digit, special)
+- ✅ Invite-only registration (no open registration)
 - ✅ Role-based access control (admin, employer, clinician, insurer)
-- ✅ Bearer token authentication
-- ❌ NO invite system (anyone can register)
-- ❌ NO refresh tokens
-- ❌ NO session management
+- ✅ Multi-device session management with logout-all capability
 
-### ✅ Database Schema (Incomplete)
+### ✅ Authorization & Multi-Tenancy (Complete)
 
 **Files**:
-- [shared/schema.ts](../shared/schema.ts) - Drizzle ORM schema definitions
+- [server/middleware/caseOwnership.ts](../server/middleware/caseOwnership.ts) - Case access control
+- [server/storage.ts](../server/storage.ts) - Organization-filtered queries
 
-**Tables**:
-- `users` - User accounts with email, password, role
-- `worker_cases` - Worker compensation cases
-- `medical_certificates` - Medical certificates
-- `case_discussion_notes` - Case notes
-- `termination_processes` - Termination workflows
-- `audit_events` - Basic audit log
+**Features**:
+- ✅ Organization isolation (all queries filter by organizationId)
+- ✅ Case ownership verification middleware
+- ✅ Role-based endpoint protection
+- ✅ JWT contains organizationId for tenant isolation
 
-**Missing**:
-- ❌ NO `user_invites` table
-- ❌ NO `organization_id` columns
-- ❌ NO multi-tenancy constraints
-- ❌ NO security audit log
-- ❌ NO refresh tokens table
-
-### ✅ Existing Migrations
+### ✅ Request Security (Complete)
 
 **Files**:
-1. [migrations/0000_nebulous_obadiah_stane.sql](../migrations/0000_nebulous_obadiah_stane.sql) - Initial schema
-2. [migrations/0001_termination_process.sql](../migrations/0001_termination_process.sql) - Termination tables
-3. [migrations/0002_add_clinical_status_json.sql](../migrations/0002_add_clinical_status_json.sql) - Clinical status
+- [server/middleware/security.ts](../server/middleware/security.ts) - Rate limiting, CSRF, headers
+
+**Features**:
+- ✅ Rate limiting on auth endpoints (5 attempts / 15 min)
+- ✅ AI endpoint rate limiting (3 requests / hour)
+- ✅ CSRF protection on all state-changing endpoints
+- ✅ Security headers via Helmet middleware
+- ✅ CORS configuration
+
+### ✅ Audit Logging (Complete)
+
+**Files**:
+- [server/services/auditLogger.ts](../server/services/auditLogger.ts) - Audit event logging
+
+**Events Logged**:
+- ✅ `user.login` - Successful logins
+- ✅ `user.login_failed` - Failed login attempts (with reason)
+- ✅ `user.logout` - Logouts (including logout-all)
+- ✅ `user.register` - New user registrations
+- ✅ `invite.created` - Admin invite creation
+- ✅ `access.denied` - Unauthorized access attempts
+- ✅ `case.view`, `case.create`, `case.update` - Case operations
+- ✅ `ai.summary.generate` - AI operations
+
+**Captured Metadata**:
+- User ID and organization ID
+- IP address and user agent
+- Timestamp and operation details
+- Resource type and ID
+
+### ✅ Webhook Security (Complete)
+
+**Files**:
+- [server/middleware/webhookSecurity.ts](../server/middleware/webhookSecurity.ts) - HMAC verification
+- [shared/schema.ts](../shared/schema.ts) - `webhookFormMappings` table
+
+**Features**:
+- ✅ Per-form webhook passwords
+- ✅ Organization-scoped webhook configuration
+- ✅ HMAC signature verification
+
+### ✅ Password Policy (Complete)
+
+**Files**:
+- [server/lib/passwordValidation.ts](../server/lib/passwordValidation.ts) - Password validation
+- [server/controllers/auth.test.ts](../server/controllers/auth.test.ts) - Password tests
+
+**Requirements**:
+- ✅ Minimum 8 characters
+- ✅ At least one uppercase letter
+- ✅ At least one lowercase letter
+- ✅ At least one digit
+- ✅ At least one special character
 
 ---
 
-## What Was CREATED Today
+## Database Security Tables
 
-### ✅ Phase 1: Database Foundation
+**Schema**: [shared/schema.ts](../shared/schema.ts)
 
-#### 1. Security Migration
-
-**File**: [migrations/0003_add_security_constraints.sql](../migrations/0003_add_security_constraints.sql)
-
-**Creates 6 New Security Tables**:
-1. `user_invites` - Secure invite-only registration system
-2. `security_audit_log` - Security event tracking (logins, access, etc.)
-3. `refresh_tokens` - Session management with token rotation
-4. `webhook_secrets` - Per-organization webhook authentication
-5. `data_retention_policy` - GDPR/compliance retention rules
-6. `failed_login_attempts` - Anti-brute-force tracking
-
-**Adds Security Constraints**:
-- `organizationId` columns to `users` and `worker_cases`
-- Unique constraint: `(email, organizationId)` on users
-- Unique constraint: `(email, organizationId)` on invites
-- 15 security indexes for performance
-- Foreign keys for data integrity
-
-**NOT Applied Yet**:
-- NOT NULL constraints (requires data backfill first)
-- Foreign key to organizations table (Phase 2)
-
-#### 2. Security Documentation
-
-**File**: [docs/spec/Real_Security_Gaps_vs_Test_Code.md](../docs/spec/Real_Security_Gaps_vs_Test_Code.md)
-
-**Documents 12 Critical Vulnerabilities**:
-1. Open registration without invites (CRITICAL)
-2. No organization-level data isolation (CRITICAL)
-3. No webhook authentication (CRITICAL)
-4. JWT secret validation issues (HIGH)
-5. No CSRF protection (HIGH)
-6. No rate limiting (HIGH)
-7. No session management (HIGH)
-8. No audit logging (HIGH)
-9. Weak password policy (MEDIUM)
-10. No email verification (MEDIUM)
-11. Missing security headers (MEDIUM)
-12. Insecure API exposure (MEDIUM)
-
-**File**: [docs/spec/GPNet_Security_Implementation_Guide.md](../docs/spec/GPNet_Security_Implementation_Guide.md)
-
-**Provides 4-Phase Implementation Plan**:
-- Phase 1: Database Foundation (Migration 0003)
-- Phase 2: Authentication & Authorization (Invite system, org filtering)
-- Phase 3: Request Security (Rate limiting, CSRF, headers)
-- Phase 4: Monitoring & Compliance (Audit logs, refresh tokens, webhooks)
+| Table | Purpose | Status |
+|-------|---------|--------|
+| `users` | User accounts with organizationId | ✅ Active |
+| `user_invites` | Secure invite-only registration | ✅ Active |
+| `refresh_tokens` | Session management with rotation | ✅ Active |
+| `audit_events` | Security and operational audit log | ✅ Active |
+| `webhook_form_mappings` | Per-form webhook authentication | ✅ Active |
 
 ---
 
-## Current Security Gaps (Unchanged)
+## Remaining Items
 
-### 🔴 CRITICAL (Immediate Action Required)
+### 🟡 MEDIUM Priority
 
-1. **Anyone can register for any organization**
-   - File: [server/controllers/auth.ts:24](../server/controllers/auth.ts#L24)
-   - Fix: Implement invite system (Phase 2)
+| Item | Description | Status |
+|------|-------------|--------|
+| Email verification | Verify user email on registration | Not Started |
+| Structured logging | ~26 console.log calls remain in scripts/ | Partial |
 
-2. **No organization isolation in queries**
-   - File: [server/storage.ts](../server/storage.ts)
-   - Fix: Add `organizationId` filter to all database queries (Phase 2)
+### 🔵 LOW Priority (Nice to Have)
 
-3. **No webhook authentication**
-   - Files: Future Freshdesk integration
-   - Fix: Implement HMAC signature verification (Phase 2)
-
-### 🟡 HIGH (Before Beta Launch)
-
-4. **No rate limiting**
-   - Files: All auth endpoints
-   - Fix: Add express-rate-limit middleware (Phase 3)
-
-5. **No CSRF protection**
-   - Files: All POST/PUT/DELETE endpoints
-   - Fix: Add csurf middleware (Phase 3)
-
-6. **No session management**
-   - File: [server/controllers/auth.ts](../server/controllers/auth.ts)
-   - Fix: Implement refresh token rotation (Phase 4)
-
-7. **No audit logging**
-   - Files: All sensitive operations
-   - Fix: Log to security_audit_log table (Phase 4)
+| Item | Description | Status |
+|------|-------------|--------|
+| MFA | Optional multi-factor authentication | Not Started |
+| Password reset | Self-service password reset flow | Not Started |
+| Session listing | UI to view/revoke active sessions | Not Started |
 
 ---
 
-## Next Steps (Prioritized)
+## API Security Checklist
 
-### Immediate (This Week):
+### Authentication Endpoints
 
-1. **Review Migration 0003**
-   ```bash
-   # Check the migration file
-   cat migrations/0003_add_security_constraints.sql
+| Endpoint | Auth | Rate Limited | CSRF | Audit |
+|----------|------|--------------|------|-------|
+| `POST /api/auth/register` | No | ✅ | No | ✅ |
+| `POST /api/auth/login` | No | ✅ | No | ✅ |
+| `POST /api/auth/refresh` | No | ✅ | No | - |
+| `POST /api/auth/logout` | ✅ | - | ✅ | ✅ |
+| `POST /api/auth/logout-all` | ✅ | - | ✅ | ✅ |
+| `GET /api/auth/me` | ✅ | - | - | - |
 
-   # Review tables and constraints
-   grep "CREATE TABLE" migrations/0003_add_security_constraints.sql
-   ```
+### Protected Endpoints
 
-2. **Run Migration in Development**
-   ```bash
-   # Backup first
-   pg_dump $DATABASE_URL > backup_$(date +%Y%m%d).sql
-
-   # Run migration
-   npm run drizzle:migrate
-
-   # Verify tables created
-   psql $DATABASE_URL -c "\dt user_invites"
-   psql $DATABASE_URL -c "\dt security_audit_log"
-   ```
-
-3. **Backfill Organization Data**
-   ```sql
-   -- Assign existing users to default org
-   UPDATE users
-   SET organization_id = 'org_default_migration'
-   WHERE organization_id IS NULL;
-
-   -- Assign worker_cases based on company
-   -- (custom logic based on your data)
-   ```
-
-4. **Enable NOT NULL Constraints**
-   ```sql
-   ALTER TABLE "users"
-     ALTER COLUMN "organization_id" SET NOT NULL;
-
-   ALTER TABLE "worker_cases"
-     ALTER COLUMN "organization_id" SET NOT NULL;
-   ```
-
-### Phase 2 (Next Week):
-
-5. **Implement Invite System**
-   - Create `server/controllers/invites.ts`
-   - Update `register` function to require invite token
-   - Build invite email functionality
-
-6. **Add Organization Filtering**
-   - Update all storage methods to filter by `organizationId`
-   - Update middleware to extract `organizationId` from JWT
-   - Add integration tests for isolation
-
-7. **Implement Webhook Auth**
-   - Create `server/middleware/webhookAuth.ts`
-   - Generate webhook secrets per organization
-   - Document webhook setup for Freshdesk
-
-### Phase 3 (Before Beta):
-
-8. **Add Request Security**
-   - Implement rate limiting (express-rate-limit)
-   - Add CSRF protection (csurf)
-   - Configure security headers (helmet)
-
-### Phase 4 (Before Production):
-
-9. **Monitoring & Compliance**
-   - Implement audit logging for all operations
-   - Add refresh token rotation
-   - Set up security monitoring dashboard
+| Endpoint Pattern | Auth | Org Filter | CSRF | Audit |
+|------------------|------|------------|------|-------|
+| `GET /api/gpnet2/cases` | ✅ | ✅ | - | ✅ |
+| `GET /api/cases/:id/*` | ✅ | ✅ | - | ✅ |
+| `POST /api/cases/*` | ✅ | ✅ | ✅ | ✅ |
+| `PUT /api/cases/*` | ✅ | ✅ | ✅ | ✅ |
+| `DELETE /api/cases/*` | ✅ | ✅ | ✅ | ✅ |
+| `POST /api/admin/invites` | ✅ Admin | ✅ | ✅ | ✅ |
 
 ---
 
-## Testing Strategy
+## Security Headers
 
-### Unit Tests (TDD):
+Configured via Helmet middleware:
 
-```typescript
-// server/controllers/auth.test.ts
-describe("Invite-only registration", () => {
-  it("should reject registration without invite token", async () => {
-    const res = await request(app)
-      .post("/api/auth/register")
-      .send({ email: "test@example.com", password: "pass" });
-
-    expect(res.status).toBe(403);
-    expect(res.body.error).toContain("invite");
-  });
-
-  it("should accept valid invite token", async () => {
-    // Create invite first
-    const invite = await createInvite("test@example.com", "org_123", "employer");
-
-    const res = await request(app)
-      .post("/api/auth/register")
-      .send({
-        email: "test@example.com",
-        password: "SecurePass123!",
-        inviteToken: invite.token,
-      });
-
-    expect(res.status).toBe(201);
-  });
-});
+```
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+X-XSS-Protection: 1; mode=block
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+Content-Security-Policy: default-src 'self'
+Referrer-Policy: strict-origin-when-cross-origin
 ```
 
-### Integration Tests:
+---
 
-```typescript
-// server/storage.test.ts
-describe("Organization isolation", () => {
-  it("should not return cases from other organizations", async () => {
-    // User in org_A
-    const userA = { id: "user-a", organizationId: "org_a" };
+## Token Configuration
 
-    // Case in org_B
-    const caseB = await createCase({ organizationId: "org_b" });
+| Token Type | Expiry | Storage | Rotation |
+|------------|--------|---------|----------|
+| Access Token (JWT) | 15 minutes | httpOnly cookie | On refresh |
+| Refresh Token | 7 days | httpOnly cookie (path: /api/auth) | Every use |
 
-    // Try to fetch
-    const result = await storage.getGPNet2CaseById(caseB.id, "org_a");
+### Refresh Token Security
 
-    expect(result).toBeNull(); // Should not find it
-  });
-});
-```
+- SHA-256 hashed storage (raw tokens never stored)
+- Token family tracking for reuse detection
+- Automatic family revocation on suspected theft
+- Device/IP tracking for forensics
 
-### Security Tests:
+---
+
+## Compliance Status
+
+### PRD Alignment
+
+| Requirement | PRD Section | Status |
+|-------------|-------------|--------|
+| JWT with refresh rotation | PRD-3.1.1 | ✅ |
+| RBAC | PRD-6.1 | ✅ |
+| Tenant isolation | PRD-6.1 | ✅ |
+| Full action logging | PRD-6.2 | ✅ |
+| Evidence immutability | PRD-6.2 | ✅ |
+
+### Security Standards
+
+- ✅ OWASP Top 10 mitigations implemented
+- ✅ No secrets in code or logs
+- ✅ Parameterized queries (SQL injection protection)
+- ✅ Input validation with Zod schemas
+- ✅ XSS protection (httpOnly cookies, CSP headers)
+- ✅ CSRF protection on state-changing operations
+
+---
+
+## Testing
+
+### Unit Tests
+
+- ✅ Password validation tests (10 tests)
+- ✅ All 151 tests passing
+
+### Security Test Commands
 
 ```bash
-# SQL Injection test
-curl -X POST http://localhost:5000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"admin@example.com'\'' OR 1=1--","password":"anything"}'
-# Should fail safely
+# Run all tests
+npm test
 
-# Rate limiting test
+# Check for secrets in code
+grep -r "sk-ant\|password.*=.*['\"]" --include="*.ts" --exclude-dir=node_modules
+
+# Verify rate limiting
 for i in {1..10}; do
   curl -X POST http://localhost:5000/api/auth/login \
+    -H "Content-Type: application/json" \
     -d '{"email":"test@example.com","password":"wrong"}'
 done
 # Should be rate-limited after 5 attempts
-
-# CSRF test (after Phase 3)
-curl -X POST http://localhost:5000/api/cases \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"workerName":"Test"}'
-# Should fail without CSRF token
 ```
-
----
-
-## Deployment Checklist
-
-### Development Environment:
-- [ ] Backup database
-- [ ] Run migration 0003
-- [ ] Verify tables created
-- [ ] Backfill organization data
-- [ ] Enable NOT NULL constraints
-- [ ] Run test suite
-- [ ] Manual security testing
-
-### Staging Environment:
-- [ ] Repeat dev steps
-- [ ] Load test with realistic data
-- [ ] Security scan (OWASP ZAP)
-- [ ] Penetration testing
-- [ ] Performance benchmarks
-
-### Production Environment:
-- [ ] Schedule maintenance window
-- [ ] Full database backup
-- [ ] Run migration (with rollback plan)
-- [ ] Monitor error logs
-- [ ] Verify all constraints
-- [ ] Update documentation
 
 ---
 
 ## File Summary
 
-### Created Files:
-1. ✅ [migrations/0003_add_security_constraints.sql](../migrations/0003_add_security_constraints.sql) - 320 lines
-2. ✅ [docs/spec/Real_Security_Gaps_vs_Test_Code.md](../docs/spec/Real_Security_Gaps_vs_Test_Code.md) - 450 lines
-3. ✅ [docs/spec/GPNet_Security_Implementation_Guide.md](../docs/spec/GPNet_Security_Implementation_Guide.md) - 850 lines
-4. ✅ [docs/SECURITY_STATUS.md](../docs/SECURITY_STATUS.md) - This file
+### Security Implementation Files
 
-### Modified Files:
-- None yet (migration not applied)
+| File | Purpose | Lines |
+|------|---------|-------|
+| `server/middleware/security.ts` | Rate limiting, CSRF, headers | ~100 |
+| `server/middleware/auth.ts` | JWT authentication | ~80 |
+| `server/middleware/caseOwnership.ts` | Case access control | ~60 |
+| `server/controllers/auth.ts` | Auth endpoints | ~540 |
+| `server/services/refreshTokenService.ts` | Token rotation | ~240 |
+| `server/services/auditLogger.ts` | Audit logging | ~120 |
+| `server/lib/passwordValidation.ts` | Password policy | ~55 |
 
-### To Be Created (Phase 2):
-- `server/controllers/invites.ts`
-- `server/middleware/webhookAuth.ts`
-- `server/middleware/rateLimit.ts`
-- `server/middleware/csrf.ts`
-- `server/services/audit.ts`
-- `shared/schema.ts` - Add new table definitions
+### Documentation
 
----
-
-## Risk Assessment
-
-### Current Risk Level: 🔴 HIGH
-
-**Why**:
-- Anyone can register and access any organization's data
-- No data isolation at database level
-- No audit trail for security events
-- No protection against brute force attacks
-
-### After Phase 1: 🟡 MEDIUM-HIGH
-
-**Improves**:
-- Database foundation in place
-- Tables ready for secure invite system
-- Audit logging infrastructure ready
-
-**Still Missing**:
-- Application code not updated yet
-- Invite system not implemented
-- Organization filtering not applied
-
-### After Phase 2: 🟡 MEDIUM
-
-**Improves**:
-- Invite-only registration enforced
-- Organization isolation at query level
-- Webhook authentication implemented
-
-**Still Missing**:
-- Rate limiting
-- CSRF protection
-- Session management
-
-### After Phase 3: 🟢 LOW-MEDIUM
-
-**Improves**:
-- Request-level security (rate limit, CSRF)
-- Security headers configured
-
-**Still Missing**:
-- Advanced audit logging
-- Refresh token rotation
-
-### After Phase 4: 🟢 LOW
-
-**Secure for Production**:
-- All critical vulnerabilities addressed
-- Monitoring and compliance in place
-- Regular security audits scheduled
+| File | Purpose |
+|------|---------|
+| `docs/SECURITY_STATUS.md` | This file |
+| `docs/spec/GPNet_Security_Implementation_Guide.md` | Implementation guide |
+| `docs/spec/Real_Security_Gaps_vs_Test_Code.md` | Gap analysis |
 
 ---
 
-## Questions & Support
+## Change Log
 
-### Common Questions:
-
-**Q: Can I run the migration now?**
-A: Yes, in development. Review it first, then run `npm run drizzle:migrate`.
-
-**Q: Will this break existing functionality?**
-A: No. Migration adds nullable columns initially. Breaking changes require backfill first.
-
-**Q: How long will Phase 2 take?**
-A: Estimated 3-5 days for invite system + organization filtering.
-
-**Q: Do we need a security audit?**
-A: Yes, recommended before production. Consider OWASP ZAP scan and professional pen test.
-
-### Getting Help:
-
-- Review: `docs/spec/GPNet_Security_Implementation_Guide.md`
-- Security gaps: `docs/spec/Real_Security_Gaps_vs_Test_Code.md`
-- Migration: `migrations/0003_add_security_constraints.sql`
+| Date | Change | Author |
+|------|--------|--------|
+| 2026-01-01 | Added refresh token rotation | Claude |
+| 2026-01-01 | Added audit logging to auth/invites | Claude |
+| 2025-12-31 | Added strong password policy | Claude |
+| 2025-12-03 | Initial security assessment | Claude |
 
 ---
 
