@@ -9,11 +9,20 @@ import { validateInvite, useInvite } from "../inviteService";
 import { logger } from "../lib/logger";
 import { validatePassword } from "../lib/passwordValidation";
 import { logAuditEvent, AuditEventTypes, getRequestMetadata } from "../services/auditLogger";
+import {
+  generateRefreshToken,
+  validateAndRotateRefreshToken,
+  revokeRefreshToken,
+  revokeAllUserTokens,
+  getUserById,
+} from "../services/refreshTokenService";
 
 const SALT_ROUNDS = 10;
 const JWT_EXPIRES_IN = "15m"; // 15 minutes as per requirements
 const COOKIE_NAME = "gpnet_auth";
 const COOKIE_MAX_AGE = 15 * 60 * 1000; // 15 minutes in milliseconds
+const REFRESH_COOKIE_NAME = "gpnet_refresh";
+const REFRESH_COOKIE_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 
 // Helper to set auth cookie
 function setAuthCookie(res: Response, token: string): void {
@@ -33,6 +42,27 @@ function clearAuthCookie(res: Response): void {
     secure: process.env.NODE_ENV === "production",
     sameSite: "strict",
     path: "/",
+  });
+}
+
+// Helper to set refresh token cookie
+function setRefreshCookie(res: Response, token: string): void {
+  res.cookie(REFRESH_COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    maxAge: REFRESH_COOKIE_MAX_AGE,
+    path: "/api/auth", // Only sent to auth endpoints
+  });
+}
+
+// Helper to clear refresh token cookie
+function clearRefreshCookie(res: Response): void {
+  res.clearCookie(REFRESH_COOKIE_NAME, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    path: "/api/auth",
   });
 }
 
@@ -160,8 +190,12 @@ export async function register(req: Request, res: Response) {
     // Generate access token with organizationId
     const accessToken = generateAccessToken(user.id, user.email, user.role, user.organizationId);
 
-    // Set httpOnly cookie (primary auth method)
+    // Generate refresh token
+    const refreshResult = await generateRefreshToken(user.id, req);
+
+    // Set httpOnly cookies (primary auth method)
     setAuthCookie(res, accessToken);
+    setRefreshCookie(res, refreshResult.token);
 
     res.status(201).json({
       success: true,
@@ -178,6 +212,8 @@ export async function register(req: Request, res: Response) {
         // Token still returned for backwards compatibility during migration
         // Client should NOT store this in localStorage
         accessToken,
+        // Refresh token expiry for client to know when to refresh
+        refreshExpiresAt: refreshResult.expiresAt,
       },
     });
   } catch (error) {
@@ -270,8 +306,12 @@ export async function login(req: Request, res: Response) {
     // Generate access token with organizationId
     const accessToken = generateAccessToken(user.id, user.email, user.role, user.organizationId);
 
-    // Set httpOnly cookie (primary auth method)
+    // Generate refresh token
+    const refreshResult = await generateRefreshToken(user.id, req);
+
+    // Set httpOnly cookies (primary auth method)
     setAuthCookie(res, accessToken);
+    setRefreshCookie(res, refreshResult.token);
 
     res.json({
       success: true,
@@ -289,6 +329,8 @@ export async function login(req: Request, res: Response) {
         // Token still returned for backwards compatibility during migration
         // Client should NOT store this in localStorage
         accessToken,
+        // Refresh token expiry for client to know when to refresh
+        refreshExpiresAt: refreshResult.expiresAt,
       },
     });
   } catch (error) {
@@ -347,6 +389,12 @@ export async function me(req: AuthRequest, res: Response) {
 }
 
 export async function logout(req: AuthRequest, res: Response) {
+  // Revoke refresh token from cookie if present
+  const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME];
+  if (refreshToken) {
+    await revokeRefreshToken(refreshToken);
+  }
+
   // Log logout event
   if (req.user) {
     await logAuditEvent({
@@ -362,11 +410,127 @@ export async function logout(req: AuthRequest, res: Response) {
     });
   }
 
-  // Clear the httpOnly auth cookie
+  // Clear the httpOnly auth cookies
   clearAuthCookie(res);
+  clearRefreshCookie(res);
 
   res.json({
     success: true,
     message: "Logout successful",
   });
+}
+
+/**
+ * Refresh access token using refresh token
+ * POST /api/auth/refresh
+ */
+export async function refresh(req: Request, res: Response) {
+  try {
+    // Get refresh token from cookie
+    const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME];
+
+    if (!refreshToken) {
+      return res.status(401).json({
+        error: "Unauthorized",
+        message: "No refresh token provided",
+      });
+    }
+
+    // Validate and rotate the refresh token
+    const result = await validateAndRotateRefreshToken(refreshToken, req);
+
+    if (!result) {
+      // Clear cookies on invalid token
+      clearAuthCookie(res);
+      clearRefreshCookie(res);
+
+      return res.status(401).json({
+        error: "Unauthorized",
+        message: "Invalid or expired refresh token",
+      });
+    }
+
+    // Get user details for new access token
+    const user = await getUserById(result.userId);
+
+    if (!user) {
+      clearAuthCookie(res);
+      clearRefreshCookie(res);
+
+      return res.status(401).json({
+        error: "Unauthorized",
+        message: "User not found",
+      });
+    }
+
+    // Generate new access token
+    const accessToken = generateAccessToken(user.id, user.email, user.role, user.organizationId);
+
+    // Set new cookies
+    setAuthCookie(res, accessToken);
+    setRefreshCookie(res, result.newToken.token);
+
+    res.json({
+      success: true,
+      message: "Token refreshed successfully",
+      data: {
+        accessToken,
+        refreshExpiresAt: result.newToken.expiresAt,
+      },
+    });
+  } catch (error) {
+    logger.auth.error("Token refresh error", {}, error);
+    res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to refresh token",
+    });
+  }
+}
+
+/**
+ * Logout from all devices (revoke all refresh tokens)
+ * POST /api/auth/logout-all
+ */
+export async function logoutAll(req: AuthRequest, res: Response) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        error: "Unauthorized",
+        message: "User not authenticated",
+      });
+    }
+
+    // Revoke all user's refresh tokens
+    const revokedCount = await revokeAllUserTokens(req.user.id);
+
+    // Log logout all event
+    await logAuditEvent({
+      userId: req.user.id,
+      organizationId: req.user.organizationId,
+      eventType: AuditEventTypes.USER_LOGOUT,
+      resourceType: "user",
+      resourceId: req.user.id,
+      metadata: {
+        email: req.user.email,
+        action: "logout_all_devices",
+        revokedTokens: revokedCount,
+      },
+      ...getRequestMetadata(req),
+    });
+
+    // Clear current session cookies
+    clearAuthCookie(res);
+    clearRefreshCookie(res);
+
+    res.json({
+      success: true,
+      message: `Logged out from all devices (${revokedCount} sessions revoked)`,
+    });
+  } catch (error) {
+    logger.auth.error("Logout all error", {}, error);
+    res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to logout from all devices",
+    });
+  }
 }

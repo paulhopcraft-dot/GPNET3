@@ -785,6 +785,20 @@ export const userInvites = pgTable("user_invites", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Refresh tokens for session management
+export const refreshTokens = pgTable("refresh_tokens", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  tokenHash: text("token_hash").notNull().unique(), // SHA-256 hash of the token
+  tokenFamily: varchar("token_family").notNull(), // For detecting token reuse attacks
+  deviceName: text("device_name"), // Optional device identifier
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  expiresAt: timestamp("expires_at").notNull(),
+  revokedAt: timestamp("revoked_at"), // Null if active, set when revoked
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Webhook form mappings for secure webhook authentication
 export const webhookFormMappings = pgTable("webhook_form_mappings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -825,6 +839,11 @@ export const insertWebhookFormMappingSchema = createInsertSchema(webhookFormMapp
   updatedAt: true,
 });
 
+export const insertRefreshTokenSchema = createInsertSchema(refreshTokens).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type InsertWorkerCase = z.infer<typeof insertWorkerCaseSchema>;
 export type WorkerCaseDB = typeof workerCases.$inferSelect;
 export type InsertCaseAttachment = z.infer<typeof insertCaseAttachmentSchema>;
@@ -835,6 +854,8 @@ export type InsertUserInvite = z.infer<typeof insertUserInviteSchema>;
 export type UserInviteDB = typeof userInvites.$inferSelect;
 export type InsertWebhookFormMapping = z.infer<typeof insertWebhookFormMappingSchema>;
 export type WebhookFormMappingDB = typeof webhookFormMappings.$inferSelect;
+export type InsertRefreshToken = z.infer<typeof insertRefreshTokenSchema>;
+export type RefreshTokenDB = typeof refreshTokens.$inferSelect;
 export type MedicalCertificateDB = typeof medicalCertificates.$inferSelect;
 export type InsertMedicalCertificate = typeof medicalCertificates.$inferInsert;
 export type CaseDiscussionNoteDB = typeof caseDiscussionNotes.$inferSelect;
