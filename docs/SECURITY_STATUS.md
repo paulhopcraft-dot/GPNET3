@@ -132,7 +132,7 @@ GPNet3 has completed all critical and high-priority security implementations. Th
 
 | Item | Description | Status |
 |------|-------------|--------|
-| Email verification | Verify user email on registration | Not Started |
+| Email verification | Invite-based email verification; emailVerified set on registration | ✅ Complete |
 | Structured logging | Client-side debug logs removed; CLI tools use console.log appropriately | ✅ Complete |
 
 ### 🔵 LOW Priority (Nice to Have)

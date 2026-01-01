@@ -10,6 +10,7 @@ import {
 import type { UserRole } from "@shared/schema";
 import { logger } from "../lib/logger";
 import { logAuditEvent, AuditEventTypes, getRequestMetadata } from "../services/auditLogger";
+import { sendInviteEmail } from "../services/emailService";
 
 /**
  * Create a new user invite (admin only)
@@ -85,8 +86,11 @@ export async function createUserInvite(req: AuthRequest, res: Response) {
       ...getRequestMetadata(req),
     });
 
-    // In production, send email here:
-    // await sendInviteEmail(invite.email, invite.token);
+    // Send invite email
+    const emailResult = await sendInviteEmail(invite.email, invite.token, req.user.email, invite.role);
+    if (!emailResult.success) {
+      logger.email.warn("Failed to send invite email", { email: invite.email, error: emailResult.error });
+    }
 
     // Build response - only include token/URL in development for testing
     const isDev = process.env.NODE_ENV !== "production";
@@ -265,8 +269,11 @@ export async function resendUserInvite(req: AuthRequest, res: Response) {
 
     const updatedInvite = await resendInvite(inviteId);
 
-    // In production, send email here:
-    // await sendInviteEmail(updatedInvite.email, updatedInvite.token);
+    // Send invite email
+    const emailResult = await sendInviteEmail(updatedInvite.email, updatedInvite.token, req.user.email, updatedInvite.role);
+    if (!emailResult.success) {
+      logger.email.warn("Failed to send invite email", { email: updatedInvite.email, error: emailResult.error });
+    }
 
     // Build response - only include token/URL in development for testing
     const isDev = process.env.NODE_ENV !== "production";

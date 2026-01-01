@@ -766,6 +766,8 @@ export const users = pgTable("users", {
   companyId: varchar("company_id"), // Deprecated - use organizationId
   insurerId: varchar("insurer_id"), // UUID reference to insurer
   isActive: boolean("is_active").notNull().default(true),
+  emailVerified: boolean("email_verified").notNull().default(false),
+  emailVerifiedAt: timestamp("email_verified_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

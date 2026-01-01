@@ -155,6 +155,8 @@ export async function register(req: Request, res: Response) {
         organizationId: invite.organizationId, // ✅ From invite - tenant isolation
         companyId: invite.organizationId, // Keep for backwards compat (deprecated)
         insurerId: null,
+        emailVerified: true,
+        emailVerifiedAt: new Date(),
       })
       .returning({
         id: users.id,
