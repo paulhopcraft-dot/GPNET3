@@ -2,19 +2,15 @@
   "permissions": {
     "defaultMode": "bypassPermissions",
     "allow": [
-      "Bash(*)",
-      "Read(*)",
-      "Write(*)",
-      "Edit(*)",
-      "Glob(*)",
-      "Grep(*)",
-      "Skill(*)",
-      "Task(*)",
-      "WebFetch(*)",
-      "WebSearch(*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash",
+      "Read",
+      "Write",
+      "Edit",
+      "Glob",
+      "Grep",
+      "Skill",
+      "Task",
+      "Mcp"
     ],
     "deny": []
   }
