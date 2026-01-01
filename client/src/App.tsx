@@ -12,6 +12,8 @@ import { AdminLayout } from "./components/admin/AdminLayout";
 import GPNet2Dashboard from "./pages/GPNet2Dashboard";
 import { RoleBasedDashboard } from "./components/RoleBasedDashboard";
 import LoginPage from "./pages/LoginPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import CompanyList from "./pages/admin/CompanyList";
 import CompanyForm from "./pages/admin/CompanyForm";
@@ -42,6 +44,8 @@ export default function App() {
             <AuthProvider>
               <Routes>
                 <Route path="/login" element={<LoginPage />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route
                   path="/"
                   element={
