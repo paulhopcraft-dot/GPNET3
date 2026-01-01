@@ -12,7 +12,6 @@ let csrfTokenPromise: Promise<string> | null = null;
  * Returns cached token if available, otherwise fetches new one
  */
 async function fetchCsrfToken(): Promise<string> {
-  // If we're already fetching a token, return that promise to avoid race conditions
   if (csrfTokenPromise) {
     return csrfTokenPromise;
   }
@@ -20,7 +19,7 @@ async function fetchCsrfToken(): Promise<string> {
   csrfTokenPromise = (async () => {
     try {
       const response = await fetch("/api/csrf-token", {
-        credentials: "include", // Required for cookie-based CSRF
+        credentials: "include",
       });
 
       if (!response.ok) {
@@ -30,9 +29,6 @@ async function fetchCsrfToken(): Promise<string> {
       const data = await response.json();
       csrfToken = data.data.csrfToken;
       return csrfToken!;
-    } catch (error) {
-      console.error("CSRF token fetch error:", error);
-      throw error;
     } finally {
       csrfTokenPromise = null;
     }
@@ -41,9 +37,6 @@ async function fetchCsrfToken(): Promise<string> {
   return csrfTokenPromise;
 }
 
-/**
- * Get current CSRF token, fetching if necessary
- */
 async function getCsrfToken(): Promise<string> {
   if (csrfToken) {
     return csrfToken;
@@ -51,24 +44,15 @@ async function getCsrfToken(): Promise<string> {
   return fetchCsrfToken();
 }
 
-/**
- * Clear cached CSRF token (call this when receiving 403 CSRF errors)
- */
 function clearCsrfToken(): void {
   csrfToken = null;
 }
 
-/**
- * Initialize CSRF token on app load
- * Call this from your app's root component (e.g., App.tsx)
- */
 export async function initializeCsrf(): Promise<void> {
   try {
     await fetchCsrfToken();
-    console.log("✅ CSRF token initialized");
-  } catch (error) {
-    console.error("⚠️ Failed to initialize CSRF token:", error);
-    // Don't throw - app should still load, individual requests will retry
+  } catch {
+    // Silent fail - app should still load, individual requests will retry
   }
 }
 
@@ -83,25 +67,14 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-/**
- * Get auth headers - now empty since auth is handled via httpOnly cookies
- * @deprecated Auth is now cookie-based, this function exists for backwards compatibility
- */
 export function getAuthHeaders(_includeAuth: boolean = true): Record<string, string> {
-  // Auth is now handled via httpOnly cookies sent automatically with credentials: 'include'
   return {};
 }
 
-/**
- * Check if HTTP method requires CSRF protection
- */
 function requiresCsrf(method: string): boolean {
   return ["POST", "PUT", "PATCH", "DELETE"].includes(method.toUpperCase());
 }
 
-/**
- * Check if error is a CSRF error
- */
 function isCsrfError(error: Error): boolean {
   return (
     error.message.includes("403") &&
@@ -114,10 +87,6 @@ function isCsrfError(error: Error): boolean {
 // Main API Request Functions
 // ========================================
 
-/**
- * Make an API request with automatic CSRF token handling
- * Includes retry logic for CSRF token refresh on 403 errors
- */
 export async function apiRequest(
   method: string,
   url: string,
@@ -128,68 +97,52 @@ export async function apiRequest(
   const skipCsrf = options?.skipCsrf ?? false;
   const authHeaders = getAuthHeaders(includeAuth);
 
-  // Build headers
   const headers: Record<string, string> = {
     ...(data ? { "Content-Type": "application/json" } : {}),
     ...authHeaders,
   };
 
-  // Add CSRF token for unsafe methods (unless explicitly skipped)
   if (requiresCsrf(method) && !skipCsrf) {
     try {
       const token = await getCsrfToken();
       headers["X-CSRF-Token"] = token;
-    } catch (error) {
-      console.error("Failed to get CSRF token:", error);
+    } catch {
       // Continue anyway - backend will reject if token required
     }
   }
 
-  // Make initial request
   try {
     const res = await fetch(url, {
       method,
       headers,
       body: data ? JSON.stringify(data) : undefined,
-      credentials: "include", // Required for CSRF cookies
+      credentials: "include",
     });
 
     await throwIfResNotOk(res);
     return res;
   } catch (error) {
-    // If it's a CSRF error, refresh token and retry once
     if (error instanceof Error && isCsrfError(error) && !skipCsrf) {
-      console.warn("CSRF token invalid, refreshing and retrying...");
       clearCsrfToken();
 
-      try {
-        const newToken = await fetchCsrfToken();
-        headers["X-CSRF-Token"] = newToken;
+      const newToken = await fetchCsrfToken();
+      headers["X-CSRF-Token"] = newToken;
 
-        const retryRes = await fetch(url, {
-          method,
-          headers,
-          body: data ? JSON.stringify(data) : undefined,
-          credentials: "include",
-        });
+      const retryRes = await fetch(url, {
+        method,
+        headers,
+        body: data ? JSON.stringify(data) : undefined,
+        credentials: "include",
+      });
 
-        await throwIfResNotOk(retryRes);
-        return retryRes;
-      } catch (retryError) {
-        console.error("Retry after CSRF refresh failed:", retryError);
-        throw retryError;
-      }
+      await throwIfResNotOk(retryRes);
+      return retryRes;
     }
 
-    // Not a CSRF error or already retried, rethrow
     throw error;
   }
 }
 
-/**
- * Standalone fetch wrapper with CSRF support
- * Use this for direct fetch calls in components
- */
 export async function fetchWithCsrf(
   url: string,
   options?: RequestInit & { skipCsrf?: boolean; skipAuth?: boolean },
@@ -197,10 +150,8 @@ export async function fetchWithCsrf(
   const { skipCsrf, skipAuth, ...fetchOptions } = options || {};
   const method = fetchOptions.method || "GET";
 
-  // Build headers
   const headers = new Headers(fetchOptions.headers);
 
-  // Add Authorization header (unless explicitly skipped)
   if (!skipAuth) {
     const authHeaders = getAuthHeaders(true);
     if (authHeaders.Authorization) {
@@ -208,21 +159,17 @@ export async function fetchWithCsrf(
     }
   }
 
-  // Add CSRF token for unsafe methods (unless explicitly skipped)
   if (requiresCsrf(method) && !skipCsrf) {
     try {
       const token = await getCsrfToken();
       headers.set("X-CSRF-Token", token);
-    } catch (error) {
-      console.error("Failed to get CSRF token:", error);
+    } catch {
       // Continue anyway - backend will reject if token required
     }
   }
 
-  // Ensure credentials are included for CSRF cookies
   const credentials = fetchOptions.credentials || "include";
 
-  // Make initial request
   try {
     const res = await fetch(url, {
       ...fetchOptions,
@@ -238,35 +185,27 @@ export async function fetchWithCsrf(
 
     return res;
   } catch (error) {
-    // If it's a CSRF error, refresh token and retry once
     if (error instanceof Error && isCsrfError(error) && !skipCsrf) {
-      console.warn("CSRF token invalid, refreshing and retrying...");
       clearCsrfToken();
 
-      try {
-        const newToken = await fetchCsrfToken();
-        headers.set("X-CSRF-Token", newToken);
+      const newToken = await fetchCsrfToken();
+      headers.set("X-CSRF-Token", newToken);
 
-        const retryRes = await fetch(url, {
-          ...fetchOptions,
-          method,
-          headers,
-          credentials,
-        });
+      const retryRes = await fetch(url, {
+        ...fetchOptions,
+        method,
+        headers,
+        credentials,
+      });
 
-        if (!retryRes.ok) {
-          const text = (await retryRes.text()) || retryRes.statusText;
-          throw new Error(`${retryRes.status}: ${text}`);
-        }
-
-        return retryRes;
-      } catch (retryError) {
-        console.error("Retry after CSRF refresh failed:", retryError);
-        throw retryError;
+      if (!retryRes.ok) {
+        const text = (await retryRes.text()) || retryRes.statusText;
+        throw new Error(`${retryRes.status}: ${text}`);
       }
+
+      return retryRes;
     }
 
-    // Not a CSRF error or already retried, rethrow
     throw error;
   }
 }
