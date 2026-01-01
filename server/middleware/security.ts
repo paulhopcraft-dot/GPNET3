@@ -150,6 +150,7 @@ export function shouldSkipCsrf(path: string): boolean {
   const skipPaths = [
     "/api/auth/login",
     "/api/auth/register",
+    "/api/auth/refresh", // Uses httpOnly refresh token as auth
     "/api/webhooks/",
     "/api/health",
     "/health",
