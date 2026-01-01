@@ -14,6 +14,7 @@ import { RoleBasedDashboard } from "./components/RoleBasedDashboard";
 import LoginPage from "./pages/LoginPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import SessionsPage from "./pages/SessionsPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import CompanyList from "./pages/admin/CompanyList";
 import CompanyForm from "./pages/admin/CompanyForm";
@@ -59,6 +60,14 @@ export default function App() {
                   element={
                     <ProtectedRoute>
                       <CompanySettings />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/sessions"
+                  element={
+                    <ProtectedRoute>
+                      <SessionsPage />
                     </ProtectedRoute>
                   }
                 />

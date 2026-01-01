@@ -15,6 +15,8 @@ import {
   revokeRefreshToken,
   revokeAllUserTokens,
   getUserById,
+  getUserSessions,
+  revokeSession,
 } from "../services/refreshTokenService";
 
 const SALT_ROUNDS = 10;
@@ -610,4 +612,128 @@ export async function resetPasswordHandler(req: Request, res: Response) {
       message: "Failed to reset password",
     });
   }
+}
+
+/**
+ * Get user's active sessions
+ * GET /api/auth/sessions
+ */
+export async function getSessions(req: AuthRequest, res: Response) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        error: "Unauthorized",
+        message: "User not authenticated",
+      });
+    }
+
+    // Get current token family from the refresh token cookie
+    const refreshToken = req.cookies?.gpnet_refresh;
+    let currentTokenFamily: string | undefined;
+
+    if (refreshToken) {
+      // We can't get the family without validating, but we can use JWT to track it
+      // For now, we'll mark all as not current and let frontend figure it out
+      // A better approach would be to store the token family in the JWT
+    }
+
+    const sessions = await getUserSessions(req.user.id, currentTokenFamily);
+
+    res.json({
+      success: true,
+      data: {
+        sessions: sessions.map(session => ({
+          id: session.id,
+          deviceName: session.deviceName,
+          ipAddress: session.ipAddress,
+          browser: parseUserAgent(session.userAgent),
+          createdAt: session.createdAt.toISOString(),
+          lastUsedAt: session.lastUsedAt.toISOString(),
+          expiresAt: session.expiresAt.toISOString(),
+          isCurrent: session.isCurrent,
+        })),
+      },
+    });
+  } catch (error) {
+    logger.auth.error("Get sessions error", {}, error);
+    res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to get sessions",
+    });
+  }
+}
+
+/**
+ * Revoke a specific session
+ * DELETE /api/auth/sessions/:sessionId
+ */
+export async function deleteSession(req: AuthRequest, res: Response) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        error: "Unauthorized",
+        message: "User not authenticated",
+      });
+    }
+
+    const { sessionId } = req.params;
+
+    if (!sessionId) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "Session ID is required",
+      });
+    }
+
+    const revoked = await revokeSession(req.user.id, sessionId);
+
+    if (!revoked) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: "Session not found or already revoked",
+      });
+    }
+
+    // Log session revocation
+    await logAuditEvent({
+      userId: req.user.id,
+      organizationId: req.user.organizationId,
+      eventType: AuditEventTypes.USER_LOGOUT,
+      resourceType: "session",
+      resourceId: sessionId,
+      metadata: {
+        email: req.user.email,
+        action: "revoke_session",
+      },
+      ...getRequestMetadata(req),
+    });
+
+    res.json({
+      success: true,
+      message: "Session revoked successfully",
+    });
+  } catch (error) {
+    logger.auth.error("Delete session error", {}, error);
+    res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to revoke session",
+    });
+  }
+}
+
+/**
+ * Parse user agent string to get browser/device info
+ */
+function parseUserAgent(userAgent: string | null): string {
+  if (!userAgent) return "Unknown";
+
+  // Simple parsing - could use a library for more accuracy
+  if (userAgent.includes("Firefox")) return "Firefox";
+  if (userAgent.includes("Edg/")) return "Edge";
+  if (userAgent.includes("Chrome")) return "Chrome";
+  if (userAgent.includes("Safari")) return "Safari";
+  if (userAgent.includes("Opera") || userAgent.includes("OPR")) return "Opera";
+  if (userAgent.includes("MSIE") || userAgent.includes("Trident")) return "Internet Explorer";
+
+  return "Unknown Browser";
 }

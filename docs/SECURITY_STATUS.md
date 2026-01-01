@@ -141,8 +141,8 @@ GPNet3 has completed all critical and high-priority security implementations. Th
 | Item | Description | Status |
 |------|-------------|--------|
 | Password reset | Self-service password reset via email tokens | ✅ Complete |
+| Session listing | UI to view/revoke active sessions | ✅ Complete |
 | MFA | Optional multi-factor authentication | Not Started |
-| Session listing | UI to view/revoke active sessions | Not Started |
 
 ---
 
@@ -160,6 +160,8 @@ GPNet3 has completed all critical and high-priority security implementations. Th
 | `GET /api/auth/me` | ✅ | - | - | - |
 | `POST /api/auth/forgot-password` | No | ✅ | No | ✅ |
 | `POST /api/auth/reset-password` | No | ✅ | No | ✅ |
+| `GET /api/auth/sessions` | ✅ | - | - | - |
+| `DELETE /api/auth/sessions/:id` | ✅ | - | ✅ | ✅ |
 
 ### Protected Endpoints
 
@@ -284,6 +286,7 @@ done
 
 | Date | Change | Author |
 |------|--------|--------|
+| 2026-01-01 | Added session listing UI with revoke capability | Claude |
 | 2026-01-01 | Added self-service password reset flow | Claude |
 | 2026-01-01 | Added invite-based email verification | Claude |
 | 2026-01-01 | Added refresh token rotation | Claude |

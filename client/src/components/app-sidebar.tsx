@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Building2, FileText, Settings, HelpCircle } from "lucide-react";
+import { LayoutDashboard, Users, Building2, FileText, Settings, HelpCircle, Monitor } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -124,6 +124,12 @@ export function AppSidebar() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuItem data-testid="menu-item-profile">Profile</DropdownMenuItem>
+            <DropdownMenuItem asChild data-testid="menu-item-sessions">
+              <a href="/sessions" className="flex items-center gap-2">
+                <Monitor className="h-4 w-4" />
+                <span>Active Sessions</span>
+              </a>
+            </DropdownMenuItem>
             <DropdownMenuItem data-testid="menu-item-logout" onClick={logout}>
               Log out
             </DropdownMenuItem>

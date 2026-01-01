@@ -1,5 +1,5 @@
 import express from "express";
-import { register, login, me, logout, refresh, logoutAll, forgotPassword, resetPasswordHandler } from "../controllers/auth";
+import { register, login, me, logout, refresh, logoutAll, forgotPassword, resetPasswordHandler, getSessions, deleteSession } from "../controllers/auth";
 import { authorize } from "../middleware/auth";
 
 const router = express.Router();
@@ -27,5 +27,11 @@ router.post("/forgot-password", forgotPassword);
 
 // POST /api/auth/reset-password - Reset password with token
 router.post("/reset-password", resetPasswordHandler);
+
+// GET /api/auth/sessions - Get user's active sessions
+router.get("/sessions", authorize(), getSessions);
+
+// DELETE /api/auth/sessions/:sessionId - Revoke a specific session
+router.delete("/sessions/:sessionId", authorize(), deleteSession);
 
 export default router;

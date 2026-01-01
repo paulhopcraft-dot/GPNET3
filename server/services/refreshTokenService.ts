@@ -266,6 +266,112 @@ export async function getUserById(userId: string) {
 }
 
 /**
+ * Session info for display to user
+ */
+export interface UserSession {
+  id: string; // Token family ID (used to revoke)
+  deviceName: string | null;
+  ipAddress: string | null;
+  userAgent: string | null;
+  createdAt: Date;
+  lastUsedAt: Date;
+  expiresAt: Date;
+  isCurrent: boolean;
+}
+
+/**
+ * Get all active sessions for a user
+ * Groups tokens by family and returns the most recent token info for each
+ *
+ * @param userId - The user ID
+ * @param currentTokenFamily - The current session's token family (to mark as "current")
+ * @returns List of active sessions
+ */
+export async function getUserSessions(
+  userId: string,
+  currentTokenFamily?: string
+): Promise<UserSession[]> {
+  // Get all active (non-revoked, non-expired) tokens for the user
+  const tokens = await db
+    .select({
+      id: refreshTokens.id,
+      tokenFamily: refreshTokens.tokenFamily,
+      deviceName: refreshTokens.deviceName,
+      ipAddress: refreshTokens.ipAddress,
+      userAgent: refreshTokens.userAgent,
+      expiresAt: refreshTokens.expiresAt,
+      createdAt: refreshTokens.createdAt,
+    })
+    .from(refreshTokens)
+    .where(
+      and(
+        eq(refreshTokens.userId, userId),
+        isNull(refreshTokens.revokedAt)
+      )
+    )
+    .orderBy(refreshTokens.createdAt);
+
+  // Group by token family and get the most recent token for each
+  const sessionMap = new Map<string, UserSession>();
+
+  for (const token of tokens) {
+    // Skip expired tokens
+    if (new Date() > token.expiresAt) continue;
+
+    const existing = sessionMap.get(token.tokenFamily);
+
+    if (!existing || token.createdAt > existing.lastUsedAt) {
+      sessionMap.set(token.tokenFamily, {
+        id: token.tokenFamily,
+        deviceName: token.deviceName,
+        ipAddress: token.ipAddress,
+        userAgent: token.userAgent,
+        createdAt: existing?.createdAt || token.createdAt,
+        lastUsedAt: token.createdAt,
+        expiresAt: token.expiresAt,
+        isCurrent: token.tokenFamily === currentTokenFamily,
+      });
+    }
+  }
+
+  // Convert to array and sort by last used (most recent first)
+  return Array.from(sessionMap.values()).sort(
+    (a, b) => b.lastUsedAt.getTime() - a.lastUsedAt.getTime()
+  );
+}
+
+/**
+ * Revoke a specific session by token family
+ *
+ * @param userId - The user ID (for verification)
+ * @param tokenFamily - The token family to revoke
+ * @returns True if session was found and revoked
+ */
+export async function revokeSession(
+  userId: string,
+  tokenFamily: string
+): Promise<boolean> {
+  const result = await db
+    .update(refreshTokens)
+    .set({ revokedAt: new Date() })
+    .where(
+      and(
+        eq(refreshTokens.userId, userId),
+        eq(refreshTokens.tokenFamily, tokenFamily),
+        isNull(refreshTokens.revokedAt)
+      )
+    )
+    .returning({ id: refreshTokens.id });
+
+  if (result.length > 0) {
+    logger.auth.info("Session revoked", { userId, tokenFamily, tokensRevoked: result.length });
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * Cleanup expired tokens (maintenance task)
  * Should be run periodically (e.g., daily cron job)
  *
