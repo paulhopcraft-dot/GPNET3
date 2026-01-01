@@ -121,6 +121,7 @@ GPNet3 has completed all critical and high-priority security implementations. Th
 | `users` | User accounts with organizationId | ✅ Active |
 | `user_invites` | Secure invite-only registration | ✅ Active |
 | `refresh_tokens` | Session management with rotation | ✅ Active |
+| `password_reset_tokens` | Self-service password reset | ✅ Active |
 | `audit_events` | Security and operational audit log | ✅ Active |
 | `webhook_form_mappings` | Per-form webhook authentication | ✅ Active |
 
@@ -139,8 +140,8 @@ GPNet3 has completed all critical and high-priority security implementations. Th
 
 | Item | Description | Status |
 |------|-------------|--------|
+| Password reset | Self-service password reset via email tokens | ✅ Complete |
 | MFA | Optional multi-factor authentication | Not Started |
-| Password reset | Self-service password reset flow | Not Started |
 | Session listing | UI to view/revoke active sessions | Not Started |
 
 ---
@@ -157,6 +158,8 @@ GPNet3 has completed all critical and high-priority security implementations. Th
 | `POST /api/auth/logout` | ✅ | - | ✅ | ✅ |
 | `POST /api/auth/logout-all` | ✅ | - | ✅ | ✅ |
 | `GET /api/auth/me` | ✅ | - | - | - |
+| `POST /api/auth/forgot-password` | No | ✅ | No | ✅ |
+| `POST /api/auth/reset-password` | No | ✅ | No | ✅ |
 
 ### Protected Endpoints
 
@@ -264,6 +267,7 @@ done
 | `server/controllers/auth.ts` | Auth endpoints | ~540 |
 | `server/services/refreshTokenService.ts` | Token rotation | ~240 |
 | `server/services/auditLogger.ts` | Audit logging | ~120 |
+| `server/services/passwordResetService.ts` | Password reset tokens | ~215 |
 | `server/lib/passwordValidation.ts` | Password policy | ~55 |
 
 ### Documentation
@@ -280,6 +284,8 @@ done
 
 | Date | Change | Author |
 |------|--------|--------|
+| 2026-01-01 | Added self-service password reset flow | Claude |
+| 2026-01-01 | Added invite-based email verification | Claude |
 | 2026-01-01 | Added refresh token rotation | Claude |
 | 2026-01-01 | Added audit logging to auth/invites | Claude |
 | 2025-12-31 | Added strong password policy | Claude |

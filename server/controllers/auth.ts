@@ -536,3 +536,78 @@ export async function logoutAll(req: AuthRequest, res: Response) {
     });
   }
 }
+
+/**
+ * Request password reset
+ * POST /api/auth/forgot-password
+ */
+export async function forgotPassword(req: Request, res: Response) {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "Email is required",
+      });
+    }
+
+    // Import here to avoid circular dependency
+    const { requestPasswordReset } = await import("../services/passwordResetService");
+    
+    await requestPasswordReset(email);
+
+    // Always return success to prevent email enumeration
+    res.json({
+      success: true,
+      message: "If an account exists with this email, a password reset link has been sent",
+    });
+  } catch (error) {
+    logger.auth.error("Forgot password error", {}, error);
+    // Still return success to prevent information leakage
+    res.json({
+      success: true,
+      message: "If an account exists with this email, a password reset link has been sent",
+    });
+  }
+}
+
+/**
+ * Reset password with token
+ * POST /api/auth/reset-password
+ */
+export async function resetPasswordHandler(req: Request, res: Response) {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "Token and new password are required",
+      });
+    }
+
+    // Import here to avoid circular dependency
+    const { resetPassword } = await import("../services/passwordResetService");
+
+    const result = await resetPassword(token, newPassword);
+
+    if (!result.success) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: result.error || "Failed to reset password",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Password has been reset successfully. Please log in with your new password.",
+    });
+  } catch (error) {
+    logger.auth.error("Reset password error", {}, error);
+    res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to reset password",
+    });
+  }
+}

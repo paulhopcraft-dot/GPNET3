@@ -1,5 +1,5 @@
 import express from "express";
-import { register, login, me, logout, refresh, logoutAll } from "../controllers/auth";
+import { register, login, me, logout, refresh, logoutAll, forgotPassword, resetPasswordHandler } from "../controllers/auth";
 import { authorize } from "../middleware/auth";
 
 const router = express.Router();
@@ -21,5 +21,11 @@ router.post("/logout", authorize(), logout);
 
 // POST /api/auth/logout-all - Logout from all devices (revoke all refresh tokens)
 router.post("/logout-all", authorize(), logoutAll);
+
+// POST /api/auth/forgot-password - Request password reset email
+router.post("/forgot-password", forgotPassword);
+
+// POST /api/auth/reset-password - Reset password with token
+router.post("/reset-password", resetPasswordHandler);
 
 export default router;

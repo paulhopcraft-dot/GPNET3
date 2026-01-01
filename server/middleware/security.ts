@@ -151,6 +151,8 @@ export function shouldSkipCsrf(path: string): boolean {
     "/api/auth/login",
     "/api/auth/register",
     "/api/auth/refresh", // Uses httpOnly refresh token as auth
+    "/api/auth/forgot-password", // Public endpoint, no auth
+    "/api/auth/reset-password", // Uses token from email as auth
     "/api/webhooks/",
     "/api/health",
     "/health",
