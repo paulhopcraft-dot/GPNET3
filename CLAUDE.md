@@ -288,8 +288,14 @@ Continue? (y/n)
 ```
 </autonomous_triggers>
 
-<mandatory_behavior id="new_task_flow" priority="high">
-## Rule 6: New Task Flow
+<mandatory_behavior id="new_task_flow" priority="critical">
+## Rule 6: New Task Flow (CRITICAL)
+
+**CRITICAL REQUIREMENT:** Every plan MUST include this line:
+```
+MAIN WORK: {sonnet|opus} ~{time}
+```
+If this line is missing, the plan is INVALID. Do NOT proceed without showing the model.
 
 When user requests a new task, follow this EXACT sequence:
 
