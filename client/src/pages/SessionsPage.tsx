@@ -185,6 +185,7 @@ export default function SessionsPage() {
               {sessions.map((session) => (
                 <div
                   key={session.id}
+                  data-testid={`session-item-${session.id}`}
                   className="flex items-start justify-between p-4 border rounded-lg"
                 >
                   <div className="flex items-start gap-4">

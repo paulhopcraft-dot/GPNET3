@@ -11,7 +11,7 @@ import { Alert, AlertDescription } from "../components/ui/alert";
 import { Loader2, ArrowLeft, CheckCircle } from "lucide-react";
 
 const forgotPasswordSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
+  email: z.string().email("Please enter a valid email"),
 });
 
 type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
@@ -105,7 +105,7 @@ export default function ForgotPasswordPage() {
               GP
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold text-center">Forgot password?</CardTitle>
+          <h1 className="text-2xl font-bold text-center">Forgot Password</h1>
           <CardDescription className="text-center">
             Enter your email and we'll send you a link to reset your password
           </CardDescription>

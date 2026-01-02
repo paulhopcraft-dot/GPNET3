@@ -132,7 +132,7 @@ export default function ResetPasswordPage() {
               GP
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold text-center">Reset your password</CardTitle>
+          <h1 className="text-2xl font-bold text-center">Reset Password</h1>
           <CardDescription className="text-center">
             Enter your new password below
           </CardDescription>
@@ -151,7 +151,7 @@ export default function ResetPasswordPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>New password</FormLabel>
+                    <FormLabel>New Password</FormLabel>
                     <FormControl>
                       <Input
                         type="password"
@@ -189,7 +189,7 @@ export default function ResetPasswordPage() {
                 name="confirmPassword"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Confirm new password</FormLabel>
+                    <FormLabel>Confirm Password</FormLabel>
                     <FormControl>
                       <Input
                         type="password"
