@@ -8,9 +8,9 @@ test.describe("Session Management", () => {
   async function login(page: any) {
     await page.goto("/");
 
-    // Check if already logged in
-    const logoutButton = page.getByRole("button", { name: /logout|sign out/i });
-    if (await logoutButton.isVisible()) {
+    // Check if already logged in by looking for user menu or cases heading
+    const casesHeading = page.getByRole("heading", { name: /cases/i });
+    if (await casesHeading.isVisible().catch(() => false)) {
       return; // Already logged in
     }
 
@@ -23,8 +23,8 @@ test.describe("Session Management", () => {
     await passwordInput.fill(testPassword);
     await loginButton.click();
 
-    // Wait for dashboard to load
-    await page.waitForURL(/\/(cases)?$/, { timeout: 15000 });
+    // Wait for dashboard to load by checking for cases heading
+    await expect(casesHeading).toBeVisible({ timeout: 15000 });
   }
 
   test("should display sessions page after login", async ({ page }) => {
