@@ -11,6 +11,9 @@ import {
   processPendingNotifications,
 } from "./notificationService";
 import { logger } from "../lib/logger";
+import { db } from "../db";
+import { organizations } from "@shared/schema";
+import { eq } from "drizzle-orm";
 
 // Configuration
 const GENERATION_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
@@ -95,42 +98,130 @@ export class NotificationScheduler {
     logger.notification.info("Scheduler stopped");
   }
 
-  // TODO: In future, iterate over all organizations instead of using a default
-  // For now, use default organization for system-wide notifications
-  private readonly defaultOrganizationId = process.env.DEFAULT_ORGANIZATION_ID || "default-org";
-
   /**
-   * Run notification generation
+   * Get all active organizations from the database
    */
-  private async runGeneration(): Promise<void> {
-    logger.notification.debug("Running notification generation...");
-    const count = await generatePendingNotifications(this.storage, this.defaultOrganizationId);
-    logger.notification.info("Generation complete", { count });
+  private async getActiveOrganizations(): Promise<Array<{ id: string; name: string }>> {
+    try {
+      const orgs = await db
+        .select({ id: organizations.id, name: organizations.name })
+        .from(organizations)
+        .where(eq(organizations.isActive, true));
+      return orgs;
+    } catch (error) {
+      logger.notification.error("Error fetching active organizations", {}, error);
+      return [];
+    }
   }
 
   /**
-   * Run notification sending
+   * Run notification generation for all active organizations
+   */
+  private async runGeneration(): Promise<void> {
+    logger.notification.debug("Running notification generation...");
+    const orgs = await this.getActiveOrganizations();
+
+    if (orgs.length === 0) {
+      logger.notification.warn("No active organizations found for notification generation");
+      return;
+    }
+
+    let totalCount = 0;
+    for (const org of orgs) {
+      try {
+        const count = await generatePendingNotifications(this.storage, org.id);
+        totalCount += count;
+        logger.notification.debug("Generated notifications for organization", {
+          organizationId: org.id,
+          organizationName: org.name,
+          count
+        });
+      } catch (error) {
+        logger.notification.error("Error generating notifications for organization", {
+          organizationId: org.id,
+          organizationName: org.name
+        }, error);
+      }
+    }
+
+    logger.notification.info("Generation complete", {
+      totalCount,
+      organizationsProcessed: orgs.length
+    });
+  }
+
+  /**
+   * Run notification sending for all active organizations
    */
   private async runSending(): Promise<void> {
     logger.notification.debug("Running notification sending...");
-    const result = await processPendingNotifications(this.storage, this.defaultOrganizationId);
-    logger.notification.info("Sending complete", { sent: result.sent, failed: result.failed });
+    const orgs = await this.getActiveOrganizations();
+
+    if (orgs.length === 0) {
+      logger.notification.warn("No active organizations found for notification sending");
+      return;
+    }
+
+    let totalSent = 0;
+    let totalFailed = 0;
+    for (const org of orgs) {
+      try {
+        const result = await processPendingNotifications(this.storage, org.id);
+        totalSent += result.sent;
+        totalFailed += result.failed;
+        logger.notification.debug("Sent notifications for organization", {
+          organizationId: org.id,
+          organizationName: org.name,
+          sent: result.sent,
+          failed: result.failed
+        });
+      } catch (error) {
+        logger.notification.error("Error sending notifications for organization", {
+          organizationId: org.id,
+          organizationName: org.name
+        }, error);
+      }
+    }
+
+    logger.notification.info("Sending complete", {
+      sent: totalSent,
+      failed: totalFailed,
+      organizationsProcessed: orgs.length
+    });
   }
 
   /**
    * Manually trigger generation (for testing/admin)
+   * @param organizationId - Optional organization ID. If not provided, runs for all active organizations.
    */
   async triggerGeneration(organizationId?: string): Promise<number> {
-    logger.notification.info("Manual generation triggered");
-    return await generatePendingNotifications(this.storage, organizationId || this.defaultOrganizationId);
+    logger.notification.info("Manual generation triggered", { organizationId });
+
+    if (organizationId) {
+      // Run for specific organization
+      return await generatePendingNotifications(this.storage, organizationId);
+    }
+
+    // Run for all active organizations
+    await this.runGeneration();
+    return 0; // Return value not meaningful for multi-org
   }
 
   /**
    * Manually trigger sending (for testing/admin)
+   * @param organizationId - Optional organization ID. If not provided, runs for all active organizations.
    */
   async triggerSending(organizationId?: string): Promise<{ sent: number; failed: number }> {
-    logger.notification.info("Manual sending triggered");
-    return await processPendingNotifications(this.storage, organizationId || this.defaultOrganizationId);
+    logger.notification.info("Manual sending triggered", { organizationId });
+
+    if (organizationId) {
+      // Run for specific organization
+      return await processPendingNotifications(this.storage, organizationId);
+    }
+
+    // Run for all active organizations
+    await this.runSending();
+    return { sent: 0, failed: 0 }; // Return value not meaningful for multi-org
   }
 
   /**
