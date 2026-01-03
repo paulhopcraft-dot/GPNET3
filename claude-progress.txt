@@ -1,8 +1,59 @@
 # GPNet3 Progress Snapshot - Session Handoff
 
-**Date:** 2026-01-02
+**Date:** 2026-01-03
 **Branch:** main
-**Latest Commit:** 5c06f9c test(e2e): add E2E tests for password reset and session management using TDD
+**Latest Commit:** 6c36a5f feat(e2e): add webServer config to Playwright for automatic dev server startup
+
+---
+
+## Session Summary (2026-01-03)
+
+### ✅ Completed: E2E Test Infrastructure & Diagnosis
+
+**Task:** Fix failing E2E tests and improve test infrastructure
+
+**Accomplishments:**
+1. **Documentation Upgrade**
+   - Upgraded Engineering Mode to v4.0 (streamlined from 440 to 80 lines)
+   - Updated autonomous.md to v3.2.0 with governance requirements
+   - Enhanced status.md with recommendation logic table
+   - Commit: 6680f49
+
+2. **E2E Test Infrastructure**
+   - Added webServer config to Playwright for automatic dev server startup
+   - Eliminates ERR_CONNECTION_REFUSED errors
+   - Server reuses existing instance in development
+   - Commit: 6c36a5f
+
+3. **Root Cause Analysis**
+   - Identified database connection as primary failure cause
+   - 10/32 tests passing (password reset flow working)
+   - 22/32 tests failing due to PostgreSQL not running
+   - Created comprehensive E2E testing guide at `tests/e2e/README.md`
+
+**Test Results:**
+- ✅ 9/10 password reset tests passing
+- ✅ 1/1 auth check test passing
+- ❌ 11 session management tests (blocked by login helper timeout)
+- ❌ 10 dashboard tests (blocked by database connection)
+- ❌ 1 expired token test (needs backend integration helper)
+
+**Root Cause:**
+Application requires PostgreSQL running on localhost:5432 with database named "gpnet". E2E tests fail with AggregateError when database unavailable.
+
+**Next Steps:**
+1. Start PostgreSQL service
+2. Create/verify database: `createdb -U postgres gpnet`
+3. Apply migrations: `npm run db:push`
+4. Re-run E2E tests
+5. Fix remaining 1-2 test-specific issues (expired token, timing)
+
+**Commits:**
+- 6680f49 - docs: upgrade Engineering Mode to v4.0 - streamlined rules
+- 6c36a5f - feat(e2e): add webServer config to Playwright for automatic dev server startup
+
+**Cost:** ~$0.05
+**Time:** ~15 minutes
 
 ---
 
