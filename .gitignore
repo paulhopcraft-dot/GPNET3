@@ -12,3 +12,6 @@ vite.config.ts.*
 .claude/skills/react/
 .claude/skills/
 gh-cli/
+test-results/
+playwright-report/
+playwright/.cache/

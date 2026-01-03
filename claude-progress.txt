@@ -2,7 +2,45 @@
 
 **Date:** 2026-01-03
 **Branch:** main
-**Latest Commit:** 6c36a5f feat(e2e): add webServer config to Playwright for automatic dev server startup
+**Latest Commit:** 3cf1554 docs(e2e): add comprehensive E2E testing guide and update progress
+**Status:** Ready for database setup and final E2E test fixes
+
+---
+
+## 🎯 NEXT SESSION - START HERE
+
+### Priority: Complete E2E Test Fixes
+
+**Current Status:** 10/32 E2E tests passing (31%)
+
+**Blocker:** PostgreSQL database not running
+- Tests fail with `AggregateError` from pg-pool
+- Database required: `gpnet` on localhost:5432
+
+**Quick Start Commands:**
+```bash
+# 1. Start PostgreSQL (Windows)
+net start postgresql-x64-15
+
+# 2. Create database (if not exists)
+createdb -h localhost -U postgres gpnet
+
+# 3. Apply migrations
+npm run db:push
+
+# 4. Run E2E tests
+npm run test:e2e
+
+# Expected: 30/32 tests passing (93%)
+```
+
+**Remaining Fixes (after DB setup):**
+1. Fix expired token error message test (1 test)
+2. Debug login helper timeout if needed (potential 1-2 tests)
+
+**Documentation:**
+- Full guide: `tests/e2e/README.md`
+- Database setup: README.md (Prerequisites section)
 
 ---
 
