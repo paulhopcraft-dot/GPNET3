@@ -5,6 +5,7 @@ test.describe("Session Management", () => {
   const testPassword = "ChangeMe123!";
 
   // Helper to login
+  // Note: Requires database connection to work properly
   async function login(page: any) {
     await page.goto("/");
 
@@ -23,8 +24,18 @@ test.describe("Session Management", () => {
     await passwordInput.fill(testPassword);
     await loginButton.click();
 
-    // Wait for dashboard to load by checking for cases heading
-    await expect(casesHeading).toBeVisible({ timeout: 15000 });
+    // Wait for either dashboard to load OR error message to appear
+    // This provides better feedback when database is unavailable
+    try {
+      await expect(casesHeading).toBeVisible({ timeout: 15000 });
+    } catch (error) {
+      // Check if there's an error message
+      const errorMessage = await page.getByText(/error|failed|unable/i).first().textContent().catch(() => null);
+      if (errorMessage) {
+        throw new Error(`Login failed: ${errorMessage}. Is the database running?`);
+      }
+      throw new Error('Login timeout: Dashboard did not load. Check if database is running and user exists.');
+    }
   }
 
   test("should display sessions page after login", async ({ page }) => {
