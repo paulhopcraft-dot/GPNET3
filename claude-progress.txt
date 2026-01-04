@@ -99,19 +99,26 @@ npm run test:e2e
 
 **Status at Handoff:**
 - PostgreSQL installer is actively running on user's machine
-- Installation wizard at port configuration screen (5432 confirmed)
-- User needs to complete remaining wizard screens
+- Installation wizard at Stack Builder screen (add-ons selection)
+- User advised to select "Registration" category (minimal/empty)
+- User needs to complete Stack Builder and finish installation
 
 **Next Session Actions:**
 1. Verify PostgreSQL installation completed successfully
-2. Check if PostgreSQL service is running
+2. Check if PostgreSQL service is running (D:\Program Files\PostgreSQL\16)
 3. Add PostgreSQL bin directory to PATH if needed
 4. Create `gpnet` database
 5. Run migrations with `npm run db:push`
 6. Launch application and run E2E tests
 
-**Time:** ~15 minutes
+**Time:** ~20 minutes
 **Files Downloaded:** postgresql-16-installer.exe (363MB)
+
+**Important Notes:**
+- User chose D: drive for installation (non-standard but valid)
+- Password: `postgres` (matches .env)
+- Port: 5432 (matches .env)
+- Stack Builder appeared - user selecting "Registration" to minimize add-ons
 
 ---
 
