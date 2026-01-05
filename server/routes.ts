@@ -101,7 +101,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       .trim(),
   });
 
-  app.post("/api/compliance", async (req, res) => {
+  app.post("/api/compliance", authorize(), async (req: AuthRequest, res) => {
     // Validate input with Zod
     const parseResult = complianceRequestSchema.safeParse(req.body);
     if (!parseResult.success) {
@@ -121,14 +121,83 @@ export async function registerRoutes(app: Express): Promise<void> {
     }
 
     try {
+      // Get user's cases for context
+      const organizationId = req.user!.role === 'admin' ? undefined : req.user!.organizationId;
+      const paginatedData = await storage.getGPNet2CasesPaginated(organizationId, 1, 200);
+      const cases = paginatedData.cases;
+
+      // Build context summary
+      const totalCases = cases.length;
+      const offWorkCases = cases.filter(c => c.workStatus === 'Off work').length;
+      const atWorkCases = cases.filter(c => c.workStatus === 'At work').length;
+      const highRiskCases = cases.filter(c => c.complianceIndicator === 'High').length;
+      const mediumRiskCases = cases.filter(c => c.complianceIndicator === 'Medium').length;
+      const lowRiskCases = cases.filter(c => c.complianceIndicator === 'Low').length;
+
+      // Get unique companies
+      const companies = [...new Set(cases.map(c => c.company))].sort();
+
+      // Check if user is asking about a specific case
+      const caseMentioned = cases.find(c =>
+        message.toLowerCase().includes(c.workerName.toLowerCase()) ||
+        message.toLowerCase().includes(c.company.toLowerCase())
+      );
+
+      // Build context for AI
+      let contextData = `
+CURRENT CASE DATA:
+- Total Cases: ${totalCases}
+- Off Work: ${offWorkCases}
+- At Work: ${atWorkCases}
+- High Risk: ${highRiskCases}
+- Medium Risk: ${mediumRiskCases}
+- Low Risk: ${lowRiskCases}
+- Companies: ${companies.join(', ')}
+`.trim();
+
+      // If asking about a specific case, provide detailed context
+      if (caseMentioned) {
+        contextData += `\n\nSPECIFIC CASE DETAILS:
+Worker: ${caseMentioned.workerName}
+Company: ${caseMentioned.company}
+Work Status: ${caseMentioned.workStatus}
+Risk Level: ${caseMentioned.complianceIndicator}
+Date of Injury: ${caseMentioned.dateOfInjury}
+Has Medical Certificate: ${caseMentioned.hasCertificate ? 'Yes' : 'No'}
+Current Status: ${caseMentioned.currentStatus || 'N/A'}
+Next Step: ${caseMentioned.nextStep || 'Pending review'}
+Due Date: ${caseMentioned.dueDate || 'Not set'}
+Summary: ${caseMentioned.summary || 'No summary available'}`;
+      } else {
+        // Show sample of recent cases
+        contextData += `\n\nRecent Cases (sample):
+${cases.slice(0, 10).map(c => `- ${c.workerName} (${c.company}): ${c.workStatus}, ${c.complianceIndicator} risk, Next: ${c.nextStep || 'Review needed'}`).join('\n')}`;
+      }
+
       const anthropic = new Anthropic({
         apiKey: process.env.ANTHROPIC_API_KEY,
       });
 
       const response = await anthropic.messages.create({
-        model: "claude-sonnet-4-20250514",
+        model: "claude-3-haiku-20240307",
         max_tokens: 1024,
-        system: "You are a compliance assistant for GPNet, a worker's compensation case management system. You help analyze worker cases for compliance with Worksafe Victoria policies. Provide clear, concise guidance on compliance matters.",
+        system: `You are an AI assistant for GPNet, a worker's compensation case management system for WorkSafe Victoria compliance.
+
+You have access to the user's current case data and can answer questions about their specific cases, statistics, and provide actionable "next steps" guidance.
+
+${contextData}
+
+When answering:
+- For case status questions: Reference the specific case data above and explain what the current status means
+- For "what next" questions: Provide 2-3 clear, actionable next steps based on the case status, risk level, and whether they have medical certificates
+- For statistics: Use the exact numbers from the data above
+- For compliance: Provide WorkSafe Victoria policy guidance
+- Be concise and practical - focus on what the user should DO next
+
+Example next steps based on case status:
+- High Risk + No Cert = "1. Request updated medical certificate, 2. Schedule return-to-work meeting, 3. Review workplace modifications"
+- Off Work + Has Cert = "1. Check certificate expiry date, 2. Contact worker for progress update, 3. Plan graduated RTW if improving"
+- At Work + Medium Risk = "1. Monitor for any deterioration, 2. Ensure modified duties are in place, 3. Document progress"`,
         messages: [
           {
             role: "user",
@@ -156,16 +225,17 @@ export async function registerRoutes(app: Express): Promise<void> {
   // GPNet 2 Dashboard - Get all cases (paginated)
   app.get("/api/gpnet2/cases", authorize(), async (req: AuthRequest, res) => {
     try {
-      const organizationId = req.user!.organizationId;
+      // Admin users can see all organizations' cases, others only see their own
+      const organizationId = req.user!.role === 'admin' ? undefined : req.user!.organizationId;
 
-      // Parse pagination params (defaults: page=1, limit=50, max limit=100)
+      // Parse pagination params (defaults: page=1, limit=50, max limit=200)
       const page = Math.max(1, parseInt(req.query.page as string) || 1);
-      const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
+      const limit = Math.min(200, Math.max(1, parseInt(req.query.limit as string) || 50));
 
       // Log access
       await logAuditEvent({
         userId: req.user!.id,
-        organizationId,
+        organizationId: req.user!.organizationId,
         eventType: AuditEventTypes.CASE_LIST,
         ...getRequestMetadata(req),
       });
@@ -480,6 +550,52 @@ export async function registerRoutes(app: Express): Promise<void> {
     }
   });
 
+  // Debug endpoint to view raw Freshdesk data for a worker
+  app.get("/api/freshdesk/debug/:workerName", authorize(["admin"]), async (req: AuthRequest, res) => {
+    if (!process.env.FRESHDESK_DOMAIN || !process.env.FRESHDESK_API_KEY) {
+      return res.json({ error: "Freshdesk not configured" });
+    }
+
+    try {
+      const workerName = req.params.workerName.toLowerCase();
+      const freshdesk = new FreshdeskService();
+      const tickets = await freshdesk.fetchTickets();
+
+      // Find tickets matching this worker
+      const matchingTickets = tickets.filter((t: any) => {
+        const subject = (t.subject || '').toLowerCase();
+        const desc = (t.description_text || '').toLowerCase();
+        const firstName = (t.custom_fields?.cf_worker_first_name || '').toLowerCase();
+        const lastName = (t.custom_fields?.cf_workers_name || '').toLowerCase();
+
+        return subject.includes(workerName) ||
+               desc.includes(workerName) ||
+               firstName.includes(workerName) ||
+               lastName.includes(workerName) ||
+               `${firstName} ${lastName}`.includes(workerName);
+      });
+
+      // Return raw data for inspection
+      res.json({
+        workerName: req.params.workerName,
+        ticketsFound: matchingTickets.length,
+        rawTickets: matchingTickets.map((t: any) => ({
+          id: t.id,
+          subject: t.subject,
+          created_at: t.created_at,
+          updated_at: t.updated_at,
+          status: t.status,
+          priority: t.priority,
+          custom_fields: t.custom_fields,
+          description_text: t.description_text?.substring(0, 500),
+        })),
+      });
+    } catch (error) {
+      logger.freshdesk.error("Error fetching debug data", {}, error);
+      res.status(500).json({ error: "Failed to fetch Freshdesk data" });
+    }
+  });
+
   // Freshdesk sync endpoint (admin only - syncs across all organizations)
   app.post("/api/freshdesk/sync", authorize(["admin"]), async (req: AuthRequest, res) => {
     // Check if Freshdesk is configured before attempting sync
@@ -503,6 +619,41 @@ export async function registerRoutes(app: Express): Promise<void> {
       for (const workerCase of workerCases) {
         await storage.syncWorkerCaseFromFreshdesk(workerCase);
       }
+
+      // Fetch and sync private notes (discussion notes) from Freshdesk
+      let discussionNotesProcessed = 0;
+      for (const workerCase of workerCases) {
+        if (!workerCase.ticketIds || workerCase.ticketIds.length === 0) {
+          continue;
+        }
+
+        // Fetch conversations for all tickets in this case
+        for (const ticketId of workerCase.ticketIds) {
+          try {
+            const numericId = parseInt(ticketId.replace('FD-', ''));
+            if (isNaN(numericId)) continue;
+
+            const conversations = await freshdesk.fetchTicketConversations(numericId);
+            if (conversations.length === 0) continue;
+
+            const discussionNotes = freshdesk.convertConversationsToDiscussionNotes(
+              conversations,
+              workerCase.id!,
+              workerCase.organizationId || 'default',
+              workerCase.workerName!
+            );
+
+            if (discussionNotes.length > 0) {
+              await storage.upsertCaseDiscussionNotes(discussionNotes);
+              discussionNotesProcessed += discussionNotes.length;
+            }
+          } catch (err) {
+            logger.freshdesk.warn(`Failed to fetch conversations for ticket`, { ticketId }, err);
+          }
+        }
+      }
+
+      logger.freshdesk.info(`Synced discussion notes from Freshdesk`, { count: discussionNotesProcessed });
 
       // Process certificate attachments (async, don't block response)
       // Certificate processing happens in background
@@ -541,7 +692,8 @@ export async function registerRoutes(app: Express): Promise<void> {
         success: true,
         synced: workerCases.length,
         certificates: certificatesProcessed,
-        message: `Successfully synced ${workerCases.length} cases and ${certificatesProcessed} certificates from Freshdesk`,
+        discussionNotes: discussionNotesProcessed,
+        message: `Successfully synced ${workerCases.length} cases, ${certificatesProcessed} certificates, and ${discussionNotesProcessed} discussion notes from Freshdesk`,
         configured: true
       });
     } catch (error) {
