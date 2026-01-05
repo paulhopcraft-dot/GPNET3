@@ -308,7 +308,17 @@ export interface OcrExtractedData {
 export function isValidCompany(company: string | null | undefined): boolean {
   if (!company) return false;
   const normalized = company.trim().toLowerCase();
-  return normalized !== "unknown" && normalized !== "unknown company" && normalized !== "";
+
+  // Filter out test/placeholder companies
+  const invalidCompanies = [
+    "unknown",
+    "unknown company",
+    "symmetry",
+    "symmetry manufacturing",
+    ""
+  ];
+
+  return !invalidCompanies.includes(normalized);
 }
 
 // Check if a case represents a legitimate worker injury case vs generic email
@@ -352,8 +362,13 @@ export function isLegitimateCase(workerCase: {
   }
   
   // Filter out generic test/placeholder names
-  const genericNames = ["test", "testing", "unknown", "n/a", "none", "my certificate"];
+  const genericNames = ["test", "testing", "unknown", "n/a", "none", "my certificate", "workcover"];
   if (genericNames.includes(normalizedName)) {
+    return false;
+  }
+
+  // Filter out names that start with generic worker identifiers
+  if (normalizedName.startsWith("workcover ") || normalizedName.startsWith("worker ")) {
     return false;
   }
   
@@ -364,8 +379,10 @@ export function isLegitimateCase(workerCase: {
   
   // Must have either a valid company OR a date of injury (some legitimate cases may lack company info)
   const hasValidCompany = isValidCompany(workerCase.company);
-  const hasInjuryDate = !!workerCase.dateOfInjury && workerCase.dateOfInjury.trim() !== "";
-  
+  const hasInjuryDate = !!workerCase.dateOfInjury &&
+    typeof workerCase.dateOfInjury === 'string' &&
+    workerCase.dateOfInjury.trim() !== "";
+
   return hasValidCompany || hasInjuryDate;
 }
 
