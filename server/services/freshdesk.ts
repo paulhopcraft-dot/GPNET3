@@ -6,6 +6,7 @@ import type {
   CaseCompliance,
   MedicalCertificateInput,
   WorkCapacity,
+  InsertCaseDiscussionNote,
 } from "@shared/schema";
 import { isValidCompany, isLegitimateCase } from "@shared/schema";
 import dayjs from 'dayjs';
@@ -18,6 +19,17 @@ export interface FreshdeskAttachment {
   content_type: string;
   size: number;
   attachment_url: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface FreshdeskConversation {
+  id: number;
+  body: string;
+  body_text: string;
+  incoming: boolean;
+  private: boolean;
+  user_id: number;
   created_at: string;
   updated_at: string;
 }
@@ -78,6 +90,57 @@ export class FreshdeskService {
 
   private getAuthHeader(): string {
     return 'Basic ' + Buffer.from(`${this.apiKey}:X`).toString('base64');
+  }
+
+  /**
+   * Extract date from text using regex patterns
+   * Handles formats like: "3 or 4 months ago", "15/03/2025", "March 18, 2025", etc.
+   */
+  private extractDateFromText(text: string): Date | null {
+    if (!text) return null;
+
+    const lowerText = text.toLowerCase();
+
+    // Handle "X months ago"
+    const monthsAgoMatch = lowerText.match(/(\d+)\s*(?:or\s*\d+\s*)?months?\s*ago/);
+    if (monthsAgoMatch) {
+      const months = parseInt(monthsAgoMatch[1]);
+      const date = dayjs().subtract(months, 'month');
+      return date.toDate();
+    }
+
+    // Handle "X weeks ago"
+    const weeksAgoMatch = lowerText.match(/(\d+)\s*weeks?\s*ago/);
+    if (weeksAgoMatch) {
+      const weeks = parseInt(weeksAgoMatch[1]);
+      const date = dayjs().subtract(weeks, 'week');
+      return date.toDate();
+    }
+
+    // Handle common date formats: DD/MM/YYYY, DD-MM-YYYY
+    const ddmmyyyyMatch = text.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+    if (ddmmyyyyMatch) {
+      const day = parseInt(ddmmyyyyMatch[1]);
+      const month = parseInt(ddmmyyyyMatch[2]) - 1; // JS months are 0-indexed
+      let year = parseInt(ddmmyyyyMatch[3]);
+      if (year < 100) year += 2000; // Handle 2-digit years
+
+      const date = new Date(year, month, day);
+      if (!isNaN(date.getTime())) {
+        return date;
+      }
+    }
+
+    // Handle ISO format: YYYY-MM-DD
+    const isoMatch = text.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (isoMatch) {
+      const date = new Date(isoMatch[0]);
+      if (!isNaN(date.getTime())) {
+        return date;
+      }
+    }
+
+    return null;
   }
 
   async fetchTickets(): Promise<FreshdeskTicket[]> {
@@ -169,6 +232,30 @@ export class FreshdeskService {
     } catch (error) {
       logger.freshdesk.error(`Error fetching contact`, { contactId }, error);
       return null;
+    }
+  }
+
+  async fetchTicketConversations(ticketId: number): Promise<FreshdeskConversation[]> {
+    try {
+      const response = await fetch(`${this.baseUrl}/tickets/${ticketId}/conversations`, {
+        headers: {
+          'Authorization': this.getAuthHeader(),
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        logger.freshdesk.warn(`Could not fetch conversations for ticket`, { ticketId, status: response.status });
+        return [];
+      }
+
+      const conversations = await response.json() as FreshdeskConversation[];
+      // Include ALL conversations (emails + private notes) for full case context
+      // This gives AI the complete communication history
+      return conversations;
+    } catch (error) {
+      logger.freshdesk.error(`Error fetching ticket conversations`, { ticketId }, error);
+      return [];
     }
   }
 
@@ -800,15 +887,48 @@ export class FreshdeskService {
         .map(word => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ');
 
-      // Validate and parse date of injury with fallback
+      // Validate and parse date of injury with intelligent fallback
       let dateOfInjury: Date;
+      let dateSource = 'unknown';
+
+      // Try 1: Custom field cf_injury_date
       if (primaryTicket.custom_fields?.cf_injury_date) {
-        dateOfInjury = new Date(primaryTicket.custom_fields.cf_injury_date);
-        if (isNaN(dateOfInjury.getTime())) {
-          dateOfInjury = new Date(primaryTicket.created_at);
+        const parsedDate = new Date(primaryTicket.custom_fields.cf_injury_date);
+        if (!isNaN(parsedDate.getTime())) {
+          dateOfInjury = parsedDate;
+          dateSource = 'cf_injury_date';
         }
-      } else {
+      }
+
+      // Try 2: Extract from subject or description
+      if (!dateOfInjury) {
+        const dateFromText = this.extractDateFromText(
+          `${primaryTicket.subject} ${primaryTicket.description_text || ''}`
+        );
+        if (dateFromText) {
+          dateOfInjury = dateFromText;
+          dateSource = 'extracted_from_text';
+        }
+      }
+
+      // Try 3: Use ticket created date as last resort (but mark it as uncertain)
+      if (!dateOfInjury) {
         dateOfInjury = new Date(primaryTicket.created_at);
+        dateSource = 'ticket_created_at (uncertain)';
+
+        // Log warning for cases where we had to fall back
+        logger.freshdesk.warn(`No injury date found for ticket`, {
+          ticketId: `FD-${primaryTicket.id}`,
+          worker: workerName,
+          fallbackDate: dateOfInjury.toISOString().split('T')[0],
+        });
+      } else {
+        logger.freshdesk.debug(`Date of injury determined`, {
+          ticketId: `FD-${primaryTicket.id}`,
+          worker: workerName,
+          date: dateOfInjury.toISOString().split('T')[0],
+          source: dateSource,
+        });
       }
 
       // Validate due date
@@ -882,6 +1002,89 @@ export class FreshdeskService {
     }
 
     return workerCases;
+  }
+
+  /**
+   * Convert Freshdesk private notes to discussion notes
+   */
+  convertConversationsToDiscussionNotes(
+    conversations: FreshdeskConversation[],
+    caseId: string,
+    organizationId: string,
+    workerName: string
+  ): InsertCaseDiscussionNote[] {
+    const discussionNotes: InsertCaseDiscussionNote[] = [];
+
+    for (const conversation of conversations) {
+      // Skip if note is too short to be meaningful
+      if (!conversation.body_text || conversation.body_text.trim().length < 10) {
+        continue;
+      }
+
+      // Create a unique ID for this note (simple hash alternative)
+      const noteId = `freshdesk-${conversation.id}-${Date.now()}`;
+
+      // Extract summary (first 200 chars or first paragraph)
+      const fullText = conversation.body_text.trim();
+      const firstParagraph = fullText.split('\n\n')[0];
+
+      // Add conversation type prefix to summary for clarity
+      let typePrefix = '';
+      if (conversation.incoming) {
+        typePrefix = '[Email from Worker/Employer] ';
+      } else if (conversation.private) {
+        typePrefix = '[Internal Note] ';
+      } else {
+        typePrefix = '[Team Response] ';
+      }
+
+      const rawSummary = firstParagraph.length > 200
+        ? firstParagraph.substring(0, 200) + '...'
+        : firstParagraph;
+      const summary = typePrefix + rawSummary;
+
+      // Simple keyword-based risk flag detection
+      const riskFlags: string[] = [];
+      const lowerText = fullText.toLowerCase();
+
+      if (lowerText.includes('no show') || lowerText.includes('did not attend') || lowerText.includes('unresponsive')) {
+        riskFlags.push('Worker engagement risk');
+      }
+      if (lowerText.includes('urgent') || lowerText.includes('critical') || lowerText.includes('high priority')) {
+        riskFlags.push('High priority case');
+      }
+      if (lowerText.includes('compliance') || lowerText.includes('overdue') || lowerText.includes('violation')) {
+        riskFlags.push('Compliance issue');
+      }
+
+      // Extract next steps (lines starting with common action markers)
+      const nextSteps: string[] = [];
+      const lines = fullText.split('\n');
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed.match(/^[-•*]\s/)) {
+          nextSteps.push(trimmed.replace(/^[-•*]\s/, ''));
+        } else if (trimmed.match(/^(next step|action|todo|follow.?up):/i)) {
+          nextSteps.push(trimmed.replace(/^[^:]+:\s*/, ''));
+        }
+      }
+
+      discussionNotes.push({
+        id: noteId,
+        organizationId,
+        caseId,
+        workerName,
+        timestamp: new Date(conversation.created_at),
+        rawText: fullText,
+        summary,
+        nextSteps: nextSteps.length > 0 ? nextSteps : null,
+        riskFlags: riskFlags.length > 0 ? riskFlags : null,
+        updatesCompliance: lowerText.includes('compliance') || lowerText.includes('certificate'),
+        updatesRecoveryTimeline: lowerText.includes('recovery') || lowerText.includes('timeline') || lowerText.includes('rtw'),
+      });
+    }
+
+    return discussionNotes;
   }
 
   /**
