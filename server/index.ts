@@ -1,4 +1,6 @@
 import "dotenv/config";
+// Manually set API key to bypass dotenv issue
+process.env.ANTHROPIC_API_KEY = "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";
 import express, { type Request, Response, NextFunction } from "express";
 import cors from "cors";
 import path from "path";

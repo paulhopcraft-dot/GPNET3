@@ -27,7 +27,7 @@ import { evaluateClinicalEvidence } from "./clinicalEvidence";
 import { logAuditEvent } from "./auditLogger";
 import { randomUUID } from "crypto";
 
-const MODEL = "claude-sonnet-4-20250514";
+const MODEL = "claude-3-haiku-20240307";
 const MAX_TOKENS = 3072;
 const TIMEOUT_MS = 30000;
 

@@ -20,7 +20,7 @@ import type {
   InsertEmailDraft,
 } from "@shared/schema";
 
-const MODEL = "claude-sonnet-4-20250514";
+const MODEL = "claude-3-haiku-20240307";
 
 // Email type configurations with labels, descriptions, and prompt guidance
 const EMAIL_TYPE_CONFIG: Record<EmailDraftType, { label: string; description: string; defaultRecipient: EmailRecipientType; guidance: string }> = {

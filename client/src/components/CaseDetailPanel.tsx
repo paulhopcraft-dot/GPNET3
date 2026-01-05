@@ -981,9 +981,10 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
 
           <div>
             <h3 className="text-sm font-medium text-muted-foreground mb-3">Recovery Timeline</h3>
-            <RecoveryChart 
+            <RecoveryChart
               injuryDate={workerCase.dateOfInjury}
               expectedRecoveryDate={expectedRecoveryDate.toISOString()}
+              certificates={timeline}
             />
           </div>
 

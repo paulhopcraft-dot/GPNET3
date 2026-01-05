@@ -4,7 +4,7 @@ import type { IStorage } from "../storage";
 import type { ProcessedDocument } from "./pdfProcessor";
 import { logger } from "../lib/logger";
 
-const MODEL = "claude-sonnet-4-20250514";
+const MODEL = "claude-3-haiku-20240307";
 const CONFIDENCE_THRESHOLD = 0.8;
 
 /**
