@@ -7,7 +7,7 @@ import { CaseDetailPanel } from "@/components/CaseDetailPanel";
 import { AIAssistant } from "@/components/ai-assistant";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { DashboardStats } from "@/components/dashboard-stats";
+import { DashboardStats, type StatFilter } from "@/components/dashboard-stats";
 import { ActionQueueCard } from "@/components/ActionQueueCard";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, fetchWithCsrf } from "@/lib/queryClient";
@@ -19,13 +19,18 @@ export default function GPNet2Dashboard() {
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
+  const [statFilter, setStatFilter] = useState<StatFilter>('all');
   const { toast } = useToast();
 
   const { data: paginatedData, isLoading } = useQuery<PaginatedCasesResponse>({
-    queryKey: ["/api/gpnet2/cases"],
+    queryKey: ["/api/gpnet2/cases?limit=200"],
     refetchInterval: 30000,
+    staleTime: 0, // Always fetch fresh data
   });
   const cases = paginatedData?.cases ?? [];
+
+  // Debug log to verify we're getting all cases
+  console.log(`Dashboard loaded ${cases.length} cases, total: ${paginatedData?.total}`);
 
   const syncMutation = useMutation({
     mutationFn: async () => {
@@ -74,16 +79,27 @@ export default function GPNet2Dashboard() {
         !searchQuery ||
         c.workerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         c.company.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesCompany && matchesSearch;
+
+      // Apply stat filter
+      let matchesStatFilter = true;
+      if (statFilter === 'off-work') {
+        matchesStatFilter = c.workStatus === 'Off work';
+      } else if (statFilter === 'at-work') {
+        matchesStatFilter = c.workStatus === 'At work';
+      } else if (statFilter === 'high-risk') {
+        matchesStatFilter = c.complianceIndicator === 'High';
+      }
+
+      return matchesCompany && matchesSearch && matchesStatFilter;
     });
-    
+
     // Sort by surname (last name) within each company
     return filtered.sort((a, b) => {
       const surnameA = getSurname(a.workerName);
       const surnameB = getSurname(b.workerName);
       return surnameA.localeCompare(surnameB);
     });
-  }, [cases, selectedCompany, searchQuery]);
+  }, [cases, selectedCompany, searchQuery, statFilter]);
 
   const availableCompanies = useMemo(() => {
     const companySet = new Set(
@@ -172,7 +188,11 @@ export default function GPNet2Dashboard() {
 
           {/* Dashboard Stats - Full width overview */}
           <div className="mb-4">
-            <DashboardStats cases={filteredCases} />
+            <DashboardStats
+              cases={cases.filter(c => isLegitimateCase(c))}
+              activeFilter={statFilter}
+              onFilterChange={setStatFilter}
+            />
           </div>
 
           {/* Search and Sync Row - Full width */}
