@@ -28,7 +28,59 @@ import type {
 } from "@shared/schema";
 import { getCaseCompliance } from "./certificateCompliance";
 
-const MODEL = "claude-sonnet-4-20250514";
+const MODEL = "claude-3-haiku-20240307";
+
+/**
+ * Sync latest email conversations from Freshdesk for a case
+ */
+async function syncLatestEmailsForCase(
+  storage: IStorage,
+  caseId: string,
+  organizationId: string
+): Promise<void> {
+  // Skip if Freshdesk is not configured
+  if (!process.env.FRESHDESK_DOMAIN || !process.env.FRESHDESK_API_KEY) {
+    return;
+  }
+
+  try {
+    const workerCase = await storage.getGPNet2CaseById(caseId, organizationId);
+    if (!workerCase || !workerCase.ticketIds || workerCase.ticketIds.length === 0) {
+      return;
+    }
+
+    const { FreshdeskService } = await import('./freshdesk');
+    const freshdesk = new FreshdeskService();
+
+    // Fetch conversations from all tickets
+    for (const ticketId of workerCase.ticketIds) {
+      try {
+        const numericId = parseInt(ticketId.replace('FD-', ''));
+        if (isNaN(numericId)) continue;
+
+        const conversations = await freshdesk.fetchTicketConversations(numericId);
+        if (conversations.length === 0) continue;
+
+        const discussionNotes = freshdesk.convertConversationsToDiscussionNotes(
+          conversations,
+          workerCase.id,
+          workerCase.organizationId,
+          workerCase.workerName
+        );
+
+        if (discussionNotes.length > 0) {
+          await storage.upsertCaseDiscussionNotes(discussionNotes);
+        }
+      } catch (err) {
+        // Log but don't fail
+        logger.freshdesk?.warn(`Failed to sync conversations for ticket ${ticketId}`, {}, err);
+      }
+    }
+  } catch (err) {
+    // Log but don't fail
+    logger.freshdesk?.warn(`Failed to sync Freshdesk conversations`, {}, err);
+  }
+}
 
 export interface CaseContext {
   workerCase: WorkerCase;
@@ -320,7 +372,10 @@ export async function generateSmartSummary(
 
   const anthropic = new Anthropic({ apiKey });
 
-  // Fetch all context data
+  // Sync latest email conversations from Freshdesk before generating summary
+  await syncLatestEmailsForCase(storage, caseId, organizationId);
+
+  // Fetch all context data (including freshly synced emails)
   const context = await fetchCaseContext(storage, caseId, organizationId);
 
   // Build the prompt
