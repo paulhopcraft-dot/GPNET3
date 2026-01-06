@@ -361,9 +361,24 @@ export function isLegitimateCase(workerCase: {
     return false;
   }
   
-  // Filter out generic test/placeholder names
-  const genericNames = ["test", "testing", "unknown", "n/a", "none", "my certificate", "workcover"];
+  // Filter out generic test/placeholder names (exact match)
+  const genericNames = [
+    "test", "testing", "unknown", "n/a", "none", "my certificate", "workcover",
+    "work period", "adjustment", "adjustment request", "payroll", "hr request",
+    "admin", "query", "request", "general inquiry", "information request"
+  ];
   if (genericNames.includes(normalizedName)) {
+    return false;
+  }
+
+  // Filter out names that contain generic administrative terms (substring match)
+  const adminTerms = ["work period", "adjustment", "payroll", "hr request", "admin query"];
+  if (adminTerms.some(term => normalizedName.includes(term))) {
+    return false;
+  }
+
+  // Filter out names that start with "test" or "testing" (common test data)
+  if (normalizedName.startsWith("test ") || normalizedName.startsWith("testing ")) {
     return false;
   }
 
