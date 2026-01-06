@@ -141,6 +141,7 @@ export const logger = {
   ai: createLogger("AI"),
   audit: createLogger("Audit"),
   server: createLogger("Server"),
+  sync: createLogger("Sync"),
 };
 
 export type Logger = ReturnType<typeof createLogger>;

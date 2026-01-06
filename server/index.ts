@@ -8,6 +8,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic } from "./vite";
 import { TranscriptIngestionModule } from "./services/transcripts";
 import { NotificationScheduler } from "./services/notificationScheduler";
+import { syncScheduler } from "./services/syncScheduler";
 import { storage } from "./storage";
 import { logger } from "./lib/logger";
 import {
@@ -108,6 +109,17 @@ const startServer = async () => {
     logger.notification.info("Notification scheduler disabled (set ENABLE_NOTIFICATIONS=true to enable)");
   }
 
+  // Start daily sync scheduler if enabled
+  if (process.env.DAILY_SYNC_ENABLED === "true") {
+    const syncTime = process.env.DAILY_SYNC_TIME || "18:00";
+    const [hour, minute] = syncTime.split(":");
+    const cronExpression = `${minute} ${hour} * * *`;
+    syncScheduler.start(cronExpression, true);
+    logger.sync.info("Daily sync scheduler started", { syncTime });
+  } else {
+    logger.sync.info("Daily sync scheduler disabled (set DAILY_SYNC_ENABLED=true to enable)");
+  }
+
   await registerRoutes(app);
 
   // CSRF error handler (must be after CSRF middleware and routes)
@@ -162,6 +174,11 @@ const gracefulShutdown = async () => {
     await notificationScheduler.stop();
   } catch (err) {
     logger.notification.error("Notification scheduler shutdown error", {}, err);
+  }
+  try {
+    syncScheduler.stop();
+  } catch (err) {
+    logger.sync.error("Sync scheduler shutdown error", {}, err);
   }
   process.exit(0);
 };

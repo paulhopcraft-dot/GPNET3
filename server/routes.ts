@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { z } from "zod";
 import { storage } from "./storage";
 import { FreshdeskService } from "./services/freshdesk";
+import { syncScheduler } from "./services/syncScheduler";
 import { summaryService } from "./services/summary";
 import Anthropic from "@anthropic-ai/sdk";
 import { logger, createLogger } from "./lib/logger";
@@ -700,6 +701,39 @@ Example next steps based on case status:
       logger.freshdesk.error("Error syncing Freshdesk tickets", {}, error);
       res.status(500).json({
         error: "Failed to sync Freshdesk tickets",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Get sync scheduler status (admin only)
+  app.get("/api/sync/status", authorize(["admin"]), async (req: AuthRequest, res) => {
+    try {
+      const status = syncScheduler.getStatus();
+      res.json({
+        ...status,
+        enabled: process.env.DAILY_SYNC_ENABLED === "true",
+        syncTime: process.env.DAILY_SYNC_TIME || "18:00"
+      });
+    } catch (error) {
+      logger.sync.error("Error getting sync status", {}, error);
+      res.status(500).json({
+        error: "Failed to get sync status",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Manually trigger sync (admin only)
+  app.post("/api/sync/trigger", authorize(["admin"]), async (req: AuthRequest, res) => {
+    try {
+      logger.sync.info("Manual sync triggered", { userId: req.user!.id });
+      const result = await syncScheduler.triggerManualSync();
+      res.json(result);
+    } catch (error) {
+      logger.sync.error("Error triggering manual sync", {}, error);
+      res.status(500).json({
+        error: "Failed to trigger manual sync",
         details: error instanceof Error ? error.message : "Unknown error"
       });
     }
