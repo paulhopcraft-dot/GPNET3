@@ -1,0 +1,58 @@
+{
+  "generatedAt": "2026-01-06T01:03:43.638Z",
+  "statistics": {
+    "totalCases": 160,
+    "withInjuryDate": 160,
+    "recentDates": 2,
+    "oldDates": 21,
+    "veryOldDates": 137,
+    "suspiciousDates": [
+      {
+        "id": "FD-46945",
+        "worker": "Work Period",
+        "injuryDate": "2026-01-04T16:00:00.000Z",
+        "createdDate": "2026-01-05T06:42:12.632Z",
+        "ticketIds": [
+          "FD-46945",
+          "FD-46924"
+        ],
+        "hoursDiff": "14.7"
+      },
+      {
+        "id": "FD-46944",
+        "worker": "Adjustment Request",
+        "injuryDate": "2026-01-04T16:00:00.000Z",
+        "createdDate": "2026-01-05T02:21:42.730Z",
+        "ticketIds": [
+          "FD-46944"
+        ],
+        "hoursDiff": "10.4"
+      }
+    ],
+    "missingDates": []
+  },
+  "suspiciousCases": [
+    {
+      "id": "FD-46945",
+      "worker": "Work Period",
+      "injuryDate": "2026-01-04T16:00:00.000Z",
+      "createdDate": "2026-01-05T06:42:12.632Z",
+      "ticketIds": [
+        "FD-46945",
+        "FD-46924"
+      ],
+      "hoursDiff": "14.7"
+    },
+    {
+      "id": "FD-46944",
+      "worker": "Adjustment Request",
+      "injuryDate": "2026-01-04T16:00:00.000Z",
+      "createdDate": "2026-01-05T02:21:42.730Z",
+      "ticketIds": [
+        "FD-46944"
+      ],
+      "hoursDiff": "10.4"
+    }
+  ],
+  "missingDateCases": []
+}
