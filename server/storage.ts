@@ -396,6 +396,9 @@ export interface IStorage {
   updateAction(id: string, updates: Partial<InsertCaseAction>): Promise<CaseActionDB>;
   markActionDone(id: string): Promise<CaseActionDB>;
   markActionCancelled(id: string): Promise<CaseActionDB>;
+  completeAction(id: string, userId: string, userName: string): Promise<CaseActionDB>;
+  uncompleteAction(id: string): Promise<CaseActionDB>;
+  failAction(id: string, reason: string): Promise<CaseActionDB>;
   findPendingActionByTypeAndCase(caseId: string, type: CaseActionType): Promise<CaseActionDB | null>;
   upsertAction(caseId: string, type: CaseActionType, dueDate?: Date, notes?: string): Promise<CaseActionDB>;
 
@@ -1201,6 +1204,8 @@ class DbStorage implements IStorage {
       workerName: caseData.workerName || "Unknown",
       company: caseData.company || "Unknown",
       dateOfInjury,
+      dateOfInjurySource: caseData.dateOfInjurySource || "unknown",
+      dateOfInjuryConfidence: caseData.dateOfInjuryConfidence || "low",
       riskLevel: caseData.riskLevel || "Low",
       workStatus: caseData.workStatus || "Off work",
       hasCertificate,
@@ -1958,6 +1963,45 @@ class DbStorage implements IStorage {
   async markActionCancelled(id: string): Promise<CaseActionDB> {
     const [result] = await db.update(caseActions)
       .set({ status: "cancelled", updatedAt: new Date() })
+      .where(eq(caseActions.id, id))
+      .returning();
+    return result;
+  }
+
+  async completeAction(id: string, userId: string, userName: string): Promise<CaseActionDB> {
+    const [result] = await db.update(caseActions)
+      .set({
+        status: "done",
+        completedAt: new Date(),
+        completedBy: userName,
+        updatedAt: new Date()
+      })
+      .where(eq(caseActions.id, id))
+      .returning();
+    return result;
+  }
+
+  async uncompleteAction(id: string): Promise<CaseActionDB> {
+    const [result] = await db.update(caseActions)
+      .set({
+        status: "pending",
+        completedAt: null,
+        completedBy: null,
+        updatedAt: new Date()
+      })
+      .where(eq(caseActions.id, id))
+      .returning();
+    return result;
+  }
+
+  async failAction(id: string, reason: string): Promise<CaseActionDB> {
+    const [result] = await db.update(caseActions)
+      .set({
+        status: "cancelled",
+        failed: true,
+        failureReason: reason,
+        updatedAt: new Date()
+      })
       .where(eq(caseActions.id, id))
       .returning();
     return result;

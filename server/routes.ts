@@ -3,6 +3,7 @@ import { z } from "zod";
 import { storage } from "./storage";
 import { FreshdeskService } from "./services/freshdesk";
 import { syncScheduler } from "./services/syncScheduler";
+import { complianceScheduler } from "./services/complianceScheduler";
 import { summaryService } from "./services/summary";
 import Anthropic from "@anthropic-ai/sdk";
 import { logger, createLogger } from "./lib/logger";
@@ -734,6 +735,39 @@ Example next steps based on case status:
       logger.sync.error("Error triggering manual sync", {}, error);
       res.status(500).json({
         error: "Failed to trigger manual sync",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Get compliance scheduler status (admin only)
+  app.get("/api/compliance/status", authorize(["admin"]), async (req: AuthRequest, res) => {
+    try {
+      const status = complianceScheduler.getStatus();
+      res.json({
+        ...status,
+        enabled: process.env.COMPLIANCE_CHECK_ENABLED === "true",
+        complianceTime: process.env.COMPLIANCE_CHECK_TIME || "06:00"
+      });
+    } catch (error) {
+      logger.compliance.error("Error getting compliance status", {}, error);
+      res.status(500).json({
+        error: "Failed to get compliance status",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Manually trigger compliance check (admin only)
+  app.post("/api/compliance/trigger", authorize(["admin"]), async (req: AuthRequest, res) => {
+    try {
+      logger.compliance.info("Manual compliance check triggered", { userId: req.user!.id });
+      const result = await complianceScheduler.triggerManualCheck();
+      res.json(result);
+    } catch (error) {
+      logger.compliance.error("Error triggering manual compliance check", {}, error);
+      res.status(500).json({
+        error: "Failed to trigger manual compliance check",
         details: error instanceof Error ? error.message : "Unknown error"
       });
     }

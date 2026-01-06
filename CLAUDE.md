@@ -1,5 +1,25 @@
 # Engineering Mode v4.0
 
+This project uses governance defined in .claude/skills/AI_ORCHESTRATOR_v1.1_LOCKED.md.
+Toolkit settings are in `toolkit-config.yaml`. Run `/config` to view or modify.
+
+## 🎓 Guided Mode (Interactive Teacher)
+
+**For non-technical users:** Guided mode transforms the toolkit into an interactive development teacher.
+
+**Status:** See `guided_mode.enabled` in `toolkit-config.yaml` (currently: **ON**)
+
+**What it does:**
+- Explains WHY we do each step
+- Suggests which toolkit features to use when
+- Asks for approval before risky actions
+- Shows best practices as we work
+- Teaches you to recognize patterns
+
+**Full guide:** See `GUIDED-WORKFLOW.md` for complete walkthrough of development lifecycle.
+
+**Quick Start:** Just say "I want to add [feature]" and I'll guide you through planning, building, testing, reviewing, committing, and deploying with explanations at every step.
+
 ## Core Rules (5 total)
 
 ### Rule 1: Project Context
@@ -15,7 +35,7 @@ No exceptions.
 - Before `/handoff`, summarize what was done
 
 ### Rule 3: Model Selection
-**Default: Sonnet** (`claude --model sonnet`)
+**Default: See `toolkit-config.yaml`** (typically sonnet)
 
 **MUST spawn Opus agent when:**
 - Choosing between libraries/frameworks
@@ -82,6 +102,8 @@ After completing ANY task, run `/status` to:
 | Merge conflicts | `/resolve` |
 | Important context | `/remember` |
 | Forgot something | `/recall` |
+| View/edit settings | `/config` |
+| Daily AI news | `/morning-brief` |
 
 Run `/help` for full list.
 
@@ -108,22 +130,38 @@ Run `/help` for full list.
 
 ---
 
-## For Large Tasks Only
+## Orchestrator Mode
 
-If task is >15 min estimated, show plan with model and time:
+**Current Setting:** `orchestrator_scope: code_changes` (see `toolkit-config.yaml`)
+
+**Apply 4-Phase Process When:**
+- ✅ Writing/editing code
+- ✅ Creating/modifying files
+- ✅ Implementing features
+- ✅ Refactoring
+- ✅ Installing dependencies
+- ✅ Architecture changes
+
+**Skip Orchestrator For:**
+- ❌ git status/log/diff (diagnostic)
+- ❌ Reading files for context
+- ❌ Running tests to check status
+- ❌ Grep/search operations
+- ❌ Simple informational commands
+
+**4-Phase Process:**
+1. CONDITIONING - Restate objective, identify constraints
+2. AUTHORITY - Verification plan, confidence level
+3. WORKFLOW - Break down steps
+4. COMPOUNDING - Extract patterns, learnings
+
+For significant changes, show estimates:
 ```
 TASK: {description}
-
-STEPS:
-1. {step} (sonnet, ~5min)
-2. {step} (opus, ~8min)
-3. {step} (sonnet, ~3min)
-
-TOTAL: ~16min | EST COST: ~$0.XX
-PROCEED?
+VERIFICATION: {how we'll know it worked}
+STEPS: {breakdown}
+EST: ~Xmin | COST: ~$0.XX
 ```
-
-Skip this for small tasks. Just do the work.
 
 ---
 

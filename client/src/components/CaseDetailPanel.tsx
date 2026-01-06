@@ -24,6 +24,9 @@ import { fetchWithCsrf } from "../lib/queryClient";
 import { Sparkles, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "../lib/queryClient";
+import { StatusHeader } from "./StatusHeader";
+import { DateQualityBadge } from "./DateQualityBadge";
+import { CaseActionPlanCard } from "./CaseActionPlanCard";
 
 interface CaseDetailPanelProps {
   workerCase: WorkerCase;
@@ -49,6 +52,21 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
   const { data: timelineEstimate } = useQuery<{ estimatedCompletionDate?: string }>({
     queryKey: [`/api/cases/${workerCase.id}/timeline-estimate`],
   });
+
+  // Fetch pending actions for this case
+  const { data: pendingActionsData } = useQuery<{ data: any[] }>({
+    queryKey: [`/api/actions/pending`, workerCase.id],
+    queryFn: async () => {
+      const response = await fetchWithCsrf(`/api/actions/pending?limit=100`);
+      if (!response.ok) throw new Error("Failed to fetch actions");
+      return response.json();
+    },
+  });
+
+  // Filter actions for this specific case
+  const caseActions = pendingActionsData?.data?.filter((action: any) =>
+    action.caseId === workerCase.id && action.status === "pending"
+  ) || [];
 
   // Calculate expected recovery date - use dynamic estimate if available, fallback to 12 weeks
   const injuryDate = new Date(workerCase.dateOfInjury);
@@ -488,6 +506,55 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
     }
   };
 
+  // Calculate certificate status for StatusHeader
+  const getCertificateStatus = (): {
+    status: "active" | "expiring_soon" | "expired" | "missing" | "invalid";
+    message: string;
+  } | undefined => {
+    if (!timeline || timeline.length === 0) {
+      return {
+        status: "missing",
+        message: "No medical certificates on file",
+      };
+    }
+
+    const latestCert = timeline[timeline.length - 1];
+    const today = new Date();
+    const endDate = new Date(latestCert.endDate);
+    const startDate = new Date(latestCert.startDate);
+
+    // Check if certificate dates are in the future (data error)
+    if (startDate > today) {
+      return {
+        status: "invalid",
+        message: `Certificate dates are in the future (${startDate.toLocaleDateString()}) - possible data error`,
+      };
+    }
+
+    // Check if expired
+    if (endDate < today) {
+      const daysExpired = Math.floor((today.getTime() - endDate.getTime()) / (1000 * 60 * 60 * 24));
+      return {
+        status: "expired",
+        message: `Certificate expired ${daysExpired} day${daysExpired > 1 ? 's' : ''} ago`,
+      };
+    }
+
+    // Check if expiring soon (within 7 days)
+    const daysUntilExpiry = Math.floor((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    if (daysUntilExpiry <= 7) {
+      return {
+        status: "expiring_soon",
+        message: `Certificate expires in ${daysUntilExpiry} day${daysUntilExpiry > 1 ? 's' : ''}`,
+      };
+    }
+
+    // Active certificate
+    return undefined; // Don't show certificate status if everything is fine
+  };
+
+  const certificateStatus = getCertificateStatus();
+
   const hasClinicalStatus =
     workerCase.rtwPlanStatus ||
     workerCase.complianceStatus ||
@@ -547,6 +614,63 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
 
       <ScrollArea className="h-[calc(100vh-8rem)]">
         <div className="space-y-6">
+          {/* Status Header - Shows compliance status and next actions */}
+          <StatusHeader
+            workerCase={workerCase}
+            pendingActions={caseActions}
+            certificateStatus={certificateStatus}
+          />
+
+          {/* Interactive Action Plan - WHO does WHAT by WHEN */}
+          <CaseActionPlanCard
+            caseId={workerCase.id}
+            actions={caseActions}
+            workerName={workerCase.workerName}
+            onActionUpdate={() => {
+              queryClient.invalidateQueries({ queryKey: [`/api/actions/pending`, workerCase.id] });
+            }}
+          />
+
+          {/* Date of Injury with Quality Indicator */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <span className="material-symbols-outlined text-primary">event</span>
+                Key Dates
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Date of Injury:</span>
+                <DateQualityBadge
+                  source={(workerCase as any).dateOfInjurySource || "unknown"}
+                  confidence={(workerCase as any).dateOfInjuryConfidence || "low"}
+                  date={new Date(workerCase.dateOfInjury).toLocaleDateString("en-AU", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                />
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Days off work:</span>
+                <span className="font-medium">
+                  {Math.floor((new Date().getTime() - injuryDate.getTime()) / (1000 * 60 * 60 * 24))} days
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Expected RTW:</span>
+                <span className="font-medium">
+                  {expectedRecoveryDate.toLocaleDateString("en-AU", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Smart Summary Card - Structured Analysis */}
           <SummaryCard caseId={workerCase.id} />
 

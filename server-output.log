@@ -1,0 +1,369 @@
+
+> gpnet3@1.0.0 dev
+> cross-env NODE_ENV=development tsx server/index.ts
+
+[2m10:48:25[0m [32m[INFO][0m [2m[Auth][0m Security environment variables validated
+[2m10:48:25[0m [32m[INFO][0m [2m[Transcripts][0m Transcript ingestion module active [2m{"dir":"C:\\Dev\\gpnet3\\transcripts"}[0m
+[2m10:48:25[0m [32m[INFO][0m [2m[Notification][0m Scheduler starting...
+[2m10:48:25[0m [36m[DEBUG][0m [2m[Notification][0m Running notification generation...
+[2m10:48:25[0m [32m[INFO][0m [2m[Notification][0m Generating pending notifications [2m{"organizationId":"org-alpha"}[0m
+[2m10:48:25[0m [32m[INFO][0m [2m[Notification][0m Generated certificate notifications [2m{"count":0}[0m
+[2m10:48:25[0m [32m[INFO][0m [2m[Notification][0m Generated action notifications [2m{"count":0}[0m
+[2m10:48:25[0m [32m[INFO][0m [2m[Notification][0m Generated check-in notifications [2m{"count":2}[0m
+[2m10:48:25[0m [32m[INFO][0m [2m[Notification][0m Total notifications generated [2m{"total":2}[0m
+[2m10:48:25[0m [36m[DEBUG][0m [2m[Notification][0m Generated notifications for organization [2m{"organizationId":"org-alpha","organizationName":"Symmetry Manufacturing","count":2}[0m
+[2m10:48:25[0m [32m[INFO][0m [2m[Notification][0m Generating pending notifications [2m{"organizationId":"org-beta"}[0m
+[2m10:48:25[0m [32m[INFO][0m [2m[Notification][0m Generated certificate notifications [2m{"count":0}[0m
+[2m10:48:25[0m [32m[INFO][0m [2m[Notification][0m Generated action notifications [2m{"count":0}[0m
+[2m10:48:25[0m [32m[INFO][0m [2m[Notification][0m Generated check-in notifications [2m{"count":3}[0m
+[2m10:48:25[0m [32m[INFO][0m [2m[Notification][0m Total notifications generated [2m{"total":3}[0m
+[2m10:48:25[0m [36m[DEBUG][0m [2m[Notification][0m Generated notifications for organization [2m{"organizationId":"org-beta","organizationName":"Harbor Clinic","count":3}[0m
+[2m10:48:25[0m [32m[INFO][0m [2m[Notification][0m Generation complete [2m{"totalCount":5,"organizationsProcessed":2}[0m
+[2m10:48:25[0m [36m[DEBUG][0m [2m[Notification][0m Running notification sending...
+[2m10:48:25[0m [32m[INFO][0m [2m[Notification][0m Processing pending notifications [2m{"organizationId":"org-alpha"}[0m
+[2m10:48:25[0m [32m[INFO][0m [2m[Notification][0m Found pending notifications [2m{"count":2}[0m
+[2m10:48:25[0m [32m[INFO][0m [2m[Email][0m SMTP not configured - logging email instead [2m{"to":"admin@gpnet.local","subject":"Check-in required: Ava Thompson - Symmetry Manufacturing","bodyPreview":"A check-in is required for Ava Thompson (Symmetry Manufacturing).\n\nThe worker has been off work for more than 7 days without a recent follow-up.\n\nLast follow-up: 27/01/2025\nDays since follow-up: 344\n\n..."}[0m
+[2m10:48:25[0m [32m[INFO][0m [2m[Email][0m SMTP not configured - logging email instead [2m{"to":"admin@gpnet.local","subject":"Check-in required: Ethan Wells - Core Industrial Solutions","bodyPreview":"A check-in is required for Ethan Wells (Core Industrial Solutions).\n\nThe worker has been off work for more than 7 days without a recent follow-up.\n\nLast follow-up: 22/12/2024\nDays since follow-up: 380..."}[0m
+[2m10:48:25[0m [32m[INFO][0m [2m[Notification][0m Notification processing complete [2m{"sent":2,"failed":0}[0m
+[2m10:48:25[0m [36m[DEBUG][0m [2m[Notification][0m Sent notifications for organization [2m{"organizationId":"org-alpha","organizationName":"Symmetry Manufacturing","sent":2,"failed":0}[0m
+[2m10:48:25[0m [32m[INFO][0m [2m[Notification][0m Processing pending notifications [2m{"organizationId":"org-beta"}[0m
+[2m10:48:25[0m [32m[INFO][0m [2m[Notification][0m Found pending notifications [2m{"count":3}[0m
+[2m10:48:25[0m [32m[INFO][0m [2m[Email][0m SMTP not configured - logging email instead [2m{"to":"admin@gpnet.local","subject":"Check-in required: Priya Nair - Harbor Logistics","bodyPreview":"A check-in is required for Priya Nair (Harbor Logistics).\n\nThe worker has been off work for more than 7 days without a recent follow-up.\n\nLast follow-up: 05/02/2025\nDays since follow-up: 335\n\nPlease c..."}[0m
+[2m10:48:25[0m [32m[INFO][0m [2m[Email][0m SMTP not configured - logging email instead [2m{"to":"admin@gpnet.local","subject":"Check-in required: Harper Lin - Apex Labour Hire","bodyPreview":"A check-in is required for Harper Lin (Apex Labour Hire).\n\nThe worker has been off work for more than 7 days without a recent follow-up.\n\nLast follow-up: 04/02/2025\nDays since follow-up: 336\n\nPlease c..."}[0m
+[2m10:48:25[0m [32m[INFO][0m [2m[Email][0m SMTP not configured - logging email instead [2m{"to":"admin@gpnet.local","subject":"Check-in required: Sofia Marin - Harbor Logistics","bodyPreview":"A check-in is required for Sofia Marin (Harbor Logistics).\n\nThe worker has been off work for more than 7 days without a recent follow-up.\n\nLast follow-up: 05/01/2025\nDays since follow-up: 366\n\nPlease ..."}[0m
+[2m10:48:25[0m [32m[INFO][0m [2m[Notification][0m Notification processing complete [2m{"sent":3,"failed":0}[0m
+[2m10:48:25[0m [36m[DEBUG][0m [2m[Notification][0m Sent notifications for organization [2m{"organizationId":"org-beta","organizationName":"Harbor Clinic","sent":3,"failed":0}[0m
+[2m10:48:25[0m [32m[INFO][0m [2m[Notification][0m Sending complete [2m{"sent":5,"failed":0,"organizationsProcessed":2}[0m
+[2m10:48:25[0m [32m[INFO][0m [2m[Notification][0m Scheduler started successfully [2m{"generationIntervalMinutes":60,"sendingIntervalMinutes":5}[0m
+[2m10:48:25[0m [32m[INFO][0m [2m[Notification][0m Notification scheduler started
+[2m10:48:25[0m [32m[INFO][0m [2m[Sync][0m Starting sync scheduler [2m{"cronExpression":"00 18 * * *"}[0m
+[2m10:48:25[0m [32m[INFO][0m [2m[Sync][0m Sync scheduler started successfully
+[2m10:48:25[0m [32m[INFO][0m [2m[Sync][0m Daily sync scheduler started [2m{"syncTime":"18:00"}[0m
+[2m10:48:25[0m [32m[INFO][0m [2m[Compliance][0m Starting compliance scheduler [2m{"cronExpression":"00 06 * * *"}[0m
+[2m10:48:25[0m [32m[INFO][0m [2m[Compliance][0m Compliance scheduler started successfully
+[2m10:48:25[0m [32m[INFO][0m [2m[Compliance][0m Compliance scheduler started [2m{"complianceTime":"06:00"}[0m
+[2m10:48:25[0m [32m[INFO][0m [2m[Server][0m Server listening on http://localhost:5000
+
+A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+[2m10:51:03[0m [36m[DEBUG][0m [2m[API][0m GET /api/auth/me [2m{"status":401,"duration":"1ms"}[0m
+[2m10:51:05[0m [32m[INFO][0m [2m[Auth][0m Refresh token generated [2m{"userId":"4aacacc9-570e-4906-827f-ca77b218ba6f","tokenFamily":"dacda7ea-bd72-4404-88d0-f1a4ece9c749","expiresAt":"2026-01-13T10:51:05.583Z"}[0m
+[2m10:51:05[0m [36m[DEBUG][0m [2m[API][0m POST /api/auth/login [2m{"status":200,"duration":"141ms"}[0m
+[2m10:51:05[0m [32m[INFO][0m [2m[Freshdesk][0m Service initialized [2m{"domain":"gpnet"}[0m
+[2m10:51:05[0m [36m[DEBUG][0m [2m[Freshdesk][0m Fetching tickets [2m{"since":"2025-07-06T10:51:05.608Z"}[0m
+[2m10:51:06[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":200,"duration":"391ms"}[0m
+[2m10:51:06[0m [36m[DEBUG][0m [2m[API][0m GET /api/actions/pending [2m{"status":200,"duration":"4ms"}[0m
+[2m10:51:06[0m [36m[DEBUG][0m [2m[API][0m GET /api/actions/pending [2m{"status":200,"duration":"4ms"}[0m
+[2m10:51:16[0m [36m[DEBUG][0m [2m[Freshdesk][0m Fetched page [2m{"page":1,"count":100,"total":100}[0m
+[2m10:51:20[0m [36m[DEBUG][0m [2m[API][0m GET /api/email-drafts/types [2m{"status":200,"duration":"1ms"}[0m
+[2m10:51:20[0m [36m[DEBUG][0m [2m[API][0m GET /api/cases/FD-46933/treatment-plan [2m{"status":401,"duration":"0ms"}[0m
+[2m10:51:20[0m [36m[DEBUG][0m [2m[API][0m GET /api/cases/FD-46933/timeline-estimate [2m{"status":200,"duration":"63ms"}[0m
+[2m10:51:20[0m [36m[DEBUG][0m [2m[API][0m GET /api/actions/case/FD-46933/certificates-with-status [2m{"status":200,"duration":"79ms"}[0m
+[2m10:51:20[0m [36m[DEBUG][0m [2m[API][0m GET /api/termination/FD-46933 [2m{"status":200,"duration":"67ms"}[0m
+[2m10:51:20[0m [36m[DEBUG][0m [2m[API][0m GET /api/actions/pending [2m{"status":200,"duration":"3ms"}[0m
+[2m10:51:20[0m [32m[INFO][0m [2m[Freshdesk][0m Service initialized [2m{"domain":"gpnet"}[0m
+[2m10:51:21[0m [36m[DEBUG][0m [2m[API][0m GET /api/cases/FD-46933/recovery-timeline [2m{"status":200,"duration":"30ms"}[0m
+[2m10:51:21[0m [36m[DEBUG][0m [2m[API][0m GET /api/cases/FD-46933/discussion-notes [2m{"status":200,"duration":"31ms"}[0m
+[2m10:51:21[0m [36m[DEBUG][0m [2m[API][0m GET /api/cases/FD-46933/summary [2m{"status":200,"duration":"102ms"}[0m
+[2m10:51:21[0m [36m[DEBUG][0m [2m[API][0m GET /api/cases/FD-46933/timeline [2m{"status":200,"duration":"192ms"}[0m
+[2m10:51:21[0m [32m[INFO][0m [2m[Freshdesk][0m Service initialized [2m{"domain":"gpnet"}[0m
+[2m10:51:22[0m [33m[WARN][0m [2m[AI][0m AI unavailable, using fallback summary [2m{"errorPreview":"401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"},\"request_i"}[0m
+[2m10:51:22[0m [36m[DEBUG][0m [2m[API][0m GET /api/cases/FD-46933/smart-summary [2m{"status":200,"duration":"2023ms"}[0m
+[2m10:51:23[0m [31m[ERROR][0m [2m[Routes][0m Summary generation failed
+  [31mError: 401 {"type":"error","error":{"type":"authentication_error","message":"invalid x-api-key"},"request_id":"req_011CWqzmmi1jxpwfqv97Tn4o"}[0m
+[2mError: 401 {"type":"error","error":{"type":"authentication_error","message":"invalid x-api-key"},"request_id":"req_011CWqzmmi1jxpwfqv97Tn4o"}
+    at APIError.generate (file:///C:/Dev/gpnet3/node_modules/@anthropic-ai/sdk/src/core/error.ts:67:14)
+    at Anthropic.makeStatusError (file:///C:/Dev/gpnet3/node_modules/@anthropic-ai/sdk/src/client.ts:429:28)
+    at Anthropic.makeRequest (file:///C:/Dev/gpnet3/node_modules/@anthropic-ai/sdk/src/client.ts:664:24)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at SummaryService.generateCaseSummary (file:///C:/Dev/gpnet3/server/services/summary.ts:83:22)
+    at SummaryService.getCachedOrGenerateSummary (file:///C:/Dev/gpnet3/server/services/summary.ts:153:20)
+    at file:///C:/Dev/gpnet3/server/routes.ts:1002:18[0m
+[2m10:51:24[0m [36m[DEBUG][0m [2m[API][0m POST /api/cases/FD-46933/summary [2m{"status":500,"duration":"2922ms"}[0m
+[2m10:51:26[0m [36m[DEBUG][0m [2m[Freshdesk][0m Fetched page [2m{"page":2,"count":100,"total":200}[0m
+[2m10:51:28[0m [36m[DEBUG][0m [2m[Freshdesk][0m Fetched page [2m{"page":3,"count":27,"total":227}[0m
+[2m10:51:28[0m [32m[INFO][0m [2m[Freshdesk][0m Total tickets fetched [2m{"count":227}[0m
+[2m10:51:31[0m [33m[WARN][0m [2m[Freshdesk][0m Skipping non-case email [2m{"ticketId":"FD-46950","worker":"Workcover Difference","company":"Symmetry"}[0m
+[2m10:51:31[0m [33m[WARN][0m [2m[Freshdesk][0m Skipping non-case email [2m{"ticketId":"FD-46945","worker":"Work Period","company":"4D Medical"}[0m
+[2m10:51:31[0m [33m[WARN][0m [2m[Freshdesk][0m Skipping non-case email [2m{"ticketId":"FD-46944","worker":"Adjustment Request","company":"Lower Murray Water"}[0m
+[2m10:51:31[0m [33m[WARN][0m [2m[Freshdesk][0m Skipping non-case email [2m{"ticketId":"FD-46936","worker":"[pay 2025","company":"Symmetry"}[0m
+[2m10:51:31[0m [33m[WARN][0m [2m[Freshdesk][0m Skipping non-case email [2m{"ticketId":"FD-46935","worker":"Workcover (s25wf307549)","company":"Symmetry"}[0m
+[2m10:51:31[0m [33m[WARN][0m [2m[Freshdesk][0m Skipping non-case email [2m{"ticketId":"FD-46931","worker":"Claim Aparicio","company":"Symmetry"}[0m
+[2m10:51:31[0m [33m[WARN][0m [2m[Freshdesk][0m Skipping non-case email [2m{"ticketId":"FD-46917","worker":"--","company":"Symmetry"}[0m
+[2m10:51:31[0m [33m[WARN][0m [2m[Freshdesk][0m Skipping non-case email [2m{"ticketId":"FD-46899","worker":"4516)","company":"Symmetry"}[0m
+[2m10:51:31[0m [33m[WARN][0m [2m[Freshdesk][0m Skipping non-case email [2m{"ticketId":"FD-46892","worker":"","company":"State Trustees"}[0m
+[2m10:51:31[0m [33m[WARN][0m [2m[Freshdesk][0m Skipping non-case email [2m{"ticketId":"FD-46888","worker":"336111","company":"Symmetry"}[0m
+[2m10:51:31[0m [36m[DEBUG][0m [2m[Freshdesk][0m Date from custom field validated [2m{"ticketId":"FD-46185","worker":"Karma Choden","date":"2025-06-10"}[0m
+[2m10:51:31[0m [36m[DEBUG][0m [2m[Freshdesk][0m Date from custom field validated [2m{"ticketId":"FD-45151","worker":"Giorgio Aparicio","date":"2025-10-19"}[0m
+[2m10:51:31[0m [36m[DEBUG][0m [2m[Freshdesk][0m Date from custom field validated [2m{"ticketId":"FD-44523","worker":"Lingkew Carl Marsters","date":"2025-11-08"}[0m
+[2m10:51:31[0m [36m[DEBUG][0m [2m[Freshdesk][0m Date from custom field validated [2m{"ticketId":"FD-44392","worker":"Monica Paola Guevara Castillo","date":"2025-05-31"}[0m
+[2m10:51:31[0m [36m[DEBUG][0m [2m[Freshdesk][0m Date from custom field validated [2m{"ticketId":"FD-44333","worker":"Elkin jaramillo","date":"2025-07-24"}[0m
+[2m10:51:31[0m [36m[DEBUG][0m [2m[Freshdesk][0m Date from custom field validated [2m{"ticketId":"FD-44331","worker":"Kim Heng","date":"2025-07-20"}[0m
+[2m10:51:31[0m [36m[DEBUG][0m [2m[Freshdesk][0m Date from custom field validated [2m{"ticketId":"FD-44223","worker":"Charlie Sassine","date":"2025-07-13"}[0m
+[2m10:51:31[0m [33m[WARN][0m [2m[Freshdesk][0m Custom field date validation failed [2m{"ticketId":"FD-43740","worker":"Noah Heather","date":"0202-03-26","reason":"Date is more than 5 years ago (1824 years)"}[0m
+[2m10:51:31[0m [33m[WARN][0m [2m[Freshdesk][0m Custom field date validation failed [2m{"ticketId":"FD-43621","worker":"Jenny So","date":"2022-09-11","reason":"Date is more than 1 year before ticket creation (885 days)"}[0m
+[2m10:51:31[0m [36m[DEBUG][0m [2m[Freshdesk][0m Date from custom field validated [2m{"ticketId":"FD-43406","worker":"Dr Onari Ogaji Alfred Road Medical Centre 7 Alfred road Darry Hodder","date":"2024-10-08"}[0m
+[2m10:51:36[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":200,"duration":"245ms"}[0m
+[2m10:52:06[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":200,"duration":"325ms"}[0m
+[2m10:52:36[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":200,"duration":"253ms"}[0m
+[2m10:53:07[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":200,"duration":"327ms"}[0m
+[2m10:53:25[0m [36m[DEBUG][0m [2m[Notification][0m Running notification sending...
+[2m10:53:25[0m [32m[INFO][0m [2m[Notification][0m Processing pending notifications [2m{"organizationId":"org-alpha"}[0m
+[2m10:53:25[0m [32m[INFO][0m [2m[Notification][0m Found pending notifications [2m{"count":0}[0m
+[2m10:53:25[0m [32m[INFO][0m [2m[Notification][0m Notification processing complete [2m{"sent":0,"failed":0}[0m
+[2m10:53:25[0m [36m[DEBUG][0m [2m[Notification][0m Sent notifications for organization [2m{"organizationId":"org-alpha","organizationName":"Symmetry Manufacturing","sent":0,"failed":0}[0m
+[2m10:53:25[0m [32m[INFO][0m [2m[Notification][0m Processing pending notifications [2m{"organizationId":"org-beta"}[0m
+[2m10:53:25[0m [32m[INFO][0m [2m[Notification][0m Found pending notifications [2m{"count":0}[0m
+[2m10:53:25[0m [32m[INFO][0m [2m[Notification][0m Notification processing complete [2m{"sent":0,"failed":0}[0m
+[2m10:53:25[0m [36m[DEBUG][0m [2m[Notification][0m Sent notifications for organization [2m{"organizationId":"org-beta","organizationName":"Harbor Clinic","sent":0,"failed":0}[0m
+[2m10:53:25[0m [32m[INFO][0m [2m[Notification][0m Sending complete [2m{"sent":0,"failed":0,"organizationsProcessed":2}[0m
+[2m10:53:37[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":200,"duration":"379ms"}[0m
+[2m10:54:07[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":200,"duration":"297ms"}[0m
+[2m10:54:38[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":200,"duration":"291ms"}[0m
+[2m10:55:08[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":200,"duration":"252ms"}[0m
+[2m10:55:20[0m [32m[INFO][0m [2m[Freshdesk][0m Synced discussion notes from Freshdesk [2m{"count":1858}[0m
+[2m10:55:20[0m [36m[DEBUG][0m [2m[API][0m POST /api/freshdesk/sync [2m{"status":200,"duration":"254888ms"}[0m
+[2m10:55:38[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":200,"duration":"251ms"}[0m
+[2m10:56:09[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":200,"duration":"411ms"}[0m
+[2m10:56:39[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":200,"duration":"276ms"}[0m
+[2m10:57:09[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":200,"duration":"312ms"}[0m
+[2m10:57:40[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":200,"duration":"255ms"}[0m
+[2m10:58:10[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":200,"duration":"385ms"}[0m
+[2m10:58:25[0m [36m[DEBUG][0m [2m[Notification][0m Running notification sending...
+[2m10:58:25[0m [32m[INFO][0m [2m[Notification][0m Processing pending notifications [2m{"organizationId":"org-alpha"}[0m
+[2m10:58:25[0m [32m[INFO][0m [2m[Notification][0m Found pending notifications [2m{"count":0}[0m
+[2m10:58:25[0m [32m[INFO][0m [2m[Notification][0m Notification processing complete [2m{"sent":0,"failed":0}[0m
+[2m10:58:25[0m [36m[DEBUG][0m [2m[Notification][0m Sent notifications for organization [2m{"organizationId":"org-alpha","organizationName":"Symmetry Manufacturing","sent":0,"failed":0}[0m
+[2m10:58:25[0m [32m[INFO][0m [2m[Notification][0m Processing pending notifications [2m{"organizationId":"org-beta"}[0m
+[2m10:58:25[0m [32m[INFO][0m [2m[Notification][0m Found pending notifications [2m{"count":0}[0m
+[2m10:58:25[0m [32m[INFO][0m [2m[Notification][0m Notification processing complete [2m{"sent":0,"failed":0}[0m
+[2m10:58:25[0m [36m[DEBUG][0m [2m[Notification][0m Sent notifications for organization [2m{"organizationId":"org-beta","organizationName":"Harbor Clinic","sent":0,"failed":0}[0m
+[2m10:58:25[0m [32m[INFO][0m [2m[Notification][0m Sending complete [2m{"sent":0,"failed":0,"organizationsProcessed":2}[0m
+[2m10:58:40[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":200,"duration":"256ms"}[0m
+[2m10:59:11[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":200,"duration":"291ms"}[0m
+[2m10:59:41[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":200,"duration":"252ms"}[0m
+[2m11:00:11[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":200,"duration":"273ms"}[0m
+[2m11:00:42[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":200,"duration":"375ms"}[0m
+[2m11:01:12[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":200,"duration":"307ms"}[0m
+[2m11:01:42[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":200,"duration":"240ms"}[0m
+[2m11:02:13[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":200,"duration":"305ms"}[0m
+[2m11:02:43[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":200,"duration":"240ms"}[0m
+[2m11:03:13[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":200,"duration":"239ms"}[0m
+[2m11:03:25[0m [36m[DEBUG][0m [2m[Notification][0m Running notification sending...
+[2m11:03:25[0m [32m[INFO][0m [2m[Notification][0m Processing pending notifications [2m{"organizationId":"org-alpha"}[0m
+[2m11:03:25[0m [32m[INFO][0m [2m[Notification][0m Found pending notifications [2m{"count":0}[0m
+[2m11:03:25[0m [32m[INFO][0m [2m[Notification][0m Notification processing complete [2m{"sent":0,"failed":0}[0m
+[2m11:03:25[0m [36m[DEBUG][0m [2m[Notification][0m Sent notifications for organization [2m{"organizationId":"org-alpha","organizationName":"Symmetry Manufacturing","sent":0,"failed":0}[0m
+[2m11:03:25[0m [32m[INFO][0m [2m[Notification][0m Processing pending notifications [2m{"organizationId":"org-beta"}[0m
+[2m11:03:25[0m [32m[INFO][0m [2m[Notification][0m Found pending notifications [2m{"count":0}[0m
+[2m11:03:25[0m [32m[INFO][0m [2m[Notification][0m Notification processing complete [2m{"sent":0,"failed":0}[0m
+[2m11:03:25[0m [36m[DEBUG][0m [2m[Notification][0m Sent notifications for organization [2m{"organizationId":"org-beta","organizationName":"Harbor Clinic","sent":0,"failed":0}[0m
+[2m11:03:25[0m [32m[INFO][0m [2m[Notification][0m Sending complete [2m{"sent":0,"failed":0,"organizationsProcessed":2}[0m
+[2m11:03:43[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":200,"duration":"231ms"}[0m
+[2m11:04:14[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":200,"duration":"343ms"}[0m
+[2m11:04:44[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":200,"duration":"361ms"}[0m
+[2m11:05:15[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":200,"duration":"371ms"}[0m
+[2m11:05:45[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":200,"duration":"375ms"}[0m
+[2m11:06:15[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":401,"duration":"1ms"}[0m
+[2m11:06:45[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":401,"duration":"0ms"}[0m
+[2m11:07:15[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":401,"duration":"1ms"}[0m
+[2m11:07:45[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":401,"duration":"1ms"}[0m
+[2m11:08:15[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":401,"duration":"1ms"}[0m
+[2m11:08:25[0m [36m[DEBUG][0m [2m[Notification][0m Running notification sending...
+[2m11:08:25[0m [32m[INFO][0m [2m[Notification][0m Processing pending notifications [2m{"organizationId":"org-alpha"}[0m
+[2m11:08:25[0m [32m[INFO][0m [2m[Notification][0m Found pending notifications [2m{"count":0}[0m
+[2m11:08:25[0m [32m[INFO][0m [2m[Notification][0m Notification processing complete [2m{"sent":0,"failed":0}[0m
+[2m11:08:25[0m [36m[DEBUG][0m [2m[Notification][0m Sent notifications for organization [2m{"organizationId":"org-alpha","organizationName":"Symmetry Manufacturing","sent":0,"failed":0}[0m
+[2m11:08:25[0m [32m[INFO][0m [2m[Notification][0m Processing pending notifications [2m{"organizationId":"org-beta"}[0m
+[2m11:08:25[0m [32m[INFO][0m [2m[Notification][0m Found pending notifications [2m{"count":0}[0m
+[2m11:08:25[0m [32m[INFO][0m [2m[Notification][0m Notification processing complete [2m{"sent":0,"failed":0}[0m
+[2m11:08:25[0m [36m[DEBUG][0m [2m[Notification][0m Sent notifications for organization [2m{"organizationId":"org-beta","organizationName":"Harbor Clinic","sent":0,"failed":0}[0m
+[2m11:08:25[0m [32m[INFO][0m [2m[Notification][0m Sending complete [2m{"sent":0,"failed":0,"organizationsProcessed":2}[0m
+[2m11:08:45[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":401,"duration":"0ms"}[0m
+[2m11:09:15[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":401,"duration":"1ms"}[0m
+[2m11:09:45[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":401,"duration":"1ms"}[0m
+[2m11:10:15[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":401,"duration":"1ms"}[0m
+[2m11:10:45[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":401,"duration":"0ms"}[0m
+[2m7:12:06 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/GPNet2Dashboard.tsx, /src/index.css?v=vE3rQbTwoPyFvKgkB6dY_, /src/pages/CasesPage.tsx, /src/pages/CheckInsPage.tsx, /src/pages/FinancialsPage.tsx, /src/pages/ReportsPage.tsx, /src/pages/RiskDashboardPage.tsx, /src/pages/AuditLogPage.tsx, /src/pages/RTWPlannerPage.tsx[22m
+[2m11:12:07[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":401,"duration":"0ms"}[0m
+[2m11:12:07[0m [36m[DEBUG][0m [2m[API][0m POST /api/freshdesk/sync [2m{"status":401,"duration":"0ms"}[0m
+[2m7:12:19 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/GPNet2Dashboard.tsx, /src/index.css?v=vE3rQbTwoPyFvKgkB6dY_, /src/pages/CasesPage.tsx, /src/pages/CheckInsPage.tsx, /src/pages/FinancialsPage.tsx, /src/pages/ReportsPage.tsx, /src/pages/RiskDashboardPage.tsx, /src/pages/AuditLogPage.tsx, /src/pages/RTWPlannerPage.tsx[22m
+[2m11:12:20[0m [36m[DEBUG][0m [2m[API][0m GET /api/gpnet2/cases [2m{"status":401,"duration":"0ms"}[0m
+[2m11:12:20[0m [36m[DEBUG][0m [2m[API][0m POST /api/freshdesk/sync [2m{"status":401,"duration":"0ms"}[0m
+[2m11:13:25[0m [36m[DEBUG][0m [2m[Notification][0m Running notification sending...
+[2m11:13:25[0m [32m[INFO][0m [2m[Notification][0m Processing pending notifications [2m{"organizationId":"org-alpha"}[0m
+[2m11:13:25[0m [32m[INFO][0m [2m[Notification][0m Found pending notifications [2m{"count":0}[0m
+[2m11:13:25[0m [32m[INFO][0m [2m[Notification][0m Notification processing complete [2m{"sent":0,"failed":0}[0m
+[2m11:13:25[0m [36m[DEBUG][0m [2m[Notification][0m Sent notifications for organization [2m{"organizationId":"org-alpha","organizationName":"Symmetry Manufacturing","sent":0,"failed":0}[0m
+[2m11:13:25[0m [32m[INFO][0m [2m[Notification][0m Processing pending notifications [2m{"organizationId":"org-beta"}[0m
+[2m11:13:25[0m [32m[INFO][0m [2m[Notification][0m Found pending notifications [2m{"count":0}[0m
+[2m11:13:25[0m [32m[INFO][0m [2m[Notification][0m Notification processing complete [2m{"sent":0,"failed":0}[0m
+[2m11:13:25[0m [36m[DEBUG][0m [2m[Notification][0m Sent notifications for organization [2m{"organizationId":"org-beta","organizationName":"Harbor Clinic","sent":0,"failed":0}[0m
+[2m11:13:25[0m [32m[INFO][0m [2m[Notification][0m Sending complete [2m{"sent":0,"failed":0,"organizationsProcessed":2}[0m
+[2m11:18:25[0m [36m[DEBUG][0m [2m[Notification][0m Running notification sending...
+[2m11:18:25[0m [32m[INFO][0m [2m[Notification][0m Processing pending notifications [2m{"organizationId":"org-alpha"}[0m
+[2m11:18:25[0m [32m[INFO][0m [2m[Notification][0m Found pending notifications [2m{"count":0}[0m
+[2m11:18:25[0m [32m[INFO][0m [2m[Notification][0m Notification processing complete [2m{"sent":0,"failed":0}[0m
+[2m11:18:25[0m [36m[DEBUG][0m [2m[Notification][0m Sent notifications for organization [2m{"organizationId":"org-alpha","organizationName":"Symmetry Manufacturing","sent":0,"failed":0}[0m
+[2m11:18:25[0m [32m[INFO][0m [2m[Notification][0m Processing pending notifications [2m{"organizationId":"org-beta"}[0m
+[2m11:18:25[0m [32m[INFO][0m [2m[Notification][0m Found pending notifications [2m{"count":0}[0m
+[2m11:18:25[0m [32m[INFO][0m [2m[Notification][0m Notification processing complete [2m{"sent":0,"failed":0}[0m
+[2m11:18:25[0m [36m[DEBUG][0m [2m[Notification][0m Sent notifications for organization [2m{"organizationId":"org-beta","organizationName":"Harbor Clinic","sent":0,"failed":0}[0m
+[2m11:18:25[0m [32m[INFO][0m [2m[Notification][0m Sending complete [2m{"sent":0,"failed":0,"organizationsProcessed":2}[0m
+[2m11:23:25[0m [36m[DEBUG][0m [2m[Notification][0m Running notification sending...
+[2m11:23:25[0m [32m[INFO][0m [2m[Notification][0m Processing pending notifications [2m{"organizationId":"org-alpha"}[0m
+[2m11:23:25[0m [32m[INFO][0m [2m[Notification][0m Found pending notifications [2m{"count":0}[0m
+[2m11:23:25[0m [32m[INFO][0m [2m[Notification][0m Notification processing complete [2m{"sent":0,"failed":0}[0m
+[2m11:23:25[0m [36m[DEBUG][0m [2m[Notification][0m Sent notifications for organization [2m{"organizationId":"org-alpha","organizationName":"Symmetry Manufacturing","sent":0,"failed":0}[0m
+[2m11:23:25[0m [32m[INFO][0m [2m[Notification][0m Processing pending notifications [2m{"organizationId":"org-beta"}[0m
+[2m11:23:25[0m [32m[INFO][0m [2m[Notification][0m Found pending notifications [2m{"count":0}[0m
+[2m11:23:25[0m [32m[INFO][0m [2m[Notification][0m Notification processing complete [2m{"sent":0,"failed":0}[0m
+[2m11:23:25[0m [36m[DEBUG][0m [2m[Notification][0m Sent notifications for organization [2m{"organizationId":"org-beta","organizationName":"Harbor Clinic","sent":0,"failed":0}[0m
+[2m11:23:25[0m [32m[INFO][0m [2m[Notification][0m Sending complete [2m{"sent":0,"failed":0,"organizationsProcessed":2}[0m
+[2m11:28:25[0m [36m[DEBUG][0m [2m[Notification][0m Running notification sending...
+[2m11:28:25[0m [32m[INFO][0m [2m[Notification][0m Processing pending notifications [2m{"organizationId":"org-alpha"}[0m
+[2m11:28:25[0m [32m[INFO][0m [2m[Notification][0m Found pending notifications [2m{"count":0}[0m
+[2m11:28:25[0m [32m[INFO][0m [2m[Notification][0m Notification processing complete [2m{"sent":0,"failed":0}[0m
+[2m11:28:25[0m [36m[DEBUG][0m [2m[Notification][0m Sent notifications for organization [2m{"organizationId":"org-alpha","organizationName":"Symmetry Manufacturing","sent":0,"failed":0}[0m
+[2m11:28:25[0m [32m[INFO][0m [2m[Notification][0m Processing pending notifications [2m{"organizationId":"org-beta"}[0m
+[2m11:28:25[0m [32m[INFO][0m [2m[Notification][0m Found pending notifications [2m{"count":0}[0m
+[2m11:28:25[0m [32m[INFO][0m [2m[Notification][0m Notification processing complete [2m{"sent":0,"failed":0}[0m
+[2m11:28:25[0m [36m[DEBUG][0m [2m[Notification][0m Sent notifications for organization [2m{"organizationId":"org-beta","organizationName":"Harbor Clinic","sent":0,"failed":0}[0m
+[2m11:28:25[0m [32m[INFO][0m [2m[Notification][0m Sending complete [2m{"sent":0,"failed":0,"organizationsProcessed":2}[0m
+[2m11:33:25[0m [36m[DEBUG][0m [2m[Notification][0m Running notification sending...
+[2m11:33:25[0m [32m[INFO][0m [2m[Notification][0m Processing pending notifications [2m{"organizationId":"org-alpha"}[0m
+[2m11:33:25[0m [32m[INFO][0m [2m[Notification][0m Found pending notifications [2m{"count":0}[0m
+[2m11:33:25[0m [32m[INFO][0m [2m[Notification][0m Notification processing complete [2m{"sent":0,"failed":0}[0m
+[2m11:33:25[0m [36m[DEBUG][0m [2m[Notification][0m Sent notifications for organization [2m{"organizationId":"org-alpha","organizationName":"Symmetry Manufacturing","sent":0,"failed":0}[0m
+[2m11:33:25[0m [32m[INFO][0m [2m[Notification][0m Processing pending notifications [2m{"organizationId":"org-beta"}[0m
+[2m11:33:25[0m [32m[INFO][0m [2m[Notification][0m Found pending notifications [2m{"count":0}[0m
+[2m11:33:25[0m [32m[INFO][0m [2m[Notification][0m Notification processing complete [2m{"sent":0,"failed":0}[0m
+[2m11:33:25[0m [36m[DEBUG][0m [2m[Notification][0m Sent notifications for organization [2m{"organizationId":"org-beta","organizationName":"Harbor Clinic","sent":0,"failed":0}[0m
+[2m11:33:25[0m [32m[INFO][0m [2m[Notification][0m Sending complete [2m{"sent":0,"failed":0,"organizationsProcessed":2}[0m
+[2m11:38:25[0m [36m[DEBUG][0m [2m[Notification][0m Running notification sending...
+[2m11:38:25[0m [32m[INFO][0m [2m[Notification][0m Processing pending notifications [2m{"organizationId":"org-alpha"}[0m
+[2m11:38:25[0m [32m[INFO][0m [2m[Notification][0m Found pending notifications [2m{"count":0}[0m
+[2m11:38:25[0m [32m[INFO][0m [2m[Notification][0m Notification processing complete [2m{"sent":0,"failed":0}[0m
+[2m11:38:25[0m [36m[DEBUG][0m [2m[Notification][0m Sent notifications for organization [2m{"organizationId":"org-alpha","organizationName":"Symmetry Manufacturing","sent":0,"failed":0}[0m
+[2m11:38:25[0m [32m[INFO][0m [2m[Notification][0m Processing pending notifications [2m{"organizationId":"org-beta"}[0m
+[2m11:38:25[0m [32m[INFO][0m [2m[Notification][0m Found pending notifications [2m{"count":0}[0m
+[2m11:38:25[0m [32m[INFO][0m [2m[Notification][0m Notification processing complete [2m{"sent":0,"failed":0}[0m
+[2m11:38:25[0m [36m[DEBUG][0m [2m[Notification][0m Sent notifications for organization [2m{"organizationId":"org-beta","organizationName":"Harbor Clinic","sent":0,"failed":0}[0m
+[2m11:38:25[0m [32m[INFO][0m [2m[Notification][0m Sending complete [2m{"sent":0,"failed":0,"organizationsProcessed":2}[0m
+[2m11:43:25[0m [36m[DEBUG][0m [2m[Notification][0m Running notification sending...
+[2m11:43:25[0m [32m[INFO][0m [2m[Notification][0m Processing pending notifications [2m{"organizationId":"org-alpha"}[0m
+[2m11:43:25[0m [32m[INFO][0m [2m[Notification][0m Found pending notifications [2m{"count":0}[0m
+[2m11:43:25[0m [32m[INFO][0m [2m[Notification][0m Notification processing complete [2m{"sent":0,"failed":0}[0m
+[2m11:43:25[0m [36m[DEBUG][0m [2m[Notification][0m Sent notifications for organization [2m{"organizationId":"org-alpha","organizationName":"Symmetry Manufacturing","sent":0,"failed":0}[0m
+[2m11:43:25[0m [32m[INFO][0m [2m[Notification][0m Processing pending notifications [2m{"organizationId":"org-beta"}[0m
+[2m11:43:25[0m [32m[INFO][0m [2m[Notification][0m Found pending notifications [2m{"count":0}[0m
+[2m11:43:25[0m [32m[INFO][0m [2m[Notification][0m Notification processing complete [2m{"sent":0,"failed":0}[0m
+[2m11:43:25[0m [36m[DEBUG][0m [2m[Notification][0m Sent notifications for organization [2m{"organizationId":"org-beta","organizationName":"Harbor Clinic","sent":0,"failed":0}[0m
+[2m11:43:25[0m [32m[INFO][0m [2m[Notification][0m Sending complete [2m{"sent":0,"failed":0,"organizationsProcessed":2}[0m
+[2m11:48:25[0m [36m[DEBUG][0m [2m[Notification][0m Running notification generation...
+[2m11:48:25[0m [32m[INFO][0m [2m[Notification][0m Generating pending notifications [2m{"organizationId":"org-alpha"}[0m
+[2m11:48:25[0m [36m[DEBUG][0m [2m[Notification][0m Running notification sending...
+[2m11:48:25[0m [32m[INFO][0m [2m[Notification][0m Processing pending notifications [2m{"organizationId":"org-alpha"}[0m
+[2m11:48:25[0m [32m[INFO][0m [2m[Notification][0m Found pending notifications [2m{"count":0}[0m
+[2m11:48:25[0m [32m[INFO][0m [2m[Notification][0m Notification processing complete [2m{"sent":0,"failed":0}[0m
+[2m11:48:25[0m [36m[DEBUG][0m [2m[Notification][0m Sent notifications for organization [2m{"organizationId":"org-alpha","organizationName":"Symmetry Manufacturing","sent":0,"failed":0}[0m
+[2m11:48:25[0m [32m[INFO][0m [2m[Notification][0m Processing pending notifications [2m{"organizationId":"org-beta"}[0m
+[2m11:48:25[0m [32m[INFO][0m [2m[Notification][0m Found pending notifications [2m{"count":0}[0m
+[2m11:48:25[0m [32m[INFO][0m [2m[Notification][0m Notification processing complete [2m{"sent":0,"failed":0}[0m
+[2m11:48:25[0m [36m[DEBUG][0m [2m[Notification][0m Sent notifications for organization [2m{"organizationId":"org-beta","organizationName":"Harbor Clinic","sent":0,"failed":0}[0m
+[2m11:48:25[0m [32m[INFO][0m [2m[Notification][0m Sending complete [2m{"sent":0,"failed":0,"organizationsProcessed":2}[0m
+[2m11:48:25[0m [32m[INFO][0m [2m[Notification][0m Generated certificate notifications [2m{"count":0}[0m
+[2m11:48:25[0m [32m[INFO][0m [2m[Notification][0m Generated action notifications [2m{"count":0}[0m
+[2m11:48:25[0m [32m[INFO][0m [2m[Notification][0m Generated check-in notifications [2m{"count":2}[0m
+[2m11:48:25[0m [32m[INFO][0m [2m[Notification][0m Total notifications generated [2m{"total":2}[0m
+[2m11:48:25[0m [36m[DEBUG][0m [2m[Notification][0m Generated notifications for organization [2m{"organizationId":"org-alpha","organizationName":"Symmetry Manufacturing","count":2}[0m
+[2m11:48:25[0m [32m[INFO][0m [2m[Notification][0m Generating pending notifications [2m{"organizationId":"org-beta"}[0m
+[2m11:48:25[0m [32m[INFO][0m [2m[Notification][0m Generated certificate notifications [2m{"count":0}[0m
+[2m11:48:25[0m [32m[INFO][0m [2m[Notification][0m Generated action notifications [2m{"count":0}[0m
+[2m11:48:25[0m [32m[INFO][0m [2m[Notification][0m Generated check-in notifications [2m{"count":3}[0m
+[2m11:48:25[0m [32m[INFO][0m [2m[Notification][0m Total notifications generated [2m{"total":3}[0m
+[2m11:48:25[0m [36m[DEBUG][0m [2m[Notification][0m Generated notifications for organization [2m{"organizationId":"org-beta","organizationName":"Harbor Clinic","count":3}[0m
+[2m11:48:25[0m [32m[INFO][0m [2m[Notification][0m Generation complete [2m{"totalCount":5,"organizationsProcessed":2}[0m
+[2m11:53:25[0m [36m[DEBUG][0m [2m[Notification][0m Running notification sending...
+[2m11:53:25[0m [32m[INFO][0m [2m[Notification][0m Processing pending notifications [2m{"organizationId":"org-alpha"}[0m
+[2m11:53:25[0m [32m[INFO][0m [2m[Notification][0m Found pending notifications [2m{"count":2}[0m
+[2m11:53:25[0m [32m[INFO][0m [2m[Email][0m SMTP not configured - logging email instead [2m{"to":"admin@gpnet.local","subject":"Check-in required: Ava Thompson - Symmetry Manufacturing","bodyPreview":"A check-in is required for Ava Thompson (Symmetry Manufacturing).\n\nThe worker has been off work for more than 7 days without a recent follow-up.\n\nLast follow-up: 27/01/2025\nDays since follow-up: 344\n\n..."}[0m
+[2m11:53:25[0m [32m[INFO][0m [2m[Email][0m SMTP not configured - logging email instead [2m{"to":"admin@gpnet.local","subject":"Check-in required: Ethan Wells - Core Industrial Solutions","bodyPreview":"A check-in is required for Ethan Wells (Core Industrial Solutions).\n\nThe worker has been off work for more than 7 days without a recent follow-up.\n\nLast follow-up: 22/12/2024\nDays since follow-up: 380..."}[0m
+[2m11:53:25[0m [32m[INFO][0m [2m[Notification][0m Notification processing complete [2m{"sent":2,"failed":0}[0m
+[2m11:53:25[0m [36m[DEBUG][0m [2m[Notification][0m Sent notifications for organization [2m{"organizationId":"org-alpha","organizationName":"Symmetry Manufacturing","sent":2,"failed":0}[0m
+[2m11:53:25[0m [32m[INFO][0m [2m[Notification][0m Processing pending notifications [2m{"organizationId":"org-beta"}[0m
+[2m11:53:25[0m [32m[INFO][0m [2m[Notification][0m Found pending notifications [2m{"count":3}[0m
+[2m11:53:25[0m [32m[INFO][0m [2m[Email][0m SMTP not configured - logging email instead [2m{"to":"admin@gpnet.local","subject":"Check-in required: Priya Nair - Harbor Logistics","bodyPreview":"A check-in is required for Priya Nair (Harbor Logistics).\n\nThe worker has been off work for more than 7 days without a recent follow-up.\n\nLast follow-up: 05/02/2025\nDays since follow-up: 335\n\nPlease c..."}[0m
+[2m11:53:25[0m [32m[INFO][0m [2m[Email][0m SMTP not configured - logging email instead [2m{"to":"admin@gpnet.local","subject":"Check-in required: Harper Lin - Apex Labour Hire","bodyPreview":"A check-in is required for Harper Lin (Apex Labour Hire).\n\nThe worker has been off work for more than 7 days without a recent follow-up.\n\nLast follow-up: 04/02/2025\nDays since follow-up: 336\n\nPlease c..."}[0m
+[2m11:53:25[0m [32m[INFO][0m [2m[Email][0m SMTP not configured - logging email instead [2m{"to":"admin@gpnet.local","subject":"Check-in required: Sofia Marin - Harbor Logistics","bodyPreview":"A check-in is required for Sofia Marin (Harbor Logistics).\n\nThe worker has been off work for more than 7 days without a recent follow-up.\n\nLast follow-up: 05/01/2025\nDays since follow-up: 366\n\nPlease ..."}[0m
+[2m11:53:25[0m [32m[INFO][0m [2m[Notification][0m Notification processing complete [2m{"sent":3,"failed":0}[0m
+[2m11:53:25[0m [36m[DEBUG][0m [2m[Notification][0m Sent notifications for organization [2m{"organizationId":"org-beta","organizationName":"Harbor Clinic","sent":3,"failed":0}[0m
+[2m11:53:25[0m [32m[INFO][0m [2m[Notification][0m Sending complete [2m{"sent":5,"failed":0,"organizationsProcessed":2}[0m
+[2m11:58:25[0m [36m[DEBUG][0m [2m[Notification][0m Running notification sending...
+[2m11:58:25[0m [32m[INFO][0m [2m[Notification][0m Processing pending notifications [2m{"organizationId":"org-alpha"}[0m
+[2m11:58:25[0m [32m[INFO][0m [2m[Notification][0m Found pending notifications [2m{"count":0}[0m
+[2m11:58:25[0m [32m[INFO][0m [2m[Notification][0m Notification processing complete [2m{"sent":0,"failed":0}[0m
+[2m11:58:25[0m [36m[DEBUG][0m [2m[Notification][0m Sent notifications for organization [2m{"organizationId":"org-alpha","organizationName":"Symmetry Manufacturing","sent":0,"failed":0}[0m
+[2m11:58:25[0m [32m[INFO][0m [2m[Notification][0m Processing pending notifications [2m{"organizationId":"org-beta"}[0m
+[2m11:58:25[0m [32m[INFO][0m [2m[Notification][0m Found pending notifications [2m{"count":0}[0m
+[2m11:58:25[0m [32m[INFO][0m [2m[Notification][0m Notification processing complete [2m{"sent":0,"failed":0}[0m
+[2m11:58:25[0m [36m[DEBUG][0m [2m[Notification][0m Sent notifications for organization [2m{"organizationId":"org-beta","organizationName":"Harbor Clinic","sent":0,"failed":0}[0m
+[2m11:58:25[0m [32m[INFO][0m [2m[Notification][0m Sending complete [2m{"sent":0,"failed":0,"organizationsProcessed":2}[0m
+[2m12:03:25[0m [36m[DEBUG][0m [2m[Notification][0m Running notification sending...
+[2m12:03:25[0m [32m[INFO][0m [2m[Notification][0m Processing pending notifications [2m{"organizationId":"org-alpha"}[0m
+[2m12:03:25[0m [32m[INFO][0m [2m[Notification][0m Found pending notifications [2m{"count":0}[0m
+[2m12:03:25[0m [32m[INFO][0m [2m[Notification][0m Notification processing complete [2m{"sent":0,"failed":0}[0m
+[2m12:03:25[0m [36m[DEBUG][0m [2m[Notification][0m Sent notifications for organization [2m{"organizationId":"org-alpha","organizationName":"Symmetry Manufacturing","sent":0,"failed":0}[0m
+[2m12:03:25[0m [32m[INFO][0m [2m[Notification][0m Processing pending notifications [2m{"organizationId":"org-beta"}[0m
+[2m12:03:25[0m [32m[INFO][0m [2m[Notification][0m Found pending notifications [2m{"count":0}[0m
+[2m12:03:25[0m [32m[INFO][0m [2m[Notification][0m Notification processing complete [2m{"sent":0,"failed":0}[0m
+[2m12:03:25[0m [36m[DEBUG][0m [2m[Notification][0m Sent notifications for organization [2m{"organizationId":"org-beta","organizationName":"Harbor Clinic","sent":0,"failed":0}[0m
+[2m12:03:25[0m [32m[INFO][0m [2m[Notification][0m Sending complete [2m{"sent":0,"failed":0,"organizationsProcessed":2}[0m
+[2m12:08:25[0m [36m[DEBUG][0m [2m[Notification][0m Running notification sending...
+[2m12:08:25[0m [32m[INFO][0m [2m[Notification][0m Processing pending notifications [2m{"organizationId":"org-alpha"}[0m
+[2m12:08:25[0m [32m[INFO][0m [2m[Notification][0m Found pending notifications [2m{"count":0}[0m
+[2m12:08:25[0m [32m[INFO][0m [2m[Notification][0m Notification processing complete [2m{"sent":0,"failed":0}[0m
+[2m12:08:25[0m [36m[DEBUG][0m [2m[Notification][0m Sent notifications for organization [2m{"organizationId":"org-alpha","organizationName":"Symmetry Manufacturing","sent":0,"failed":0}[0m
+[2m12:08:25[0m [32m[INFO][0m [2m[Notification][0m Processing pending notifications [2m{"organizationId":"org-beta"}[0m
+[2m12:08:25[0m [32m[INFO][0m [2m[Notification][0m Found pending notifications [2m{"count":0}[0m
+[2m12:08:25[0m [32m[INFO][0m [2m[Notification][0m Notification processing complete [2m{"sent":0,"failed":0}[0m
+[2m12:08:25[0m [36m[DEBUG][0m [2m[Notification][0m Sent notifications for organization [2m{"organizationId":"org-beta","organizationName":"Harbor Clinic","sent":0,"failed":0}[0m
+[2m12:08:25[0m [32m[INFO][0m [2m[Notification][0m Sending complete [2m{"sent":0,"failed":0,"organizationsProcessed":2}[0m
+[2m12:13:25[0m [36m[DEBUG][0m [2m[Notification][0m Running notification sending...
+[2m12:13:25[0m [32m[INFO][0m [2m[Notification][0m Processing pending notifications [2m{"organizationId":"org-alpha"}[0m
+[2m12:13:25[0m [32m[INFO][0m [2m[Notification][0m Found pending notifications [2m{"count":0}[0m
+[2m12:13:25[0m [32m[INFO][0m [2m[Notification][0m Notification processing complete [2m{"sent":0,"failed":0}[0m
+[2m12:13:25[0m [36m[DEBUG][0m [2m[Notification][0m Sent notifications for organization [2m{"organizationId":"org-alpha","organizationName":"Symmetry Manufacturing","sent":0,"failed":0}[0m
+[2m12:13:25[0m [32m[INFO][0m [2m[Notification][0m Processing pending notifications [2m{"organizationId":"org-beta"}[0m
+[2m12:13:25[0m [32m[INFO][0m [2m[Notification][0m Found pending notifications [2m{"count":0}[0m
+[2m12:13:25[0m [32m[INFO][0m [2m[Notification][0m Notification processing complete [2m{"sent":0,"failed":0}[0m
+[2m12:13:25[0m [36m[DEBUG][0m [2m[Notification][0m Sent notifications for organization [2m{"organizationId":"org-beta","organizationName":"Harbor Clinic","sent":0,"failed":0}[0m
+[2m12:13:25[0m [32m[INFO][0m [2m[Notification][0m Sending complete [2m{"sent":0,"failed":0,"organizationsProcessed":2}[0m
+[2m12:18:25[0m [36m[DEBUG][0m [2m[Notification][0m Running notification sending...
+[2m12:18:25[0m [32m[INFO][0m [2m[Notification][0m Processing pending notifications [2m{"organizationId":"org-alpha"}[0m
+[2m12:18:25[0m [32m[INFO][0m [2m[Notification][0m Found pending notifications [2m{"count":0}[0m
+[2m12:18:25[0m [32m[INFO][0m [2m[Notification][0m Notification processing complete [2m{"sent":0,"failed":0}[0m
+[2m12:18:25[0m [36m[DEBUG][0m [2m[Notification][0m Sent notifications for organization [2m{"organizationId":"org-alpha","organizationName":"Symmetry Manufacturing","sent":0,"failed":0}[0m
+[2m12:18:25[0m [32m[INFO][0m [2m[Notification][0m Processing pending notifications [2m{"organizationId":"org-beta"}[0m
+[2m12:18:25[0m [32m[INFO][0m [2m[Notification][0m Found pending notifications [2m{"count":0}[0m
+[2m12:18:25[0m [32m[INFO][0m [2m[Notification][0m Notification processing complete [2m{"sent":0,"failed":0}[0m
+[2m12:18:25[0m [36m[DEBUG][0m [2m[Notification][0m Sent notifications for organization [2m{"organizationId":"org-beta","organizationName":"Harbor Clinic","sent":0,"failed":0}[0m
+[2m12:18:25[0m [32m[INFO][0m [2m[Notification][0m Sending complete [2m{"sent":0,"failed":0,"organizationsProcessed":2}[0m
+[2m8:19:04 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/CaseDetailPanel.tsx, /src/index.css?v=vE3rQbTwoPyFvKgkB6dY_[22m
+[2m8:19:07 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "@/components/ui/checkbox" from "client/src/components/CaseActionPlanCard.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mC:/Dev/gpnet3/client/src/components/CaseActionPlanCard.tsx[39m:4:25
+[33m  4  |  import { Card, CardHeader, CardContent } from "@/components/ui/card";
+  5  |  import { Button } from "@/components/ui/button";
+  6  |  import { Checkbox } from "@/components/ui/checkbox";
+     |                            ^
+  7  |  import { AlertTriangle, Clock, CheckCircle2, XCircle, Plus } from "lucide-react";
+  8  |  import { fetchWithCsrf } from "../lib/queryClient";[39m
+      at TransformPluginContext._formatError (file:///C:/Dev/gpnet3/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49258:41)
+      at TransformPluginContext.error (file:///C:/Dev/gpnet3/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49253:16)
+      at normalizeUrl (file:///C:/Dev/gpnet3/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64307:23)
+      at processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at file:///C:/Dev/gpnet3/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64439:39
+      at async Promise.all (index 4)
+      at TransformPluginContext.transform (file:///C:/Dev/gpnet3/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64366:7)
+      at PluginContainer.transform (file:///C:/Dev/gpnet3/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at loadAndTransform (file:///C:/Dev/gpnet3/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)

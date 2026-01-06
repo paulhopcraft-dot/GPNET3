@@ -12,6 +12,7 @@ import { isValidCompany, isLegitimateCase } from "@shared/schema";
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { logger } from "../lib/logger";
+import { validateInjuryDate, type DateValidationResult } from "../lib/dateValidation";
 
 export interface FreshdeskAttachment {
   id: number;
@@ -141,6 +142,13 @@ export class FreshdeskService {
     }
 
     return null;
+  }
+
+  /**
+   * Validate an injury date to ensure it's reasonable
+   */
+  private validateInjuryDate(date: Date, ticketCreatedDate: Date): DateValidationResult {
+    return validateInjuryDate(date, ticketCreatedDate);
   }
 
   async fetchTickets(): Promise<FreshdeskTicket[]> {
@@ -888,15 +896,33 @@ export class FreshdeskService {
         .join(' ');
 
       // Validate and parse date of injury with intelligent fallback
-      let dateOfInjury: Date;
-      let dateSource = 'unknown';
+      const ticketCreatedDate = new Date(primaryTicket.created_at);
+      let dateOfInjury: Date = ticketCreatedDate; // Default to ticket creation date
+      let dateSource: "verified" | "extracted" | "fallback" | "unknown" = "fallback";
+      let dateConfidence: "high" | "medium" | "low" = "low";
 
       // Try 1: Custom field cf_injury_date
       if (primaryTicket.custom_fields?.cf_injury_date) {
         const parsedDate = new Date(primaryTicket.custom_fields.cf_injury_date);
         if (!isNaN(parsedDate.getTime())) {
-          dateOfInjury = parsedDate;
-          dateSource = 'cf_injury_date';
+          const validation = this.validateInjuryDate(parsedDate, ticketCreatedDate);
+          if (validation.isValid) {
+            dateOfInjury = parsedDate;
+            dateSource = "verified";
+            dateConfidence = "high";
+            logger.freshdesk.debug(`Date from custom field validated`, {
+              ticketId: `FD-${primaryTicket.id}`,
+              worker: workerName,
+              date: dateOfInjury.toISOString().split('T')[0],
+            });
+          } else {
+            logger.freshdesk.warn(`Custom field date validation failed`, {
+              ticketId: `FD-${primaryTicket.id}`,
+              worker: workerName,
+              date: parsedDate.toISOString().split('T')[0],
+              reason: validation.reason,
+            });
+          }
         }
       }
 
@@ -906,28 +932,38 @@ export class FreshdeskService {
           `${primaryTicket.subject} ${primaryTicket.description_text || ''}`
         );
         if (dateFromText) {
-          dateOfInjury = dateFromText;
-          dateSource = 'extracted_from_text';
+          const validation = this.validateInjuryDate(dateFromText, ticketCreatedDate);
+          if (validation.isValid) {
+            dateOfInjury = dateFromText;
+            dateSource = "extracted";
+            dateConfidence = "medium";
+            logger.freshdesk.debug(`Date extracted from text and validated`, {
+              ticketId: `FD-${primaryTicket.id}`,
+              worker: workerName,
+              date: dateOfInjury.toISOString().split('T')[0],
+            });
+          } else {
+            logger.freshdesk.warn(`Extracted date validation failed`, {
+              ticketId: `FD-${primaryTicket.id}`,
+              worker: workerName,
+              date: dateFromText.toISOString().split('T')[0],
+              reason: validation.reason,
+            });
+          }
         }
       }
 
-      // Try 3: Use ticket created date as last resort (but mark it as uncertain)
+      // Try 3: Use ticket created date as last resort (but mark it as fallback)
       if (!dateOfInjury) {
-        dateOfInjury = new Date(primaryTicket.created_at);
-        dateSource = 'ticket_created_at (uncertain)';
+        dateOfInjury = ticketCreatedDate;
+        dateSource = "fallback";
+        dateConfidence = "low";
 
         // Log warning for cases where we had to fall back
-        logger.freshdesk.warn(`No injury date found for ticket`, {
+        logger.freshdesk.warn(`No valid injury date found, using ticket creation date`, {
           ticketId: `FD-${primaryTicket.id}`,
           worker: workerName,
           fallbackDate: dateOfInjury.toISOString().split('T')[0],
-        });
-      } else {
-        logger.freshdesk.debug(`Date of injury determined`, {
-          ticketId: `FD-${primaryTicket.id}`,
-          worker: workerName,
-          date: dateOfInjury.toISOString().split('T')[0],
-          source: dateSource,
         });
       }
 
@@ -973,6 +1009,8 @@ export class FreshdeskService {
         workerName: displayName,
         company: companyName,
         dateOfInjury: dateOfInjury.toISOString().split('T')[0],
+        dateOfInjurySource: dateSource,
+        dateOfInjuryConfidence: dateConfidence,
         riskLevel: this.mapPriorityToRiskLevel(primaryTicket.priority),
         workStatus,
         hasCertificate: hasCertificateFlag,

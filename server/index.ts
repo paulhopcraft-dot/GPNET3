@@ -7,6 +7,7 @@ import { setupVite, serveStatic } from "./vite";
 import { TranscriptIngestionModule } from "./services/transcripts";
 import { NotificationScheduler } from "./services/notificationScheduler";
 import { syncScheduler } from "./services/syncScheduler";
+import { complianceScheduler } from "./services/complianceScheduler";
 import { storage } from "./storage";
 import { logger } from "./lib/logger";
 import {
@@ -118,6 +119,17 @@ const startServer = async () => {
     logger.sync.info("Daily sync scheduler disabled (set DAILY_SYNC_ENABLED=true to enable)");
   }
 
+  // Start compliance scheduler if enabled
+  if (process.env.COMPLIANCE_CHECK_ENABLED === "true") {
+    const complianceTime = process.env.COMPLIANCE_CHECK_TIME || "06:00";
+    const [hour, minute] = complianceTime.split(":");
+    const cronExpression = `${minute} ${hour} * * *`;
+    complianceScheduler.start(cronExpression, true);
+    logger.compliance.info("Compliance scheduler started", { complianceTime });
+  } else {
+    logger.compliance.info("Compliance scheduler disabled (set COMPLIANCE_CHECK_ENABLED=true to enable)");
+  }
+
   await registerRoutes(app);
 
   // CSRF error handler (must be after CSRF middleware and routes)
@@ -177,6 +189,11 @@ const gracefulShutdown = async () => {
     syncScheduler.stop();
   } catch (err) {
     logger.sync.error("Sync scheduler shutdown error", {}, err);
+  }
+  try {
+    complianceScheduler.stop();
+  } catch (err) {
+    logger.compliance.error("Compliance scheduler shutdown error", {}, err);
   }
   process.exit(0);
 };

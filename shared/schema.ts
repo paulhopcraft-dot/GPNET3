@@ -468,6 +468,8 @@ export interface WorkerCase {
   workerName: string;
   company: string; // Allow any company name from Freshdesk, not just predefined ones
   dateOfInjury: string;
+  dateOfInjurySource?: string; // "verified" | "extracted" | "fallback" | "unknown"
+  dateOfInjuryConfidence?: string; // "high" | "medium" | "low"
   riskLevel: RiskLevel;
   workStatus: WorkStatus;
   hasCertificate: boolean;
@@ -586,6 +588,8 @@ export const workerCases = pgTable("worker_cases", {
   workerName: text("worker_name").notNull(),
   company: text("company").notNull(),
   dateOfInjury: timestamp("date_of_injury").notNull(),
+  dateOfInjurySource: varchar("date_of_injury_source").default("unknown"), // "verified" | "extracted" | "fallback" | "unknown"
+  dateOfInjuryConfidence: varchar("date_of_injury_confidence").default("low"), // "high" | "medium" | "low"
   riskLevel: text("risk_level").notNull(),
   workStatus: text("work_status").notNull(),
   hasCertificate: boolean("has_certificate").notNull().default(false),
@@ -978,6 +982,22 @@ export interface CaseAction {
   notes?: string;
   workerName?: string; // Denormalized for display
   company?: string; // Denormalized for display
+
+  // WHO does what BY WHEN
+  assignedTo?: string; // User/organization responsible
+  assignedToName?: string; // Display name (e.g., "GPNet (Paul)", "DXC (Saurav)")
+
+  // Completion tracking
+  completedAt?: string;
+  completedBy?: string;
+  autoCompleted?: boolean;
+  emailReference?: string; // Email ID that triggered auto-completion
+
+  // Status indicators
+  isBlocker?: boolean; // Blocks case progress
+  failed?: boolean; // Attempted but didn't work
+  failureReason?: string;
+
   createdAt: string;
   updatedAt: string;
 }
@@ -991,6 +1011,22 @@ export const caseActions = pgTable("case_actions", {
   dueDate: timestamp("due_date"),
   priority: integer("priority").default(1),
   notes: text("notes"),
+
+  // WHO does what BY WHEN
+  assignedTo: varchar("assigned_to"), // User/organization responsible
+  assignedToName: varchar("assigned_to_name"), // Display name (e.g., "GPNet (Paul)")
+
+  // Completion tracking
+  completedAt: timestamp("completed_at"),
+  completedBy: varchar("completed_by"),
+  autoCompleted: boolean("auto_completed").default(false),
+  emailReference: varchar("email_reference"), // Email ID that triggered auto-completion
+
+  // Status indicators
+  isBlocker: boolean("is_blocker").default(false),
+  failed: boolean("failed").default(false),
+  failureReason: text("failure_reason"),
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

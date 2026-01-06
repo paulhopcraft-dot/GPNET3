@@ -15,6 +15,13 @@
       "when": 1765873100907,
       "tag": "0001_stale_proemial_gods",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1767697962901,
+      "tag": "0002_cuddly_kronos",
+      "breakpoints": true
     }
   ]
 }

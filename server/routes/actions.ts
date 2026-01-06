@@ -330,4 +330,79 @@ router.get("/case/:caseId/certificates-with-status", requireAuth, requireCaseOwn
   }
 });
 
+// =====================================================
+// Interactive Action Plan Endpoints
+// =====================================================
+
+/**
+ * POST /api/cases/:caseId/actions/:actionId/complete
+ * Mark an action as completed (for interactive plan)
+ */
+router.post("/case/:caseId/actions/:actionId/complete", requireAuth, requireCaseOwnership(), async (req: AuthRequest, res: Response) => {
+  try {
+    const { actionId } = req.params;
+    const user = req.user!;
+
+    // Verify action belongs to this case
+    const action = await storage.getActionByIdAdmin(actionId);
+    if (!action || action.caseId !== req.params.caseId) {
+      return res.status(404).json({ success: false, message: "Action not found" });
+    }
+
+    // Update action to completed
+    const updated = await storage.completeAction(actionId, user.id, user.email);
+
+    res.json({ success: true, data: updated });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * POST /api/cases/:caseId/actions/:actionId/uncomplete
+ * Revert action completion (mark as pending again)
+ */
+router.post("/case/:caseId/actions/:actionId/uncomplete", requireAuth, requireCaseOwnership(), async (req: AuthRequest, res: Response) => {
+  try {
+    const { actionId } = req.params;
+
+    // Verify action belongs to this case
+    const action = await storage.getActionByIdAdmin(actionId);
+    if (!action || action.caseId !== req.params.caseId) {
+      return res.status(404).json({ success: false, message: "Action not found" });
+    }
+
+    // Update action to pending
+    const updated = await storage.uncompleteAction(actionId);
+
+    res.json({ success: true, data: updated });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * POST /api/cases/:caseId/actions/:actionId/fail
+ * Mark an action as failed
+ */
+router.post("/case/:caseId/actions/:actionId/fail", requireAuth, requireCaseOwnership(), async (req: AuthRequest, res: Response) => {
+  try {
+    const { actionId } = req.params;
+    const { reason } = req.body;
+
+    // Verify action belongs to this case
+    const action = await storage.getActionByIdAdmin(actionId);
+    if (!action || action.caseId !== req.params.caseId) {
+      return res.status(404).json({ success: false, message: "Action not found" });
+    }
+
+    // Update action to failed
+    const updated = await storage.failAction(actionId, reason);
+
+    res.json({ success: true, data: updated });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 export default router;

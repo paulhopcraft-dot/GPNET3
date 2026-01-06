@@ -1,0 +1,102 @@
+# Claude Code Toolkit Configuration
+# Edit this file to customize toolkit behavior
+# Run /config to view or modify settings
+
+# Model Settings
+model: sonnet                    # Default model: sonnet | opus | haiku
+thinking_mode: normal            # Thinking mode: normal | extended
+
+# Orchestrator Settings
+orchestrator_mode: standard      # Orchestrator mode: fast | standard | strict
+orchestrator_scope: code_changes # When to apply: always | code_changes | complex_only
+                                 # always = every single task (very verbose)
+                                 # code_changes = file edits, implementations, features
+                                 # complex_only = only tasks >15min or ambiguous
+
+                                 # Examples of code_changes scope:
+                                 # ✅ Apply: Write/edit code, create files, refactor, install deps
+                                 # ❌ Skip: git status, read files, grep, diagnostic commands
+
+# Guided Mode (Interactive Teacher for Non-Technical Users)
+guided_mode:
+  enabled: true                  # Enable interactive teaching mode
+  explain_why: true              # Explain WHY we do each step
+  suggest_tools: true            # Suggest which toolkit features to use
+  safety_prompts: true           # Ask before risky actions (deploy, delete, force push)
+  show_best_practices: true      # Show best practices as we work
+  verbose_verification: true     # Explain how we verify each step works
+
+# Morning Brief Settings
+morning_brief:
+  enabled: true
+  channels:                      # YouTube channels to summarize
+    - "@aiDotEngineer"
+    - "@NateBJones"
+    - "@ycombinator"
+    - "@EfficientNLP"
+    - "@anthropic-ai"
+    - "@RileyBrown"
+    - "@AICodeKing"
+    - "@AutomataLearningLab"
+    - "@indydevdan"
+    - "@aisoftwareengineer"
+    - "@GregIsenberg"
+  max_videos: 5                  # Max videos per channel to check
+  lookback_hours: 24             # Only videos from last N hours
+  summary_style: bullets         # Output style: bullets | prose | detailed
+  topics:                        # Filter for these topics (empty = all)
+    - AI
+    - LLM
+    - agents
+    - Claude
+    - GPT
+
+# Project Registry
+projects:
+  - name: gpnet3
+    path: C:\Dev\gpnet3
+    type: node
+    priority: HIGH
+  - name: goconnect
+    path: C:\Dev\goconnect
+    type: node
+    priority: HIGH
+  - name: govertical
+    path: C:\Dev\govertical
+    type: node
+    priority: HIGH
+  - name: GoAgent
+    path: C:\Dev\GoAgent
+    type: node
+    priority: HIGH
+  - name: gocontrol
+    path: C:\Dev\gocontrol
+    type: python
+    priority: HIGH
+  - name: gomemory
+    path: C:\Dev\gomemory
+    type: python
+    priority: CRITICAL
+  - name: goassist3
+    path: C:\Dev\goassist3
+    type: node
+    priority: LOW
+
+# Sync Settings
+sync:
+  auto_sync: false               # Auto-sync toolkit on session start
+  sync_on_commit: false          # Sync after each commit
+  exclude_projects: []           # Projects to skip during sync
+
+# Test Runner Settings
+test_runner:
+  parallel: false                # Run project tests in parallel
+  verbose: false                 # Show detailed test output
+  stop_on_failure: false         # Stop after first failing project
+  timeout_seconds: 300           # Max time per project
+
+# Display Settings
+display:
+  show_cost_estimates: true      # Show cost estimates for large tasks
+  show_time_estimates: true      # Show time estimates
+  compact_status: false          # Use compact status output

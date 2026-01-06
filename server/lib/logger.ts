@@ -142,6 +142,7 @@ export const logger = {
   audit: createLogger("Audit"),
   server: createLogger("Server"),
   sync: createLogger("Sync"),
+  compliance: createLogger("Compliance"),
 };
 
 export type Logger = ReturnType<typeof createLogger>;

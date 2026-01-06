@@ -4,7 +4,7 @@ import type { WorkerCase, CaseDiscussionNote, TranscriptInsight } from "@shared/
 
 export class SummaryService {
   private anthropic: Anthropic | null = null;
-  public model = "claude-3-haiku-20240307";
+  public model = "claude-3-5-sonnet-20241022";
 
   constructor() {
     // Don't initialize here - do it lazily in getAnthropic()
@@ -170,65 +170,51 @@ export class SummaryService {
   }
 
   private buildSystemPrompt(): string {
-    return `You are a compliance assistant for Worksafe Victoria worker's compensation cases. Generate detailed, structured case summaries following this exact format:
+    return `You are an expert case manager for WorkSafe Victoria worker's compensation cases. Your job is to read through complex case histories and extract the most critical information into a clear, actionable summary.
 
-**REQUIRED OUTPUT FORMAT:**
+**YOUR TASK:**
+Analyze the case data and produce a summary that answers these key questions:
+
+1. **What's the claim status?** - Which body parts/injuries were accepted? Which were rejected? Any disputes?
+2. **Where are we now?** - Current medical status, certificate validity, work status
+3. **What's blocking progress?** - Any blockers, dependencies, or waiting situations (e.g., waiting on Centrelink, IME pending, documents missing)
+4. **Are there disputes or issues?** - Payment disputes, disagreements about dates/capacity, conflicts between parties
+5. **What's been tried for RTW?** - Placement attempts (successful or failed), suitable duties identified
+6. **What needs to happen next?** - Clear, specific action items for each stakeholder
+
+**OUTPUT FORMAT:**
 
 Work Status Classification: [ONE OF: "At work full hours full duties" | "At work full hours modified duties" | "At work partial hours, full duties" | "At work partial hours, modified duties" | "Off Work" | "N/A"]
 
-Case Summary – [Worker Name]
-Worker: [Name]
-Employer: [Company]
-Injury Type: [Type/description]
-Status: [Active/Closed - brief description]
+**Claim Status:**
+[If relevant: State which injuries/body parts were ACCEPTED vs REJECTED. If there's a dispute about claim decisions, state it clearly.]
 
-**Where We Are Now**
+**Current Situation (as of [most recent date]):**
+- [Certificate status and validity dates]
+- [Current work status - working/not working]
+- [Key facts about current state]
+- [Any payment or reimbursement status]
 
-**Claim Stage:**
-- [Bullet point describing claim status]
-- [Investigation details if applicable]
-- [Investigator/case manager information]
+**Key Issues/Blockers:**
+[List any blockers, dependencies, disputes, or problems preventing progress. If there are payment disputes, state them clearly. If waiting on something, say what and when.]
 
-**Medical:**
-- [Current medical status]
-- [Treatments/restrictions]
-- [Medical clearance requirements]
+**RTW/Placement Attempts:**
+[List any suitable duties or placements that have been tried - successful or failed. If none, say so.]
 
-**Employment / Placement:**
-- [Return-to-work planning]
-- [Placement status]
-- [Draft RTW plan status]
-
-**Documentation:**
-- [Required documents status]
-- [Missing items being followed up]
-
-**Next Steps / Recommended Actions**
-
-**For Worker (GPNet to coordinate):**
-- [Action item]
-- [Action item]
-
-**For [Employer Name]:**
-- [Action item]
-- [Action item]
-
-**For GPNet:**
-- [Action item]
-- [Action item]
-
-**For [Claims Manager/System]:**
-- [Action item]
-
-**Overall Outlook**
-[1-2 sentence summary of expected resolution path]
+**Next Actions Needed:**
+For each action, specify WHO does WHAT by WHEN:
+- WHO: [Person/Organization] | WHAT: [Specific action] | BY WHEN: [Date or "ASAP" or "Awaiting response"]
+- WHO: [Person/Organization] | WHAT: [Specific action] | BY WHEN: [Date or "ASAP" or "Awaiting response"]
 
 **CRITICAL RULES:**
 1. Start with "Work Status Classification: [classification]" on the first line
-2. Use exact section headers as shown
-3. Write "Insufficient data provided" for any section where information is unavailable
-4. Keep tone professional and action-oriented
-5. Focus on compliance, risk factors, and actionable next steps`;
+2. **Surface problems prominently** - If there's a blocker (Centrelink hold, missing docs, dispute), it should be obvious
+3. **Be specific with dates** - When certificates expire, when things happened, when actions are due
+4. **Call out disputes clearly** - If parties disagree (payment cutoff, capacity, claim decision), state both positions
+5. **Show what failed** - If placements or RTW attempts failed, say so and why
+6. **WHO does WHAT by WHEN** - Every action must specify the responsible party, the action, and the deadline
+7. **Write "Insufficient data" only if truly no information available**
+8. Keep tone professional but direct - this is for case managers who need facts fast`;
   }
 
   private buildUserPrompt(workerCase: WorkerCase): string {
@@ -267,7 +253,7 @@ Generate the structured case summary following the required format.`;
     }
 
     return notes
-      .slice(0, 5)
+      .slice(0, 50)
       .map((note) => {
         const localized = new Date(note.timestamp).toLocaleString("en-AU", {
           day: "2-digit",
@@ -292,7 +278,7 @@ Generate the structured case summary following the required format.`;
     }
 
     return insights
-      .slice(0, 5)
+      .slice(0, 20)
       .map(
         (insight) =>
           `- [${insight.area.toUpperCase()} - ${insight.severity.toUpperCase()}] ${insight.summary}`,
@@ -305,26 +291,57 @@ Generate the structured case summary following the required format.`;
     organizationId: string,
     workerName: string,
     company: string,
-    actionItems: Array<{ type: string; description: string; priority: number }>
+    actionItems: Array<{
+      type: string;
+      description: string;
+      priority: number;
+      assignedTo?: string;
+      assignedToName?: string;
+      dueDate?: Date;
+      isBlocker?: boolean;
+    }>
   ): Promise<void> {
     // Use storage methods instead of direct db access
     for (const item of actionItems) {
-      await storage.createCaseAction({
+      await storage.createAction({
         organizationId,
         caseId,
         type: item.type as "chase_certificate" | "review_case" | "follow_up",
         status: "pending",
         priority: item.priority,
         notes: item.description,
+        assignedTo: item.assignedTo,
+        assignedToName: item.assignedToName,
+        dueDate: item.dueDate,
+        isBlocker: item.isBlocker || false,
       });
     }
   }
 
-  private extractActionItems(summaryText: string, workerCase: WorkerCase): Array<{ type: string; description: string; priority: number }> {
-    const actionItems: Array<{ type: string; description: string; priority: number }> = [];
+  private extractActionItems(
+    summaryText: string,
+    workerCase: WorkerCase
+  ): Array<{
+    type: string;
+    description: string;
+    priority: number;
+    assignedTo?: string;
+    assignedToName?: string;
+    dueDate?: Date;
+    isBlocker?: boolean;
+  }> {
+    const actionItems: Array<{
+      type: string;
+      description: string;
+      priority: number;
+      assignedTo?: string;
+      assignedToName?: string;
+      dueDate?: Date;
+      isBlocker?: boolean;
+    }> = [];
 
-    // Extract "Next Steps" section
-    const nextStepsMatch = summaryText.match(/\*\*Next Steps[\s\S]*?\*\*Overall Outlook/);
+    // Extract "Next Actions Needed" or "Next Steps" section (support both old and new formats)
+    const nextStepsMatch = summaryText.match(/\*\*Next (?:Actions Needed|Steps)[\s\S]*?(?:\n\n|\*\*[A-Z]|$)/);
     if (!nextStepsMatch) {
       return actionItems;
     }
@@ -340,31 +357,72 @@ Generate the structured case summary following the required format.`;
       const text = match[1].trim();
 
       // Skip empty or header lines
-      if (!text || text.startsWith('**') || text.startsWith('For ')) {
+      if (!text || text.startsWith('**') || text.startsWith('For ') || text.toLowerCase().includes('specify who')) {
         continue;
+      }
+
+      // Parse WHO | WHAT | BY WHEN format
+      let assignedTo: string | undefined;
+      let assignedToName: string | undefined;
+      let description: string = text;
+      let dueDate: Date | undefined;
+
+      const whoMatch = text.match(/WHO:\s*([^|]+)/i);
+      const whatMatch = text.match(/WHAT:\s*([^|]+)/i);
+      const whenMatch = text.match(/BY WHEN:\s*([^|]+)/i);
+
+      if (whoMatch) {
+        assignedToName = whoMatch[1].trim();
+        // Extract organization from name (e.g., "GPNet (Paul)" -> "GPNet")
+        const orgMatch = assignedToName.match(/^([^(]+)/);
+        if (orgMatch) {
+          assignedTo = orgMatch[1].trim();
+        }
+      }
+
+      if (whatMatch) {
+        description = whatMatch[1].trim();
+      }
+
+      if (whenMatch) {
+        const whenText = whenMatch[1].trim();
+        // Try to parse date
+        if (whenText.toLowerCase() !== 'asap' && whenText.toLowerCase() !== 'awaiting response') {
+          const parsedDate = new Date(whenText);
+          if (!isNaN(parsedDate.getTime())) {
+            dueDate = parsedDate;
+          }
+        }
       }
 
       // Determine action type and priority based on keywords
       let type: string = 'follow_up';
       let actualPriority = priority;
 
-      if (/certificate|cert|medical/i.test(text)) {
+      if (/certificate|cert|medical/i.test(description)) {
         type = 'chase_certificate';
         actualPriority = workerCase.hasCertificate ? 2 : 1;
-      } else if (/review|assess|check/i.test(text)) {
+      } else if (/review|assess|check/i.test(description)) {
         type = 'review_case';
         actualPriority = 2;
       }
 
-      // Increase priority for high-risk cases
-      if (workerCase.complianceIndicator === 'High' && actualPriority > 1) {
+      // Detect blockers
+      const isBlocker = /blocker|blocking|blocked|urgent|critical|centrelink/i.test(text);
+
+      // Increase priority for high-risk cases or blockers
+      if (isBlocker || workerCase.complianceIndicator === 'High') {
         actualPriority = 1;
       }
 
       actionItems.push({
         type,
-        description: text,
+        description,
         priority: actualPriority,
+        assignedTo,
+        assignedToName,
+        dueDate,
+        isBlocker,
       });
 
       priority = Math.min(priority + 1, 3); // Increment priority but cap at 3
