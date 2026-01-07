@@ -3,145 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { EmployerCaseDetailView } from "@/components/EmployerCaseDetailView";
 import type { WorkerCase, PaginatedCasesResponse } from "@shared/schema";
-import { Users, Clock, CheckCircle2, AlertTriangle, FileText, Calendar } from "lucide-react";
-
-interface EmployerCaseDetailProps {
-  workerCase: WorkerCase;
-  onClose: () => void;
-}
-
-function EmployerCaseDetail({ workerCase, onClose }: EmployerCaseDetailProps) {
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-2xl max-h-[90vh] overflow-hidden">
-        <CardHeader className="flex flex-row items-center justify-between border-b">
-          <div>
-            <CardTitle>{workerCase.workerName}</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">{workerCase.company}</p>
-          </div>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <span className="material-symbols-outlined">close</span>
-          </Button>
-        </CardHeader>
-        <ScrollArea className="max-h-[calc(90vh-80px)]">
-          <CardContent className="p-6 space-y-6">
-            {/* Status Overview */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 bg-muted rounded-lg">
-                <p className="text-xs text-muted-foreground mb-1">Work Status</p>
-                <Badge
-                  className={
-                    workerCase.workStatus === "At work"
-                      ? "bg-emerald-100 text-emerald-800"
-                      : "bg-amber-100 text-amber-800"
-                  }
-                >
-                  {workerCase.workStatus}
-                </Badge>
-              </div>
-              <div className="p-4 bg-muted rounded-lg">
-                <p className="text-xs text-muted-foreground mb-1">Compliance</p>
-                <Badge
-                  className={
-                    workerCase.complianceIndicator === "Very High" ||
-                    workerCase.complianceIndicator === "High"
-                      ? "bg-emerald-100 text-emerald-800"
-                      : workerCase.complianceIndicator === "Medium"
-                      ? "bg-amber-100 text-amber-800"
-                      : "bg-red-100 text-red-800"
-                  }
-                >
-                  {workerCase.complianceIndicator}
-                </Badge>
-              </div>
-            </div>
-
-            {/* Key Dates */}
-            <div>
-              <h3 className="font-medium mb-3 flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                Key Dates
-              </h3>
-              <div className="space-y-2">
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-sm text-muted-foreground">Date of Injury</span>
-                  <span className="text-sm font-medium">{workerCase.dateOfInjury}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-sm text-muted-foreground">Next Step Due</span>
-                  <span className="text-sm font-medium">{workerCase.dueDate}</span>
-                </div>
-                {workerCase.clcNextFollowUp && (
-                  <div className="flex justify-between py-2 border-b">
-                    <span className="text-sm text-muted-foreground">Next Follow-up</span>
-                    <span className="text-sm font-medium">{workerCase.clcNextFollowUp}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Current Status */}
-            <div>
-              <h3 className="font-medium mb-3 flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                Current Status
-              </h3>
-              <div className="p-4 bg-muted rounded-lg">
-                <p className="text-sm">{workerCase.currentStatus}</p>
-              </div>
-            </div>
-
-            {/* Next Steps */}
-            <div>
-              <h3 className="font-medium mb-3">Next Step Required</h3>
-              <div className="p-4 border rounded-lg border-primary/20 bg-primary/5">
-                <p className="text-sm font-medium text-primary">{workerCase.nextStep}</p>
-              </div>
-            </div>
-
-            {/* Certificate Status */}
-            <div>
-              <h3 className="font-medium mb-3">Medical Certificate</h3>
-              <div className="p-4 bg-muted rounded-lg">
-                {workerCase.hasCertificate ? (
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                    <span className="text-sm">Current certificate on file</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-amber-600" />
-                    <span className="text-sm">No current certificate</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* RTW Plan Status */}
-            {workerCase.rtwPlanStatus && (
-              <div>
-                <h3 className="font-medium mb-3">Return to Work Plan</h3>
-                <Badge
-                  className={
-                    workerCase.rtwPlanStatus === "working_well" || workerCase.rtwPlanStatus === "in_progress"
-                      ? "bg-emerald-100 text-emerald-800"
-                      : "bg-slate-100 text-slate-800"
-                  }
-                >
-                  {workerCase.rtwPlanStatus}
-                </Badge>
-              </div>
-            )}
-          </CardContent>
-        </ScrollArea>
-      </Card>
-    </div>
-  );
-}
+import { Users, Clock, CheckCircle2, AlertTriangle } from "lucide-react";
 
 export default function EmployerDashboard() {
   const { user } = useAuth();
@@ -371,7 +236,7 @@ export default function EmployerDashboard() {
 
       {/* Case Detail Modal */}
       {selectedCase && (
-        <EmployerCaseDetail
+        <EmployerCaseDetailView
           workerCase={selectedCase}
           onClose={() => setSelectedCase(null)}
         />
