@@ -965,6 +965,107 @@ export interface TimelineResponse {
 }
 
 // =====================================================
+// Compliance Knowledge Base - WorkSafe Manual + WIRC Act
+// =====================================================
+
+export interface ComplianceDocument {
+  id: string;
+  source: "worksafe_manual" | "wirc_act";
+  sectionId: string;
+  title: string;
+  content: string;
+  fullReference: string;
+  url?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const complianceDocuments = pgTable("compliance_documents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  source: text("source").notNull(), // 'worksafe_manual' or 'wirc_act'
+  sectionId: varchar("section_id").notNull(), // e.g., '2.4' or 's38'
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  fullReference: text("full_reference").notNull(), // e.g., "WorkSafe Manual Section 2.4"
+  url: text("url"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type ComplianceDocumentDB = typeof complianceDocuments.$inferSelect;
+export type InsertComplianceDocument = typeof complianceDocuments.$inferInsert;
+
+// =====================================================
+// Compliance Rules - Evaluation Rules
+// =====================================================
+
+export interface ComplianceRule {
+  id: string;
+  ruleCode: string; // e.g., 'CERT_CURRENT'
+  name: string;
+  description: string;
+  documentReferences: Array<{ source: string; section: string }>; // e.g., [{"source": "wirc_act", "section": "s38"}]
+  checkType: "certificate" | "rtw_plan" | "file_review" | "payment" | "other";
+  severity: "critical" | "high" | "medium" | "low";
+  evaluationLogic: Record<string, any>; // JSON evaluation logic
+  recommendedAction: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const complianceRules = pgTable("compliance_rules", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  ruleCode: varchar("rule_code").notNull().unique(),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  documentReferences: jsonb("document_references").$type<Array<{ source: string; section: string }>>().notNull(),
+  checkType: text("check_type").notNull(), // 'certificate', 'rtw_plan', 'file_review', 'payment', 'other'
+  severity: text("severity").notNull(), // 'critical', 'high', 'medium', 'low'
+  evaluationLogic: jsonb("evaluation_logic").$type<Record<string, any>>().notNull(),
+  recommendedAction: text("recommended_action").notNull(),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type ComplianceRuleDB = typeof complianceRules.$inferSelect;
+export type InsertComplianceRule = typeof complianceRules.$inferInsert;
+
+// =====================================================
+// Case Compliance Checks - Rule Evaluation Results
+// =====================================================
+
+export interface CaseComplianceCheck {
+  id: string;
+  caseId: string;
+  ruleId: string;
+  status: "compliant" | "warning" | "non_compliant";
+  checkedAt: string;
+  finding?: string; // What was found
+  recommendation?: string; // What to do
+  actionCreated: boolean;
+  actionId?: string;
+  createdAt: string;
+}
+
+export const caseComplianceChecks = pgTable("case_compliance_checks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  caseId: varchar("case_id").notNull().references(() => workerCases.id, { onDelete: "cascade" }),
+  ruleId: varchar("rule_id").notNull().references(() => complianceRules.id, { onDelete: "cascade" }),
+  status: text("status").notNull(), // 'compliant', 'warning', 'non_compliant'
+  checkedAt: timestamp("checked_at").notNull(),
+  finding: text("finding"),
+  recommendation: text("recommendation"),
+  actionCreated: boolean("action_created").default(false),
+  actionId: varchar("action_id").references(() => caseActions.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type CaseComplianceCheckDB = typeof caseComplianceChecks.$inferSelect;
+export type InsertCaseComplianceCheck = typeof caseComplianceChecks.$inferInsert;
+
+// =====================================================
 // Action Queue v1 - Case Actions for Compliance
 // =====================================================
 
