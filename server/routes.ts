@@ -773,6 +773,39 @@ Example next steps based on case status:
     }
   });
 
+  // Evaluate a single case against compliance rules
+  app.get("/api/cases/:id/compliance/evaluate", authorize(), requireCaseOwnership(), async (req: AuthRequest, res) => {
+    try {
+      const caseId = req.params.id;
+      const { evaluateCase } = await import("./services/complianceEngine");
+
+      logger.compliance.info("Evaluating case compliance", {
+        caseId,
+        userId: req.user!.id
+      });
+
+      const report = await evaluateCase(caseId);
+
+      // Log access
+      await logAuditEvent({
+        userId: req.user!.id,
+        organizationId: req.user!.organizationId,
+        eventType: AuditEventTypes.CASE_VIEW,
+        resourceType: "compliance_report",
+        resourceId: caseId,
+        ...getRequestMetadata(req),
+      });
+
+      res.json(report);
+    } catch (error) {
+      logger.compliance.error("Error evaluating case compliance", { caseId: req.params.id }, error);
+      res.status(500).json({
+        error: "Failed to evaluate compliance",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   app.get("/api/cases/:id/recovery-timeline", authorize(), requireCaseOwnership(), async (req: AuthRequest, res) => {
     try {
       const workerCase = req.workerCase!; // Populated by requireCaseOwnership middleware
