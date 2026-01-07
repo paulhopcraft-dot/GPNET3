@@ -28,6 +28,8 @@ import type {
   InsertEmailDraft,
   NotificationDB,
   InsertNotification,
+  ComplianceDocumentDB,
+  InsertComplianceDocument,
 } from "@shared/schema";
 import { db } from "./db";
 import {
@@ -43,6 +45,7 @@ import {
   terminationProcesses,
   emailDrafts,
   notifications,
+  complianceDocuments,
 } from "@shared/schema";
 import { evaluateClinicalEvidence } from "./services/clinicalEvidence";
 import { eq, desc, asc, inArray, ilike, sql, and, lte, gte, or, isNull, ne } from "drizzle-orm";
@@ -2218,6 +2221,28 @@ class DbStorage implements IStorage {
       else if (row.status === "failed") stats.failed = row.count;
     }
     return stats;
+  }
+
+  // ============================================================================
+  // COMPLIANCE DOCUMENTS
+  // ============================================================================
+
+  async getComplianceDocumentBySection(source: string, sectionId: string): Promise<ComplianceDocumentDB | null> {
+    const [result] = await db.select()
+      .from(complianceDocuments)
+      .where(and(
+        eq(complianceDocuments.source, source),
+        eq(complianceDocuments.sectionId, sectionId)
+      ))
+      .limit(1);
+    return result ?? null;
+  }
+
+  async createComplianceDocument(data: InsertComplianceDocument): Promise<ComplianceDocumentDB> {
+    const [result] = await db.insert(complianceDocuments)
+      .values(data)
+      .returning();
+    return result;
   }
 }
 
