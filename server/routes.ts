@@ -993,7 +993,7 @@ Example next steps based on case status:
           const generated = await summaryService.generateCaseSummary(workerCase);
 
           // Store in database
-          await storage.updateAISummary(workerCase.id, generated.summary, summaryService.model, generated.workStatusClassification);
+          await storage.updateAISummary(workerCase.id, workerCase.organizationId, generated.summary, summaryService.model, generated.workStatusClassification);
 
           // Log AI summary generation
           await logAuditEvent({
