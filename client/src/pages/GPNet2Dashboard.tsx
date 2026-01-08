@@ -138,7 +138,7 @@ export default function GPNet2Dashboard() {
             <div className="bg-primary/20 rounded-full size-10 flex items-center justify-center">
               <span className="material-symbols-outlined text-primary">corporate_fare</span>
             </div>
-            <h1 className="text-sidebar-foreground text-xl font-bold">GPNet 2</h1>
+            <h1 className="text-sidebar-foreground text-xl font-bold">Preventli</h1>
           </div>
           <div className="mt-1 ml-13 text-xs text-sidebar-foreground/60">
             v2024.11.05 • {cases.length} cases loaded
@@ -176,7 +176,7 @@ export default function GPNet2Dashboard() {
                   <span className="material-symbols-outlined text-primary text-lg">corporate_fare</span>
                 </div>
                 <div>
-                  <h1 className="text-lg font-bold">GPNet 2</h1>
+                  <h1 className="text-lg font-bold">Preventli</h1>
                   <div className="text-xs text-muted-foreground">
                     {cases.length} cases loaded
                   </div>

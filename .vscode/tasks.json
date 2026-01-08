@@ -10,7 +10,7 @@
   ],
   "tasks": [
     {
-      "label": "Run GPNet",
+      "label": "Run Preventli",
       "type": "shell",
       "command": "npm run dev",
       "options": {

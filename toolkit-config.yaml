@@ -19,7 +19,7 @@ orchestrator_scope: code_changes # When to apply: always | code_changes | comple
 
 # Guided Mode (Interactive Teacher for Non-Technical Users)
 guided_mode:
-  enabled: true                  # Enable interactive teaching mode
+  enabled: false                 # Enable interactive teaching mode
   explain_why: true              # Explain WHY we do each step
   suggest_tools: true            # Suggest which toolkit features to use
   safety_prompts: true           # Ask before risky actions (deploy, delete, force push)

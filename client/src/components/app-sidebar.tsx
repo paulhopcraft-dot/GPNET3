@@ -70,9 +70,9 @@ export function AppSidebar() {
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground font-semibold text-sm">
-            GP
+            P
           </div>
-          <span className="font-semibold text-lg">GPNet System</span>
+          <span className="font-semibold text-lg">Preventli</span>
         </div>
       </SidebarHeader>
       <SidebarContent>

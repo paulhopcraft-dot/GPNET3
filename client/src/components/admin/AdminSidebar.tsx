@@ -70,7 +70,7 @@ export function AdminSidebar() {
             <Shield className="h-5 w-5 text-white" />
           </div>
           <div>
-            <h1 className="font-bold text-lg">GPNet Admin</h1>
+            <h1 className="font-bold text-lg">Preventli Admin</h1>
             <span className="text-xs text-slate-400">System Management</span>
           </div>
         </div>

@@ -4,11 +4,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { ScrollArea } from "./ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Sparkles, X, RefreshCw } from "lucide-react";
 import { CaseActionPlanCard } from "./CaseActionPlanCard";
+import { RecoveryChart } from "./RecoveryChart";
 import { fetchWithCsrf } from "../lib/queryClient";
 import type { WorkerCase, CaseAction } from "@shared/schema";
 import { cn } from "@/lib/utils";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface EmployerCaseDetailViewProps {
   workerCase: WorkerCase;
@@ -25,6 +29,30 @@ interface SummaryData {
     assignedTo?: string;
     dueDate?: string;
   }>;
+}
+
+// Helper function to parse markdown summary into sections
+function parseSummarySections(markdown: string) {
+  const sections: Record<string, string> = {};
+
+  // Split by ## headers
+  const parts = markdown.split(/(?=^## )/gm);
+
+  parts.forEach(part => {
+    const lines = part.trim().split('\n');
+    const headerMatch = lines[0]?.match(/^## (.+)$/);
+
+    if (headerMatch) {
+      const sectionName = headerMatch[1];
+      const content = lines.slice(1).join('\n').trim();
+      sections[sectionName] = content;
+    } else if (part.trim()) {
+      // Content before first header (Latest Update section)
+      sections['Latest Update'] = part.trim();
+    }
+  });
+
+  return sections;
 }
 
 export function EmployerCaseDetailView({ workerCase, onClose }: EmployerCaseDetailViewProps) {
@@ -58,6 +86,14 @@ export function EmployerCaseDetailView({ workerCase, onClose }: EmployerCaseDeta
   useEffect(() => {
     latestCaseIdRef.current = workerCase.id;
   }, [workerCase.id]);
+
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
 
   const fetchCachedSummary = async (): Promise<boolean> => {
     try {
@@ -139,8 +175,8 @@ export function EmployerCaseDetailView({ workerCase, onClose }: EmployerCaseDeta
   }, [workerCase.id]);
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="w-full max-w-7xl max-h-[95vh] bg-background rounded-lg shadow-xl overflow-hidden flex flex-col">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="w-full max-w-7xl max-h-[95vh] bg-background rounded-lg shadow-xl overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="border-b px-6 py-4 flex items-center justify-between bg-card">
           <div>
@@ -190,11 +226,10 @@ export function EmployerCaseDetailView({ workerCase, onClose }: EmployerCaseDeta
 
         {/* Two-Column Layout */}
         <div className="flex-1 overflow-hidden">
-          <div className="h-full grid grid-cols-[1fr,380px] gap-0">
+          <div className="h-full grid grid-cols-[1fr,450px] gap-0">
             {/* Left Column: Smart Summary */}
-            <div className="border-r overflow-hidden flex flex-col">
-              <ScrollArea className="flex-1">
-                <div className="p-6">
+            <div className="border-r overflow-y-scroll" style={{ maxHeight: 'calc(95vh - 200px)' }}>
+              <div className="p-6">
                   <Card>
                     <CardHeader>
                       <div className="flex items-center justify-between">
@@ -230,11 +265,73 @@ export function EmployerCaseDetailView({ workerCase, onClose }: EmployerCaseDeta
                           Error: {summaryError}
                         </div>
                       ) : aiSummary ? (
-                        <div className="prose prose-sm max-w-none">
-                          <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                            {aiSummary}
-                          </div>
-                        </div>
+                        <Tabs defaultValue="latest" className="w-full">
+                          <TabsList className="grid w-full grid-cols-7">
+                            <TabsTrigger value="latest">Latest</TabsTrigger>
+                            <TabsTrigger value="worker">Worker</TabsTrigger>
+                            <TabsTrigger value="injury">Injury</TabsTrigger>
+                            <TabsTrigger value="timeline">Timeline</TabsTrigger>
+                            <TabsTrigger value="status">Status</TabsTrigger>
+                            <TabsTrigger value="financial">Financial</TabsTrigger>
+                            <TabsTrigger value="risk">Risk</TabsTrigger>
+                          </TabsList>
+
+                          {(() => {
+                            const sections = parseSummarySections(aiSummary);
+                            const renderMarkdown = (content: string) => (
+                              <div className="prose prose-sm max-w-none dark:prose-invert text-foreground mt-4">
+                                <ReactMarkdown
+                                  remarkPlugins={[remarkGfm]}
+                                  components={{
+                                    table: ({children}) => (
+                                      <table className="w-full border-collapse border border-border">
+                                        {children}
+                                      </table>
+                                    ),
+                                    th: ({children}) => (
+                                      <th className="border border-border px-4 py-2 bg-muted font-semibold text-left">
+                                        {children}
+                                      </th>
+                                    ),
+                                    td: ({children}) => (
+                                      <td className="border border-border px-4 py-2">
+                                        {children}
+                                      </td>
+                                    ),
+                                  }}
+                                >
+                                  {content}
+                                </ReactMarkdown>
+                              </div>
+                            );
+
+                            return (
+                              <>
+                                <TabsContent value="latest">
+                                  {renderMarkdown(sections['Latest Update'] || 'No data available')}
+                                </TabsContent>
+                                <TabsContent value="worker">
+                                  {renderMarkdown(sections['Worker Details'] || 'No data available')}
+                                </TabsContent>
+                                <TabsContent value="injury">
+                                  {renderMarkdown(sections['Injury Details'] || 'No data available')}
+                                </TabsContent>
+                                <TabsContent value="timeline">
+                                  {renderMarkdown(sections['Claim Timeline'] || 'No data available')}
+                                </TabsContent>
+                                <TabsContent value="status">
+                                  {renderMarkdown(sections['Current Status'] || 'No data available')}
+                                </TabsContent>
+                                <TabsContent value="financial">
+                                  {renderMarkdown(sections['Financial Summary'] || 'No data available')}
+                                </TabsContent>
+                                <TabsContent value="risk">
+                                  {renderMarkdown(sections['Risk Register'] || 'No data available')}
+                                </TabsContent>
+                              </>
+                            );
+                          })()}
+                        </Tabs>
                       ) : (
                         <div className="text-sm text-muted-foreground py-4">
                           No summary available yet. Click Refresh to generate.
@@ -276,8 +373,21 @@ export function EmployerCaseDetailView({ workerCase, onClose }: EmployerCaseDeta
                       )}
                     </CardContent>
                   </Card>
+
+                  {/* Recovery Progress Chart */}
+                  <Card className="mt-4">
+                    <CardHeader>
+                      <CardTitle className="text-lg">Recovery Progress</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <RecoveryChart
+                        injuryDate={workerCase.dateOfInjury}
+                        expectedRecoveryDate={workerCase.dueDate}
+                        certificates={workerCase.certificates}
+                      />
+                    </CardContent>
+                  </Card>
                 </div>
-              </ScrollArea>
             </div>
 
             {/* Right Column: Action Plan */}

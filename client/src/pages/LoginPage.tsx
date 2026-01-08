@@ -57,10 +57,10 @@ export default function LoginPage() {
         <CardHeader className="space-y-1">
           <div className="flex items-center justify-center mb-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-md bg-primary text-primary-foreground font-semibold text-lg">
-              GP
+              P
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold text-center">Welcome to GPNet</CardTitle>
+          <CardTitle className="text-2xl font-bold text-center">Welcome to Preventli</CardTitle>
           <CardDescription className="text-center">
             Sign in to your account to continue
           </CardDescription>

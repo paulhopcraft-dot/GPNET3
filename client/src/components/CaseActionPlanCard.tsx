@@ -123,7 +123,7 @@ export function CaseActionPlanCard({ caseId, actions, workerName, onActionUpdate
           </div>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-foreground opacity-70">
             No action plan yet. Generate an AI summary to create one.
           </p>
         </CardContent>
@@ -133,17 +133,17 @@ export function CaseActionPlanCard({ caseId, actions, workerName, onActionUpdate
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Case Plan - {workerName}</h3>
+          <h3 className="text-base font-semibold">Case Plan - {workerName}</h3>
           <Button variant="outline" size="sm">
             <Plus className="w-4 h-4 mr-1" />
             Add Action
           </Button>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
+      <CardContent className="pt-3">
+        <div className="space-y-2">
           {sortedActions.map((action) => {
             const dueInfo = formatDueDate(action.dueDate);
             const priorityInfo = getPriorityLabel(action.priority);
@@ -155,31 +155,31 @@ export function CaseActionPlanCard({ caseId, actions, workerName, onActionUpdate
               <div
                 key={action.id}
                 className={cn(
-                  "border-l-4 pl-4 py-2 space-y-2",
-                  action.isBlocker ? "border-red-500 bg-red-50" :
-                  isCompleted ? "border-green-500 bg-green-50" :
-                  isFailed ? "border-gray-400 bg-gray-50" :
-                  dueInfo.isOverdue ? "border-orange-500 bg-orange-50" :
-                  "border-blue-500 bg-blue-50"
+                  "border-l-4 pl-3 py-1.5 space-y-1 bg-card",
+                  action.isBlocker ? "border-red-500" :
+                  isCompleted ? "border-green-500" :
+                  isFailed ? "border-gray-400" :
+                  dueInfo.isOverdue ? "border-orange-500" :
+                  "border-blue-500"
                 )}
               >
-                <div className="flex items-start gap-3">
+                <div className="flex items-start gap-2">
                   <Checkbox
                     checked={isCompleted}
                     disabled={isFailed || isProcessing}
                     onCheckedChange={() => handleToggleComplete(action)}
-                    className="mt-1"
+                    className="mt-0.5"
                   />
-                  <div className="flex-1 space-y-1">
+                  <div className="flex-1 space-y-0.5">
                     <div className={cn(
-                      "font-medium",
-                      isCompleted && "line-through text-muted-foreground",
-                      isFailed && "line-through text-muted-foreground"
+                      "font-medium text-foreground",
+                      isCompleted && "line-through opacity-60",
+                      isFailed && "line-through opacity-60"
                     )}>
                       {action.notes || "No description"}
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-foreground opacity-80">
                       {/* WHO does what */}
                       {action.assignedToName && (
                         <span className="font-medium text-foreground">
@@ -195,11 +195,6 @@ export function CaseActionPlanCard({ caseId, actions, workerName, onActionUpdate
                           {dueInfo.isOverdue && <span className="text-red-600 font-semibold">⚠️ OVERDUE</span>}
                         </span>
                       )}
-
-                      {/* Priority */}
-                      <span className={priorityInfo.color}>
-                        Priority: {priorityInfo.text}
-                      </span>
 
                       {/* Blocker indicator */}
                       {action.isBlocker && !isCompleted && (

@@ -1,6 +1,6 @@
 # Review Agent Prompt
 
-You are a code review agent for GPNet3, a compliance management system.
+You are a code review agent for Preventli, a compliance management system.
 
 ## Review Focus Areas
 

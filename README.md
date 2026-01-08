@@ -1,6 +1,6 @@
-# GPNet3 Development Environment
+# Preventli Development Environment
 
-This workspace is pre-configured for the GPNet3 stack (Express + Vite + React + Drizzle). The repo now includes helper configuration so that Claude Code, OpenAI Codex, and GitHub Copilot can collaborate on architecture, refactors, and inline implementation work.
+This workspace is pre-configured for the Preventli stack (Express + Vite + React + Drizzle). The repo now includes helper configuration so that Claude Code, OpenAI Codex, and GitHub Copilot can collaborate on architecture, refactors, and inline implementation work.
 
 ## Prerequisites
 
@@ -19,12 +19,12 @@ NODE_ENV=development
 
 Store sensitive keys such as `ANTHROPIC_API_KEY` in your OS environment or VS Code Secret Store (`Settings Sync: Edit in settings.json`), not in version control.
 
-## Running GPNet Locally
+## Running Preventli Locally
 
 1. Install dependencies: `npm install`
 2. Apply database migrations: `npm run db:push`
 3. (Optional) Seed demo data: `npm run seed`
-4. Launch both backend + frontend through the background task **Run GPNet** (`Terminal → Run Task → Run GPNet`) or manually execute `npm run dev`.
+4. Launch both backend + frontend through the background task **Run Preventli** (`Terminal → Run Task → Run Preventli`) or manually execute `npm run dev`.
 5. Frontend is served from `http://localhost:5173` (Vite + HMR) via proxy to the backend at `http://localhost:5000`.
 
 ---
@@ -100,6 +100,6 @@ Use these entries to kick off the appropriate AI workflow with a single keystrok
 ## Next Steps
 
 1. Verify PostgreSQL is running locally.
-2. Run `npm run dev` (or the **Run GPNet** task).
+2. Run `npm run dev` (or the **Run Preventli** task).
 3. Visit `http://localhost:5173` and confirm data loads from `http://localhost:5000/api/...`.
 4. Experiment with the three AI assistants to establish your preferred collaboration cadence.

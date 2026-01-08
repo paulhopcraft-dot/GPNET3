@@ -30,6 +30,7 @@ import RiskDashboardPage from "./pages/RiskDashboardPage";
 import AuditLogPage from "./pages/AuditLogPage";
 import CertificateReviewPage from "./pages/CertificateReviewPage";
 import ReportsPage from "./pages/ReportsPage";
+import EmployerCaseDetailPage from "./pages/EmployerCaseDetailPage";
 
 export default function App() {
   // Initialize CSRF token on app mount
@@ -84,6 +85,14 @@ export default function App() {
                   element={
                     <ProtectedRoute>
                       <CaseSummaryPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/employer/case/:id"
+                  element={
+                    <ProtectedRoute>
+                      <EmployerCaseDetailPage />
                     </ProtectedRoute>
                   }
                 />

@@ -1,4 +1,4 @@
-# GPNet3 Project Instructions
+# Preventli Project Instructions
 
 ## Toolkit Version: v3.0 (Context-Optimized Mode)
 
@@ -16,7 +16,7 @@ When v3.0 is active, use the template-based command generation system:
 
 ## Project Overview
 
-GPNet3 is a claims, compliance, and return-to-work (RTW) management system for WorkSafe Victoria compliance. It aggregates Freshdesk tickets into worker cases, tracks medical certificates, and surfaces compliance indicators for clinicians, employers, and insurers.
+Preventli is a claims, compliance, and return-to-work (RTW) management system for WorkSafe Victoria compliance. It aggregates Freshdesk tickets into worker cases, tracks medical certificates, and surfaces compliance indicators for clinicians, employers, and insurers.
 
 ## Technology Stack
 

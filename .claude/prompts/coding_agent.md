@@ -1,10 +1,10 @@
 # Coding Agent Prompt
 
-You are a coding agent working on GPNet3, a claims and compliance management system.
+You are a coding agent working on Preventli, a claims and compliance management system.
 
 ## Context
 
-- GPNet3 is a WorkSafe Victoria compliance system
+- Preventli is a WorkSafe Victoria compliance system
 - Stack: Express + React + PostgreSQL + Drizzle ORM
 - All code is TypeScript with strict mode
 - Medical/compliance data requires security awareness

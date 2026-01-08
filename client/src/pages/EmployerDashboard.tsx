@@ -1,16 +1,18 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { EmployerCaseDetailView } from "@/components/EmployerCaseDetailView";
-import type { WorkerCase, PaginatedCasesResponse } from "@shared/schema";
-import { Users, Clock, CheckCircle2, AlertTriangle } from "lucide-react";
+import type { PaginatedCasesResponse } from "@shared/schema";
+import { Users, Clock, CheckCircle2, AlertTriangle, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
 export default function EmployerDashboard() {
-  const { user } = useAuth();
-  const [selectedCase, setSelectedCase] = useState<WorkerCase | null>(null);
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
   const { data: paginatedData, isLoading } = useQuery<PaginatedCasesResponse>({
@@ -68,12 +70,18 @@ export default function EmployerDashboard() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold">Worker Cases</h1>
+              <h1 className="text-2xl font-bold text-primary">Preventli</h1>
               <p className="text-sm text-muted-foreground">
                 {user?.email} - Employer Portal
               </p>
             </div>
-            <ThemeToggle />
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <Button variant="outline" size="sm" onClick={logout}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -178,7 +186,7 @@ export default function EmployerDashboard() {
                 {companyCases.map((workerCase) => (
                   <div
                     key={workerCase.id}
-                    onClick={() => setSelectedCase(workerCase)}
+                    onClick={() => navigate(`/employer/case/${workerCase.id}`)}
                     className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted cursor-pointer transition-colors"
                   >
                     <div className="flex items-center gap-4">
@@ -233,14 +241,6 @@ export default function EmployerDashboard() {
           </CardContent>
         </Card>
       </main>
-
-      {/* Case Detail Modal */}
-      {selectedCase && (
-        <EmployerCaseDetailView
-          workerCase={selectedCase}
-          onClose={() => setSelectedCase(null)}
-        />
-      )}
     </div>
   );
 }

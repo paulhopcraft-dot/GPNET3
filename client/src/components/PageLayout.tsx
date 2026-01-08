@@ -32,7 +32,7 @@ export function PageLayout({ children, title, subtitle }: PageLayoutProps) {
             <div className="bg-primary/20 rounded-full size-10 flex items-center justify-center">
               <span className="material-symbols-outlined text-primary">corporate_fare</span>
             </div>
-            <h1 className="text-sidebar-foreground text-xl font-bold">GPNet</h1>
+            <h1 className="text-sidebar-foreground text-xl font-bold">Preventli</h1>
           </Link>
           <div className="mt-1 ml-13 text-xs text-sidebar-foreground/60">
             Workers' Compensation

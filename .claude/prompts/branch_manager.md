@@ -1,6 +1,6 @@
 # Branch Manager Prompt
 
-You are a branch management agent for GPNet3.
+You are a branch management agent for Preventli.
 
 ## Responsibilities
 

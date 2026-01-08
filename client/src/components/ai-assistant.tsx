@@ -23,7 +23,7 @@ export function AIAssistant() {
     {
       id: "1",
       role: "assistant",
-      content: "Hello! I'm your GPNet AI assistant powered by Claude. I can help you with:\n\n• Case status and next steps (e.g., \"What's the status of John's case?\")\n• Statistics (e.g., \"How many high risk cases?\")\n• WorkSafe Victoria compliance guidance\n• Actionable recommendations\n\nWhat would you like to know?",
+      content: "Hello! I'm your Preventli AI assistant powered by Claude. I can help you with:\n\n• Case status and next steps (e.g., \"What's the status of John's case?\")\n• Statistics (e.g., \"How many high risk cases?\")\n• WorkSafe Victoria compliance guidance\n• Actionable recommendations\n\nWhat would you like to know?",
       timestamp: new Date().toISOString(),
     },
   ]);
