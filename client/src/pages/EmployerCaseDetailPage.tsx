@@ -91,11 +91,10 @@ export default function EmployerCaseDetailPage() {
       {/* Tabs at the top */}
       <Tabs defaultValue="summary" className="flex-1 flex flex-col">
         <div className="border-b bg-card px-6 py-2">
-          <TabsList className="grid grid-cols-8 h-12">
+          <TabsList className="grid grid-cols-7 h-12">
             <TabsTrigger value="summary">Summary</TabsTrigger>
             <TabsTrigger value="injury">Injury</TabsTrigger>
             <TabsTrigger value="timeline">Timeline</TabsTrigger>
-            <TabsTrigger value="status">Status</TabsTrigger>
             <TabsTrigger value="financial">Financial</TabsTrigger>
             <TabsTrigger value="risk">Risk</TabsTrigger>
             <TabsTrigger value="contacts">Contacts</TabsTrigger>
@@ -208,7 +207,15 @@ export default function EmployerCaseDetailPage() {
                         </li>
                         <li className="flex items-start gap-2">
                           <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
-                          <span>Request Andres provide payslips to Saurav for wage top-up calculation</span>
+                          <span>Request Andres provide written update on symptom status post-physio</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
+                          <span>Confirm with Saurav whether $238 wage top-up has been processed for first fortnight</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
+                          <span>Request copy of Andres' first payslip for records if not already received</span>
                         </li>
                       </ul>
                     </div>
@@ -218,35 +225,75 @@ export default function EmployerCaseDetailPage() {
                       <ul className="text-sm space-y-2 ml-3">
                         <li className="flex items-start gap-2">
                           <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
-                          <span>Light-touch welfare check-in via phone call to assess job satisfaction and symptom management</span>
+                          <span>Conduct welfare check-in with Andres (week commencing 13 Jan)</span>
                         </li>
                         <li className="flex items-start gap-2">
                           <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
-                          <span>Confirm wage top-up processing with Symmetry based on submitted payslips</span>
-                        </li>
-                      </ul>
-                    </div>
-
-                    <div className="space-y-3">
-                      <h3 className="text-sm font-semibold text-primary">Medium-Term Actions (Next Month)</h3>
-                      <ul className="text-sm space-y-2 ml-3">
-                        <li className="flex items-start gap-2">
-                          <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
-                          <span>Monitor employment stability and symptom progression through regular check-ins</span>
+                          <span>If symptoms stable, request GP/physio issue formal clearance certificate</span>
                         </li>
                         <li className="flex items-start gap-2">
                           <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
-                          <span>Assess need for formal clearance certificate if symptoms improve significantly</span>
+                          <span>Confirm Andres has attended physio appointment and document feedback</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
+                          <span>Liaise with Saurav re: ongoing wage top-up process and payslip submissions</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
+                          <span>Update DXC if any concerns arise or if clearance certificate obtained</span>
                         </li>
                       </ul>
                     </div>
 
                     <div className="space-y-3">
-                      <h3 className="text-sm font-semibold text-primary">3-Month Stability Review</h3>
+                      <h3 className="text-sm font-semibold text-primary">Medium-Term Actions (Jan-Feb 2026)</h3>
                       <ul className="text-sm space-y-2 ml-3">
                         <li className="flex items-start gap-2">
                           <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
-                          <span>Conduct comprehensive review in March 2026 to confirm claim stability and consider case closure options</span>
+                          <span>Continue fortnightly welfare monitoring until 3-month stability period reached</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
+                          <span>Track symptom reports - escalate to DXC if deterioration reported</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
+                          <span>Ensure Andres continues physio until discharged by treating practitioner</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
+                          <span>Document all welfare contacts and symptom updates in ticket</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
+                          <span>Prepare for 3-month review (due ~8 March 2026)</span>
+                        </li>
+                      </ul>
+                    </div>
+
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-semibold text-primary">Milestone: 3-Month Stability Review (Target: 8 March 2026)</h3>
+                      <ul className="text-sm space-y-2 ml-3">
+                        <li className="flex items-start gap-2">
+                          <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
+                          <span>Confirm Andres has sustained employment for 3 months</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
+                          <span>Obtain final clearance certificate if not already provided</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
+                          <span>Confirm with DXC claim is considered stable</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
+                          <span>Close active monitoring if no ongoing concerns</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
+                          <span>Final update to Symmetry confirming case closure</span>
                         </li>
                       </ul>
                     </div>
@@ -301,53 +348,6 @@ export default function EmployerCaseDetailPage() {
           <TimelineCard caseId={id!} />
         </TabsContent>
 
-        <TabsContent value="status" className="flex-1 p-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Current Status (as at 8 January 2026)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex border-b pb-2">
-                  <div className="w-48 text-sm font-medium">Claim Status</div>
-                  <div className="text-sm flex-1">Finalised/Closed for weekly payments</div>
-                </div>
-                <div className="flex border-b pb-2">
-                  <div className="w-48 text-sm font-medium">Employment</div>
-                  <div className="text-sm flex-1">Full-time cleaner at IKON Services</div>
-                </div>
-                <div className="flex border-b pb-2">
-                  <div className="w-48 text-sm font-medium">Hours</div>
-                  <div className="text-sm flex-1">Mon-Fri, 8am-4pm (37 hrs/week)</div>
-                </div>
-                <div className="flex border-b pb-2">
-                  <div className="w-48 text-sm font-medium">Current Rate</div>
-                  <div className="text-sm flex-1">$32.31/hr (casual loading incl.) = $1,211.62/week</div>
-                </div>
-                <div className="flex border-b pb-2">
-                  <div className="w-48 text-sm font-medium">Certificate of Capacity</div>
-                  <div className="text-sm flex-1">None current (expired)</div>
-                </div>
-                <div className="flex border-b pb-2">
-                  <div className="w-48 text-sm font-medium">Restrictions</div>
-                  <div className="text-sm flex-1">None imposed by insurer</div>
-                </div>
-                <div className="flex border-b pb-2">
-                  <div className="w-48 text-sm font-medium">Symptoms</div>
-                  <div className="text-sm flex-1">Intermittent - finger stiffness/locking in cold weather (~4/10), improving during day</div>
-                </div>
-                <div className="flex border-b pb-2">
-                  <div className="w-48 text-sm font-medium">Treatment</div>
-                  <div className="text-sm flex-1">Ongoing physio (Saturday appointments)</div>
-                </div>
-                <div className="flex pb-2">
-                  <div className="w-48 text-sm font-medium">Wage Entitlement</div>
-                  <div className="text-sm flex-1">$1,074/week (PIAWE after step-down)</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         <TabsContent value="financial" className="flex-1 p-6">
           <Card>
@@ -424,57 +424,57 @@ export default function EmployerCaseDetailPage() {
         </TabsContent>
 
         <TabsContent value="contacts" className="flex-1 p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* Worker Card */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <span className="material-symbols-outlined text-primary">person</span>
-                  Worker
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="font-medium">{workerCase.workerName}</p>
-                <p className="text-sm text-muted-foreground mt-1">{workerCase.company}</p>
-              </CardContent>
-            </Card>
-
-            {/* Case Owner Card */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <span className="material-symbols-outlined text-primary">assignment_ind</span>
-                  Case Owner
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="font-medium">{workerCase.owner || "Unassigned"}</p>
-                <p className="text-sm text-muted-foreground mt-1">Case Manager</p>
-              </CardContent>
-            </Card>
-
-            {/* Employer Card */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <span className="material-symbols-outlined text-primary">business</span>
-                  Employer
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="font-medium">{workerCase.company}</p>
-                <p className="text-sm text-muted-foreground mt-1">Host Employer</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          <Card className="mt-6">
-            <CardContent className="py-6">
-              <div className="text-center text-muted-foreground">
-                <span className="material-symbols-outlined text-3xl mb-2">contact_page</span>
-                <p className="text-sm">
-                  Additional contact details are available through your case management system.
-                </p>
+          <Card>
+            <CardHeader>
+              <CardTitle>Key Contacts</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex border-b pb-2">
+                  <div className="w-48 text-sm font-medium">Role</div>
+                  <div className="w-48 text-sm font-medium">Name</div>
+                  <div className="text-sm font-medium flex-1">Contact</div>
+                </div>
+                <div className="flex border-b pb-2">
+                  <div className="w-48 text-sm font-medium">Worker</div>
+                  <div className="w-48 text-sm">Andres Gutierrez</div>
+                  <div className="text-sm flex-1">andresgutini77@gmail.com / 0473 208 394</div>
+                </div>
+                <div className="flex border-b pb-2">
+                  <div className="w-48 text-sm font-medium">Employer Contact</div>
+                  <div className="w-48 text-sm">Saurav Kansakar (CFO)</div>
+                  <div className="text-sm flex-1">SauravK@symmetryhr.com.au / 03 9566 2416</div>
+                </div>
+                <div className="flex border-b pb-2">
+                  <div className="w-48 text-sm font-medium">Employer Contact</div>
+                  <div className="w-48 text-sm">Michelle Clarkson</div>
+                  <div className="text-sm flex-1">MichelleC@symmetryhr.com.au</div>
+                </div>
+                <div className="flex border-b pb-2">
+                  <div className="w-48 text-sm font-medium">DXC Case Manager</div>
+                  <div className="w-48 text-sm">Niko Datuin</div>
+                  <div className="text-sm flex-1">lorenznikolay.datuin@dxc.com / 03 9947 6289</div>
+                </div>
+                <div className="flex border-b pb-2">
+                  <div className="w-48 text-sm font-medium">ORP</div>
+                  <div className="w-48 text-sm">Jordan Pankiw (AMS)</div>
+                  <div className="text-sm flex-1">jpankiw@amsconsulting.com.au / 0412 251 372</div>
+                </div>
+                <div className="flex border-b pb-2">
+                  <div className="w-48 text-sm font-medium">Physio</div>
+                  <div className="w-48 text-sm">Andrew Coulter</div>
+                  <div className="text-sm flex-1">Hobsons Bay Medical</div>
+                </div>
+                <div className="flex border-b pb-2">
+                  <div className="w-48 text-sm font-medium">GP</div>
+                  <div className="w-48 text-sm">Dr. Caesar Tan</div>
+                  <div className="text-sm flex-1">-</div>
+                </div>
+                <div className="flex pb-2">
+                  <div className="w-48 text-sm font-medium">GPNet Contact</div>
+                  <div className="w-48 text-sm">Jacinta Bailey</div>
+                  <div className="text-sm flex-1">jacinta.bailey@gpnet.au</div>
+                </div>
               </div>
             </CardContent>
           </Card>
