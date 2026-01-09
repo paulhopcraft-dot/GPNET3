@@ -4,7 +4,7 @@ import type { WorkerCase, CaseDiscussionNote, TranscriptInsight } from "@shared/
 
 export class SummaryService {
   private anthropic: Anthropic | null = null;
-  public model = "claude-3-5-sonnet-20241022";
+  public model = "claude-3-5-sonnet-20241222";
 
   constructor() {
     // Don't initialize here - do it lazily in getAnthropic()
