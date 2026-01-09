@@ -265,15 +265,15 @@ export function EmployerCaseDetailView({ workerCase, onClose }: EmployerCaseDeta
                           Error: {summaryError}
                         </div>
                       ) : aiSummary ? (
-                        <Tabs defaultValue="latest" className="w-full">
+                        <Tabs defaultValue="summary" className="w-full">
                           <TabsList className="grid w-full grid-cols-7">
-                            <TabsTrigger value="latest">Latest</TabsTrigger>
-                            <TabsTrigger value="worker">Worker</TabsTrigger>
+                            <TabsTrigger value="summary">Summary</TabsTrigger>
                             <TabsTrigger value="injury">Injury</TabsTrigger>
                             <TabsTrigger value="timeline">Timeline</TabsTrigger>
-                            <TabsTrigger value="status">Status</TabsTrigger>
                             <TabsTrigger value="financial">Financial</TabsTrigger>
                             <TabsTrigger value="risk">Risk</TabsTrigger>
+                            <TabsTrigger value="contacts">Contacts</TabsTrigger>
+                            <TabsTrigger value="recovery">Recovery</TabsTrigger>
                           </TabsList>
 
                           {(() => {
@@ -307,11 +307,8 @@ export function EmployerCaseDetailView({ workerCase, onClose }: EmployerCaseDeta
 
                             return (
                               <>
-                                <TabsContent value="latest">
-                                  {renderMarkdown(sections['Latest Update'] || 'No data available')}
-                                </TabsContent>
-                                <TabsContent value="worker">
-                                  {renderMarkdown(sections['Worker Details'] || 'No data available')}
+                                <TabsContent value="summary">
+                                  {renderMarkdown(sections['Latest Update'] || sections['Case Overview'] || 'No data available')}
                                 </TabsContent>
                                 <TabsContent value="injury">
                                   {renderMarkdown(sections['Injury Details'] || 'No data available')}
@@ -319,14 +316,95 @@ export function EmployerCaseDetailView({ workerCase, onClose }: EmployerCaseDeta
                                 <TabsContent value="timeline">
                                   {renderMarkdown(sections['Claim Timeline'] || 'No data available')}
                                 </TabsContent>
-                                <TabsContent value="status">
-                                  {renderMarkdown(sections['Current Status'] || 'No data available')}
-                                </TabsContent>
                                 <TabsContent value="financial">
                                   {renderMarkdown(sections['Financial Summary'] || 'No data available')}
                                 </TabsContent>
                                 <TabsContent value="risk">
                                   {renderMarkdown(sections['Risk Register'] || 'No data available')}
+                                </TabsContent>
+                                <TabsContent value="contacts">
+                                  <div className="mt-4 space-y-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                      <Card>
+                                        <CardHeader className="pb-3">
+                                          <CardTitle className="text-base">Worker</CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="space-y-2">
+                                          <div>
+                                            <p className="font-medium">{workerCase.workerName}</p>
+                                            <p className="text-sm text-muted-foreground">{workerCase.company}</p>
+                                          </div>
+                                        </CardContent>
+                                      </Card>
+
+                                      <Card>
+                                        <CardHeader className="pb-3">
+                                          <CardTitle className="text-base">Case Owner</CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="space-y-2">
+                                          <div>
+                                            <p className="font-medium">{workerCase.owner}</p>
+                                            <p className="text-sm text-muted-foreground">Case Manager</p>
+                                          </div>
+                                        </CardContent>
+                                      </Card>
+
+                                      <Card>
+                                        <CardHeader className="pb-3">
+                                          <CardTitle className="text-base">Employer</CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="space-y-2">
+                                          <div>
+                                            <p className="font-medium">{workerCase.company}</p>
+                                            <p className="text-sm text-muted-foreground">Host Employer</p>
+                                          </div>
+                                        </CardContent>
+                                      </Card>
+                                    </div>
+                                    <div className="text-sm text-muted-foreground">
+                                      Additional contact details available through case manager.
+                                    </div>
+                                  </div>
+                                </TabsContent>
+                                <TabsContent value="recovery">
+                                  <div className="mt-4 space-y-4">
+                                    <Card>
+                                      <CardHeader>
+                                        <CardTitle className="text-base">Recovery Progress</CardTitle>
+                                      </CardHeader>
+                                      <CardContent>
+                                        <RecoveryChart
+                                          injuryDate={workerCase.dateOfInjury}
+                                          expectedRecoveryDate={workerCase.dueDate}
+                                          certificates={workerCase.certificates}
+                                        />
+                                      </CardContent>
+                                    </Card>
+                                    {workerCase.rtwPlanStatus && (
+                                      <Card>
+                                        <CardHeader>
+                                          <CardTitle className="text-base">Return to Work Plan</CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                          <div className="space-y-2">
+                                            <div className="flex items-center gap-2">
+                                              <span className="text-sm text-muted-foreground">Status:</span>
+                                              <Badge
+                                                className={cn(
+                                                  workerCase.rtwPlanStatus === "working_well" ||
+                                                  workerCase.rtwPlanStatus === "in_progress"
+                                                    ? "bg-emerald-100 text-emerald-800"
+                                                    : "bg-slate-100 text-slate-800"
+                                                )}
+                                              >
+                                                {workerCase.rtwPlanStatus.replace(/_/g, " ")}
+                                              </Badge>
+                                            </div>
+                                          </div>
+                                        </CardContent>
+                                      </Card>
+                                    )}
+                                  </div>
                                 </TabsContent>
                               </>
                             );
@@ -374,19 +452,6 @@ export function EmployerCaseDetailView({ workerCase, onClose }: EmployerCaseDeta
                     </CardContent>
                   </Card>
 
-                  {/* Recovery Progress Chart */}
-                  <Card className="mt-4">
-                    <CardHeader>
-                      <CardTitle className="text-lg">Recovery Progress</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <RecoveryChart
-                        injuryDate={workerCase.dateOfInjury}
-                        expectedRecoveryDate={workerCase.dueDate}
-                        certificates={workerCase.certificates}
-                      />
-                    </CardContent>
-                  </Card>
                 </div>
             </div>
 

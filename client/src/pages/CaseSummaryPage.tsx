@@ -4,9 +4,12 @@ import { PageLayout } from "@/components/PageLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RecoveryChart } from "@/components/RecoveryChart";
 import { TimelineCard } from "@/components/TimelineCard";
+import { RefreshCw } from "lucide-react";
 import type { WorkerCase, PaginatedCasesResponse } from "@shared/schema";
+import { cn } from "@/lib/utils";
 
 export default function CaseSummaryPage() {
   const { id } = useParams<{ id: string }>();
@@ -92,117 +95,286 @@ export default function CaseSummaryPage() {
           </Link>
         </div>
 
-        {/* Overview Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Work Status
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Badge variant={workerCase.workStatus === "At work" ? "default" : "secondary"}>
-                {workerCase.workStatus}
-              </Badge>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Risk Level
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Badge className={riskBadgeColor(workerCase.riskLevel)}>
-                {workerCase.riskLevel}
-              </Badge>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Date of Injury
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-lg font-semibold">{workerCase.dateOfInjury}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Due Date
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-lg font-semibold">{workerCase.dueDate}</div>
-            </CardContent>
-          </Card>
+        {/* Status Bar */}
+        <div className="border border-border rounded-lg p-4 bg-muted/50 flex items-center gap-4">
+          <Badge
+            className={cn(
+              workerCase.workStatus === "At work"
+                ? "bg-emerald-100 text-emerald-800"
+                : "bg-amber-100 text-amber-800"
+            )}
+          >
+            {workerCase.workStatus}
+          </Badge>
+          <Badge
+            variant="outline"
+            className={cn(
+              workerCase.complianceIndicator === "Very High" ||
+              workerCase.complianceIndicator === "High"
+                ? "border-emerald-300 text-emerald-700"
+                : workerCase.complianceIndicator === "Medium"
+                ? "border-amber-300 text-amber-700"
+                : "border-red-300 text-red-700"
+            )}
+          >
+            Compliance: {workerCase.complianceIndicator}
+          </Badge>
+          <div className="ml-auto text-sm text-muted-foreground">
+            Next Step Due: <span className="font-medium">{workerCase.dueDate}</span>
+          </div>
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left Column */}
-          <div className="space-y-6">
-            {/* AI Summary */}
-            {workerCase.aiSummary && (
+        {/* 7-Tab Case Detail View */}
+        <Tabs defaultValue="summary" className="space-y-4">
+          <TabsList className="grid grid-cols-7 h-12">
+            <TabsTrigger value="summary">Summary</TabsTrigger>
+            <TabsTrigger value="injury">Injury</TabsTrigger>
+            <TabsTrigger value="timeline">Timeline</TabsTrigger>
+            <TabsTrigger value="financial">Financial</TabsTrigger>
+            <TabsTrigger value="risk">Risk</TabsTrigger>
+            <TabsTrigger value="contacts">Contacts</TabsTrigger>
+            <TabsTrigger value="recovery">Recovery</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="summary" className="mt-4">
+            <div className="space-y-6">
+              {/* AI Summary */}
+              {workerCase.aiSummary && (
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-primary">psychology</span>
+                        AI Case Summary
+                      </CardTitle>
+                      <Button variant="outline" size="sm">
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Refresh
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                      {workerCase.aiSummary}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Case Overview */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary">psychology</span>
-                    AI Case Summary
+                    <span className="material-symbols-outlined text-primary">info</span>
+                    Case Overview
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                    {workerCase.aiSummary}
-                  </p>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                      <label className="text-xs text-muted-foreground">Work Status</label>
+                      <p className="text-sm font-medium">{workerCase.workStatus}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Date of Injury</label>
+                      <p className="text-sm font-medium">{workerCase.dateOfInjury}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Owner</label>
+                      <p className="text-sm font-medium">{workerCase.owner}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Due Date</label>
+                      <p className="text-sm font-medium">{workerCase.dueDate}</p>
+                    </div>
+                  </div>
+                  {workerCase.summary && (
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">Case Summary</label>
+                      <p className="text-sm mt-1">{workerCase.summary}</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
-            )}
+            </div>
+          </TabsContent>
 
-            {/* Case Details */}
+          <TabsContent value="injury" className="mt-4">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-primary">info</span>
-                  Case Details
-                </CardTitle>
+                <CardTitle>Injury Details</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Owner</label>
-                  <p className="text-sm">{workerCase.owner}</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Date of Injury</label>
+                    <p className="text-sm mt-1">{workerCase.dateOfInjury}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Company</label>
+                    <p className="text-sm mt-1">{workerCase.company}</p>
+                  </div>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Current Status</label>
-                  <p className="text-sm">{workerCase.currentStatus}</p>
+                  <p className="text-sm mt-1">{workerCase.currentStatus}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Next Step</label>
-                  <p className="text-sm">{workerCase.nextStep}</p>
+                  <label className="text-sm font-medium text-muted-foreground">Next Step Required</label>
+                  <p className="text-sm mt-1 font-medium text-primary">{workerCase.nextStep}</p>
                 </div>
-                {workerCase.summary && (
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Summary</label>
-                    <p className="text-sm">{workerCase.summary}</p>
-                  </div>
-                )}
               </CardContent>
             </Card>
+          </TabsContent>
 
-            {/* Timeline */}
+          <TabsContent value="timeline" className="mt-4">
             <TimelineCard caseId={workerCase.id} />
-          </div>
+          </TabsContent>
 
-          {/* Right Column */}
-          <div className="space-y-6">
-            {/* Recovery Chart */}
+          <TabsContent value="financial" className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Financial Information</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Financial details and cost tracking information will be displayed here.
+                </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="risk" className="mt-4">
+            <div className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Risk Assessment</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-sm text-muted-foreground">Risk Level:</span>
+                    <Badge className={riskBadgeColor(workerCase.riskLevel)}>
+                      {workerCase.riskLevel}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Risk management strategies and mitigation plans will be displayed here.
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Compliance */}
+              {workerCase.compliance && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-primary">verified</span>
+                      Compliance Status
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Badge className={riskBadgeColor(
+                        workerCase.compliance.indicator === "Very High" || workerCase.compliance.indicator === "High"
+                          ? "Low"
+                          : workerCase.compliance.indicator === "Low" || workerCase.compliance.indicator === "Very Low"
+                            ? "High"
+                            : "Medium"
+                      )}>
+                        {workerCase.compliance.indicator}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{workerCase.compliance.reason}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Source: {workerCase.compliance.source} | Last checked:{" "}
+                      {new Date(workerCase.compliance.lastChecked).toLocaleString()}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="contacts" className="mt-4">
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">Worker</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div>
+                      <p className="font-medium">{workerCase.workerName}</p>
+                      <p className="text-sm text-muted-foreground">{workerCase.company}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">Case Owner</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div>
+                      <p className="font-medium">{workerCase.owner}</p>
+                      <p className="text-sm text-muted-foreground">Case Manager</p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">Employer</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div>
+                      <p className="font-medium">{workerCase.company}</p>
+                      <p className="text-sm text-muted-foreground">Host Employer</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Attachments */}
+              {workerCase.attachments && workerCase.attachments.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-primary">attach_file</span>
+                      Attachments
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {workerCase.attachments.map((attachment: any) => (
+                        <a
+                          key={attachment.id}
+                          href={attachment.url}
+                          className="flex items-center gap-2 text-sm text-primary hover:underline"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <span className="material-symbols-outlined text-base">description</span>
+                          {attachment.name}
+                        </a>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              <div className="text-sm text-muted-foreground">
+                Additional contact details available through case manager.
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="recovery" className="mt-4">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-primary">trending_up</span>
-                  Recovery Timeline
+                  Recovery Progress
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -212,66 +384,8 @@ export default function CaseSummaryPage() {
                 />
               </CardContent>
             </Card>
-
-            {/* Compliance */}
-            {workerCase.compliance && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary">verified</span>
-                    Compliance Status
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Badge className={riskBadgeColor(
-                      workerCase.compliance.indicator === "Very High" || workerCase.compliance.indicator === "High"
-                        ? "Low"
-                        : workerCase.compliance.indicator === "Low" || workerCase.compliance.indicator === "Very Low"
-                          ? "High"
-                          : "Medium"
-                    )}>
-                      {workerCase.compliance.indicator}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground">{workerCase.compliance.reason}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Source: {workerCase.compliance.source} | Last checked:{" "}
-                    {new Date(workerCase.compliance.lastChecked).toLocaleString()}
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Attachments */}
-            {workerCase.attachments && workerCase.attachments.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary">attach_file</span>
-                    Attachments
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {workerCase.attachments.map((attachment: any) => (
-                      <a
-                        key={attachment.id}
-                        href={attachment.url}
-                        className="flex items-center gap-2 text-sm text-primary hover:underline"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <span className="material-symbols-outlined text-base">description</span>
-                        {attachment.name}
-                      </a>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </PageLayout>
   );
