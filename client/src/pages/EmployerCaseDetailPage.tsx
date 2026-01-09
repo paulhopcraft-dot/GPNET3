@@ -29,7 +29,7 @@ export default function EmployerCaseDetailPage() {
     if (!id) return;
     setLoadingSummary(true);
     try {
-      const response = await fetchWithCsrf(`/api/cases/${id}/summary/generate`, {
+      const response = await fetchWithCsrf(`/api/cases/${id}/summary`, {
         method: "POST",
       });
       if (response.ok) {
