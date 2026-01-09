@@ -11,6 +11,7 @@ import type { WorkerCase, PaginatedCasesResponse } from "@shared/schema";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { TimelineCard } from "@/components/TimelineCard";
 
 export default function EmployerCaseDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -210,25 +211,122 @@ export default function EmployerCaseDetailPage() {
         </TabsContent>
 
         <TabsContent value="timeline" className="flex-1 p-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Case Timeline</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-sm text-muted-foreground">Timeline data will be displayed here</div>
-            </CardContent>
-          </Card>
+          <TimelineCard caseId={id!} />
         </TabsContent>
 
         <TabsContent value="status" className="flex-1 p-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Current Status</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-sm text-muted-foreground">Status information will be displayed here</div>
-            </CardContent>
-          </Card>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Work Status Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary">work</span>
+                  Work Status
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Current Status</span>
+                  <Badge className={cn(
+                    workerCase.workStatus === "At work"
+                      ? "bg-emerald-100 text-emerald-800"
+                      : "bg-amber-100 text-amber-800"
+                  )}>
+                    {workerCase.workStatus}
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Employment Status</span>
+                  <Badge variant="outline">
+                    ACTIVE
+                  </Badge>
+                </div>
+                {workerCase.rtwPlanStatus && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">RTW Plan</span>
+                    <Badge variant="outline" className={cn(
+                      workerCase.rtwPlanStatus === "working_well" || workerCase.rtwPlanStatus === "in_progress"
+                        ? "border-emerald-300 text-emerald-700"
+                        : workerCase.rtwPlanStatus === "failing"
+                        ? "border-red-300 text-red-700"
+                        : "border-slate-300 text-slate-700"
+                    )}>
+                      {workerCase.rtwPlanStatus.replace(/_/g, " ")}
+                    </Badge>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Compliance Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary">verified</span>
+                  Compliance
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Compliance Level</span>
+                  <Badge className={cn(
+                    workerCase.complianceIndicator === "Very High" || workerCase.complianceIndicator === "High"
+                      ? "bg-emerald-100 text-emerald-800"
+                      : workerCase.complianceIndicator === "Medium"
+                      ? "bg-amber-100 text-amber-800"
+                      : "bg-red-100 text-red-800"
+                  )}>
+                    {workerCase.complianceIndicator}
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Certificate Status</span>
+                  <Badge variant={workerCase.hasCertificate ? "outline" : "destructive"}>
+                    {workerCase.hasCertificate ? "Valid Certificate" : "No Certificate"}
+                  </Badge>
+                </div>
+                {workerCase.compliance?.reason && (
+                  <div className="pt-2 border-t">
+                    <p className="text-xs text-muted-foreground">{workerCase.compliance.reason}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Key Dates Card */}
+            <Card className="md:col-span-2">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary">calendar_month</span>
+                  Key Dates
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Date of Injury</p>
+                    <p className="text-sm font-medium">{workerCase.dateOfInjury}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Next Step Due</p>
+                    <p className="text-sm font-medium">{workerCase.dueDate}</p>
+                  </div>
+                  {workerCase.clcLastFollowUp && (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Last Follow-up</p>
+                      <p className="text-sm font-medium">{workerCase.clcLastFollowUp}</p>
+                    </div>
+                  )}
+                  {workerCase.clcNextFollowUp && (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Next Follow-up</p>
+                      <p className="text-sm font-medium">{workerCase.clcNextFollowUp}</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="financial" className="flex-1 p-6">
@@ -254,12 +352,58 @@ export default function EmployerCaseDetailPage() {
         </TabsContent>
 
         <TabsContent value="contacts" className="flex-1 p-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Key Contacts</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-sm text-muted-foreground">Contact information will be displayed here</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Worker Card */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary">person</span>
+                  Worker
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="font-medium">{workerCase.workerName}</p>
+                <p className="text-sm text-muted-foreground mt-1">{workerCase.company}</p>
+              </CardContent>
+            </Card>
+
+            {/* Case Owner Card */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary">assignment_ind</span>
+                  Case Owner
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="font-medium">{workerCase.owner || "Unassigned"}</p>
+                <p className="text-sm text-muted-foreground mt-1">Case Manager</p>
+              </CardContent>
+            </Card>
+
+            {/* Employer Card */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary">business</span>
+                  Employer
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="font-medium">{workerCase.company}</p>
+                <p className="text-sm text-muted-foreground mt-1">Host Employer</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card className="mt-6">
+            <CardContent className="py-6">
+              <div className="text-center text-muted-foreground">
+                <span className="material-symbols-outlined text-3xl mb-2">contact_page</span>
+                <p className="text-sm">
+                  Additional contact details are available through your case management system.
+                </p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
