@@ -1576,23 +1576,7 @@ class DbStorage implements IStorage {
       }
     }
 
-    // Add case created event
-    if (workerCaseRows.length > 0) {
-      const wc = workerCaseRows[0];
-      events.push({
-        id: `case-created-${wc.id}`,
-        caseId,
-        eventType: "case_created",
-        timestamp: wc.createdAt?.toISOString() ?? new Date().toISOString(),
-        title: "Case Created",
-        description: `Worker: ${wc.workerName} | Company: ${wc.company}`,
-        metadata: { company: wc.company, workerName: wc.workerName, dateOfInjury: wc.dateOfInjury.toISOString(), initialStatus: wc.currentStatus },
-        sourceId: wc.id,
-        sourceTable: "worker_cases",
-        icon: "person_add",
-        severity: "info"
-      });
-    }
+    // Case created event removed - show only actual timeline events
 
     // Sort by timestamp descending (most recent first)
     events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());

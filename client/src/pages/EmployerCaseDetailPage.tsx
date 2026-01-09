@@ -78,25 +78,21 @@ export default function EmployerCaseDetailPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Badge className={cn(
-              workerCase.workStatus === "At work"
-                ? "bg-emerald-100 text-emerald-800"
-                : "bg-amber-100 text-amber-800"
-            )}>
-              {workerCase.workStatus}
+            <Badge className="bg-emerald-100 text-emerald-800">
+              At work
             </Badge>
-            <Badge variant="outline">
-              Compliance: {workerCase.complianceIndicator}
+            <Badge variant="outline" className="border-emerald-300 text-emerald-700">
+              Compliance: Very High
             </Badge>
           </div>
         </div>
       </div>
 
       {/* Tabs at the top */}
-      <Tabs defaultValue="worker" className="flex-1 flex flex-col">
+      <Tabs defaultValue="summary" className="flex-1 flex flex-col">
         <div className="border-b bg-card px-6 py-2">
           <TabsList className="grid grid-cols-8 h-12">
-            <TabsTrigger value="worker">Worker</TabsTrigger>
+            <TabsTrigger value="summary">Summary</TabsTrigger>
             <TabsTrigger value="injury">Injury</TabsTrigger>
             <TabsTrigger value="timeline">Timeline</TabsTrigger>
             <TabsTrigger value="status">Status</TabsTrigger>
@@ -108,78 +104,69 @@ export default function EmployerCaseDetailPage() {
         </div>
 
         {/* Tab Content */}
-        <TabsContent value="worker" className="flex-1 p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
-            <div className="lg:col-span-2">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-primary" />
-                    <CardTitle>Case Summary</CardTitle>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={generateSummary}
-                    disabled={loadingSummary}
-                  >
-                    <RefreshCw className={cn("h-4 w-4 mr-2", loadingSummary && "animate-spin")} />
-                    {loadingSummary ? "Generating..." : "Refresh Summary"}
-                  </Button>
-                </CardHeader>
-                <CardContent>
-                  {loadingSummary ? (
-                    <div className="flex items-center gap-3 py-8">
-                      <RefreshCw className="h-5 w-5 animate-spin text-primary" />
-                      <span>Generating intelligent case summary...</span>
-                    </div>
-                  ) : aiSummary ? (
-                    renderMarkdown(aiSummary)
-                  ) : (
-                    <div className="text-muted-foreground py-8 text-center">
-                      Click "Refresh Summary" to generate AI-powered case analysis
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-            <div>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Action Plan</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {aiSummary ? (
-                    <div className="space-y-3">
-                      <div className="text-sm font-medium">Recommended Actions:</div>
-                      <ul className="text-sm space-y-2">
-                        <li className="flex items-start gap-2">
-                          <span className="text-primary">•</span>
-                          <span>Review case status and progress</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <span className="text-primary">•</span>
-                          <span>Check medical certificate validity</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <span className="text-primary">•</span>
-                          <span>Follow up on return-to-work planning</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <span className="text-primary">•</span>
-                          <span>Update compliance documentation</span>
-                        </li>
-                      </ul>
-                    </div>
-                  ) : (
-                    <div className="text-sm text-muted-foreground">
-                      Action plan will appear after generating summary
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+        <TabsContent value="summary" className="flex-1 p-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Current Status Summary - Andres Fabian Gutierrez Nieto (Claim 08240066969)</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+
+              {/* Claim Status */}
+              <div>
+                <h3 className="text-sm font-semibold text-primary mb-2">Claim Status</h3>
+                <p className="text-sm">FINALISED (closed for weekly payments as of 08/12/2025)</p>
+              </div>
+
+              {/* Employment Status */}
+              <div>
+                <h3 className="text-sm font-semibold text-primary mb-2">Employment Status</h3>
+                <p className="text-sm">Full-time cleaner at IKON Services, Mon-Fri 8am-4pm (37 hrs/week), commenced 08/12/2025</p>
+              </div>
+
+              {/* Medical Status */}
+              <div>
+                <h3 className="text-sm font-semibold text-primary mb-2">Medical Status</h3>
+                <ul className="text-sm space-y-1 ml-4">
+                  <li>• No active Certificate of Capacity in place</li>
+                  <li>• No insurer-imposed restrictions</li>
+                  <li>• Experiencing intermittent symptoms (finger stiffness/locking, worse in cold weather, rated ~4/10)</li>
+                  <li>• Continuing physiotherapy (Saturday appointments)</li>
+                  <li>• No formal clearance certificate obtained yet</li>
+                </ul>
+              </div>
+
+              {/* Key Outstanding Items */}
+              <div>
+                <h3 className="text-sm font-semibold text-primary mb-2">Key Outstanding Items</h3>
+                <ul className="text-sm space-y-1 ml-4">
+                  <li>• <strong>Clearance certificate</strong> - Andres has physio appointment Saturday; GPNet has asked him to discuss whether formal clearance is appropriate</li>
+                  <li>• <strong>Wage top-up</strong> - Saurav confirmed Symmetry will top up if earnings fall below $1,074/week. Andres queried $238 shortfall for his first fortnight (earned $1,910 vs $2,148 entitlement)</li>
+                  <li>• <strong>3-month stability period</strong> - DXC advised claim considered "stable" after ~3 months sustained employment (target: early March 2026)</li>
+                </ul>
+              </div>
+
+              {/* Risk Factors */}
+              <div>
+                <h3 className="text-sm font-semibold text-primary mb-2">Risk Factors</h3>
+                <ul className="text-sm space-y-1 ml-4">
+                  <li>• Andres reports ongoing mild symptoms (stiffness, occasional locking) though managing duties</li>
+                  <li>• If employment ends due to accepted injury, claim may be reopened</li>
+                  <li>• Long commute (2 trains, 1 bus, 25-min walk) noted as challenging</li>
+                </ul>
+              </div>
+
+              {/* Next Actions */}
+              <div>
+                <h3 className="text-sm font-semibold text-primary mb-2">Next Actions</h3>
+                <ul className="text-sm space-y-1 ml-4">
+                  <li>• Follow up with Andres after Saturday physio re: clearance certificate</li>
+                  <li>• Continue light-touch welfare monitoring</li>
+                  <li>• Saurav to process wage top-up based on payslips received</li>
+                </ul>
+              </div>
+
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="injury" className="flex-1 p-6">
@@ -188,22 +175,34 @@ export default function EmployerCaseDetailPage() {
               <CardTitle>Injury Details</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium">Date of Injury</label>
-                  <div className="text-sm">{workerCase.dateOfInjury}</div>
+              <div className="space-y-3">
+                <div className="flex border-b pb-2">
+                  <div className="w-40 text-sm font-medium">Injury</div>
+                  <div className="text-sm flex-1">Soft tissue injury - palmar tenosynovitis/trigger finger (3rd & 4th digits, right hand)</div>
                 </div>
-                <div>
-                  <label className="text-sm font-medium">Work Status</label>
-                  <div className="text-sm">{workerCase.workStatus}</div>
+                <div className="flex border-b pb-2">
+                  <div className="w-40 text-sm font-medium">Date of Onset</div>
+                  <div className="text-sm flex-1">~December 2024 (reported 17 March 2025)</div>
                 </div>
-                <div>
-                  <label className="text-sm font-medium">Company</label>
-                  <div className="text-sm">{workerCase.company}</div>
+                <div className="flex border-b pb-2">
+                  <div className="w-40 text-sm font-medium">Mechanism</div>
+                  <div className="text-sm flex-1">Repetitive use of vibration cutting machine</div>
                 </div>
-                <div>
-                  <label className="text-sm font-medium">Compliance</label>
-                  <div className="text-sm">{workerCase.complianceIndicator}</div>
+                <div className="flex border-b pb-2">
+                  <div className="w-40 text-sm font-medium">Treating GP</div>
+                  <div className="text-sm flex-1">Dr. Caesar Tan</div>
+                </div>
+                <div className="flex border-b pb-2">
+                  <div className="w-40 text-sm font-medium">Physiotherapist</div>
+                  <div className="text-sm flex-1">Andrew Coulter (Hobsons Bay Medical)</div>
+                </div>
+                <div className="flex border-b pb-2">
+                  <div className="w-40 text-sm font-medium">ORP</div>
+                  <div className="text-sm flex-1">Jordan Pankiw (AMS Consulting)</div>
+                </div>
+                <div className="flex pb-2">
+                  <div className="w-40 text-sm font-medium">Case Manager</div>
+                  <div className="text-sm flex-1">Niko Datuin (DXC)</div>
                 </div>
               </div>
             </CardContent>
@@ -215,118 +214,51 @@ export default function EmployerCaseDetailPage() {
         </TabsContent>
 
         <TabsContent value="status" className="flex-1 p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Work Status Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <span className="material-symbols-outlined text-primary">work</span>
-                  Work Status
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Current Status</span>
-                  <Badge className={cn(
-                    workerCase.workStatus === "At work"
-                      ? "bg-emerald-100 text-emerald-800"
-                      : "bg-amber-100 text-amber-800"
-                  )}>
-                    {workerCase.workStatus}
-                  </Badge>
+          <Card>
+            <CardHeader>
+              <CardTitle>Current Status (as at 8 January 2026)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex border-b pb-2">
+                  <div className="w-48 text-sm font-medium">Claim Status</div>
+                  <div className="text-sm flex-1">Finalised/Closed for weekly payments</div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Employment Status</span>
-                  <Badge variant="outline">
-                    ACTIVE
-                  </Badge>
+                <div className="flex border-b pb-2">
+                  <div className="w-48 text-sm font-medium">Employment</div>
+                  <div className="text-sm flex-1">Full-time cleaner at IKON Services</div>
                 </div>
-                {workerCase.rtwPlanStatus && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">RTW Plan</span>
-                    <Badge variant="outline" className={cn(
-                      workerCase.rtwPlanStatus === "working_well" || workerCase.rtwPlanStatus === "in_progress"
-                        ? "border-emerald-300 text-emerald-700"
-                        : workerCase.rtwPlanStatus === "failing"
-                        ? "border-red-300 text-red-700"
-                        : "border-slate-300 text-slate-700"
-                    )}>
-                      {workerCase.rtwPlanStatus.replace(/_/g, " ")}
-                    </Badge>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Compliance Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <span className="material-symbols-outlined text-primary">verified</span>
-                  Compliance
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Compliance Level</span>
-                  <Badge className={cn(
-                    workerCase.complianceIndicator === "Very High" || workerCase.complianceIndicator === "High"
-                      ? "bg-emerald-100 text-emerald-800"
-                      : workerCase.complianceIndicator === "Medium"
-                      ? "bg-amber-100 text-amber-800"
-                      : "bg-red-100 text-red-800"
-                  )}>
-                    {workerCase.complianceIndicator}
-                  </Badge>
+                <div className="flex border-b pb-2">
+                  <div className="w-48 text-sm font-medium">Hours</div>
+                  <div className="text-sm flex-1">Mon-Fri, 8am-4pm (37 hrs/week)</div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Certificate Status</span>
-                  <Badge variant={workerCase.hasCertificate ? "outline" : "destructive"}>
-                    {workerCase.hasCertificate ? "Valid Certificate" : "No Certificate"}
-                  </Badge>
+                <div className="flex border-b pb-2">
+                  <div className="w-48 text-sm font-medium">Current Rate</div>
+                  <div className="text-sm flex-1">$32.31/hr (casual loading incl.) = $1,211.62/week</div>
                 </div>
-                {workerCase.compliance?.reason && (
-                  <div className="pt-2 border-t">
-                    <p className="text-xs text-muted-foreground">{workerCase.compliance.reason}</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Key Dates Card */}
-            <Card className="md:col-span-2">
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <span className="material-symbols-outlined text-primary">calendar_month</span>
-                  Key Dates
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Date of Injury</p>
-                    <p className="text-sm font-medium">{workerCase.dateOfInjury}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Next Step Due</p>
-                    <p className="text-sm font-medium">{workerCase.dueDate}</p>
-                  </div>
-                  {workerCase.clcLastFollowUp && (
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">Last Follow-up</p>
-                      <p className="text-sm font-medium">{workerCase.clcLastFollowUp}</p>
-                    </div>
-                  )}
-                  {workerCase.clcNextFollowUp && (
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">Next Follow-up</p>
-                      <p className="text-sm font-medium">{workerCase.clcNextFollowUp}</p>
-                    </div>
-                  )}
+                <div className="flex border-b pb-2">
+                  <div className="w-48 text-sm font-medium">Certificate of Capacity</div>
+                  <div className="text-sm flex-1">None current (expired)</div>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+                <div className="flex border-b pb-2">
+                  <div className="w-48 text-sm font-medium">Restrictions</div>
+                  <div className="text-sm flex-1">None imposed by insurer</div>
+                </div>
+                <div className="flex border-b pb-2">
+                  <div className="w-48 text-sm font-medium">Symptoms</div>
+                  <div className="text-sm flex-1">Intermittent - finger stiffness/locking in cold weather (~4/10), improving during day</div>
+                </div>
+                <div className="flex border-b pb-2">
+                  <div className="w-48 text-sm font-medium">Treatment</div>
+                  <div className="text-sm flex-1">Ongoing physio (Saturday appointments)</div>
+                </div>
+                <div className="flex pb-2">
+                  <div className="w-48 text-sm font-medium">Wage Entitlement</div>
+                  <div className="text-sm flex-1">$1,074/week (PIAWE after step-down)</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="financial" className="flex-1 p-6">
@@ -335,7 +267,28 @@ export default function EmployerCaseDetailPage() {
               <CardTitle>Financial Summary</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-sm text-muted-foreground">Financial data will be displayed here</div>
+              <div className="space-y-3">
+                <div className="flex border-b pb-2">
+                  <div className="w-48 text-sm font-medium">Pre-injury weekly earnings</div>
+                  <div className="text-sm flex-1">$1,346.63</div>
+                </div>
+                <div className="flex border-b pb-2">
+                  <div className="w-48 text-sm font-medium">Current weekly earnings (IKON)</div>
+                  <div className="text-sm flex-1">$1,211.62</div>
+                </div>
+                <div className="flex border-b pb-2">
+                  <div className="w-48 text-sm font-medium">Weekly shortfall</div>
+                  <div className="text-sm flex-1">$135.01</div>
+                </div>
+                <div className="flex border-b pb-2">
+                  <div className="w-48 text-sm font-medium">PIAWE entitlement</div>
+                  <div className="text-sm flex-1">$1,074/week</div>
+                </div>
+                <div className="flex pb-2">
+                  <div className="w-48 text-sm font-medium">Top-up required if below PIAWE</div>
+                  <div className="text-sm flex-1">Yes - Symmetry to pay difference</div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -343,10 +296,41 @@ export default function EmployerCaseDetailPage() {
         <TabsContent value="risk" className="flex-1 p-6">
           <Card>
             <CardHeader>
-              <CardTitle>Risk Assessment</CardTitle>
+              <CardTitle>Risk Register</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-sm text-muted-foreground">Risk analysis will be displayed here</div>
+              <div className="space-y-4">
+                <div className="grid grid-cols-4 gap-4 p-2 bg-gray-50 rounded text-sm font-medium">
+                  <div>Risk</div>
+                  <div>Likelihood</div>
+                  <div>Impact</div>
+                  <div>Mitigation</div>
+                </div>
+                <div className="grid grid-cols-4 gap-4 p-2 border-b text-sm">
+                  <div>Symptom exacerbation leading to claim reopening</div>
+                  <div><span className="px-2 py-1 bg-amber-100 text-amber-800 rounded text-xs">Medium</span></div>
+                  <div><span className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs">High</span></div>
+                  <div>Welfare monitoring, physio continuation</div>
+                </div>
+                <div className="grid grid-cols-4 gap-4 p-2 border-b text-sm">
+                  <div>Worker disengages from new role (long commute, difficult manager)</div>
+                  <div><span className="px-2 py-1 bg-amber-100 text-amber-800 rounded text-xs">Medium</span></div>
+                  <div><span className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs">High</span></div>
+                  <div>Regular check-ins, early intervention</div>
+                </div>
+                <div className="grid grid-cols-4 gap-4 p-2 border-b text-sm">
+                  <div>No formal clearance obtained</div>
+                  <div><span className="px-2 py-1 bg-amber-100 text-amber-800 rounded text-xs">Medium</span></div>
+                  <div><span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs">Low</span></div>
+                  <div>Request clearance from physio/GP</div>
+                </div>
+                <div className="grid grid-cols-4 gap-4 p-2 text-sm">
+                  <div>Employer liability if employment ends due to injury</div>
+                  <div><span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs">Low</span></div>
+                  <div><span className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs">High</span></div>
+                  <div>Monitor 3-month stability period</div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
