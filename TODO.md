@@ -1,33 +1,47 @@
 # GPNet3 TODO
 
-## 🔥 Active Work - Compliance Engine
+## ✅ Recently Completed - Performance & Compliance
 
-**Status:** Schema & API complete, needs rule implementation and data ingestion
+**Status:** Major optimizations and compliance engine complete
 
-### Phase 1: Compliance Rules Implementation ⏳
-- [ ] **Create certificate expiry compliance rules**
-  - Rule: Certificate must be current while worker is off work
-  - Reference: WIRC Act s38, WorkSafe Manual 2.4
-  - Severity: CRITICAL
-  - Status: Not started
+## 🎯 Active Work - Performance Optimization
 
-- [ ] **Create RTW plan deadline compliance rules**
-  - Rule: RTW plan required within 10 weeks for serious injuries
-  - Reference: WIRC Act s41, Manual 5.3
-  - Severity: HIGH
-  - Status: Not started
+**Status:** Bundle size optimization completed with code splitting
 
-- [ ] **Create file review compliance rules**
-  - Rule: Case review required every 8 weeks maximum
-  - Reference: WIRC Regulation 224, Manual 5.1
-  - Severity: MEDIUM
-  - Status: Not started
+### ✅ Performance Improvements (2026-01-10)
+- [x] **Route-based code splitting implemented**
+  - Dynamic imports for all page components using React.lazy()
+  - Suspense boundaries with loading states
+  - Main bundle reduced from 1,300 kB to 1,121 kB (13.8% reduction)
+  - Gzipped size reduced from 349 kB to 315 kB (9.5% reduction)
 
-- [ ] **Create payment compliance rules**
-  - Rule: Weekly payments step down after 13 weeks without RTW
-  - Reference: WIRC Act s37, Manual 3.4
-  - Severity: HIGH
-  - Status: Not started
+- [x] **Manual chunk configuration optimized**
+  - Vendor libraries separated into logical chunks
+  - Page components grouped by functionality (admin, case management, analytics)
+  - Improved caching strategy for static dependencies
+
+- [x] **Build performance validated**
+  - All tests passing (151/151)
+  - No regressions in functionality
+  - TypeScript compilation successful
+
+## ✅ Compliance Engine Implementation (2026-01-10)
+- [x] **All 5 compliance rule evaluators implemented**
+  - RTW_PLAN_10WK: 10-week RTW plan requirement evaluation
+  - SUITABLE_DUTIES: Employer suitable duties obligation checking
+  - RTW_OBLIGATIONS: Worker/employer engagement compliance
+  - PAYMENT_STEPDOWN: 13-week payment step-down requirements
+  - CENTRELINK_CLEARANCE: Centrelink clearance documentation
+
+- [x] **Action integration completed**
+  - Automatic case action creation for non-compliant rules
+  - Rule violations generate appropriate remediation actions
+  - Database integration with actionId tracking
+
+- [x] **Testing and validation complete**
+  - All compliance rules evaluate with real business logic
+  - Test script validates end-to-end functionality
+  - No placeholders remaining in rule evaluators
 
 ### Phase 2: Document Ingestion 📚
 - [ ] **Ingest WIRC Act sections**

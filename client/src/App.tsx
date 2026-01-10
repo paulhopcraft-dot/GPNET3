@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, Suspense, lazy } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient, initializeCsrf } from "./lib/queryClient";
@@ -8,29 +8,39 @@ import { ThemeProvider } from "./components/theme-provider";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AdminRoute } from "./components/AdminRoute";
-import { AdminLayout } from "./components/admin/AdminLayout";
-import GPNet2Dashboard from "./pages/GPNet2Dashboard";
+
+// Loading component
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+  </div>
+);
+
+// Core components that are needed immediately (keep static imports)
 import { RoleBasedDashboard } from "./components/RoleBasedDashboard";
 import LoginPage from "./pages/LoginPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
-import SessionsPage from "./pages/SessionsPage";
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import CompanyList from "./pages/admin/CompanyList";
-import CompanyForm from "./pages/admin/CompanyForm";
-import CompanySettings from "./pages/CompanySettings";
-import CasesPage from "./pages/CasesPage";
-import CaseSummaryPage from "./pages/CaseSummaryPage";
-import NewClaimPage from "./pages/NewClaimPage";
-import RTWPlannerPage from "./pages/RTWPlannerPage";
-import CheckInsPage from "./pages/CheckInsPage";
-import FinancialsPage from "./pages/FinancialsPage";
-import PredictionsPage from "./pages/PredictionsPage";
-import RiskDashboardPage from "./pages/RiskDashboardPage";
-import AuditLogPage from "./pages/AuditLogPage";
-import CertificateReviewPage from "./pages/CertificateReviewPage";
-import ReportsPage from "./pages/ReportsPage";
-import EmployerCaseDetailPage from "./pages/EmployerCaseDetailPage";
+
+// Dynamic imports for route-based code splitting
+const AdminLayout = lazy(() => import("./components/admin/AdminLayout").then(m => ({ default: m.AdminLayout })));
+const SessionsPage = lazy(() => import("./pages/SessionsPage"));
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const CompanyList = lazy(() => import("./pages/admin/CompanyList"));
+const CompanyForm = lazy(() => import("./pages/admin/CompanyForm"));
+const CompanySettings = lazy(() => import("./pages/CompanySettings"));
+const CasesPage = lazy(() => import("./pages/CasesPage"));
+const CaseSummaryPage = lazy(() => import("./pages/CaseSummaryPage"));
+const NewClaimPage = lazy(() => import("./pages/NewClaimPage"));
+const RTWPlannerPage = lazy(() => import("./pages/RTWPlannerPage"));
+const CheckInsPage = lazy(() => import("./pages/CheckInsPage"));
+const FinancialsPage = lazy(() => import("./pages/FinancialsPage"));
+const PredictionsPage = lazy(() => import("./pages/PredictionsPage"));
+const RiskDashboardPage = lazy(() => import("./pages/RiskDashboardPage"));
+const AuditLogPage = lazy(() => import("./pages/AuditLogPage"));
+const CertificateReviewPage = lazy(() => import("./pages/CertificateReviewPage"));
+const ReportsPage = lazy(() => import("./pages/ReportsPage"));
+const EmployerCaseDetailPage = lazy(() => import("./pages/EmployerCaseDetailPage"));
 
 export default function App() {
   // Initialize CSRF token on app mount
@@ -44,145 +54,211 @@ export default function App() {
         <TooltipProvider>
           <ThemeProvider defaultTheme="light">
             <AuthProvider>
-              <Routes>
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                <Route path="/reset-password" element={<ResetPasswordPage />} />
-                <Route
-                  path="/"
-                  element={
-                    <ProtectedRoute>
-                      <RoleBasedDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/settings"
-                  element={
-                    <ProtectedRoute>
-                      <CompanySettings />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/sessions"
-                  element={
-                    <ProtectedRoute>
-                      <SessionsPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/cases"
-                  element={
-                    <ProtectedRoute>
-                      <CasesPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/summary/:id"
-                  element={
-                    <ProtectedRoute>
-                      <CaseSummaryPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/employer/case/:id"
-                  element={
-                    <ProtectedRoute>
-                      <EmployerCaseDetailPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/claims/new"
-                  element={
-                    <ProtectedRoute>
-                      <NewClaimPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/rtw-planner"
-                  element={
-                    <ProtectedRoute>
-                      <RTWPlannerPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/checkins"
-                  element={
-                    <ProtectedRoute>
-                      <CheckInsPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/financials"
-                  element={
-                    <ProtectedRoute>
-                      <FinancialsPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/predictions"
-                  element={
-                    <ProtectedRoute>
-                      <PredictionsPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/risk"
-                  element={
-                    <ProtectedRoute>
-                      <RiskDashboardPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/audit"
-                  element={
-                    <ProtectedRoute>
-                      <AuditLogPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/certificates/review"
-                  element={
-                    <ProtectedRoute>
-                      <CertificateReviewPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/reports"
-                  element={
-                    <ProtectedRoute>
-                      <ReportsPage />
-                    </ProtectedRoute>
-                  }
-                />
-                {/* Admin Routes */}
-                <Route
-                  path="/admin"
-                  element={
-                    <AdminRoute>
-                      <AdminLayout />
-                    </AdminRoute>
-                  }
-                >
-                  <Route index element={<AdminDashboard />} />
-                  <Route path="companies" element={<CompanyList />} />
-                  <Route path="companies/new" element={<CompanyForm />} />
-                  <Route path="companies/:id" element={<CompanyForm />} />
-                </Route>
-              </Routes>
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  {/* Authentication routes - no lazy loading needed */}
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                  <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+                  {/* Main dashboard - immediate load */}
+                  <Route
+                    path="/"
+                    element={
+                      <ProtectedRoute>
+                        <RoleBasedDashboard />
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  {/* Lazy-loaded routes */}
+                  <Route
+                    path="/settings"
+                    element={
+                      <ProtectedRoute>
+                        <Suspense fallback={<PageLoader />}>
+                          <CompanySettings />
+                        </Suspense>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/sessions"
+                    element={
+                      <ProtectedRoute>
+                        <Suspense fallback={<PageLoader />}>
+                          <SessionsPage />
+                        </Suspense>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/cases"
+                    element={
+                      <ProtectedRoute>
+                        <Suspense fallback={<PageLoader />}>
+                          <CasesPage />
+                        </Suspense>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/summary/:id"
+                    element={
+                      <ProtectedRoute>
+                        <Suspense fallback={<PageLoader />}>
+                          <CaseSummaryPage />
+                        </Suspense>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/employer/case/:id"
+                    element={
+                      <ProtectedRoute>
+                        <Suspense fallback={<PageLoader />}>
+                          <EmployerCaseDetailPage />
+                        </Suspense>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/claims/new"
+                    element={
+                      <ProtectedRoute>
+                        <Suspense fallback={<PageLoader />}>
+                          <NewClaimPage />
+                        </Suspense>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/rtw-planner"
+                    element={
+                      <ProtectedRoute>
+                        <Suspense fallback={<PageLoader />}>
+                          <RTWPlannerPage />
+                        </Suspense>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/checkins"
+                    element={
+                      <ProtectedRoute>
+                        <Suspense fallback={<PageLoader />}>
+                          <CheckInsPage />
+                        </Suspense>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/financials"
+                    element={
+                      <ProtectedRoute>
+                        <Suspense fallback={<PageLoader />}>
+                          <FinancialsPage />
+                        </Suspense>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/predictions"
+                    element={
+                      <ProtectedRoute>
+                        <Suspense fallback={<PageLoader />}>
+                          <PredictionsPage />
+                        </Suspense>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/risk"
+                    element={
+                      <ProtectedRoute>
+                        <Suspense fallback={<PageLoader />}>
+                          <RiskDashboardPage />
+                        </Suspense>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/audit"
+                    element={
+                      <ProtectedRoute>
+                        <Suspense fallback={<PageLoader />}>
+                          <AuditLogPage />
+                        </Suspense>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/certificates/review"
+                    element={
+                      <ProtectedRoute>
+                        <Suspense fallback={<PageLoader />}>
+                          <CertificateReviewPage />
+                        </Suspense>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/reports"
+                    element={
+                      <ProtectedRoute>
+                        <Suspense fallback={<PageLoader />}>
+                          <ReportsPage />
+                        </Suspense>
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  {/* Admin Routes */}
+                  <Route
+                    path="/admin"
+                    element={
+                      <AdminRoute>
+                        <Suspense fallback={<PageLoader />}>
+                          <AdminLayout />
+                        </Suspense>
+                      </AdminRoute>
+                    }
+                  >
+                    <Route
+                      index
+                      element={
+                        <Suspense fallback={<PageLoader />}>
+                          <AdminDashboard />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="companies"
+                      element={
+                        <Suspense fallback={<PageLoader />}>
+                          <CompanyList />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="companies/new"
+                      element={
+                        <Suspense fallback={<PageLoader />}>
+                          <CompanyForm />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="companies/:id"
+                      element={
+                        <Suspense fallback={<PageLoader />}>
+                          <CompanyForm />
+                        </Suspense>
+                      }
+                    />
+                  </Route>
+                </Routes>
+              </Suspense>
               <Toaster />
             </AuthProvider>
           </ThemeProvider>
