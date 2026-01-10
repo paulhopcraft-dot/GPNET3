@@ -89,6 +89,7 @@ After completing ANY task, run `/status` to:
 | Starting a session | `/status` |
 | What should I work on? | `/continue` |
 | Before committing | `/review` |
+| Check module quality | `/eval` |
 | Ending session | `/handoff` |
 | 3+ similar tasks | `/autonomous` |
 | New function/class | `/tdd` |
@@ -104,6 +105,7 @@ After completing ANY task, run `/status` to:
 | Forgot something | `/recall` |
 | View/edit settings | `/config` |
 | Daily AI news | `/morning-brief` |
+| Setup Context7 MCP | `/setup-context7` |
 
 Run `/help` for full list.
 

@@ -1,0 +1,29 @@
+{
+  "name": "dev-browser-skill",
+  "version": "1.0.0",
+  "description": "Browser testing skill for AI agents",
+  "main": "browser-test.js",
+  "bin": {
+    "browser-test": "./browser-test.js"
+  },
+  "scripts": {
+    "test": "node browser-test.js --help"
+  },
+  "dependencies": {
+    "puppeteer": "^21.0.0",
+    "commander": "^11.0.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "keywords": [
+    "browser",
+    "testing",
+    "automation",
+    "puppeteer",
+    "ralph",
+    "ai-agent"
+  ],
+  "author": "Claude Code Toolkit",
+  "license": "MIT"
+}

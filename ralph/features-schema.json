@@ -1,0 +1,235 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Enhanced Features Schema for Ralph Autonomous Execution",
+  "description": "Extended features.json schema with user stories and browser verification support",
+  "type": "object",
+  "properties": {
+    "features": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique feature identifier"
+          },
+          "name": {
+            "type": "string",
+            "description": "Feature name"
+          },
+          "description": {
+            "type": "string",
+            "description": "Feature description"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "in_progress", "completed", "blocked"],
+            "description": "Overall feature status"
+          },
+          "priority": {
+            "type": "string",
+            "enum": ["low", "medium", "high", "critical"],
+            "description": "Feature priority level"
+          },
+          "userStories": {
+            "type": "array",
+            "description": "User stories for Ralph autonomous execution",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Unique story identifier"
+                },
+                "story": {
+                  "type": "string",
+                  "description": "User story in 'As a [user], I want [goal] so that [reason]' format"
+                },
+                "acceptanceCriteria": {
+                  "type": "array",
+                  "description": "Browser-verifiable acceptance criteria",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^(browser_verify:|manual_verify:|test_verify:)\\s+.+",
+                    "description": "Must start with verification type (browser_verify, manual_verify, test_verify)"
+                  },
+                  "minItems": 1
+                },
+                "prerequisites": {
+                  "type": "array",
+                  "description": "Dependencies that must exist before Ralph starts this story",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "rollbackProcedure": {
+                  "type": "string",
+                  "description": "How to undo this story if it fails"
+                },
+                "edgeCases": {
+                  "type": "array",
+                  "description": "Edge cases and how to handle them",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "scenario": {
+                        "type": "string",
+                        "description": "Edge case scenario"
+                      },
+                      "handling": {
+                        "type": "string",
+                        "description": "How Ralph should handle this case"
+                      }
+                    },
+                    "required": ["scenario", "handling"]
+                  }
+                },
+                "estimatedMinutes": {
+                  "type": "number",
+                  "maximum": 30,
+                  "description": "Estimated time for Ralph to complete (max 30 minutes)"
+                },
+                "passes": {
+                  "type": "boolean",
+                  "description": "Whether this story passes all acceptance criteria"
+                },
+                "attempts": {
+                  "type": "array",
+                  "description": "Ralph execution attempts for this story",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "timestamp": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "success": {
+                        "type": "boolean"
+                      },
+                      "browserResults": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "criterion": {
+                              "type": "string"
+                            },
+                            "passed": {
+                              "type": "boolean"
+                            },
+                            "error": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      },
+                      "notes": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["timestamp", "success"]
+                  }
+                }
+              },
+              "required": ["id", "story", "acceptanceCriteria", "rollbackProcedure", "passes"]
+            }
+          },
+          "integrationTests": {
+            "type": "array",
+            "description": "Tests Ralph should run after completing user stories",
+            "items": {
+              "type": "string"
+            }
+          },
+          "completeRollback": {
+            "type": "string",
+            "description": "How to rollback the entire feature if needed"
+          },
+          "environmentRequirements": {
+            "type": "object",
+            "description": "Environment setup required for this feature",
+            "properties": {
+              "services": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Services that must be running (e.g., database, redis)"
+              },
+              "envVars": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Environment variables that must be set"
+              },
+              "ports": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "description": "Ports that must be available"
+              }
+            }
+          }
+        },
+        "required": ["id", "name", "status", "userStories"]
+      }
+    },
+    "ralphConfig": {
+      "type": "object",
+      "description": "Ralph execution configuration",
+      "properties": {
+        "maxIterations": {
+          "type": "number",
+          "default": 10,
+          "description": "Maximum iterations Ralph will attempt"
+        },
+        "serverUrl": {
+          "type": "string",
+          "default": "http://localhost:3000",
+          "description": "URL for browser verification"
+        },
+        "browserTimeout": {
+          "type": "number",
+          "default": 30000,
+          "description": "Browser operation timeout in milliseconds"
+        },
+        "rollbackOnFailure": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether Ralph should auto-rollback on failure"
+        },
+        "commitEachStory": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to commit after each successful story"
+        }
+      }
+    },
+    "ralphApproval": {
+      "type": "object",
+      "description": "PRD approval status for Ralph execution",
+      "properties": {
+        "approved": {
+          "type": "boolean",
+          "description": "Whether this PRD is approved for Ralph execution"
+        },
+        "approvedBy": {
+          "type": "string",
+          "description": "Who approved the PRD"
+        },
+        "approvedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the PRD was approved"
+        },
+        "validationResults": {
+          "type": "object",
+          "description": "Results of PRD hardening validation"
+        }
+      }
+    }
+  },
+  "required": ["features"]
+}
