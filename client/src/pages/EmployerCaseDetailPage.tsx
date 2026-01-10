@@ -20,10 +20,10 @@ export default function EmployerCaseDetailPage() {
   const [aiSummary, setAiSummary] = useState<string | null>(null);
 
   // Fetch case data
-  const { data: paginatedData } = useQuery<PaginatedCasesResponse>({
-    queryKey: ["/api/gpnet2/cases"],
+  const { data: workerCase, isLoading, error } = useQuery<WorkerCase>({
+    queryKey: [`/api/cases/${id}`],
+    enabled: !!id, // Only run query if id is available
   });
-  const workerCase = paginatedData?.cases?.find(c => c.id === id);
 
   const generateSummary = async () => {
     if (!id) return;
@@ -51,10 +51,26 @@ export default function EmployerCaseDetailPage() {
     </div>
   );
 
-  if (!workerCase) {
+  if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-lg">Loading case details...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-lg text-red-600">Error loading case details. Please try again.</div>
+      </div>
+    );
+  }
+
+  if (!workerCase) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-lg">Case not found.</div>
       </div>
     );
   }
@@ -78,11 +94,23 @@ export default function EmployerCaseDetailPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Badge className="bg-emerald-100 text-emerald-800">
-              At work
+            <Badge className={cn(
+              "font-medium",
+              workerCase.workStatus === "At work"
+                ? "bg-emerald-100 text-emerald-800"
+                : "bg-orange-100 text-orange-800"
+            )}>
+              {workerCase.workStatus}
             </Badge>
-            <Badge variant="outline" className="border-emerald-300 text-emerald-700">
-              Compliance: Very High
+            <Badge variant="outline" className={cn(
+              "border-2",
+              workerCase.complianceIndicator === "Very High" || workerCase.complianceIndicator === "High"
+                ? "border-emerald-300 text-emerald-700"
+                : workerCase.complianceIndicator === "Medium"
+                ? "border-yellow-300 text-yellow-700"
+                : "border-red-300 text-red-700"
+            )}>
+              Compliance: {workerCase.complianceIndicator}
             </Badge>
           </div>
         </div>

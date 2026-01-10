@@ -773,6 +773,34 @@ Example next steps based on case status:
     }
   });
 
+  // Get single case details by ID
+  app.get("/api/cases/:id", authorize(), requireCaseOwnership(), async (req: AuthRequest, res) => {
+    try {
+      const workerCase = req.workerCase!; // Populated by requireCaseOwnership middleware
+
+      // Log access
+      await logAuditEvent({
+        userId: req.user!.id,
+        organizationId: req.user!.organizationId,
+        eventType: AuditEventTypes.CASE_VIEW,
+        metadata: {
+          caseId: workerCase.id,
+          workerName: workerCase.workerName,
+          company: workerCase.company,
+        },
+        ...getRequestMetadata(req),
+      });
+
+      res.json(workerCase);
+    } catch (error) {
+      routeLogger.error("Error fetching case details", { caseId: req.params.id }, error);
+      res.status(500).json({
+        error: "Failed to fetch case details",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // Evaluate a single case against compliance rules
   app.get("/api/cases/:id/compliance/evaluate", authorize(), requireCaseOwnership(), async (req: AuthRequest, res) => {
     try {
