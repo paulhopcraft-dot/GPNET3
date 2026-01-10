@@ -138,6 +138,12 @@ export interface CaseClinicalStatus {
   specialistReportSummary?: SpecialistReportSummary;
   treatmentPlan?: TreatmentPlan;
   treatmentPlanHistory?: TreatmentPlan[];
+
+  // Compliance rule support fields
+  centrelinkClearance?: boolean;
+  suitableDutiesOffered?: boolean;
+  suitableDutiesDate?: string;
+  cooperationFlags?: string[];
 }
 
 export type DutySafetyStatus = "safe" | "unsafe" | "unknown";
