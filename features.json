@@ -1,0 +1,147 @@
+{
+  "version": "3.0.0",
+  "project": "Preventli Treatment Tab Integration",
+  "description": "Replace Recovery tab with comprehensive Treatment tab for enhanced clinical oversight",
+  "features": [
+    {
+      "id": "treatment-tab-integration",
+      "name": "Treatment Tab with Recovery Integration",
+      "description": "Replace Recovery tab with comprehensive Treatment tab showing latest treatment plan, diagnosis, and recovery graph for enhanced clinical oversight",
+      "priority": "high",
+      "status": "completed",
+      "estimatedTotalMinutes": 95,
+      "prerequisites": [
+        "Treatment plan service exists and is functional",
+        "Recovery estimator service provides graph data",
+        "Employer case detail page tabs are working",
+        "Medical certificate tracking is available"
+      ],
+      "userStories": [
+        {
+          "id": "remove-recovery-tab",
+          "story": "As a case manager, I want the standalone Recovery tab removed so that recovery information is consolidated into the Treatment tab",
+          "acceptanceCriteria": [
+            "browser_verify: not-exists [data-value='recovery']",
+            "browser_verify: text .tab-list not-contains 'Recovery'",
+            "browser_verify: exists [data-value='treatment']",
+            "browser_verify: text .tab-list contains 'Treatment'"
+          ],
+          "prerequisites": [
+            "Current employer case detail page is accessible",
+            "Tab structure is working correctly"
+          ],
+          "implementation": "Remove Recovery tab from EmployerCaseDetailPage.tsx and replace with Treatment tab in tab list",
+          "rollbackProcedure": "Restore Recovery tab and remove Treatment tab reference",
+          "estimatedMinutes": 15,
+          "passes": true
+        },
+        {
+          "id": "treatment-plan-display",
+          "story": "As a case manager, I can view the latest treatment plan in the Treatment tab so that I understand the current clinical approach",
+          "acceptanceCriteria": [
+            "browser_verify: click [data-value='treatment']",
+            "browser_verify: exists .treatment-plan-section",
+            "browser_verify: text .treatment-plan-title contains 'Current Treatment Plan'",
+            "browser_verify: exists .treatment-plan-details",
+            "browser_verify: text .treatment-plan-status exists",
+            "browser_verify: text .treatment-plan-provider exists"
+          ],
+          "prerequisites": [
+            "Treatment plan API endpoint returns current plan data",
+            "Treatment plan service is functional",
+            "API endpoint /api/cases/:id/treatment-plan exists"
+          ],
+          "implementation": "Create TreatmentPlanCard component that fetches and displays current treatment plan with provider details, plan status, and key interventions",
+          "rollbackProcedure": "Remove TreatmentPlanCard component and API integration",
+          "estimatedMinutes": 30,
+          "passes": true,
+          "edgeCases": [
+            {
+              "scenario": "No active treatment plan exists",
+              "handling": "Display 'No active treatment plan' with option to create one"
+            },
+            {
+              "scenario": "Treatment plan API fails",
+              "handling": "Show error state with retry option"
+            }
+          ]
+        },
+        {
+          "id": "diagnosis-display",
+          "story": "As a case manager, I can view the current diagnosis information in the Treatment tab so that I understand the medical context",
+          "acceptanceCriteria": [
+            "browser_verify: exists .diagnosis-section",
+            "browser_verify: text .primary-diagnosis exists",
+            "browser_verify: text .secondary-diagnoses exists",
+            "browser_verify: text .diagnosis-date exists",
+            "browser_verify: exists .diagnostic-provider"
+          ],
+          "prerequisites": [
+            "Medical certificate data includes diagnosis information",
+            "Case data structure includes diagnosis fields",
+            "Medical provider information is available"
+          ],
+          "implementation": "Create DiagnosisCard component that extracts and displays diagnosis from medical certificates and case data",
+          "rollbackProcedure": "Remove DiagnosisCard component",
+          "estimatedMinutes": 25,
+          "passes": true
+        },
+        {
+          "id": "recovery-graph-integration",
+          "story": "As a case manager, I can view the recovery progress graph within the Treatment tab so that I can see medical progress alongside treatment plans",
+          "acceptanceCriteria": [
+            "browser_verify: exists .recovery-graph-section",
+            "browser_verify: exists .recovery-timeline-chart",
+            "browser_verify: text .recovery-graph-title contains 'Recovery Progress'",
+            "browser_verify: exists .recovery-milestones",
+            "browser_verify: exists .projected-rtw-date"
+          ],
+          "prerequisites": [
+            "Recovery estimator service provides graph data",
+            "Existing recovery graph component can be reused",
+            "Recovery timeline data is available from API"
+          ],
+          "implementation": "Move existing recovery graph component from Recovery tab into Treatment tab layout, ensuring proper responsive design",
+          "rollbackProcedure": "Move recovery graph back to standalone Recovery tab",
+          "estimatedMinutes": 20,
+          "passes": true
+        },
+        {
+          "id": "treatment-tab-layout",
+          "story": "As a case manager, I can see all treatment information in a well-organized layout so that I can quickly assess medical status",
+          "acceptanceCriteria": [
+            "browser_verify: exists .treatment-tab-container",
+            "browser_verify: exists .treatment-left-column",
+            "browser_verify: exists .treatment-right-column",
+            "browser_verify: class .treatment-tab-container contains 'grid'",
+            "browser_verify: class .treatment-left-column contains 'lg:col-span-2'",
+            "browser_verify: class .treatment-right-column contains 'lg:col-span-1'"
+          ],
+          "prerequisites": [
+            "All treatment components are created",
+            "Responsive grid layout system is available",
+            "Tailwind CSS classes are working"
+          ],
+          "implementation": "Create responsive grid layout with treatment plan and diagnosis on left (2/3 width), recovery graph on right (1/3 width) for optimal information hierarchy",
+          "rollbackProcedure": "Remove treatment tab layout structure",
+          "estimatedMinutes": 15,
+          "passes": true
+        }
+      ],
+      "integrationTests": [
+        "npm test -- treatment-tab",
+        "npm run test:e2e -- treatment-integration",
+        "curl http://localhost:5000/api/cases/test-case/treatment-plan"
+      ],
+      "completeRollback": "Restore Recovery tab, remove Treatment tab, remove all treatment components"
+    }
+  ],
+  "ralphConfig": {
+    "maxIterations": 10,
+    "serverUrl": "http://localhost:5173",
+    "browserTimeout": 30000,
+    "rollbackOnFailure": true,
+    "commitEachStory": true,
+    "pauseBetweenStories": 5000
+  }
+}

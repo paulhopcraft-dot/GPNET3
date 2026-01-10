@@ -98,7 +98,7 @@ export default function EmployerCaseDetailPage() {
             <TabsTrigger value="financial">Financial</TabsTrigger>
             <TabsTrigger value="risk">Risk</TabsTrigger>
             <TabsTrigger value="contacts">Contacts</TabsTrigger>
-            <TabsTrigger value="recovery">Recovery</TabsTrigger>
+            <TabsTrigger value="treatment">Treatment</TabsTrigger>
           </TabsList>
         </div>
 
@@ -480,24 +480,100 @@ export default function EmployerCaseDetailPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="recovery" className="flex-1 p-6">
-          <div className="space-y-6">
-            {/* Recovery Timeline Header */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-primary">timeline</span>
-                  Recovery Planning Timeline
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="mb-6">
-                  <div className="text-sm text-muted-foreground mb-2">Injury Date: March 19, 2025 → Current Status: Return to Work Achieved</div>
-                  <div className="text-sm font-medium text-emerald-600">Duration: 9 months, 2 weeks</div>
-                </div>
+        <TabsContent value="treatment" className="flex-1 p-6">
+          <div className="treatment-tab-container grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
+            {/* Left Column - Treatment Plan and Diagnosis */}
+            <div className="treatment-left-column lg:col-span-2 space-y-6">
+              {/* Treatment Plan Section */}
+              <Card className="treatment-plan-section">
+                <CardHeader>
+                  <CardTitle className="treatment-plan-title flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary">medical_services</span>
+                    Current Treatment Plan
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="treatment-plan-details">
+                  <div className="treatment-plan-status mb-4">
+                    <div className="text-sm font-medium text-emerald-600">Status: Active</div>
+                    <div className="text-sm text-muted-foreground treatment-plan-provider">Provider: Dr. Sarah Mitchell, Occupational Medicine</div>
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <h4 className="text-sm font-semibold text-primary mb-1">Current Interventions</h4>
+                      <ul className="text-sm space-y-1 ml-4">
+                        <li>• Physiotherapy - 2x weekly sessions (saturdays)</li>
+                        <li>• Heat therapy for finger stiffness</li>
+                        <li>• Graduated work hardening program</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-semibold text-primary mb-1">Treatment Goals</h4>
+                      <ul className="text-sm space-y-1 ml-4">
+                        <li>• Restore full finger flexibility and strength</li>
+                        <li>• Return to pre-injury work capacity (100%)</li>
+                        <li>• Pain management in cold weather conditions</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-semibold text-primary mb-1">Next Review</h4>
+                      <p className="text-sm">Scheduled for January 15, 2026 - Progress assessment and capacity review</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Diagnosis Section */}
+              <Card className="diagnosis-section">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary">diagnosis</span>
+                    Medical Diagnosis
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="text-sm font-semibold text-primary mb-2 primary-diagnosis">Primary Diagnosis</h4>
+                      <p className="text-sm">Trigger finger (stenosing tenosynovitis) - right index finger</p>
+                      <p className="text-sm text-muted-foreground diagnosis-date">Diagnosed: March 20, 2025</p>
+                      <p className="text-sm text-muted-foreground diagnostic-provider">By: Dr. James Rodriguez, Hand Specialist</p>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-semibold text-primary mb-2 secondary-diagnoses">Secondary Conditions</h4>
+                      <ul className="text-sm space-y-1">
+                        <li>• Cold weather sensitivity (developed post-injury)</li>
+                        <li>• Mild compensatory strain in adjacent fingers</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-semibold text-primary mb-2">Mechanism of Injury</h4>
+                      <p className="text-sm">Repetitive gripping motion while cleaning - industrial cleaning equipment operation</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Right Column - Recovery Graph */}
+            <div className="treatment-right-column lg:col-span-1">
+              <Card className="recovery-graph-section h-full">
+                <CardHeader>
+                  <CardTitle className="recovery-graph-title flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary">timeline</span>
+                    Recovery Progress
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="mb-6">
+                    <div className="text-sm text-muted-foreground mb-2">Injury Date: March 19, 2025 → Current Status: Return to Work Achieved</div>
+                    <div className="text-sm font-medium text-emerald-600">Duration: 9 months, 2 weeks</div>
+                    <div className="recovery-milestones mt-2">
+                      <div className="projected-rtw-date text-sm text-blue-600">Projected RTW: January 2026</div>
+                    </div>
+                  </div>
 
                 {/* Recovery Timeline Graph - Estimated vs Actual */}
-                <div className="mb-8 p-4 bg-gray-50 rounded-lg">
+                <div className="mb-8 p-4 bg-gray-50 rounded-lg recovery-timeline-chart">
                   <h3 className="font-semibold mb-4">Recovery Timeline: Estimated vs Actual (Based on Medical Certificates)</h3>
 
                   {/* Graph Container */}
@@ -839,6 +915,7 @@ export default function EmployerCaseDetailPage() {
                 </div>
               </CardContent>
             </Card>
+          </div>
           </div>
         </TabsContent>
       </Tabs>
