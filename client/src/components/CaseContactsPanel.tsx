@@ -508,7 +508,7 @@ export function CaseContactsPanel({
           setFormData(initialFormData);
         }
       }}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>
               {showEditDialog ? "Edit Contact" : "Add New Contact"}
@@ -520,6 +520,7 @@ export function CaseContactsPanel({
             </DialogDescription>
           </DialogHeader>
 
+          <ScrollArea className="flex-1 max-h-[55vh] pr-4">
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="role">Role</Label>
@@ -606,6 +607,7 @@ export function CaseContactsPanel({
               </Label>
             </div>
           </div>
+          </ScrollArea>
 
           <DialogFooter>
             <Button
