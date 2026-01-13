@@ -55,6 +55,10 @@ export const AuditEventTypes = {
 
   // Authorization - CRITICAL for security monitoring
   ACCESS_DENIED: "access.denied",
+
+  // Compliance dashboard
+  COMPLIANCE_DASHBOARD_VIEW: "compliance.dashboard.view",
+  COMPLIANCE_DASHBOARD_ERROR: "compliance.dashboard.error",
 } as const;
 
 export type AuditEventType = typeof AuditEventTypes[keyof typeof AuditEventTypes];

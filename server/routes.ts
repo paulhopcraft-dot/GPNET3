@@ -28,6 +28,7 @@ import { registerTimelineRoutes } from "./routes/timeline";
 import { registerTreatmentPlanRoutes } from "./routes/treatmentPlan";
 import contactRoutes from "./routes/contacts";
 import { employerDashboardRouter } from "./routes/employer-dashboard";
+import complianceDashboardRouter from "./routes/compliance-dashboard";
 import type { RecoveryTimelineSummary } from "@shared/schema";
 import { evaluateClinicalEvidence } from "./services/clinicalEvidence";
 import { authorize, type AuthRequest } from "./middleware/auth";
@@ -90,6 +91,9 @@ export async function registerRoutes(app: Express): Promise<void> {
 
   // Employer Dashboard routes (JWT-protected)
   app.use("/api/employer", employerDashboardRouter);
+
+  // Compliance Dashboard routes (JWT-protected)
+  app.use("/api/compliance/dashboard", complianceDashboardRouter);
 
   // Notification Engine v1 routes (JWT-protected, admin)
   app.use("/api/notifications", notificationRoutes);
