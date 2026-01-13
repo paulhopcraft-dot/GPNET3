@@ -1884,7 +1884,8 @@ class DbStorage implements IStorage {
       .where(and(
         eq(caseActions.status, "pending"),
         lte(caseActions.dueDate, now),
-        eq(workerCases.organizationId, organizationId)
+        eq(workerCases.organizationId, organizationId),
+        ne(workerCases.caseStatus, "closed")
       ))
       .orderBy(asc(caseActions.dueDate))
       .limit(limit);
