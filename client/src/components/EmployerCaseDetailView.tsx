@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Sparkles, X, RefreshCw } from "lucide-react";
 import { CaseActionPlanCard } from "./CaseActionPlanCard";
 import { RecoveryChart } from "./RecoveryChart";
+import { ComplianceReportCard } from "./ComplianceReportCard";
 import { fetchWithCsrf } from "../lib/queryClient";
 import type { WorkerCase, CaseAction } from "@shared/schema";
 import { cn } from "@/lib/utils";
@@ -266,7 +267,7 @@ export function EmployerCaseDetailView({ workerCase, onClose }: EmployerCaseDeta
                         </div>
                       ) : aiSummary ? (
                         <Tabs defaultValue="summary" className="w-full">
-                          <TabsList className="grid w-full grid-cols-7">
+                          <TabsList className="grid w-full grid-cols-8">
                             <TabsTrigger value="summary">Summary</TabsTrigger>
                             <TabsTrigger value="injury">Injury</TabsTrigger>
                             <TabsTrigger value="timeline">Timeline</TabsTrigger>
@@ -274,6 +275,7 @@ export function EmployerCaseDetailView({ workerCase, onClose }: EmployerCaseDeta
                             <TabsTrigger value="risk">Risk</TabsTrigger>
                             <TabsTrigger value="contacts">Contacts</TabsTrigger>
                             <TabsTrigger value="recovery">Recovery</TabsTrigger>
+                            <TabsTrigger value="compliance">Compliance</TabsTrigger>
                           </TabsList>
 
                           {(() => {
@@ -405,6 +407,12 @@ export function EmployerCaseDetailView({ workerCase, onClose }: EmployerCaseDeta
                                       </Card>
                                     )}
                                   </div>
+                                </TabsContent>
+                                <TabsContent value="compliance">
+                                  <ComplianceReportCard
+                                    caseId={workerCase.id}
+                                    className="mt-4"
+                                  />
                                 </TabsContent>
                               </>
                             );
