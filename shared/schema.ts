@@ -337,48 +337,56 @@ export function isLegitimateCase(workerCase: {
   if (!workerCase.workerName || workerCase.workerName.trim() === "") {
     return false;
   }
-  
+
   const normalizedName = workerCase.workerName.trim().toLowerCase();
   const originalName = workerCase.workerName.trim();
-  
+
   // Filter out purely numeric names (e.g., "08250027189", "123456")
   if (/^\d+$/.test(originalName)) {
     return false;
   }
-  
-  // Filter out names containing brackets (e.g., "Melad [2510092]", "[pay 2025")
-  if (originalName.includes('[') || originalName.includes(']')) {
+
+  // Filter out names containing brackets (e.g., "Melad [2510092]", "[pay 2025", "Please (s25wf307549)")
+  if (originalName.includes('[') || originalName.includes(']') ||
+      originalName.includes('(') || originalName.includes(')')) {
     return false;
   }
-  
+
   // Filter out names that are mostly numbers (e.g., "Melad 08250027189", "pay 2025")
   // A real name shouldn't have long sequences of digits
   if (/\d{7,}/.test(originalName)) {
     return false;
   }
-  
+
   // Filter out generic claim numbers masquerading as names
   if (normalizedName.startsWith("claim ") || /^claim\s*\d+/.test(normalizedName)) {
     return false;
   }
-  
+
   // Filter out single character names or very short placeholder names
   if (normalizedName.length < 2 || normalizedName === "--" || normalizedName === ".." || normalizedName === "..") {
     return false;
   }
-  
+
   // Filter out generic test/placeholder names (exact match)
   const genericNames = [
     "test", "testing", "unknown", "n/a", "none", "my certificate", "workcover",
     "work period", "adjustment", "adjustment request", "payroll", "hr request",
-    "admin", "query", "request", "general inquiry", "information request"
+    "admin", "query", "request", "general inquiry", "information request",
+    "case report", "welfare check", "rehabilitation review", "new online",
+    "simple time", "great account", "how form", "gpnet transcript",
+    "food poisoning", "vince" // single name only, insufficient for identification
   ];
   if (genericNames.includes(normalizedName)) {
     return false;
   }
 
   // Filter out names that contain generic administrative terms (substring match)
-  const adminTerms = ["work period", "adjustment", "payroll", "hr request", "admin query"];
+  const adminTerms = [
+    "work period", "adjustment", "payroll", "hr request", "admin query",
+    "lower check", "welfare check", "case report", "rehabilitation",
+    "transcript"
+  ];
   if (adminTerms.some(term => normalizedName.includes(term))) {
     return false;
   }
@@ -392,12 +400,40 @@ export function isLegitimateCase(workerCase: {
   if (normalizedName.startsWith("workcover ") || normalizedName.startsWith("worker ")) {
     return false;
   }
-  
+
+  // Filter out names that start with company prefixes (e.g., "Symmetry- Worker", "Lower Murray-")
+  const companyPrefixes = ["symmetry-", "symmetry ", "lower ", "cobild-", "marley-"];
+  if (companyPrefixes.some(prefix => normalizedName.startsWith(prefix) &&
+      !normalizedName.includes(" ") || // Single word after prefix
+      /^(symmetry|lower|cobild|marley)[-\s]+\w+$/i.test(normalizedName))) {
+    // Additional check: if it's "Company- Word", it's invalid
+    if (/^[a-z]+-\s*\w+$/i.test(normalizedName)) {
+      return false;
+    }
+  }
+
+  // Filter out email subject line patterns (e.g., "Fwd: Staff", "Re: Aparicio")
+  if (/^(fwd|re|fw):\s*/i.test(originalName)) {
+    return false;
+  }
+
+  // Filter out names that start with action verbs (often email subjects)
+  const actionVerbs = ["please", "don't", "write", "you ", "new ", "automatic ", "formal "];
+  if (actionVerbs.some(verb => normalizedName.startsWith(verb))) {
+    return false;
+  }
+
+  // Filter out names that look like descriptions (e.g., "Mei Certificate", "Mei Injury")
+  const descriptionPatterns = ["certificate", "injury", " check", " report", " review", " images", " account"];
+  if (descriptionPatterns.some(pattern => normalizedName.endsWith(pattern))) {
+    return false;
+  }
+
   // Filter out names that start with special characters or numbers
   if (/^[^a-z]/i.test(originalName)) {
     return false;
   }
-  
+
   // Must have either a valid company OR a date of injury (some legitimate cases may lack company info)
   const hasValidCompany = isValidCompany(workerCase.company);
   const hasInjuryDate = !!workerCase.dateOfInjury &&
@@ -1397,3 +1433,78 @@ export const insertOrganizationSchema = createInsertSchema(organizations).omit({
 
 export type Organization = typeof organizations.$inferSelect;
 export type InsertOrganization = z.infer<typeof insertOrganizationSchema>;
+
+// ============================================
+// CASE CONTACTS TABLE - Key contacts for worker cases
+// ============================================
+
+export type CaseContactRole =
+  | "worker"
+  | "employer_primary"
+  | "employer_secondary"
+  | "host_employer"
+  | "case_manager"
+  | "treating_gp"
+  | "physiotherapist"
+  | "specialist"
+  | "orp"
+  | "insurer"
+  | "gpnet"
+  | "other";
+
+export interface CaseContact {
+  id: string;
+  caseId: string;
+  organizationId: string;
+  role: CaseContactRole;
+  name: string;
+  phone?: string | null;
+  email?: string | null;
+  company?: string | null;
+  notes?: string | null;
+  isPrimary: boolean;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const caseContacts = pgTable("case_contacts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  caseId: varchar("case_id").notNull().references(() => workerCases.id, { onDelete: "cascade" }),
+  organizationId: varchar("organization_id").notNull(),
+  role: text("role").notNull(), // worker, employer_primary, employer_secondary, host_employer, case_manager, treating_gp, physiotherapist, specialist, orp, insurer, gpnet, other
+  name: text("name").notNull(),
+  phone: varchar("phone", { length: 50 }),
+  email: text("email"),
+  company: text("company"),
+  notes: text("notes"),
+  isPrimary: boolean("is_primary").notNull().default(false),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertCaseContactSchema = createInsertSchema(caseContacts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type CaseContactDB = typeof caseContacts.$inferSelect;
+export type InsertCaseContact = z.infer<typeof insertCaseContactSchema>;
+
+// Contact role display labels
+export const contactRoleLabels: Record<CaseContactRole, string> = {
+  worker: "Worker",
+  employer_primary: "Employer (Primary)",
+  employer_secondary: "Employer (Secondary)",
+  host_employer: "Host Employer",
+  case_manager: "Case Manager",
+  treating_gp: "Treating GP",
+  physiotherapist: "Physiotherapist",
+  specialist: "Specialist",
+  orp: "ORP",
+  insurer: "Insurer",
+  gpnet: "GPNet Contact",
+  other: "Other",
+};

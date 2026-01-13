@@ -26,6 +26,8 @@ import rtwRoutes from "./routes/rtw";
 import predictionRoutes from "./routes/predictions";
 import { registerTimelineRoutes } from "./routes/timeline";
 import { registerTreatmentPlanRoutes } from "./routes/treatmentPlan";
+import contactRoutes from "./routes/contacts";
+import { employerDashboardRouter } from "./routes/employer-dashboard";
 import type { RecoveryTimelineSummary } from "@shared/schema";
 import { evaluateClinicalEvidence } from "./services/clinicalEvidence";
 import { authorize, type AuthRequest } from "./middleware/auth";
@@ -82,6 +84,12 @@ export async function registerRoutes(app: Express): Promise<void> {
 
   // Email Drafts routes (JWT-protected)
   app.use("/api", emailDraftRoutes);
+
+  // Case Contacts routes (JWT-protected, case ownership)
+  app.use("/api/cases", contactRoutes);
+
+  // Employer Dashboard routes (JWT-protected)
+  app.use("/api/employer", employerDashboardRouter);
 
   // Notification Engine v1 routes (JWT-protected, admin)
   app.use("/api/notifications", notificationRoutes);

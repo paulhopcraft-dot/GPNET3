@@ -21,12 +21,14 @@ import { SummaryCard } from "./SummaryCard";
 import { EmailDraftButton } from "./EmailDraftButton";
 import { CaseChatPanel } from "./CaseChatPanel";
 import { fetchWithCsrf } from "../lib/queryClient";
-import { Sparkles, CheckCircle } from "lucide-react";
+import { Sparkles, CheckCircle, Phone, Mail, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "../lib/queryClient";
 import { StatusHeader } from "./StatusHeader";
 import { DateQualityBadge } from "./DateQualityBadge";
 import { CaseActionPlanCard } from "./CaseActionPlanCard";
+import { CaseContactsPanel } from "./CaseContactsPanel";
+import type { CaseContact, CaseContactRole } from "@shared/schema";
 
 interface CaseDetailPanelProps {
   workerCase: WorkerCase;
@@ -1113,6 +1115,14 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
           </div>
 
           <TerminationPanel workerCase={workerCase} />
+
+          {/* Quick Contacts Section */}
+          <CaseContactsPanel
+            caseId={workerCase.id}
+            workerName={workerCase.workerName}
+            company={workerCase.company}
+            compact={true}
+          />
 
           {workerCase.attachments && workerCase.attachments.length > 0 && (
             <div>

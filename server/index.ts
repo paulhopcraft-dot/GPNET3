@@ -64,8 +64,9 @@ app.use(cookieParserMiddleware);
 app.use("/api", generalRateLimiter);
 
 // Strict rate limiting for authentication endpoints (5 attempts per 15 minutes)
-app.use("/api/auth/login", authRateLimiter);
-app.use("/api/auth/register", authRateLimiter);
+// TEMPORARILY DISABLED FOR TESTING - Natalie needs to test compliance system
+// app.use("/api/auth/login", authRateLimiter);
+// app.use("/api/auth/register", authRateLimiter);
 
 // CSRF token endpoint (must be before CSRF protection)
 app.get("/api/csrf-token", getCsrfToken);

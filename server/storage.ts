@@ -30,6 +30,9 @@ import type {
   InsertNotification,
   ComplianceDocumentDB,
   InsertComplianceDocument,
+  CaseContactDB,
+  InsertCaseContact,
+  CaseContact,
 } from "@shared/schema";
 import { db } from "./db";
 import {
@@ -46,6 +49,7 @@ import {
   emailDrafts,
   notifications,
   complianceDocuments,
+  caseContacts,
 } from "@shared/schema";
 import { evaluateClinicalEvidence } from "./services/clinicalEvidence";
 import { eq, desc, asc, inArray, ilike, sql, and, lte, gte, or, isNull, ne } from "drizzle-orm";
@@ -434,6 +438,15 @@ export interface IStorage {
   ): Promise<void>;
   clearComplianceOverride(caseId: string, organizationId: string): Promise<void>;
   mergeTickets(caseId: string, organizationId: string, masterTicketId: string): Promise<void>;
+
+  // Case Contacts - Contact management for worker cases
+  getCaseContacts(caseId: string, organizationId: string, options?: { includeInactive?: boolean }): Promise<CaseContactDB[]>;
+  getCaseContactById(contactId: string, organizationId: string): Promise<CaseContactDB | null>;
+  createCaseContact(data: InsertCaseContact): Promise<CaseContactDB>;
+  updateCaseContact(contactId: string, organizationId: string, updates: Partial<Omit<InsertCaseContact, 'caseId' | 'organizationId'>>): Promise<CaseContactDB | null>;
+  deleteCaseContact(contactId: string, organizationId: string): Promise<boolean>;
+  getCaseContactsByRole(caseId: string, organizationId: string, role: string): Promise<CaseContactDB[]>;
+  getPrimaryCaseContact(caseId: string, organizationId: string, role: string): Promise<CaseContactDB | null>;
 }
 
 class DbStorage implements IStorage {
@@ -2227,6 +2240,178 @@ class DbStorage implements IStorage {
       .values(data)
       .returning();
     return result;
+  }
+
+  // ============================================================================
+  // CASE CONTACTS
+  // ============================================================================
+
+  async getCaseContacts(
+    caseId: string,
+    organizationId: string,
+    options?: { includeInactive?: boolean }
+  ): Promise<CaseContactDB[]> {
+    // Verify case ownership
+    const caseCheck = await db
+      .select({ id: workerCases.id })
+      .from(workerCases)
+      .where(and(
+        eq(workerCases.id, caseId),
+        eq(workerCases.organizationId, organizationId)
+      ))
+      .limit(1);
+
+    if (caseCheck.length === 0) {
+      return []; // Case not found or access denied
+    }
+
+    const conditions = [
+      eq(caseContacts.caseId, caseId),
+      eq(caseContacts.organizationId, organizationId),
+    ];
+
+    if (!options?.includeInactive) {
+      conditions.push(eq(caseContacts.isActive, true));
+    }
+
+    return await db.select()
+      .from(caseContacts)
+      .where(and(...conditions))
+      .orderBy(
+        // Primary contacts first, then by role priority
+        desc(caseContacts.isPrimary),
+        asc(sql`CASE
+          WHEN ${caseContacts.role} = 'worker' THEN 0
+          WHEN ${caseContacts.role} = 'employer_primary' THEN 1
+          WHEN ${caseContacts.role} = 'employer_secondary' THEN 2
+          WHEN ${caseContacts.role} = 'host_employer' THEN 3
+          WHEN ${caseContacts.role} = 'case_manager' THEN 4
+          WHEN ${caseContacts.role} = 'treating_gp' THEN 5
+          WHEN ${caseContacts.role} = 'physiotherapist' THEN 6
+          WHEN ${caseContacts.role} = 'specialist' THEN 7
+          WHEN ${caseContacts.role} = 'orp' THEN 8
+          WHEN ${caseContacts.role} = 'insurer' THEN 9
+          WHEN ${caseContacts.role} = 'gpnet' THEN 10
+          ELSE 11 END`),
+        asc(caseContacts.name)
+      );
+  }
+
+  async getCaseContactById(contactId: string, organizationId: string): Promise<CaseContactDB | null> {
+    const [result] = await db.select()
+      .from(caseContacts)
+      .where(and(
+        eq(caseContacts.id, contactId),
+        eq(caseContacts.organizationId, organizationId)
+      ))
+      .limit(1);
+    return result ?? null;
+  }
+
+  async createCaseContact(data: InsertCaseContact): Promise<CaseContactDB> {
+    const [result] = await db.insert(caseContacts)
+      .values({
+        ...data,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+    return result;
+  }
+
+  async updateCaseContact(
+    contactId: string,
+    organizationId: string,
+    updates: Partial<Omit<InsertCaseContact, 'caseId' | 'organizationId'>>
+  ): Promise<CaseContactDB | null> {
+    const [result] = await db.update(caseContacts)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(and(
+        eq(caseContacts.id, contactId),
+        eq(caseContacts.organizationId, organizationId)
+      ))
+      .returning();
+    return result ?? null;
+  }
+
+  async deleteCaseContact(contactId: string, organizationId: string): Promise<boolean> {
+    // Soft delete - set isActive to false
+    const [result] = await db.update(caseContacts)
+      .set({
+        isActive: false,
+        updatedAt: new Date(),
+      })
+      .where(and(
+        eq(caseContacts.id, contactId),
+        eq(caseContacts.organizationId, organizationId)
+      ))
+      .returning();
+    return !!result;
+  }
+
+  async getCaseContactsByRole(
+    caseId: string,
+    organizationId: string,
+    role: string
+  ): Promise<CaseContactDB[]> {
+    // Verify case ownership
+    const caseCheck = await db
+      .select({ id: workerCases.id })
+      .from(workerCases)
+      .where(and(
+        eq(workerCases.id, caseId),
+        eq(workerCases.organizationId, organizationId)
+      ))
+      .limit(1);
+
+    if (caseCheck.length === 0) {
+      return [];
+    }
+
+    return await db.select()
+      .from(caseContacts)
+      .where(and(
+        eq(caseContacts.caseId, caseId),
+        eq(caseContacts.organizationId, organizationId),
+        eq(caseContacts.role, role),
+        eq(caseContacts.isActive, true)
+      ))
+      .orderBy(desc(caseContacts.isPrimary), asc(caseContacts.name));
+  }
+
+  async getPrimaryCaseContact(
+    caseId: string,
+    organizationId: string,
+    role: string
+  ): Promise<CaseContactDB | null> {
+    // Verify case ownership
+    const caseCheck = await db
+      .select({ id: workerCases.id })
+      .from(workerCases)
+      .where(and(
+        eq(workerCases.id, caseId),
+        eq(workerCases.organizationId, organizationId)
+      ))
+      .limit(1);
+
+    if (caseCheck.length === 0) {
+      return null;
+    }
+
+    const [result] = await db.select()
+      .from(caseContacts)
+      .where(and(
+        eq(caseContacts.caseId, caseId),
+        eq(caseContacts.organizationId, organizationId),
+        eq(caseContacts.role, role),
+        eq(caseContacts.isActive, true)
+      ))
+      .orderBy(desc(caseContacts.isPrimary))
+      .limit(1);
+    return result ?? null;
   }
 }
 

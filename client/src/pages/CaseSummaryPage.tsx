@@ -10,6 +10,7 @@ import { TimelineCard } from "@/components/TimelineCard";
 import { RefreshCw } from "lucide-react";
 import type { WorkerCase, PaginatedCasesResponse } from "@shared/schema";
 import { cn } from "@/lib/utils";
+import { CaseContactsPanel } from "@/components/CaseContactsPanel";
 
 export default function CaseSummaryPage() {
   const { id } = useParams<{ id: string }>();
@@ -297,43 +298,12 @@ export default function CaseSummaryPage() {
 
           <TabsContent value="contacts" className="mt-4">
             <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base">Worker</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div>
-                      <p className="font-medium">{workerCase.workerName}</p>
-                      <p className="text-sm text-muted-foreground">{workerCase.company}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base">Case Owner</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div>
-                      <p className="font-medium">{workerCase.owner}</p>
-                      <p className="text-sm text-muted-foreground">Case Manager</p>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base">Employer</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div>
-                      <p className="font-medium">{workerCase.company}</p>
-                      <p className="text-sm text-muted-foreground">Host Employer</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+              {/* Case Contacts Panel with clickable phone/email */}
+              <CaseContactsPanel
+                caseId={workerCase.id}
+                workerName={workerCase.workerName}
+                company={workerCase.company}
+              />
 
               {/* Attachments */}
               {workerCase.attachments && workerCase.attachments.length > 0 && (
@@ -362,10 +332,6 @@ export default function CaseSummaryPage() {
                   </CardContent>
                 </Card>
               )}
-
-              <div className="text-sm text-muted-foreground">
-                Additional contact details available through case manager.
-              </div>
             </div>
           </TabsContent>
 

@@ -1,13 +1,13 @@
 import { useAuth } from "@/hooks/useAuth";
 import GPNet2Dashboard from "@/pages/GPNet2Dashboard";
-import EmployerDashboard from "@/pages/EmployerDashboard";
+import { EmployerSummaryDashboard } from "@/components/EmployerSummaryDashboard";
 
 export function RoleBasedDashboard() {
   const { user } = useAuth();
 
-  // Show employer dashboard for employer role
+  // Show new employer summary dashboard for employer role
   if (user?.role === "employer") {
-    return <EmployerDashboard />;
+    return <EmployerSummaryDashboard />;
   }
 
   // Default: show admin/clinician dashboard
