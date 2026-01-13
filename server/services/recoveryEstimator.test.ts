@@ -2,10 +2,11 @@ import { describe, it, expect } from "vitest";
 import {
   calculateRecoveryTimeline,
   extractInjuryType,
+  generateRecoveryTimelineChartData,
   type TimelineEstimate,
   type InjuryContext,
 } from "./recoveryEstimator";
-import type { RiskLevel, ClinicalEvidenceFlag } from "../../shared/schema";
+import type { RiskLevel, ClinicalEvidenceFlag, MedicalCertificate } from "../../shared/schema";
 
 describe("Recovery Timeline Estimator", () => {
   describe("extractInjuryType", () => {
@@ -24,8 +25,18 @@ describe("Recovery Timeline Estimator", () => {
     });
 
     it("should extract soft tissue sprains", () => {
-      const result = extractInjuryType("Ankle sprain during work");
+      const result = extractInjuryType("Muscle strain in shoulder from lifting");
       expect(result).toBe("soft_tissue_sprain");
+    });
+
+    it("should extract ankle sprain as specific injury type", () => {
+      const result = extractInjuryType("Ankle sprain during work");
+      expect(result).toBe("ankle_sprain");
+    });
+
+    it("should extract trigger finger", () => {
+      const result = extractInjuryType("Trigger finger from repetitive gripping");
+      expect(result).toBe("trigger_finger");
     });
 
     it("should extract psychological injuries", () => {
@@ -249,6 +260,171 @@ describe("Recovery Timeline Estimator", () => {
           factor: "Unknown injury type",
         })
       );
+    });
+  });
+
+  describe("generateRecoveryTimelineChartData", () => {
+    const injuryDate = "2024-01-01T00:00:00.000Z";
+
+    it("should generate chart data with estimated curve", () => {
+      const result = generateRecoveryTimelineChartData(
+        "case-123",
+        "John Doe",
+        injuryDate,
+        "Soft tissue strain in shoulder",
+        "Low",
+        [],
+        []
+      );
+
+      expect(result.caseId).toBe("case-123");
+      expect(result.workerName).toBe("John Doe");
+      expect(result.estimatedCurve).toBeDefined();
+      expect(result.estimatedCurve.length).toBeGreaterThan(0);
+      // Estimated curve should have data points for each week
+      expect(result.estimatedCurve[0].week).toBe(0);
+      expect(result.estimatedCurve[0].estimatedCapacity).toBeDefined();
+    });
+
+    it("should return empty actual curve when no certificates", () => {
+      const result = generateRecoveryTimelineChartData(
+        "case-123",
+        "John Doe",
+        injuryDate,
+        "Soft tissue strain",
+        "Low",
+        [],
+        []
+      );
+
+      expect(result.actualCurve).toEqual([]);
+      expect(result.certificateMarkers).toEqual([]);
+      expect(result.analysis.comparedToExpected).toBe("insufficient_data");
+    });
+
+    it("should generate actual curve with continuous data from certificates", () => {
+      const certificates: MedicalCertificate[] = [
+        {
+          id: "cert-1",
+          caseId: "case-123",
+          issueDate: "2024-01-15T00:00:00.000Z",
+          startDate: "2024-01-15T00:00:00.000Z",
+          endDate: "2024-01-22T00:00:00.000Z",
+          capacity: "unfit",
+          source: "freshdesk",
+        },
+        {
+          id: "cert-2",
+          caseId: "case-123",
+          issueDate: "2024-01-22T00:00:00.000Z",
+          startDate: "2024-01-22T00:00:00.000Z",
+          endDate: "2024-01-29T00:00:00.000Z",
+          capacity: "partial",
+          source: "freshdesk",
+        },
+      ];
+
+      const result = generateRecoveryTimelineChartData(
+        "case-123",
+        "John Doe",
+        injuryDate,
+        "Soft tissue strain",
+        "Low",
+        [],
+        certificates
+      );
+
+      // Should have actual curve data
+      expect(result.actualCurve.length).toBeGreaterThan(0);
+
+      // Should have continuous data from first cert to current week
+      // Certificates are at weeks 2 and 3 approximately
+      const actualWeeks = result.actualCurve.map(p => p.week);
+      expect(actualWeeks.length).toBeGreaterThanOrEqual(2);
+
+      // Each point should have actualCapacity defined
+      result.actualCurve.forEach(point => {
+        expect(point.actualCapacity).toBeDefined();
+        expect(point.actualCapacity).not.toBeNull();
+      });
+
+      // Should have certificate markers
+      expect(result.certificateMarkers.length).toBe(2);
+      expect(result.certificateMarkers[0].capacity).toBe(0); // unfit = 0%
+      expect(result.certificateMarkers[1].capacity).toBe(50); // partial = 50%
+    });
+
+    it("should carry forward capacity between certificate dates", () => {
+      // Two certificates with gap between them
+      const certificates: MedicalCertificate[] = [
+        {
+          id: "cert-1",
+          caseId: "case-123",
+          issueDate: "2024-01-15T00:00:00.000Z",
+          startDate: "2024-01-15T00:00:00.000Z",
+          endDate: "2024-01-22T00:00:00.000Z",
+          capacity: "partial", // 50%
+          source: "freshdesk",
+        },
+        {
+          id: "cert-2",
+          caseId: "case-123",
+          issueDate: "2024-02-12T00:00:00.000Z",
+          startDate: "2024-02-12T00:00:00.000Z",
+          endDate: "2024-02-19T00:00:00.000Z",
+          capacity: "fit", // 100%
+          source: "freshdesk",
+        },
+      ];
+
+      const result = generateRecoveryTimelineChartData(
+        "case-123",
+        "John Doe",
+        injuryDate,
+        "Soft tissue strain",
+        "Low",
+        [],
+        certificates
+      );
+
+      // Should have points for every week from first cert to last/current
+      expect(result.actualCurve.length).toBeGreaterThan(2);
+
+      // Find week 3 (between cert 1 at week 2 and cert 2 at week 6)
+      const week3Point = result.actualCurve.find(p => p.week === 3);
+      if (week3Point) {
+        // Should carry forward the 50% from first certificate
+        expect(week3Point.actualCapacity).toBe(50);
+      }
+    });
+
+    it("should include analysis comparing actual to expected recovery", () => {
+      const certificates: MedicalCertificate[] = [
+        {
+          id: "cert-1",
+          caseId: "case-123",
+          issueDate: "2024-01-15T00:00:00.000Z",
+          startDate: "2024-01-15T00:00:00.000Z",
+          endDate: "2024-01-22T00:00:00.000Z",
+          capacity: "fit", // 100% - ahead of expected
+          source: "freshdesk",
+        },
+      ];
+
+      const result = generateRecoveryTimelineChartData(
+        "case-123",
+        "John Doe",
+        injuryDate,
+        "Soft tissue strain",
+        "Low",
+        [],
+        certificates
+      );
+
+      expect(result.analysis).toBeDefined();
+      expect(result.analysis.message).toBeDefined();
+      // With 100% capacity early on, should be ahead
+      expect(["ahead", "on_track"]).toContain(result.analysis.comparedToExpected);
     });
   });
 });
