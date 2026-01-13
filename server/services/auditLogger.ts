@@ -48,6 +48,11 @@ export const AuditEventTypes = {
   INVITE_CREATED: "invite.created",
   INVITE_ACCEPTED: "invite.accepted",
 
+  // Contact operations
+  CONTACT_CREATED: "contact.created",
+  CONTACT_UPDATED: "contact.updated",
+  CONTACT_DELETED: "contact.deleted",
+
   // Authorization - CRITICAL for security monitoring
   ACCESS_DENIED: "access.denied",
 } as const;
