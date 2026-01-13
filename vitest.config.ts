@@ -25,6 +25,10 @@ export default defineConfig({
     ],
     globals: true,
     setupFiles: ["./vitest.setup.ts"],
+    // Use basic reporter to avoid EPIPE errors on Windows when stdout closes early
+    reporters: ["basic"],
+    // Disable watch mode output that can cause EPIPE
+    watch: false,
     coverage: {
       reporter: ["text", "lcov"],
     },
