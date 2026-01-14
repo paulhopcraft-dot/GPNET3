@@ -53,22 +53,45 @@ router.get('/dashboard', authorize, async (req: Request, res: Response) => {
     // For now, use a default organization name - we can enhance this later
     const organizationName = 'Your Organization';
 
-    // Get all cases for the organization
-    const allCases = await storage.getGPNet2Cases(organizationId);
+    // Batch fetch all data upfront (3 queries instead of N*2)
+    const [allCases, allActions, allCertificates] = await Promise.all([
+      storage.getGPNet2Cases(organizationId),
+      storage.getAllActionsWithCaseInfo(organizationId, { status: 'pending' }),
+      storage.getCertificatesByOrganization(organizationId)
+    ]);
+
+    // Build lookup maps for O(1) access
+    const actionsByCase = new Map<string, typeof allActions>();
+    for (const action of allActions) {
+      const caseId = action.caseId;
+      if (!actionsByCase.has(caseId)) {
+        actionsByCase.set(caseId, []);
+      }
+      actionsByCase.get(caseId)!.push(action);
+    }
+
+    const certificatesByCase = new Map<string, typeof allCertificates>();
+    for (const cert of allCertificates) {
+      const caseId = cert.caseId;
+      if (!certificatesByCase.has(caseId)) {
+        certificatesByCase.set(caseId, []);
+      }
+      certificatesByCase.get(caseId)!.push(cert);
+    }
 
     // Calculate statistics
     const statistics: CaseStatistics = {
       totalCases: allCases.length,
       atWork: allCases.filter(c => c.workStatus === 'At work').length,
       offWork: allCases.filter(c => c.workStatus === 'Off work').length,
-      criticalActions: 0, // Will be calculated from actions
-      urgentActions: 0,   // Will be calculated from actions
-      routineActions: 0,  // Will be calculated from actions
-      expiredCertificates: 0, // Will be calculated
-      overdueReviews: 0   // Will be calculated
+      criticalActions: 0,
+      urgentActions: 0,
+      routineActions: 0,
+      expiredCertificates: 0,
+      overdueReviews: 0
     };
 
-    // Get priority actions by analyzing all cases
+    // Get priority actions by analyzing all cases (now using in-memory lookups)
     const priorityActions: PriorityAction[] = [];
     const now = new Date();
 
@@ -76,111 +99,97 @@ router.get('/dashboard', authorize, async (req: Request, res: Response) => {
       const caseId = workerCase.id;
       const workerName = workerCase.workerName;
 
-      try {
-        // Get case actions
-        const caseActions = await storage.getActionsByCase(caseId, organizationId);
+      // Get data from pre-built maps (O(1) lookup)
+      const caseActions = actionsByCase.get(caseId) || [];
+      const certificates = certificatesByCase.get(caseId) || [];
 
-        // Get medical certificates
-        const certificates = await storage.getCertificatesByCase(caseId, organizationId);
+      // Check for expired certificates
+      for (const cert of certificates) {
+        if (cert.endDate && new Date(cert.endDate) < now) {
+          const daysOverdue = Math.floor((now.getTime() - new Date(cert.endDate).getTime()) / (1000 * 60 * 60 * 24));
 
-        // Check for expired certificates - just check all certificates
-        const activeCertificates = certificates;
-
-        for (const cert of activeCertificates) {
-          if (cert.endDate && new Date(cert.endDate) < now) {
-            const daysOverdue = Math.floor((now.getTime() - new Date(cert.endDate).getTime()) / (1000 * 60 * 60 * 24));
-
-            priorityActions.push({
-              id: `cert-${cert.id}`,
-              workerName,
-              action: `Medical certificate expired - obtain updated certificate`,
-              priority: daysOverdue > 14 ? 'critical' : daysOverdue > 7 ? 'urgent' : 'routine',
-              daysOverdue,
-              type: 'certificate',
-              caseId
-            });
-
-            statistics.expiredCertificates++;
-          }
-        }
-
-        // Check for overdue case actions
-        for (const action of caseActions) {
-          if (action.status === 'pending' && action.dueDate && new Date(action.dueDate) < now) {
-            const daysOverdue = Math.floor((now.getTime() - new Date(action.dueDate).getTime()) / (1000 * 60 * 60 * 24));
-
-            let priority: 'critical' | 'urgent' | 'routine' = 'routine';
-            let actionType: 'certificate' | 'review' | 'rtw_plan' | 'medical' | 'compliance' = 'compliance';
-
-            // Determine priority and type based on action content
-            const actionText = action.type?.toLowerCase() || '';
-
-            if (actionText.includes('certificate')) {
-              actionType = 'certificate';
-              priority = daysOverdue > 7 ? 'critical' : 'urgent';
-            } else if (actionText.includes('review') || actionText.includes('follow-up')) {
-              actionType = 'review';
-              priority = daysOverdue > 14 ? 'urgent' : 'routine';
-              statistics.overdueReviews++;
-            } else if (actionText.includes('rtw') || actionText.includes('return to work')) {
-              actionType = 'rtw_plan';
-              priority = daysOverdue > 10 ? 'urgent' : 'routine';
-            } else if (actionText.includes('medical') || actionText.includes('doctor')) {
-              actionType = 'medical';
-              priority = daysOverdue > 7 ? 'urgent' : 'routine';
-            }
-
-            priorityActions.push({
-              id: `action-${action.id}`,
-              workerName,
-              action: action.type || 'Action required',
-              priority,
-              daysOverdue,
-              type: actionType,
-              caseId
-            });
-          }
-        }
-
-        // Check for missing RTW plans (for cases off work > 10 weeks)
-        if (workerCase.workStatus === 'Off work') {
-          const injuryDate = new Date(workerCase.dateOfInjury);
-          const weeksSinceInjury = Math.floor((now.getTime() - injuryDate.getTime()) / (1000 * 60 * 60 * 24 * 7));
-
-          if (weeksSinceInjury >= 10) {
-            // Add RTW plan requirement for cases off work > 10 weeks
-            priorityActions.push({
-              id: `rtw-${caseId}`,
-              workerName,
-              action: `RTW plan required - worker off work for ${weeksSinceInjury} weeks`,
-              priority: weeksSinceInjury > 12 ? 'critical' : 'urgent',
-              daysOverdue: Math.max(0, (weeksSinceInjury - 10) * 7),
-              type: 'rtw_plan',
-              caseId
-            });
-          }
-        }
-
-        // Check for overdue case reviews based on injury date (every 8 weeks)
-        const injuryDate = new Date(workerCase.dateOfInjury);
-        const weeksSinceInjury = Math.floor((now.getTime() - injuryDate.getTime()) / (1000 * 60 * 60 * 24 * 7));
-        if (weeksSinceInjury > 0 && weeksSinceInjury % 8 === 0) {
           priorityActions.push({
-            id: `review-${caseId}`,
+            id: `cert-${cert.id}`,
             workerName,
-            action: `Case review due - ${weeksSinceInjury} weeks since injury`,
-            priority: 'routine',
-            type: 'review',
+            action: `Medical certificate expired - obtain updated certificate`,
+            priority: daysOverdue > 14 ? 'critical' : daysOverdue > 7 ? 'urgent' : 'routine',
+            daysOverdue,
+            type: 'certificate',
+            caseId
+          });
+
+          statistics.expiredCertificates++;
+        }
+      }
+
+      // Check for overdue case actions
+      for (const action of caseActions) {
+        if (action.dueDate && new Date(action.dueDate) < now) {
+          const daysOverdue = Math.floor((now.getTime() - new Date(action.dueDate).getTime()) / (1000 * 60 * 60 * 24));
+
+          let priority: 'critical' | 'urgent' | 'routine' = 'routine';
+          let actionType: 'certificate' | 'review' | 'rtw_plan' | 'medical' | 'compliance' = 'compliance';
+
+          // Determine priority and type based on action content
+          const actionText = action.type?.toLowerCase() || '';
+
+          if (actionText.includes('certificate')) {
+            actionType = 'certificate';
+            priority = daysOverdue > 7 ? 'critical' : 'urgent';
+          } else if (actionText.includes('review') || actionText.includes('follow-up')) {
+            actionType = 'review';
+            priority = daysOverdue > 14 ? 'urgent' : 'routine';
+            statistics.overdueReviews++;
+          } else if (actionText.includes('rtw') || actionText.includes('return to work')) {
+            actionType = 'rtw_plan';
+            priority = daysOverdue > 10 ? 'urgent' : 'routine';
+          } else if (actionText.includes('medical') || actionText.includes('doctor')) {
+            actionType = 'medical';
+            priority = daysOverdue > 7 ? 'urgent' : 'routine';
+          }
+
+          priorityActions.push({
+            id: `action-${action.id}`,
+            workerName,
+            action: action.type || 'Action required',
+            priority,
+            daysOverdue,
+            type: actionType,
             caseId
           });
         }
+      }
 
-      } catch (error) {
-        logger.error('Error processing case actions', {
-          caseId,
+      // Check for missing RTW plans (for cases off work > 10 weeks)
+      if (workerCase.workStatus === 'Off work') {
+        const injuryDate = new Date(workerCase.dateOfInjury);
+        const weeksSinceInjury = Math.floor((now.getTime() - injuryDate.getTime()) / (1000 * 60 * 60 * 24 * 7));
+
+        if (weeksSinceInjury >= 10) {
+          priorityActions.push({
+            id: `rtw-${caseId}`,
+            workerName,
+            action: `RTW plan required - worker off work for ${weeksSinceInjury} weeks`,
+            priority: weeksSinceInjury > 12 ? 'critical' : 'urgent',
+            daysOverdue: Math.max(0, (weeksSinceInjury - 10) * 7),
+            type: 'rtw_plan',
+            caseId
+          });
+        }
+      }
+
+      // Check for overdue case reviews based on injury date (every 8 weeks)
+      const injuryDate = new Date(workerCase.dateOfInjury);
+      const weeksSinceInjury = Math.floor((now.getTime() - injuryDate.getTime()) / (1000 * 60 * 60 * 24 * 7));
+      if (weeksSinceInjury > 0 && weeksSinceInjury % 8 === 0) {
+        priorityActions.push({
+          id: `review-${caseId}`,
           workerName,
-        }, error);
-        // Continue processing other cases
+          action: `Case review due - ${weeksSinceInjury} weeks since injury`,
+          priority: 'routine',
+          type: 'review',
+          caseId
+        });
       }
     }
 
