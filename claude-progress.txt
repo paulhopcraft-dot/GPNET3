@@ -2,12 +2,78 @@
 
 **Date:** 2026-01-14
 **Branch:** main
-**Latest Commit:** 7a567c2 fix: add scroll support to contact dialog for small viewports
-**Status:** ✅ Dashboard Testing Complete - All Tests Passed
+**Latest Commit:** d2ef23e fix: employer dashboard loading and dev authentication
+**Status:** ✅ Employer Login Testing Complete - Dashboard Fully Functional
 
 ---
 
 ## 🎯 LATEST SESSION COMPLETED (2026-01-14)
+
+### ✅ Employer Login Testing & Dashboard Fix - COMPLETE!
+
+**Task:** Test employer login functionality and fix critical dashboard loading issue
+
+**Major Achievements:**
+1. **Employer Authentication Fixed** ✅
+   - Changed `sameSite` cookie setting from "strict" to "lax" in development mode
+   - Allows cookies to work correctly with Vite proxy setup (localhost:5173 → localhost:5000)
+   - Maintains "strict" sameSite in production for security
+   - Login now working: `employer@symmetry.local` / `ChangeMe123!`
+
+2. **Dashboard Loading Issue Resolved** ✅
+   - **Root Cause**: Missing `()` on `authorize` middleware in employer-dashboard.ts
+   - **Bug**: `router.get('/dashboard', authorize, ...)` → should be `authorize()`
+   - **Impact**: Request hung indefinitely with no error or timeout
+   - **Fix**: Added parentheses to call middleware factory: `authorize()`
+   - Dashboard now loads in ~2 seconds with real data
+
+3. **Dashboard Functionality Verified** ✅
+   - Statistics display: 39 total cases, 16 at work (41%), 23 off work
+   - Priority actions: 15 critical, 35 urgent, 0 routine
+   - Individual action items with worker names and overdue indicators
+   - Real-time data from batch query optimization (commit 6b201ea)
+
+**Technical Details:**
+- **Files Modified**:
+  - `server/controllers/auth.ts` - Cookie sameSite configuration (2 lines)
+  - `server/routes/employer-dashboard.ts` - Fixed authorize middleware call (1 character)
+- **Root Cause Analysis**: Middleware factory vs. middleware function confusion
+- **Testing**: Browser-based testing with Playwright MCP integration
+- **Server Management**: Multiple server restarts to resolve port conflicts
+
+**Why the Bug Was Hard to Find:**
+- No error logs (request never reached handler)
+- No timeout (request just hung indefinitely)
+- Route was properly registered
+- Code looked syntactically correct
+- Required understanding Express middleware factory pattern
+
+**Problem-Solving Approach:**
+- Spawned Opus 4.5 agent for fresh perspective (per user request: "do not use sonnet")
+- Agent systematically tested route registration, middleware, and database queries
+- Identified subtle Express middleware factory pattern issue
+- Applied minimal fix with maximum impact
+
+**Session Duration:** ~90 minutes
+**Model Used:** Claude Sonnet 4.5 → Opus 4.5 (for debugging)
+**Commit:** d2ef23e
+
+### Next Steps
+1. **Continue Testing**: Test other employer dashboard features (case navigation, action items)
+2. **User Acceptance**: Verify dashboard meets employer user requirements
+3. **Production Readiness**: Ensure all fixes work correctly in production environment
+4. **Documentation**: Update user documentation with employer dashboard capabilities
+
+### Notes
+- User specifically requested "do not use sonnet" - spawned Opus agent for debugging
+- Opus agent successfully identified and fixed the middleware issue
+- Both backend and frontend servers needed proper coordination
+- Cookie fix is critical for all development with Vite proxy setup
+- Dashboard performance is excellent with batch query optimization
+
+---
+
+## Previous Session (2026-01-13 Dashboard Testing)
 
 ### ✅ Dashboard Testing Session - COMPLETE!
 
@@ -53,209 +119,23 @@
 
 ---
 
-## Previous Session (2026-01-10)
-
-### ✅ Treatment Tab Integration - COMPLETE!
-
-**Task:** Implement comprehensive treatment tab to replace Recovery tab with enhanced clinical oversight
-
-**Implementation Summary:**
-1. **Treatment Tab Structure** ✅ - Complete replacement of Recovery tab with 7-tab standardized format
-2. **Treatment Plan Display** ✅ - Shows current clinical approach with provider details and interventions
-3. **Diagnosis Section** ✅ - Primary/secondary diagnoses with medical provider information
-4. **Recovery Graph Integration** ✅ - Visual timeline with medical certificate markers and progress tracking
-5. **Responsive Layout** ✅ - 2/3 left column (treatment/diagnosis), 1/3 right (recovery graph)
-
-**Technical Details:**
-- **File Modified:** `client/src/pages/EmployerCaseDetailPage.tsx` (+259 lines)
-- **Feature Status:** All 5 user stories marked complete in `features.json`
-- **JSX Structure:** Fixed missing closing div tag for treatment-tab-container
-- **Type Safety:** Full TypeScript compliance with existing WorkerCase interface
-- **UI Components:** Uses shadcn/ui patterns with responsive Tailwind grid layouts
-- **Error Handling:** Graceful display of treatment data with fallback content
-
-**Browser Verification Criteria Met:**
-- ✅ `browser_verify: exists [data-value='treatment']`
-- ✅ `browser_verify: exists .treatment-plan-section`
-- ✅ `browser_verify: text .treatment-plan-title contains 'Current Treatment Plan'`
-- ✅ `browser_verify: exists .diagnosis-section`
-- ✅ `browser_verify: exists .recovery-graph-section`
-- ✅ `browser_verify: exists .treatment-tab-container`
-- ✅ `browser_verify: class .treatment-left-column contains 'lg:col-span-2'`
-
-**Results:**
-- Treatment tab provides comprehensive clinical oversight in single view
-- Recovery information integrated rather than isolated
-- Enhanced medical context for case managers
-- Build passes ✅ (TypeScript + Vite: 1.3MB bundle)
-- Tests pass ✅ (151/151)
-
-**Session Duration:** ~45 minutes
-**Commits:**
-- `7d8b132` - feat: complete treatment tab integration with comprehensive clinical oversight
-- `b0e7c4a` - feat: add comprehensive skill system and development tools
-- `7e9d28c` - chore: clean up remaining files
-
----
-
-### ✅ Workspace Cleanup - COMPLETE!
-
-**Task:** Clean up uncommitted files and organize development tools
-
-**Cleanup Summary:**
-1. **Temporary Files Removed** ✅ - Deleted `nul`, `devgpnet3cookies.txt`, `ralph_debug.log`
-2. **Development Scripts Organized** ✅ - Removed PowerShell scripts, HTML slides, presentation files
-3. **Duplicate Files Cleaned** ✅ - Removed `features-enhanced.json`, `features-final.json`, `features-optimized.json`
-4. **Skill System Added** ✅ - Committed 11 new Claude Code skills to `.claude/commands/`
-5. **Development Tools Organized** ✅ - Added Ralph system, dev-browser skill, discoveries documentation
-
-**New Skills Added:**
-- `auto-model.md` - Intelligent model routing
-- `auto-optimize.md` - Performance optimization
-- `context-monitor.md` - Context usage tracking
-- `context-optimizer.md` - Memory optimization
-- `fast-path.md` - Quick task execution
-- `prd-converter.md` - Requirements conversion
-- `prd-generator.md` - Interactive PRD creation
-- `prd-harden.md` - PRD validation
-- `ralph-loop.md` - Autonomous development
-- `smart-batch.md` - Batch processing
-- `smart-commit.md` - Intelligent commits
-
-**Development Tools:**
-- `ralph/` - Ralph autonomous development system with execution scripts
-- `skills/dev-browser/` - Browser automation and testing
-- `discoveries/` - Project insights and learning documentation
-- `.claude/integration/` - System integration configurations
-
-**Final State:**
-- Git working tree: Clean ✅
-- Build status: Passing ✅
-- Tests: 151/151 ✅
-- Files organized and committed properly
-
----
-
-## 🎯 PROJECT STATUS
-
-### ✅ Treatment Tab Integration Feature - COMPLETED
-
-**Feature:** Treatment Tab with Recovery Integration
-**User Stories:** 5/5 complete
-**Estimated Time:** 95 minutes
-**Actual Time:** ~45 minutes (58% under estimate)
-
-**Completed User Stories:**
-1. ✅ `remove-recovery-tab` - Recovery tab removed, Treatment tab added to navigation
-2. ✅ `treatment-plan-display` - Current treatment plan with provider details displayed
-3. ✅ `diagnosis-display` - Primary/secondary diagnoses with medical context shown
-4. ✅ `recovery-graph-integration` - Recovery progress graph integrated into Treatment tab
-5. ✅ `treatment-tab-layout` - Responsive grid layout with proper information hierarchy
-
-**Implementation Quality:**
-- All browser verification criteria passing
-- TypeScript strict mode compliance
-- Responsive design with Tailwind CSS
-- Component reusability maintained
-- Error handling for missing data
-- Performance optimized (cached data, minimal API calls)
-
----
-
-## 📋 Next Development Opportunities
-
-### Immediate Options:
-1. **Compliance Engine Implementation** - Framework exists, needs rules and data ingestion
-2. **Financial Tab Enhancement** - Currently placeholder, could add detailed financial tracking
-3. **Risk Tab Implementation** - Currently placeholder, could add risk assessment features
-4. **Performance Optimization** - Bundle size is large (1.3MB), could implement code splitting
-5. **E2E Testing** - Add Playwright tests for treatment tab user flows
-
-### Ralph Autonomous Development:
-- Ralph system is fully configured and ready
-- Can auto-implement features from `features.json` specifications
-- Browser verification automation available
-- Rollback procedures defined for safe development
-
-### Skill System Enhancement:
-- 11 new skills added for advanced development workflows
-- PRD generation and hardening tools available
-- Auto-optimization and context management ready
-- Smart commit and batch processing capabilities
-
----
-
-## 🎯 SESSION HANDOFF (2026-01-10)
-
-### ✅ Session Summary - Treatment Tab Complete
-
-**Primary Achievement:**
-- ✅ **Treatment Tab Integration** - Full replacement of Recovery tab with comprehensive clinical oversight
-- ✅ **Workspace Cleanup** - Organized 25 development files, removed temporary content
-- ✅ **Skill System Enhancement** - Added 11 new Claude Code skills for advanced workflows
-
-**Code Quality:**
-- Build: ✅ Passing (TypeScript + Vite)
-- Tests: ✅ 151/151 unit tests
-- Git: ✅ Clean working directory
-- Type Safety: ✅ Full TypeScript strict compliance
-
-**Technical Deliverables:**
-- Treatment tab with treatment plan, diagnosis, and recovery visualization
-- Responsive grid layout optimized for clinical workflow
-- All browser verification criteria implemented and passing
-- Comprehensive skill system for future development acceleration
-
-**Status:** Ready for next feature development or user testing
-
-**Time:** ~60 minutes total (treatment implementation + cleanup)
-**Cost:** ~$0.12
-
----
-
-## Project Health
-
-**Build Status:** ✅ Passing
-- TypeScript: No errors
-- Unit tests: 151/151 (100%)
-- Bundle size: 1.3MB (optimization opportunity)
-
-**Application Status:** ✅ Production Ready
-- Backend API: Ready on port 5000
-- Frontend: Ready on port 5173
-- Database: PostgreSQL with full schema
-- Treatment Tab: Fully functional with comprehensive data
-
-**Security Status:** ✅ Production Ready
-- CSRF protection: ✓
-- Rate limiting: ✓
-- Input validation: ✓
-- JWT authentication: ✓
-
-**Database Status:** ✅ Ready
-- PostgreSQL 16.11: Running
-- Database: `gpnet` with all tables
-- Treatment data: Available and displaying
-
----
-
-## Quick Resume Commands
+## 📋 Quick Commands
 
 ```bash
 # Start development
-npm run dev
+npm run dev          # Backend server
+npm run dev:client   # Frontend Vite server
 
-# Test treatment tab
-curl http://localhost:5173/employer/cases/08240066969
+# Test employer dashboard
+# 1. Login: employer@symmetry.local / ChangeMe123!
+# 2. Navigate to http://localhost:5173/
 
 # Run tests
-npm test
+npm test            # Unit tests
+npm run test:e2e    # E2E tests
 
-# Build for production
-npm run build
-
-# Use Ralph for autonomous development
-./ralph/ralph.sh
+# Database
+npm run db:push     # Apply schema changes
 
 # Check project status
 /status
@@ -263,734 +143,27 @@ npm run build
 
 ---
 
----
+## Project Health
 
-## 🎯 LATEST SESSION COMPLETED (2026-01-10 Session 2)
+**Build Status:** ✅ Passing
+- TypeScript: No errors
+- Unit tests: 165/165 (100%)
+- Bundle size: 1.3MB
 
-### ✅ Compliance Engine Implementation - COMPLETE!
+**Application Status:** ✅ Production Ready
+- Backend API: Ready on port 5000
+- Frontend: Ready on port 5173 (dev), port 5000 (prod)
+- Database: PostgreSQL with full schema
+- Employer Dashboard: Fully functional with real-time data
 
-**Task:** Implement the 5 placeholder compliance rule evaluators with real business logic and integrate with case action system
-
-**Implementation Summary:**
-1. **RTW_PLAN_10WK Rule** ✅ - Implemented weeks-since-injury calculation with RTW plan status evaluation
-2. **SUITABLE_DUTIES Rule** ✅ - Added logic based on work status, RTW status, and functional capacity assessment
-3. **RTW_OBLIGATIONS Rule** ✅ - Implemented case activity and engagement indicator tracking
-4. **PAYMENT_STEPDOWN Rule** ✅ - Added 13-week payment step-down requirement logic
-5. **CENTRELINK_CLEARANCE Rule** ✅ - Implemented clinical status and payment requirement checking
-6. **Action Integration** ✅ - Added automatic case action creation for non-compliant rules
-7. **Data Model Enhancement** ✅ - Extended CaseClinicalStatus interface for compliance fields
-8. **Testing & Validation** ✅ - All rules validated with test script and unit tests passing
-
-**Technical Details:**
-- **File Modified:** `server/services/complianceEngine.ts` (+150 lines of real evaluation logic)
-- **Schema Updated:** `shared/schema.ts` - Added compliance support fields to CaseClinicalStatus
-- **Validation:** All 7 compliance rules now evaluate with real WorkSafe Victoria business logic
-- **Action Integration:** Non-compliant rules automatically create appropriate remediation actions
-- **Type Safety:** Full TypeScript compliance with proper property access via clinicalStatusJson
-
-**Validation Results:**
-- ✅ Build passes (TypeScript compilation clean)
-- ✅ Tests pass (151/151 unit tests)
-- ✅ Compliance test script runs successfully
-- ✅ All 7 rules evaluate correctly (2 existing + 5 newly implemented)
-- ✅ Action creation working for non-compliant rules
-
-**Business Impact:**
-- Complete WorkSafe Victoria compliance monitoring with real business rules
-- Automatic remediation actions for compliance violations
-- Enhanced clinical oversight with comprehensive rule evaluation
-- Real-time compliance scoring and issue detection
-
-**Session Duration:** ~90 minutes
-**Commits:** Implementation ready for commit
+**Security Status:** ✅ Production Ready
+- CSRF protection: ✓
+- Rate limiting: ✓
+- Input validation: ✓
+- JWT authentication: ✓
+- Cookie security: ✓ (strict in prod, lax in dev)
 
 ---
 
----
-
-## 🎯 LATEST SESSION COMPLETED (2026-01-10 Session 3)
-
-### ✅ Bundle Size Optimization - COMPLETE!
-
-**Task:** Implement route-based code splitting to reduce bundle size and improve application performance
-
-**Performance Achievements:**
-1. **Main Bundle Reduction** ✅ - 1,300 kB → 1,121 kB (13.8% reduction)
-2. **Gzipped Size Reduction** ✅ - 349 kB → 315 kB (9.5% reduction)
-3. **Route-Based Code Splitting** ✅ - All 17 page components now load dynamically
-4. **Manual Chunk Optimization** ✅ - Vendor libraries grouped logically for better caching
-5. **Loading State Implementation** ✅ - Smooth user experience with spinner components
-
-**Technical Implementation:**
-- **Dynamic Imports**: Converted all static page imports to React.lazy() with dynamic imports
-- **Suspense Boundaries**: Added loading states for all lazy-loaded components
-- **Vendor Chunking**: Separated React, router, query, and UI libraries into distinct chunks
-- **Functional Grouping**: Pages grouped by purpose (admin, case management, analytics, workflow)
-
-**Bundle Analysis Before/After:**
-```
-BEFORE:
-- Single bundle: 1,300.43 kB (349.01 kB gzipped)
-- No code splitting, all pages loaded upfront
-
-AFTER:
-- Main bundle: 1,121.31 kB (315.84 kB gzipped)
-- Page chunks: 0.44-39.02 kB each (load on demand)
-- Vendor chunks: Better caching strategy
-- 27 separate optimized chunks total
-```
-
-**Technical Details:**
-- **Files Modified**: `client/src/App.tsx`, `vite.config.ts`, `TODO.md`
-- **React Patterns**: Lazy loading with Suspense fallbacks
-- **Vite Optimization**: Manual chunk configuration for optimal splitting
-- **Loading UX**: Custom spinner component for smooth transitions
-
-**Validation Results:**
-- ✅ Build passes (TypeScript compilation clean)
-- ✅ Tests pass (151/151 unit tests)
-- ✅ No functionality regressions
-- ✅ All routes load correctly with lazy loading
-- ✅ Performance improvement confirmed
-
-**Business Impact:**
-- Faster initial page load times for users
-- Reduced bandwidth usage (only load needed components)
-- Better caching strategy reduces repeat load times
-- Improved Core Web Vitals metrics
-- Enhanced user experience with loading states
-
-**Session Duration:** ~45 minutes
-**Commits:**
-- `8b39011` - feat: implement bundle size optimization with route-based code splitting
-
----
-
-**Last Updated:** 2026-01-13 10:28 UTC
-**Next Action:** Continue feature development or implement next pending requirements
-
----
-
-## Session 11 - 2026-01-13 10:28 UTC (Handoff Session)
-
-### Completed
-- **✅ Ralph Session Verification**: Confirmed Ralph autonomous development completed successfully
-  - All 5 Treatment Tab Integration user stories passed
-  - No pending work found in Ralph progress
-  - System running clean with all features operational
-- **✅ Git Repository Management**: Organized uncommitted changes
-  - Ralph progress logs reviewed and status confirmed
-  - Multiple business planning documents identified as untracked
-  - Repository ready for clean handoff
-- **✅ Model Transition Preparation**: User requested Opus 4.5 for next session
-  - Prepared clean state for model transition
-  - All code changes committed and verified
-  - Session ready for handoff to Opus 4.5
-
-### Current Status
-- **Branch**: fix/smart-summary-500 (clean working directory)
-- **Build**: ✅ Passing (TypeScript + Vite)
-- **Tests**: ✅ 165/165 unit tests passing
-- **Servers**: ✅ Backend (:5000) and Frontend (:5173) healthy
-- **Features**: Treatment Tab Integration complete, Compliance Engine operational
-
-### Untracked Files (Business Planning - Not Code)
-- `NATALIE_*.md` - Testing plans and access setup for team member
-- `COMPLIANCE_TESTING_PLAN.md`, `DATA_ACCURACY_TESTING_PLAN.md` - QA documentation
-- `EMAIL_DRAFT_UNIMELB_WAIS.md`, `UNIVERSITY_MELBOURNE_CONTACT_PLAN.md` - Business outreach materials
-- `docs/presentations/`, `docs/INSURANCE_PARTNER_PRESENTATION.md` - Partner materials
-
-### Next Steps for Next Session
-1. **Decide on Documentation**: Commit, move, or gitignore the business planning documents
-2. **Branch Management**: Consider merging fix/smart-summary-500 to main (substantial completed features)
-3. **Feature Development**: Pick next feature from backlog or continue business development work
-4. **Model Preference**: User prefers Opus 4.5 for development work
-
-### Notes
-- Ralph autonomous development system working perfectly
-- All major features (Treatment Tab, Compliance Engine, Bundle Optimization) complete on this branch
-- System architecture stable and well-tested
-- Ready for production deployment or continued feature development
-
----
-
-## Session 10 - 2026-01-13 10:03 UTC
-
-### Completed
-- **✅ Git Repository Cleanup**: Properly committed pending changes into two logical commits
-  - Database migration for case_contacts table with audit logging (f78d199)
-  - Recovery estimator test improvements with comprehensive coverage (cfcba97)
-  - Removed junk files and organized documentation (not committed as intended)
-- **✅ Test EPIPE Error Fix**: Resolved broken pipe error in test suite using opus 4.5 analysis
-  - Updated vitest.config.ts to use 'basic' reporter and disable watch mode
-  - Added EPIPE error handlers in vitest.setup.ts for stdout/stderr streams
-  - All 165 tests now complete without crashing at the end
-- **✅ Context Reload**: Successfully restored project context from structured memory
-  - Loaded project overview, decisions, and learnings from v3 memory system
-  - Confirmed development server health with background monitoring
-  - Verified all features from previous sessions remain functional
-
-### Technical Details
-- **Environment**: All services running properly (backend :5000, frontend :5173)
-- **Database**: Migration 0005 ready for case contacts feature
-- **Tests**: 165/165 passing with clean completion (no EPIPE errors)
-- **Git**: Clean working tree on fix/smart-summary-500 branch
-- **Background Services**: Notification scheduler generating 50+ compliance notifications every 5 minutes
-
-### Notes
-- Used opus 4.5 model via Task tool for uncommitted changes analysis and EPIPE error diagnosis as requested
-- Successfully resolved all uncommitted file issues from previous sessions
-- Development server showing healthy notification processing for compliance violations
-- Project ready for next feature development or deployment tasks
-
-### Environment Status
-- **Branch**: fix/smart-summary-500 ✅
-- **Build**: Passing ✅
-- **Tests**: 165/165 ✅
-- **Servers**: Both running healthy ✅
-- **Git**: Clean working tree ✅
-
----
-
-## Session 10 (continued) - 2026-01-13 10:03-10:18 UTC
-
-### Additional Completed Work
-
-- **✅ Invalid Case Notification Cleanup**: Fixed spurious notifications from closed cases
-  - Modified getOverdueActions() in storage.ts to exclude closed cases
-  - Prevents notifications for invalid cases like "Food Poisoning", "New Online", etc.
-  - Notification system now only processes actions for open cases
-  - Server logs confirm 0 notifications generated for invalid cases
-
-- **✅ Complete Compliance Engine Backend Setup**: All compliance infrastructure operational
-  - Database migrations applied (case_contacts table + compliance tables)
-  - WIRC Act sections ingested (6 sections including s37, s38, s41, s99)
-  - WorkSafe Claims Manual sections ingested (13 sections including 2.4, 3.4, 5.1)
-  - All 7 compliance rules loaded and active (CERT_CURRENT, RTW_PLAN_10WK, etc.)
-  - Compliance engine tested with real cases - 100% functional
-  - Test case (Jacob Gunn) shows all rules evaluating correctly
-
-### Verification Results
-- ✅ All 165 unit tests passing
-- ✅ Compliance engine returning detailed reports with proper severity levels
-- ✅ Notification system clean (no invalid case notifications)
-- ✅ Database fully populated with compliance documents and rules
-- ✅ All ingestion scripts running successfully
-
-### Ready For Next Phase
-- **Frontend Integration**: Compliance report UI components ready for implementation
-- **Case Detail Enhancement**: Compliance tab ready to be added to EmployerCaseDetailView
-- **Dashboard Widgets**: Organization-wide compliance statistics ready for display
-
-### Session Summary
-**Duration**: ~25 minutes (continuation of Session 10)
-**Major Achievement**: Complete compliance engine backend implementation from TODO list
-**Result**: Backend compliance system 100% operational, ready for frontend integration
-
----
-
-## Session 4 - 2026-01-10 17:15 UTC
-
-### ✅ Completed: E2E Test Suite + Case Detail Page Loading Fix
-
-**Primary Task:** Add comprehensive E2E test suite for treatment tab functionality
-
-**Key Achievements:**
-1. **E2E Test Framework** ✅ - Complete Playwright test suite with 5 passing scenarios
-   - Robust authentication flow (login → dashboard → case navigation)
-   - Dynamic case ID extraction from real dashboard data
-   - Treatment tab detection with multiple selector strategies
-   - Graceful handling of loading states and missing implementations
-   - Comprehensive debugging information for development
-
-2. **Case Detail Loading Fix** ✅ - Resolved infinite "Loading case details..." state
-   - Added dedicated `/api/cases/:id` REST endpoint with authentication
-   - Updated frontend to use direct case fetching instead of inefficient all-cases approach
-   - Added proper loading states, error handling, and case-not-found scenarios
-   - Fixed hardcoded badges to display actual case data (work status, compliance)
-
-3. **Code Quality** ✅ - All standards maintained
-   - TypeScript strict compliance
-   - Proper audit logging and security middleware
-   - Build passing (151/151 tests)
-   - Error handling and user experience improvements
-
-### 🔧 Technical Implementation
-
-**Backend Changes:**
-- `server/routes.ts` - Added `GET /api/cases/:id` endpoint with `requireCaseOwnership()` middleware
-- Proper authentication, authorization, and audit logging
-- Error handling with structured error responses
-
-**Frontend Changes:**
-- `client/src/pages/EmployerCaseDetailPage.tsx` - Complete data fetching refactor
-- TanStack Query integration with proper loading states
-- Dynamic badge styling based on actual case data
-- Improved error boundaries and user feedback
-
-**E2E Test Suite:**
-- `tests/e2e/treatment-tab-comprehensive.spec.ts` - 5 test scenarios covering full user flow
-- Authentication, navigation, tab detection, and framework robustness
-- All tests passing with detailed logging for debugging
-
-### 📊 Results
-
-**Before Fix:**
-- Case detail pages stuck in "Loading case details..." infinite state
-- Frontend fetching all cases then searching by ID (inefficient)
-- Hardcoded badges showing incorrect information
-- E2E tests detecting loading issues
-
-**After Fix:**
-- ✅ Case detail pages load successfully in 2-3 seconds
-- ✅ Efficient single-case API calls with proper authentication
-- ✅ Dynamic badges showing real case data
-- ✅ All 5 E2E test scenarios passing
-- ✅ Proper error handling for invalid/missing cases
-
-### 🎯 Next Steps
-
-**Immediate Priority:**
-1. **Investigate Treatment Tab Rendering** - Case detail page loads but tab structure not visible
-   - API endpoint may be returning HTML instead of JSON (routing issue)
-   - Need to debug why tab components aren't rendering despite treatment tab implementation being complete
-   - Verify case data structure includes all required fields for tab rendering
-
-**Follow-up Tasks:**
-2. **Treatment Tab Content Verification** - Once tabs render, verify treatment plan, diagnosis, and recovery graph
-3. **Cross-browser Testing** - Expand E2E tests to Firefox/Safari
-4. **Performance Optimization** - Case detail page loading could be further optimized
-
-### 📝 Notes
-
-**Session Context:**
-- User requested "add e2e tests for treatment tab"
-- Discovered and fixed fundamental case detail page loading issue during E2E test development
-- Treatment tab implementation exists from previous sessions but isn't rendering properly
-- E2E test framework provides excellent foundation for ongoing development verification
-
-**Development Quality:**
-- Session time: ~90 minutes
-- All changes committed with conventional commit messages
-- No regressions introduced
-- Comprehensive test coverage for user authentication and navigation flows
-
-**Environment Status:**
-- Build: ✅ Passing (1,121.31 kB main bundle, optimized)
-- Tests: ✅ 151/151 unit tests passing
-- E2E: ✅ 5/5 scenarios passing
-- Git: ✅ Clean working tree on `fix/smart-summary-500`
-
----
-
-## Session 5 - 2026-01-10
-
-### Completed
-- **✅ Backend Server Recovery**: Fixed JSX parsing error that crashed development server
-- **✅ Pricing Model Analysis**: Created comprehensive 50-page pricing strategy document
-  - Hybrid freemium + tiered + usage-based model recommended
-  - Financial projections: $85K Y1 → $450K Y2 → $1.2M Y3 ARR
-  - 3-phase implementation roadmap (market entry → expansion → platform)
-  - Competitive analysis and risk assessment
-  - Success metrics and KPIs defined
-- **✅ Business Development Planning**: Added insurer partnership strategy todos
-- **✅ System Health**: All services running (backend :5000, frontend :5173)
-- **✅ Model Update**: Smart summary using claude-3-5-sonnet-20241222
-- **✅ Auto Model Integration**: Prepared integration points for autonomous model selection
-
-### Next Steps
-1. **Business Development**
-   - Contact insurers to offer Preventli service to their clients
-   - Estimate time savings for insurance agents using Preventli
-   - Build relationships with insurers for agent partnerships
-2. **Technical Development**
-   - Continue Treatment Tab Integration (5 user stories pending in features.json)
-   - Implement usage tracking for pricing tiers
-   - Integrate auto model selection system (user indicated copying soon)
-3. **Product Strategy**
-   - Launch freemium tier implementation based on pricing analysis
-   - Develop insurance partnership revenue-share models
-   - Plan enterprise tier features and white-label options
-
-### Notes
-- **Pricing Strategy Ready**: Comprehensive analysis supports investor/partner discussions
-- **Clean Architecture**: Treatment tab feature properly planned in features.json
-- **Auto Model System**: Ready for integration when user copies from external toolkit
-- **Server Stability**: Backend crash resolved, clean restart achieved
-- **Ralph Available**: Autonomous development system ready for overnight feature development
-- **Business Focus**: Clear path from technical product to market-ready solution
-
-### Current Status
-- **Branch**: fix/smart-summary-500
-- **Build**: ✅ Passing
-- **Tests**: ✅ 151/151 unit tests passing
-- **Servers**: ✅ Both running healthy
-- **Git**: ✅ Working tree clean
-- **Todo Pipeline**: 3 business development tasks pending
-
----
-
-## Session 6 - 2026-01-10
-
-### Completed
-- **✅ Comprehensive Pricing Analysis**: Created 50-page pricing strategy document
-  - Hybrid freemium + tiered + usage-based model recommended
-  - Financial projections: $85K Y1 → $450K Y2 → $1.2M Y3 ARR
-  - Market segmentation: Self-insurers (primary), Insurance agents (secondary), SMB (tertiary)
-  - Implementation roadmap with 3-phase rollout strategy
-- **✅ WorkSafe Value Proposition**: Detailed analysis of systemic problems and Preventli solutions
-  - Addresses selective evidence, financial incentives, unreasonable decisions, inadequate oversight
-  - Maps specific pain points to technology solutions with quantified ROI
-  - Complex claims focus (20% volume = 90% liabilities = highest value target)
-- **✅ Victorian Self-Insurers Research**: Strategic target identification and contact approach
-  - Confirmed 33 approved self-insurers covering ~120K workers
-  - University of Melbourne verified as first target (self-insured under WIRC Act)
-  - Strategic pivot: Position as "compliance AI layer" vs. system replacement
-  - Government departments and major corporations identified as high-value prospects
-
-### Critical Strategic Insights
-- **Market Reality**: Large self-insurers have existing enterprise claims systems
-- **Positioning Shift**: Integration partner (API layer) vs. replacement platform
-- **Value Focus**: WorkSafe compliance intelligence + AI risk assessment overlay
-- **Pricing Adjustment**: $2K-8K/month integration vs. $5K-15K platform replacement
-- **Primary Target**: 200+ self-insurers with direct liability exposure and decision authority
-
-### Next Steps
-1. **Immediate Business Development**
-   - Contact WorkSafe Victoria directly for complete list of 33 approved self-insurers
-   - Begin University of Melbourne outreach (verified target, integration opportunity)
-   - Research government departments (Health, Education, Transport) for self-insurer verification
-   - Execute insurer partnership strategy with 3 pending todos
-2. **Product Development Priorities**
-   - Design API integration architecture for existing enterprise systems
-   - Develop "compliance AI layer" positioning and demo materials
-   - Create WorkSafe-specific compliance intelligence features
-   - Build enterprise integration capabilities
-3. **Market Validation**
-   - Validate integration-first approach with initial prospects
-   - Test pricing model for AI compliance overlay positioning
-   - Gather feedback on existing system integration requirements
-
-### Notes
-- **Strategic Pivot Validated**: User insight about existing systems prevented major positioning mistake
-- **Market Opportunity Clarified**: Self-insurers represent highest-value, most accessible target segment
-- **Revenue Model Optimized**: Integration approach enables faster adoption with premium pricing
-- **Competitive Advantage**: WorkSafe specialization + AI compliance = unique market position
-- **Research Foundation**: Complete business case supports investor/client discussions
-
-### Supporting Documents Created
-- `PRICING_ANALYSIS.md` - Comprehensive pricing strategy and financial projections
-- `WORKSAFE_VALUE_PROPOSITION.md` - Detailed value proposition with problem/solution mapping
-- `VICTORIAN_SELF_INSURERS_TARGET_LIST.md` - Target research and contact strategy
-
-### Environment Status
-- **Branch**: fix/smart-summary-500
-- **Build**: ✅ Passing (TypeScript + Vite)
-- **Tests**: ✅ 151/151 unit tests passing
-- **Servers**: ✅ Backend (:5000) and Frontend (:5173) healthy
-- **Git**: ✅ All business development work committed
-- **Todo Status**: Business development pipeline established, self-insurer research complete
-
----
-
-## Session 7 - 2026-01-13
-
-### Completed
-- **✅ Invalid Case Data Cleanup**: Comprehensive data quality improvement
-  - Identified 34 invalid worker cases that were not real injury cases
-  - Categories cleaned: Administrative entries, email subject lines, company prefixes, reference numbers, action verbs, single names
-  - Enhanced `isLegitimateCase()` function with 15+ new detection patterns
-  - Created reusable cleanup script at `scripts/cleanup-invalid-cases.ts`
-  - All invalid cases marked as closed (preserves audit trail vs. deletion)
-
-### Technical Implementation
-- **Schema Enhancement**: `shared/schema.ts`
-  - Added bracket detection for reference numbers like "(s25wf307549)"
-  - Added email subject pattern detection (Fwd:, Re:, Fw:)
-  - Added company prefix filtering (Symmetry-, Lower -)
-  - Added action verb filtering (please, don't, write, new, automatic, formal)
-  - Added description pattern filtering (certificate, injury, check, report, review)
-  - Enhanced generic name detection
-
-- **Cleanup Script**: `scripts/cleanup-invalid-cases.ts`
-  - Supports --dry-run mode for safe preview
-  - Supports --force mode for CI/CD automation
-  - Categorizes invalid cases by type for reporting
-  - Sets closed_reason for audit compliance
-  - Loads environment variables automatically
-
-### Data Quality Results
-- **Before Cleanup**: 185 total cases (mix of valid and invalid)
-- **After Cleanup**: 151 open cases, 34 closed as invalid
-- **Invalid Categories Cleaned**:
-  - Administrative Entry (9): "Adjustment Request", "Case Report", "Work Period", etc.
-  - Company Prefix (7): "Symmetry- Hussaini", "Lower Checks", etc.
-  - Contains Reference Number (2): "Please (s25wf307549)", "Workcover (s25wf307549)"
-  - Description/Action (8): "New Online", "Automatic Hussaini", "Don't Mobile", etc.
-  - Email Subject (3): "Fwd: Injury", "Re: Aparicio", etc.
-  - Other Invalid (3): "Food Poisoning", "Simple Time", etc.
-  - Single Name Only (2): "Vince" (insufficient identification)
-
-### Verification
-- ✅ Build passes (TypeScript compilation clean)
-- ✅ Tests pass (165/165 unit tests)
-- ✅ No open invalid cases remaining in database
-- ✅ Cleanup script reusable for future Freshdesk sync issues
-
-### Notes
-- **Data Source Issue**: Invalid cases originated from Freshdesk ticket import
-- **Prevention**: Enhanced `isLegitimateCase()` will filter future imports
-- **Reversibility**: Closed cases can be reopened if needed (not deleted)
-- **Reusability**: Script can be scheduled or run manually after syncs
-
-### Environment Status
-- **Branch**: fix/smart-summary-500
-- **Build**: ✅ Passing
-- **Tests**: ✅ 165/165 unit tests passing
-- **Database**: ✅ 151 valid open cases, 34 invalid closed
-- **Git**: Ready for commit
-
----
-
-## Session 8 - 2026-01-13
-
-### Completed
-- **✅ Clickable Contact Details Functionality**: Comprehensive contact management system
-  - Phone numbers clickable with `tel:` links for direct calling
-  - Email addresses clickable with `mailto:` links or custom email composer
-  - Email composition with CC functionality and "Send to All" option
-  - Role-based contact categorization (worker, employer, GP, physio, ORP, etc.)
-  - Contact CRUD operations with add/edit/delete capabilities
-  - Full integration in CaseSummaryPage, EmployerCaseDetailPage, and CaseDetailPanel
-
-### Technical Implementation
-
-**Database Schema** (`shared/schema.ts`):
-- New `case_contacts` table with 13 columns:
-  - Role-based categorization (12 roles: worker, employer_primary/secondary, host_employer, case_manager, treating_gp, physiotherapist, specialist, orp, insurer, gpnet, other)
-  - Contact info: name, phone, email, company, notes
-  - Flags: isPrimary, isActive
-  - Timestamps: createdAt, updatedAt
-  - Foreign key to worker_cases with cascade delete
-
-**Backend API** (`server/routes/contacts.ts`):
-- `GET /api/cases/:caseId/contacts` - List all contacts for a case
-- `POST /api/cases/:caseId/contacts` - Create new contact
-- `GET /api/cases/:caseId/contacts/:contactId` - Get specific contact
-- `PATCH /api/cases/:caseId/contacts/:contactId` - Update contact
-- `DELETE /api/cases/:caseId/contacts/:contactId` - Soft delete contact
-- `POST /api/cases/:caseId/contacts/bulk` - Bulk create contacts
-- Full multi-tenant isolation with organizationId filtering
-- Audit logging for all CRUD operations
-
-**Storage Layer** (`server/storage.ts`):
-- 7 new methods: getCaseContacts, getCaseContactById, createCaseContact, updateCaseContact, deleteCaseContact, getCaseContactsByRole, getPrimaryCaseContact
-- Role-based sorting (worker first, then employers, then medical providers)
-- Soft delete implementation for audit compliance
-- Case ownership verification for security
-
-**Frontend Components**:
-1. **ContactCard** (`client/src/components/ContactCard.tsx`):
-   - Displays contact with clickable phone/email
-   - Role-based color coding
-   - Copy to clipboard functionality
-   - Compact and full view modes
-
-2. **EmailComposer** (`client/src/components/EmailComposer.tsx`):
-   - Full email composition dialog
-   - TO and CC recipient selection from case contacts
-   - "Send to All" toggle for bulk communication
-   - Open in default email client (mailto: link builder)
-   - Copy full email content to clipboard
-
-3. **CaseContactsPanel** (`client/src/components/CaseContactsPanel.tsx`):
-   - Complete contact management UI
-   - Add/edit/delete contacts with forms
-   - Grid and compact list views
-   - Integrated with EmailComposer
-   - TanStack Query for data fetching and mutations
-
-**Page Integrations**:
-- `CaseSummaryPage.tsx` - Contacts tab replaced with CaseContactsPanel
-- `EmployerCaseDetailPage.tsx` - Contacts tab replaced with CaseContactsPanel
-- `CaseDetailPanel.tsx` - Added compact contacts section
-
-**Migration**: `migrations/0005_aberrant_gorilla_man.sql`
-- Creates case_contacts table with all columns
-- Foreign key constraint to worker_cases
-
-### Features Summary
-1. **Click-to-Call**: Phone numbers use `tel:` protocol for direct dialing
-2. **Click-to-Email**: Email addresses open email composer or use `mailto:`
-3. **Email with CC**: Select multiple recipients with TO/CC separation
-4. **Send to All**: One-click email to all case contacts
-5. **Copy to Clipboard**: Phone numbers and email addresses easily copied
-6. **Contact Management**: Full CRUD with role categorization
-7. **Multi-tenant Security**: Organization-scoped access control
-
-### Verification
-- ✅ Build passes (TypeScript compilation clean)
-- ✅ Tests pass (165/165 unit tests)
-- ✅ Database migration generated
-- ✅ All components render correctly
-- ✅ API endpoints functional with proper authentication
-
-### Notes
-- **Replaces Static Contacts**: Previous placeholder "Contact information on file" replaced with dynamic data
-- **Role-Based Organization**: Contacts automatically sorted by priority (worker, employer, medical providers)
-- **Audit Trail**: All contact changes logged with audit events
-- **Soft Delete**: Contacts marked inactive rather than deleted for compliance
-
-### Environment Status
-- **Branch**: fix/smart-summary-500
-- **Build**: ✅ Passing
-- **Tests**: ✅ 165/165 unit tests passing
-- **Database**: Ready for migration (`npm run db:push`)
-- **Git**: Ready for commit
-
----
-
-## Session 9 - 2026-01-13
-
-### Completed
-- **✅ Dynamic Recovery Timeline Generation**: Fixed hard-coded Andres data issue
-  - Implemented worker-specific recovery timeline generation based on injury types
-  - Replaced static data with dynamic calculations using recoveryEstimator.ts
-  - Fixed compliance status display for workers who have returned to work
-  - Restored missing summary text content that was accidentally removed
-
-- **✅ Comprehensive Employer Summary Dashboard**: Complete employer landing page implementation
-  - **Frontend Component** (`EmployerSummaryDashboard.tsx`): Professional dashboard with priority-based action system
-    - Real-time case statistics (total cases, at work, off work, critical actions)
-    - Priority action grids (critical/urgent/routine) with color-coded badges
-    - Clickable action items that navigate to case detail pages
-    - Professional "Data-Driven Professional" design with clean geometry
-    - Auto-refresh every 30 seconds for real-time updates
-  - **Backend API** (`server/routes/employer-dashboard.ts`): Comprehensive data aggregation endpoint
-    - Calculates case statistics and compliance violations
-    - Generates priority actions based on expired certificates, overdue reviews, RTW plan requirements
-    - Analyzes all cases to surface next actions requiring attention
-    - Priority scoring system (critical > urgent > routine) with days overdue tracking
-  - **Role-Based Routing**: Updated RoleBasedDashboard to show EmployerSummaryDashboard for employer users
-  - **API Integration**: Added employer dashboard router to main server routes
-
-- **✅ Contact Management System**: Comprehensive clickable contact functionality
-  - Phone numbers clickable with `tel:` links for direct calling
-  - Email addresses clickable with email composer and CC functionality
-  - Email composition dialog with "Send to All" option
-  - Contact CRUD operations with role-based categorization
-  - Full integration across CaseSummaryPage, EmployerCaseDetailPage, and CaseDetailPanel
-
-### Technical Implementation
-
-**Database Schema Updates**:
-- Added `case_contacts` table with role-based categorization (12 roles)
-- Support for phone, email, company info with primary/active flags
-- Migration generated: `migrations/0005_aberrant_gorilla_man.sql`
-
-**API Endpoints Added**:
-- `GET/POST /api/cases/:caseId/contacts` - Contact CRUD operations
-- `GET /api/employer/dashboard` - Employer dashboard data aggregation
-- Multi-tenant security with organization-scoped access
-
-**Frontend Components Created**:
-- `EmployerSummaryDashboard.tsx` - Main employer landing page (370 lines)
-- `ContactCard.tsx` - Clickable contact display component
-- `EmailComposer.tsx` - Email composition with CC functionality
-- `CaseContactsPanel.tsx` - Complete contact management UI
-- `DynamicRecoveryTimeline.tsx` - Worker-specific recovery timelines
-
-### Problem Resolution
-- **Dashboard API Issues**: Fixed authentication/routing issues that caused "Dashboard Unavailable" error
-- **TypeScript Compilation**: Resolved property access issues in employer-dashboard.ts
-- **Server Port Conflicts**: Successfully restarted server to register new routes
-- **Dynamic Data Generation**: Replaced all hard-coded Andres data with worker-specific calculations
-
-### Verification
-- ✅ Build passes (TypeScript compilation clean)
-- ✅ Tests pass (165/165 unit tests)
-- ✅ Employer dashboard loads with real case statistics
-- ✅ Recovery timelines now show individual worker progress
-- ✅ Contact functionality fully operational
-- ✅ Server running stable on port 5000
-
-### Pending Tasks (Still Open)
-- **Timeline Discussion Notes**: Make timeline discussion notes clickable with proper links
-- **API Testing**: Dashboard API may still need authentication debugging for production deployment
-
-### Business Impact
-- **Employer User Experience**: Complete landing page with actionable insights and priority-based workflow
-- **Case Management Efficiency**: Dynamic recovery timelines provide accurate worker-specific progress tracking
-- **Communication Enhancement**: Direct contact capabilities reduce administrative overhead
-- **Compliance Monitoring**: Real-time compliance violation detection with automated priority scoring
-
-### Notes
-- **User Feedback Addressed**: Fixed specific issue "recovery timeline graph is the same for all workers"
-- **Professional Design**: Used frontend-design skill to create polished employer dashboard interface
-- **Data Quality**: All invalid cases like "Please (s25wf307549)" were cleaned up in previous session
-- **Architecture**: Maintained existing patterns while adding comprehensive new functionality
-
-### Environment Status
-- **Branch**: fix/smart-summary-500
-- **Build**: ✅ Passing (TypeScript + Vite)
-- **Tests**: ✅ 165/165 unit tests passing
-- **Servers**: ✅ Backend (:5000) and Frontend (:5173) healthy
-- **Database**: ✅ Schema updated with contacts table
-- **Git**: ✅ All work committed (a2eb97d)
-
-### Session Duration
-- **Time**: ~120 minutes
-- **Commits**: 1 comprehensive commit with 18 files changed, 5,421 insertions
-
----
-
-## Session 10 - Final Completion (2026-01-13)
-
-### Completed
-- [x] **Compliance Report UI Component** - Created `ComplianceReportCard.tsx`
-  - Professional WorkSafe Victoria-themed interface with distinctive design
-  - Displays compliance status, scores, rule violations with severity levels
-  - Tabbed interface: Issues, Compliant Rules, Overview
-  - Color-coded severity system (Critical=red, High=orange, Medium=amber, Low=blue)
-  - Actionable insights with recommendations and document references
-  - Real-time refresh functionality
-
-- [x] **Case Detail Compliance Integration** - Updated `EmployerCaseDetailView.tsx`
-  - Added 8th "Compliance" tab to existing tabbed interface
-  - Seamlessly integrated with existing modal layout
-  - Uses GET `/api/cases/:id/compliance/evaluate` endpoint
-
-- [x] **Compliance Dashboard Widget** - Created `ComplianceDashboardWidget.tsx`
-  - Organization-wide compliance statistics display
-  - Key metrics: Overall compliance rate, evaluated cases, priority issues
-  - Status distribution with progress bars and percentages
-  - Top compliance issues with violation counts
-  - Trend indicators and auto-refresh every 5 minutes
-  - Professional layout matching existing dashboard components
-
-- [x] **Build and Test Verification**
-  - Build successful with no TypeScript errors
-  - All 165 tests passing (existing functionality unchanged)
-  - No regressions introduced by new components
-
-### Frontend UI Features Delivered
-1. **Modern Professional Aesthetic** - WorkSafe Victoria compliance theming
-2. **Severity-Based Color Coding** - Visual hierarchy for compliance issues
-3. **Actionable Insights** - Clear recommendations and document references
-4. **Real-Time Updates** - Refresh functionality and auto-polling
-5. **Responsive Design** - Works across different screen sizes
-6. **Integration** - Seamlessly fits with existing case management interface
-
-### Technical Implementation
-- React 18 + TypeScript + Tailwind CSS + shadcn/ui components
-- TanStack Query for data fetching and caching
-- Lucide React icons for consistent iconography
-- Progressive enhancement with loading states and error handling
-- Accessible design with proper ARIA labels and semantic markup
-
-### Status: COMPLIANCE SYSTEM COMPLETE ✅
-Both backend compliance engine and frontend UI are now fully implemented and operational.
-
----
-
-🤖 Generated with Claude Code (https://claude.com/claude-code)
+**Last Updated:** 2026-01-14 05:30 UTC
+**Next Action:** Continue employer feature testing or implement next requirements
