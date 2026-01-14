@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card, CardContent } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { AlertCircle, CheckCircle, Clock, AlertTriangle } from "lucide-react";
@@ -19,6 +20,8 @@ interface StatusHeaderProps {
 }
 
 export function StatusHeader({ workerCase, pendingActions = [], certificateStatus }: StatusHeaderProps) {
+  const [showAllActions, setShowAllActions] = useState(false);
+
   // Determine overall case status based on certificate and actions
   const getOverallStatus = () => {
     if (certificateStatus?.status === "expired" || certificateStatus?.status === "missing") {
@@ -104,7 +107,7 @@ export function StatusHeader({ workerCase, pendingActions = [], certificateStatu
               </h3>
             </div>
             <ul className="space-y-2">
-              {pendingActions.slice(0, 3).map((action, idx) => {
+              {(showAllActions ? pendingActions : pendingActions.slice(0, 3)).map((action, idx) => {
                 const isOverdue = action.dueDate && new Date(action.dueDate) < new Date();
                 const daysUntilDue = action.dueDate
                   ? Math.ceil((new Date(action.dueDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
@@ -130,8 +133,19 @@ export function StatusHeader({ workerCase, pendingActions = [], certificateStatu
                 );
               })}
               {pendingActions.length > 3 && (
-                <li className="text-sm text-gray-500 italic">
-                  + {pendingActions.length - 3} more action{pendingActions.length - 3 > 1 ? 's' : ''}
+                <li>
+                  <button
+                    onClick={() => setShowAllActions(!showAllActions)}
+                    className="text-sm text-primary hover:text-primary/80 hover:underline cursor-pointer flex items-center gap-1"
+                  >
+                    <span className="material-symbols-outlined text-sm">
+                      {showAllActions ? 'expand_less' : 'expand_more'}
+                    </span>
+                    {showAllActions
+                      ? 'Show less'
+                      : `+ ${pendingActions.length - 3} more action${pendingActions.length - 3 > 1 ? 's' : ''}`
+                    }
+                  </button>
                 </li>
               )}
             </ul>
