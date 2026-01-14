@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card, CardContent } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { AlertCircle, CheckCircle, Clock, AlertTriangle } from "lucide-react";
@@ -21,6 +21,7 @@ interface StatusHeaderProps {
 
 export function StatusHeader({ workerCase, pendingActions = [], certificateStatus }: StatusHeaderProps) {
   const [showAllActions, setShowAllActions] = useState(false);
+  const actionsListRef = useRef<HTMLUListElement>(null);
 
   // Determine overall case status based on certificate and actions
   const getOverallStatus = () => {
@@ -106,7 +107,7 @@ export function StatusHeader({ workerCase, pendingActions = [], certificateStatu
                 NEXT ACTIONS ({pendingActions.length} pending)
               </h3>
             </div>
-            <ul className="space-y-2">
+            <ul ref={actionsListRef} className="space-y-2">
               {(showAllActions ? pendingActions : pendingActions.slice(0, 3)).map((action, idx) => {
                 const isOverdue = action.dueDate && new Date(action.dueDate) < new Date();
                 const daysUntilDue = action.dueDate
@@ -135,7 +136,16 @@ export function StatusHeader({ workerCase, pendingActions = [], certificateStatu
               {pendingActions.length > 3 && (
                 <li>
                   <button
-                    onClick={() => setShowAllActions(!showAllActions)}
+                    onClick={() => {
+                      const newState = !showAllActions;
+                      setShowAllActions(newState);
+                      // Scroll actions into view when expanding
+                      if (newState) {
+                        setTimeout(() => {
+                          actionsListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        }, 50);
+                      }
+                    }}
                     className="text-sm text-primary hover:text-primary/80 hover:underline cursor-pointer flex items-center gap-1"
                   >
                     <span className="material-symbols-outlined text-sm">
