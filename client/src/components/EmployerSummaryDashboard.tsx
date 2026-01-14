@@ -228,7 +228,7 @@ export function EmployerSummaryDashboard() {
                     <div
                       key={action.id}
                       className="p-4 border-b border-slate-100 hover:bg-red-50 transition-all duration-200 cursor-pointer group"
-                      onClick={() => window.location.href = `/employer/cases/${action.caseId}`}
+                      onClick={() => window.location.href = `/employer/case/${action.caseId}`}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
@@ -269,7 +269,7 @@ export function EmployerSummaryDashboard() {
                   <div
                     key={action.id}
                     className="p-4 border-b border-slate-100 hover:bg-amber-50 transition-all duration-200 cursor-pointer group"
-                    onClick={() => window.location.href = `/employer/cases/${action.caseId}`}
+                    onClick={() => window.location.href = `/employer/case/${action.caseId}`}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -316,7 +316,7 @@ export function EmployerSummaryDashboard() {
                   <div
                     key={action.id}
                     className="p-4 border-b border-slate-100 hover:bg-blue-50 transition-all duration-200 cursor-pointer group"
-                    onClick={() => window.location.href = `/employer/cases/${action.caseId}`}
+                    onClick={() => window.location.href = `/employer/case/${action.caseId}`}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
