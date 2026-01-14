@@ -166,54 +166,55 @@ export function ActionQueueCard({ onCaseClick, limit = 5 }: ActionQueueCardProps
                 <button
                   key={action.id}
                   onClick={() => handleActionClick(action)}
-                  className={`w-full text-left rounded-md border p-3 transition-colors hover:bg-accent/50 ${
-                    dueInfo.isOverdue
-                      ? "border-red-200 bg-red-50/30"
+                  className={`w-full text-left rounded-lg border-2 p-3 transition-all cursor-pointer
+                    hover:shadow-md hover:scale-[1.02] active:scale-[0.98]
+                    ${dueInfo.isOverdue
+                      ? "border-red-300 bg-red-50 hover:border-red-400"
                       : dueInfo.urgency === "high"
-                      ? "border-amber-200 bg-amber-50/30"
-                      : "border-border"
+                      ? "border-amber-300 bg-amber-50 hover:border-amber-400"
+                      : "border-slate-200 bg-slate-50 hover:border-primary/50"
                   }`}
                 >
-                  <div className="flex items-start gap-3">
-                    <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ${
-                      dueInfo.isOverdue
-                        ? "bg-red-100 text-red-600"
-                        : dueInfo.urgency === "high"
-                        ? "bg-amber-100 text-amber-600"
-                        : "bg-slate-100 text-slate-600"
-                    }`}>
-                      <span className="material-symbols-outlined text-sm">
+                  {/* Worker Name - Primary */}
+                  <div className="font-semibold text-sm text-card-foreground mb-1">
+                    {action.workerName || "Unknown Worker"}
+                  </div>
+
+                  {/* Company */}
+                  <div className="text-xs text-muted-foreground mb-2">
+                    {action.company || "Unknown Company"}
+                  </div>
+
+                  {/* Action Type + Due Date */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge
+                      variant="secondary"
+                      className={`text-xs font-medium ${
+                        dueInfo.isOverdue
+                          ? "bg-red-100 text-red-700"
+                          : dueInfo.urgency === "high"
+                          ? "bg-amber-100 text-amber-700"
+                          : "bg-slate-100 text-slate-700"
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-xs mr-1">
                         {actionTypeIcon(action.type)}
                       </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium text-sm text-card-foreground">
-                          {actionTypeLabel(action.type)}
-                        </span>
-                        <Badge
-                          variant="outline"
-                          className={`text-[10px] ${urgencyBadgeClass(dueInfo.urgency, dueInfo.isOverdue)}`}
-                        >
-                          {dueInfo.text}
-                        </Badge>
-                      </div>
-                      <div className="text-xs text-muted-foreground mt-1 truncate">
-                        Case: {action.workerName || "Unknown"}
-                        {action.company && (
-                          <span className="text-muted-foreground/70"> ({action.company})</span>
-                        )}
-                      </div>
-                      {action.notes && (
-                        <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
-                          {action.notes}
-                        </p>
-                      )}
-                    </div>
-                    <span className="material-symbols-outlined text-muted-foreground text-sm flex-shrink-0">
-                      chevron_right
+                      {actionTypeLabel(action.type)}
+                    </Badge>
+                    <span className={`text-xs font-medium ${
+                      dueInfo.isOverdue ? "text-red-600" : "text-muted-foreground"
+                    }`}>
+                      {dueInfo.text}
                     </span>
                   </div>
+
+                  {/* Notes if present */}
+                  {action.notes && (
+                    <p className="text-xs text-muted-foreground mt-2 line-clamp-2 italic">
+                      {action.notes}
+                    </p>
+                  )}
                 </button>
               );
             })}
