@@ -20,6 +20,7 @@ export default function GPNet2Dashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   const [statFilter, setStatFilter] = useState<StatFilter>('all');
+  const [directFetchCase, setDirectFetchCase] = useState<WorkerCase | null>(null);
   const { toast } = useToast();
 
   const { data: paginatedData, isLoading } = useQuery<PaginatedCasesResponse>({
@@ -110,16 +111,45 @@ export default function GPNet2Dashboard() {
     return Array.from(companySet).sort();
   }, [cases]);
 
+  // Use loaded case if available, otherwise use directly fetched case
   const selectedCase = useMemo(() => {
-    return cases.find((c) => c.id === selectedCaseId) || null;
-  }, [cases, selectedCaseId]);
+    const loadedCase = cases.find((c) => c.id === selectedCaseId);
+    return loadedCase || directFetchCase;
+  }, [cases, selectedCaseId, directFetchCase]);
 
-  const handleCaseClick = (caseId: string) => {
+  const handleCaseClick = async (caseId: string) => {
     setSelectedCaseId(caseId);
+    setDirectFetchCase(null); // Reset any previously fetched case
+
+    // Check if case exists in loaded cases
+    const existsInLoaded = cases.some((c) => c.id === caseId);
+    if (!existsInLoaded) {
+      // Fetch the case directly from API
+      try {
+        const response = await fetchWithCsrf(`/api/cases/${caseId}`);
+        if (response.ok) {
+          const fetchedCase = await response.json();
+          setDirectFetchCase(fetchedCase);
+        } else {
+          toast({
+            title: "Case Not Found",
+            description: `Could not load case ${caseId}`,
+            variant: "destructive",
+          });
+        }
+      } catch (err) {
+        toast({
+          title: "Error",
+          description: "Failed to fetch case details",
+          variant: "destructive",
+        });
+      }
+    }
   };
 
   const handleClosePanel = () => {
     setSelectedCaseId(null);
+    setDirectFetchCase(null);
   };
 
   if (isLoading) {
