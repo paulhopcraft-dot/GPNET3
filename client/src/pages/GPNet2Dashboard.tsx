@@ -233,10 +233,6 @@ export default function GPNet2Dashboard() {
             </div>
           </div>
 
-          {/* Action Queue for smaller screens - below table */}
-          <div className="xl:hidden mt-4">
-            <ActionQueueCard onCaseClick={handleCaseClick} limit={5} />
-          </div>
         </div>
 
         {selectedCase && (
