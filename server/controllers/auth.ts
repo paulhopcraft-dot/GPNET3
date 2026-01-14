@@ -31,7 +31,7 @@ function setAuthCookie(res: Response, token: string): void {
   res.cookie(COOKIE_NAME, token, {
     httpOnly: true, // Not accessible via JavaScript (XSS protection)
     secure: process.env.NODE_ENV === "production", // HTTPS only in production
-    sameSite: "strict", // CSRF protection
+    sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax", // CSRF protection (lax in dev for Vite proxy)
     maxAge: COOKIE_MAX_AGE,
     path: "/",
   });
@@ -52,7 +52,7 @@ function setRefreshCookie(res: Response, token: string): void {
   res.cookie(REFRESH_COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
+    sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax", // lax in dev for Vite proxy
     maxAge: REFRESH_COOKIE_MAX_AGE,
     path: "/api/auth", // Only sent to auth endpoints
   });

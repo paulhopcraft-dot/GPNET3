@@ -43,7 +43,7 @@ interface DashboardData {
  * GET /api/employer/dashboard
  * Returns comprehensive dashboard data for employer landing page
  */
-router.get('/dashboard', authorize, async (req: Request, res: Response) => {
+router.get('/dashboard', authorize(), async (req: Request, res: Response) => {
   try {
     const organizationId = req.user?.organizationId;
     if (!organizationId) {
