@@ -1,0 +1,357 @@
+<?xml version="1.0" encoding="ascii"?>
+<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
+  <p:cSld name="Slide 2">
+    <p:bg>
+      <p:bgPr>
+        <a:solidFill>
+          <a:srgbClr val="0D0D0D"/>
+        </a:solidFill>
+      </p:bgPr>
+    </p:bg>
+    <p:spTree>
+      <p:nvGrpSpPr>
+        <p:cNvPr id="1" name=""/>
+        <p:cNvGrpSpPr/>
+        <p:nvPr/>
+      </p:nvGrpSpPr>
+      <p:grpSpPr>
+        <a:xfrm>
+          <a:off x="0" y="0"/>
+          <a:ext cx="0" cy="0"/>
+          <a:chOff x="0" y="0"/>
+          <a:chExt cx="0" cy="0"/>
+        </a:xfrm>
+      </p:grpSpPr>
+      <p:sp>
+        <p:nvSpPr>
+          <p:cNvPr id="2" name="Text 0"/>
+          <p:cNvSpPr/>
+          <p:nvPr/>
+        </p:nvSpPr>
+        <p:spPr>
+          <a:xfrm>
+            <a:off x="457200" y="365760"/>
+            <a:ext cx="8229600" cy="731520"/>
+          </a:xfrm>
+          <a:prstGeom prst="rect">
+            <a:avLst/>
+          </a:prstGeom>
+          <a:noFill/>
+          <a:ln/>
+        </p:spPr>
+        <p:txBody>
+          <a:bodyPr wrap="square" rtlCol="0" anchor="ctr"/>
+          <a:lstStyle/>
+          <a:p>
+            <a:pPr indent="0" marL="0">
+              <a:buNone/>
+            </a:pPr>
+            <a:r>
+              <a:rPr lang="en-US" sz="3200" b="1" dirty="0">
+                <a:solidFill>
+                  <a:srgbClr val="E74C3C"/>
+                </a:solidFill>
+              </a:rPr>
+              <a:t>Your Claims Portfolio Is Bleeding Money</a:t>
+            </a:r>
+            <a:endParaRPr lang="en-US" sz="3200" dirty="0"/>
+          </a:p>
+        </p:txBody>
+      </p:sp>
+      <p:sp>
+        <p:nvSpPr>
+          <p:cNvPr id="3" name="Text 1"/>
+          <p:cNvSpPr/>
+          <p:nvPr/>
+        </p:nvSpPr>
+        <p:spPr>
+          <a:xfrm>
+            <a:off x="731520" y="1280160"/>
+            <a:ext cx="7772400" cy="548640"/>
+          </a:xfrm>
+          <a:prstGeom prst="rect">
+            <a:avLst/>
+          </a:prstGeom>
+          <a:noFill/>
+          <a:ln/>
+        </p:spPr>
+        <p:txBody>
+          <a:bodyPr wrap="square" rtlCol="0" anchor="ctr"/>
+          <a:lstStyle/>
+          <a:p>
+            <a:pPr indent="0" marL="0">
+              <a:buNone/>
+            </a:pPr>
+            <a:r>
+              <a:rPr lang="en-US" sz="2000" b="1" dirty="0">
+                <a:solidFill>
+                  <a:srgbClr val="D4AF37"/>
+                </a:solidFill>
+              </a:rPr>
+              <a:t>$61 BILLION</a:t>
+            </a:r>
+            <a:pPr indent="0" marL="0">
+              <a:buNone/>
+            </a:pPr>
+            <a:r>
+              <a:rPr lang="en-US" sz="1800" dirty="0">
+                <a:solidFill>
+                  <a:srgbClr val="FFFFFF"/>
+                </a:solidFill>
+              </a:rPr>
+              <a:t> lost annually to workplace injuries in Australia</a:t>
+            </a:r>
+            <a:endParaRPr lang="en-US" sz="2000" dirty="0"/>
+          </a:p>
+        </p:txBody>
+      </p:sp>
+      <p:sp>
+        <p:nvSpPr>
+          <p:cNvPr id="4" name="Text 2"/>
+          <p:cNvSpPr/>
+          <p:nvPr/>
+        </p:nvSpPr>
+        <p:spPr>
+          <a:xfrm>
+            <a:off x="731520" y="1920240"/>
+            <a:ext cx="7772400" cy="548640"/>
+          </a:xfrm>
+          <a:prstGeom prst="rect">
+            <a:avLst/>
+          </a:prstGeom>
+          <a:noFill/>
+          <a:ln/>
+        </p:spPr>
+        <p:txBody>
+          <a:bodyPr wrap="square" rtlCol="0" anchor="ctr"/>
+          <a:lstStyle/>
+          <a:p>
+            <a:pPr indent="0" marL="0">
+              <a:buNone/>
+            </a:pPr>
+            <a:r>
+              <a:rPr lang="en-US" sz="2000" b="1" dirty="0">
+                <a:solidFill>
+                  <a:srgbClr val="D4AF37"/>
+                </a:solidFill>
+              </a:rPr>
+              <a:t>70%</a:t>
+            </a:r>
+            <a:pPr indent="0" marL="0">
+              <a:buNone/>
+            </a:pPr>
+            <a:r>
+              <a:rPr lang="en-US" sz="1800" dirty="0">
+                <a:solidFill>
+                  <a:srgbClr val="FFFFFF"/>
+                </a:solidFill>
+              </a:rPr>
+              <a:t> of case manager time wasted on admin (not helping workers)</a:t>
+            </a:r>
+            <a:endParaRPr lang="en-US" sz="2000" dirty="0"/>
+          </a:p>
+        </p:txBody>
+      </p:sp>
+      <p:sp>
+        <p:nvSpPr>
+          <p:cNvPr id="5" name="Text 3"/>
+          <p:cNvSpPr/>
+          <p:nvPr/>
+        </p:nvSpPr>
+        <p:spPr>
+          <a:xfrm>
+            <a:off x="731520" y="2560320"/>
+            <a:ext cx="7772400" cy="548640"/>
+          </a:xfrm>
+          <a:prstGeom prst="rect">
+            <a:avLst/>
+          </a:prstGeom>
+          <a:noFill/>
+          <a:ln/>
+        </p:spPr>
+        <p:txBody>
+          <a:bodyPr wrap="square" rtlCol="0" anchor="ctr"/>
+          <a:lstStyle/>
+          <a:p>
+            <a:pPr indent="0" marL="0">
+              <a:buNone/>
+            </a:pPr>
+            <a:r>
+              <a:rPr lang="en-US" sz="2000" b="1" dirty="0">
+                <a:solidFill>
+                  <a:srgbClr val="D4AF37"/>
+                </a:solidFill>
+              </a:rPr>
+              <a:t>47 weeks</a:t>
+            </a:r>
+            <a:pPr indent="0" marL="0">
+              <a:buNone/>
+            </a:pPr>
+            <a:r>
+              <a:rPr lang="en-US" sz="1800" dirty="0">
+                <a:solidFill>
+                  <a:srgbClr val="FFFFFF"/>
+                </a:solidFill>
+              </a:rPr>
+              <a:t> average claim duration (should be 23)</a:t>
+            </a:r>
+            <a:endParaRPr lang="en-US" sz="2000" dirty="0"/>
+          </a:p>
+        </p:txBody>
+      </p:sp>
+      <p:sp>
+        <p:nvSpPr>
+          <p:cNvPr id="6" name="Text 4"/>
+          <p:cNvSpPr/>
+          <p:nvPr/>
+        </p:nvSpPr>
+        <p:spPr>
+          <a:xfrm>
+            <a:off x="731520" y="3200400"/>
+            <a:ext cx="7772400" cy="548640"/>
+          </a:xfrm>
+          <a:prstGeom prst="rect">
+            <a:avLst/>
+          </a:prstGeom>
+          <a:noFill/>
+          <a:ln/>
+        </p:spPr>
+        <p:txBody>
+          <a:bodyPr wrap="square" rtlCol="0" anchor="ctr"/>
+          <a:lstStyle/>
+          <a:p>
+            <a:pPr indent="0" marL="0">
+              <a:buNone/>
+            </a:pPr>
+            <a:r>
+              <a:rPr lang="en-US" sz="2000" b="1" dirty="0">
+                <a:solidFill>
+                  <a:srgbClr val="D4AF37"/>
+                </a:solidFill>
+              </a:rPr>
+              <a:t>1 in 4</a:t>
+            </a:r>
+            <a:pPr indent="0" marL="0">
+              <a:buNone/>
+            </a:pPr>
+            <a:r>
+              <a:rPr lang="en-US" sz="1800" dirty="0">
+                <a:solidFill>
+                  <a:srgbClr val="FFFFFF"/>
+                </a:solidFill>
+              </a:rPr>
+              <a:t> claims escalate to disputes ($50K+ each)</a:t>
+            </a:r>
+            <a:endParaRPr lang="en-US" sz="2000" dirty="0"/>
+          </a:p>
+        </p:txBody>
+      </p:sp>
+      <p:sp>
+        <p:nvSpPr>
+          <p:cNvPr id="7" name="Shape 5"/>
+          <p:cNvSpPr/>
+          <p:nvPr/>
+        </p:nvSpPr>
+        <p:spPr>
+          <a:xfrm>
+            <a:off x="457200" y="3931920"/>
+            <a:ext cx="8229600" cy="822960"/>
+          </a:xfrm>
+          <a:prstGeom prst="rect">
+            <a:avLst/>
+          </a:prstGeom>
+          <a:solidFill>
+            <a:srgbClr val="1A1A1A"/>
+          </a:solidFill>
+          <a:ln w="12700">
+            <a:solidFill>
+              <a:srgbClr val="E74C3C"/>
+            </a:solidFill>
+            <a:prstDash val="solid"/>
+          </a:ln>
+        </p:spPr>
+      </p:sp>
+      <p:sp>
+        <p:nvSpPr>
+          <p:cNvPr id="8" name="Shape 6"/>
+          <p:cNvSpPr/>
+          <p:nvPr/>
+        </p:nvSpPr>
+        <p:spPr>
+          <a:xfrm>
+            <a:off x="457200" y="3931920"/>
+            <a:ext cx="73152" cy="822960"/>
+          </a:xfrm>
+          <a:prstGeom prst="rect">
+            <a:avLst/>
+          </a:prstGeom>
+          <a:solidFill>
+            <a:srgbClr val="E74C3C"/>
+          </a:solidFill>
+          <a:ln/>
+        </p:spPr>
+      </p:sp>
+      <p:sp>
+        <p:nvSpPr>
+          <p:cNvPr id="9" name="Text 7"/>
+          <p:cNvSpPr/>
+          <p:nvPr/>
+        </p:nvSpPr>
+        <p:spPr>
+          <a:xfrm>
+            <a:off x="731520" y="4069080"/>
+            <a:ext cx="7772400" cy="548640"/>
+          </a:xfrm>
+          <a:prstGeom prst="rect">
+            <a:avLst/>
+          </a:prstGeom>
+          <a:noFill/>
+          <a:ln/>
+        </p:spPr>
+        <p:txBody>
+          <a:bodyPr wrap="square" rtlCol="0" anchor="ctr"/>
+          <a:lstStyle/>
+          <a:p>
+            <a:pPr indent="0" marL="0">
+              <a:buNone/>
+            </a:pPr>
+            <a:r>
+              <a:rPr lang="en-US" sz="1600" dirty="0">
+                <a:solidFill>
+                  <a:srgbClr val="FFFFFF"/>
+                </a:solidFill>
+              </a:rPr>
+              <a:t>Every day you wait costs you </a:t>
+            </a:r>
+            <a:pPr indent="0" marL="0">
+              <a:buNone/>
+            </a:pPr>
+            <a:r>
+              <a:rPr lang="en-US" sz="1600" b="1" dirty="0">
+                <a:solidFill>
+                  <a:srgbClr val="D4AF37"/>
+                </a:solidFill>
+              </a:rPr>
+              <a:t>$1,880</a:t>
+            </a:r>
+            <a:pPr indent="0" marL="0">
+              <a:buNone/>
+            </a:pPr>
+            <a:r>
+              <a:rPr lang="en-US" sz="1600" dirty="0">
+                <a:solidFill>
+                  <a:srgbClr val="FFFFFF"/>
+                </a:solidFill>
+              </a:rPr>
+              <a:t> per 1,000 cases</a:t>
+            </a:r>
+            <a:endParaRPr lang="en-US" sz="1600" dirty="0"/>
+          </a:p>
+        </p:txBody>
+      </p:sp>
+    </p:spTree>
+  </p:cSld>
+  <p:clrMapOvr>
+    <a:masterClrMapping/>
+  </p:clrMapOvr>
+</p:sld>
