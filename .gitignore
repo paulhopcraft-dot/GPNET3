@@ -15,3 +15,11 @@ gh-cli/
 test-results/
 playwright-report/
 playwright/.cache/
+.playwright-mcp/
+*.log
+cookies.txt
+nul
+start-ngrok.bat
+proxy-server.js
+ralph/
+Natalie-Task-Plan-15-Jan-2026.pdf
