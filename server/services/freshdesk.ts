@@ -538,6 +538,37 @@ export class FreshdeskService {
       return null;
     }
 
+    // 🔧 FIX: Prevent future certificate dates (max 30 days from now)
+    const now = dayjs();
+    const maxFutureDate = now.add(30, 'day');
+
+    if (start.isAfter(maxFutureDate) || end.isAfter(maxFutureDate)) {
+      logger.warn(`Certificate date validation failed - future date detected`, {
+        ticketId: ticket.id,
+        startDate: start.format('YYYY-MM-DD'),
+        endDate: end.format('YYYY-MM-DD'),
+        maxAllowed: maxFutureDate.format('YYYY-MM-DD')
+      });
+
+      // Use ticket creation date as fallback for invalid future dates
+      const fallbackStart = dayjs(ticket.created_at);
+      const fallbackEnd = fallbackStart.add(30, 'day');
+
+      logger.info(`Using fallback dates based on ticket creation`, {
+        ticketId: ticket.id,
+        fallbackStart: fallbackStart.format('YYYY-MM-DD'),
+        fallbackEnd: fallbackEnd.format('YYYY-MM-DD')
+      });
+
+      start.set('year', fallbackStart.year())
+           .set('month', fallbackStart.month())
+           .set('date', fallbackStart.date());
+
+      end.set('year', fallbackEnd.year())
+         .set('month', fallbackEnd.month())
+         .set('date', fallbackEnd.date());
+    }
+
     const capacity = this.deriveCapacityFromTicket(ticket, fallbackWorkStatus);
 
     return {
