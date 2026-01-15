@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +20,7 @@ export default function EmployerCaseDetailPage() {
   const navigate = useNavigate();
   const [loadingSummary, setLoadingSummary] = useState(false);
   const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [summaryLoaded, setSummaryLoaded] = useState(false);
 
   // Fetch case data
   const { data: workerCase, isLoading, error } = useQuery<WorkerCase>({
@@ -37,6 +38,7 @@ export default function EmployerCaseDetailPage() {
       if (response.ok) {
         const data = await response.json();
         setAiSummary(data.summary);
+        setSummaryLoaded(true);
       }
     } catch (error) {
       console.error("Error generating summary:", error);
@@ -44,6 +46,13 @@ export default function EmployerCaseDetailPage() {
       setLoadingSummary(false);
     }
   };
+
+  // Auto-load summary when case data is available
+  useEffect(() => {
+    if (workerCase && id && !summaryLoaded && !loadingSummary) {
+      generateSummary();
+    }
+  }, [workerCase, id, summaryLoaded, loadingSummary]);
 
   const renderMarkdown = (content: string) => (
     <div className="prose prose-sm max-w-none dark:prose-invert">
@@ -287,35 +296,39 @@ export default function EmployerCaseDetailPage() {
                     </div>
                   ) : null}
 
-                  {/* Detailed Status Information */}
+                  {/* AI-Generated Detailed Summary */}
                   <div className="border-t pt-4 mt-6">
-                    <h3 className="text-sm font-semibold text-primary mb-3">Detailed Status (as at 8 January 2026)</h3>
-                    <div className="space-y-2">
-                      <div className="flex border-b pb-1">
-                        <div className="w-44 text-xs font-medium text-muted-foreground">Current Rate</div>
-                        <div className="text-xs flex-1">$32.31/hr (casual loading incl.) = $1,211.62/week</div>
-                      </div>
-                      <div className="flex border-b pb-1">
-                        <div className="w-44 text-xs font-medium text-muted-foreground">Certificate of Capacity</div>
-                        <div className="text-xs flex-1">None current (expired)</div>
-                      </div>
-                      <div className="flex border-b pb-1">
-                        <div className="w-44 text-xs font-medium text-muted-foreground">Restrictions</div>
-                        <div className="text-xs flex-1">None imposed by insurer</div>
-                      </div>
-                      <div className="flex border-b pb-1">
-                        <div className="w-44 text-xs font-medium text-muted-foreground">Current Symptoms</div>
-                        <div className="text-xs flex-1">Intermittent - finger stiffness/locking in cold weather (~4/10), improving during day</div>
-                      </div>
-                      <div className="flex border-b pb-1">
-                        <div className="w-44 text-xs font-medium text-muted-foreground">Treatment</div>
-                        <div className="text-xs flex-1">Ongoing physio (Saturday appointments)</div>
-                      </div>
-                      <div className="flex pb-1">
-                        <div className="w-44 text-xs font-medium text-muted-foreground">Wage Entitlement</div>
-                        <div className="text-xs flex-1">$1,074/week (PIAWE after step-down)</div>
-                      </div>
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-semibold text-primary flex items-center gap-2">
+                        <Sparkles className="h-4 w-4" />
+                        Detailed Case Summary
+                      </h3>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={generateSummary}
+                        disabled={loadingSummary}
+                      >
+                        <RefreshCw className={cn("h-3 w-3 mr-1", loadingSummary && "animate-spin")} />
+                        Refresh
+                      </Button>
                     </div>
+                    {loadingSummary && !aiSummary ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="text-center">
+                          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                          <p className="text-sm text-muted-foreground">Generating case summary...</p>
+                        </div>
+                      </div>
+                    ) : aiSummary ? (
+                      <div className="prose prose-sm max-w-none [&_table]:text-xs [&_th]:py-1 [&_td]:py-1">
+                        {renderMarkdown(aiSummary)}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        No detailed summary available. Click Refresh to generate one.
+                      </p>
+                    )}
                   </div>
 
                 </CardContent>

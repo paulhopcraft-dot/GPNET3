@@ -34,15 +34,24 @@ export class SummaryService {
     const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     const yesterday = new Date(Date.now() - 86400000).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
-    const mockSummary = `**Case Summary - ${workerCase.workerName}**
+    const mockSummary = `## Case Finalized - Worker Employed at IKON
+
+**${workerCase.workerName} has obtained full-time employment as a cleaner at IKON Services.** The WorkCover claim has been finalized and closed for weekly payments.
+
+---
+
+### Current Status
+
+| Status | Details |
+|--------|---------|
+| **Claim Status** | FINALIZED - Closed for weekly payments |
+| **Employment** | Full-time cleaner at IKON Services (commenced 8 December 2025) |
+| **Work Capacity** | Full duties - no restrictions |
+| **Certificate Required** | None - claim is closed |
 
 ---
 
 ## Latest Update (${today})
-
-**Status:** Claim FINALISED | Worker in full-time employment | Light-touch monitoring only
-
-${workerCase.workerName} commenced full-time employment as a cleaner at IKON Services on 8 December 2025. DXC confirmed the claim is closed for weekly payments. No active Certificate of Capacity or insurer-imposed restrictions are in place.
 
 **Recent Welfare Contact (${yesterday}):**
 - ${workerCase.workerName} reported intermittent symptoms (finger stiffness/locking ~4/10, worse in cold weather)

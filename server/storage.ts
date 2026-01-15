@@ -1243,12 +1243,24 @@ class DbStorage implements IStorage {
     };
 
     if (existingCase.length > 0) {
-      // Preserve AI summary fields when updating from Freshdesk
+      // Preserve AI summary fields and manual summary when updating from Freshdesk
       const existing = existingCase[0];
+
+      // Preserve existing summary if it contains meaningful content (not just ticket subject)
+      // Only overwrite if existing is empty or if incoming has "Claim finalized" etc.
+      const shouldPreserveSummary = existing.summary &&
+        existing.summary.length > 0 &&
+        !existing.summary.startsWith('Symmetry-');
+
+      // Preserve work status if it's "At work" (manually set for employed workers)
+      const shouldPreserveWorkStatus = existing.workStatus === 'At work';
+
       await db
         .update(workerCases)
         .set({
           ...dbData,
+          summary: shouldPreserveSummary ? existing.summary : dbData.summary,
+          workStatus: shouldPreserveWorkStatus ? existing.workStatus : dbData.workStatus,
           aiSummary: existing.aiSummary,
           aiSummaryGeneratedAt: existing.aiSummaryGeneratedAt,
           aiSummaryModel: existing.aiSummaryModel,

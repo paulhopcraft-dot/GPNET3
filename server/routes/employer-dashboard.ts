@@ -31,12 +31,38 @@ interface PriorityAction {
   daysOverdue?: number;
   type: 'certificate' | 'review' | 'rtw_plan' | 'medical' | 'compliance';
   caseId: string;
+  workStatus: string;
+}
+
+interface WorkerInfo {
+  caseId: string;
+  workerName: string;
+  workStatus: string;
+  company: string;
+  dateOfInjury: string;
 }
 
 interface DashboardData {
   statistics: CaseStatistics;
   priorityActions: PriorityAction[];
+  allWorkers: WorkerInfo[];
   organizationName: string;
+}
+
+// Human-readable labels for action types
+const actionLabels: Record<string, string> = {
+  chase_certificate: 'Obtain updated medical certificate',
+  review_case: 'Review case progress',
+  follow_up: 'Follow up with worker',
+  schedule_appointment: 'Schedule medical appointment',
+  update_rtw_plan: 'Update return to work plan',
+  contact_employer: 'Contact employer',
+  contact_provider: 'Contact treating provider',
+};
+
+function getActionLabel(actionType: string | null): string {
+  if (!actionType) return 'Action required';
+  return actionLabels[actionType] || actionType.replace(/_/g, ' ');
 }
 
 /**
@@ -115,7 +141,8 @@ router.get('/dashboard', authorize(), async (req: Request, res: Response) => {
             priority: daysOverdue > 14 ? 'critical' : daysOverdue > 7 ? 'urgent' : 'routine',
             daysOverdue,
             type: 'certificate',
-            caseId
+            caseId,
+            workStatus: workerCase.workStatus || 'Unknown'
           });
 
           statistics.expiredCertificates++;
@@ -151,11 +178,12 @@ router.get('/dashboard', authorize(), async (req: Request, res: Response) => {
           priorityActions.push({
             id: `action-${action.id}`,
             workerName,
-            action: action.type || 'Action required',
+            action: getActionLabel(action.type),
             priority,
             daysOverdue,
             type: actionType,
-            caseId
+            caseId,
+            workStatus: workerCase.workStatus || 'Unknown'
           });
         }
       }
@@ -173,7 +201,8 @@ router.get('/dashboard', authorize(), async (req: Request, res: Response) => {
             priority: weeksSinceInjury > 12 ? 'critical' : 'urgent',
             daysOverdue: Math.max(0, (weeksSinceInjury - 10) * 7),
             type: 'rtw_plan',
-            caseId
+            caseId,
+            workStatus: workerCase.workStatus || 'Unknown'
           });
         }
       }
@@ -188,7 +217,8 @@ router.get('/dashboard', authorize(), async (req: Request, res: Response) => {
           action: `Case review due - ${weeksSinceInjury} weeks since injury`,
           priority: 'routine',
           type: 'review',
-          caseId
+          caseId,
+          workStatus: workerCase.workStatus || 'Unknown'
         });
       }
     }
@@ -207,9 +237,19 @@ router.get('/dashboard', authorize(), async (req: Request, res: Response) => {
     statistics.urgentActions = priorityActions.filter(a => a.priority === 'urgent').length;
     statistics.routineActions = priorityActions.filter(a => a.priority === 'routine').length;
 
+    // Build complete worker list for filtering (not just those with actions)
+    const allWorkersInfo: WorkerInfo[] = allCases.map(c => ({
+      caseId: c.id,
+      workerName: c.workerName,
+      workStatus: c.workStatus || 'Unknown',
+      company: c.company || '',
+      dateOfInjury: c.dateOfInjury?.toISOString?.() || c.dateOfInjury || ''
+    }));
+
     const dashboardData: DashboardData = {
       statistics,
       priorityActions: priorityActions.slice(0, 50), // Limit to top 50 for performance
+      allWorkers: allWorkersInfo,
       organizationName
     };
 

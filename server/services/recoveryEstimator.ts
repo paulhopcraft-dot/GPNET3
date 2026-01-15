@@ -1271,13 +1271,15 @@ function getPhaseColor(index: number): string {
 function generateEstimatedCurve(
   injuryDate: Date,
   model: InjuryModel,
-  adjustedWeeks: number
+  adjustedWeeks: number,
+  currentWeek?: number
 ): ChartDataPoint[] {
   const points: ChartDataPoint[] = [];
   const scaleFactor = adjustedWeeks / model.baselineWeeks;
 
-  // Generate points at regular intervals
-  const totalWeeks = Math.ceil(adjustedWeeks * 1.2); // Include some buffer
+  // Generate points at regular intervals - extend to current week if beyond estimated
+  const estimatedEndWeek = Math.ceil(adjustedWeeks * 1.2);
+  const totalWeeks = Math.max(estimatedEndWeek, currentWeek || 0);
   for (let week = 0; week <= totalWeeks; week++) {
     const date = new Date(injuryDate);
     date.setDate(date.getDate() + week * 7);
@@ -1285,16 +1287,29 @@ function generateEstimatedCurve(
     // Find the phase for this week (scaled)
     const scaledWeek = week / scaleFactor;
     let capacity = 0;
-    for (const phase of model.phases) {
-      if (scaledWeek >= phase.weekStart && scaledWeek <= phase.weekEnd) {
-        // Linear interpolation within phase
-        const phaseProgress = (scaledWeek - phase.weekStart) / (phase.weekEnd - phase.weekStart);
-        const nextPhase = model.phases.find((p) => p.weekStart === phase.weekEnd);
-        const nextCapacity = nextPhase?.expectedCapacity ?? 100;
-        capacity = phase.expectedCapacity + phaseProgress * (nextCapacity - phase.expectedCapacity);
-        break;
-      } else if (scaledWeek > phase.weekEnd) {
-        capacity = phase.expectedCapacity;
+    let foundPhase = false;
+
+    // Get the last phase for determining when recovery is complete
+    const lastPhase = model.phases[model.phases.length - 1];
+    const lastPhaseEndWeek = lastPhase?.weekEnd ?? 0;
+
+    // If we're past all phases, capacity is 100%
+    if (scaledWeek > lastPhaseEndWeek) {
+      capacity = 100;
+      foundPhase = true;
+    } else {
+      for (const phase of model.phases) {
+        if (scaledWeek >= phase.weekStart && scaledWeek <= phase.weekEnd) {
+          // Linear interpolation within phase
+          const phaseProgress = (scaledWeek - phase.weekStart) / (phase.weekEnd - phase.weekStart);
+          const nextPhase = model.phases.find((p) => p.weekStart === phase.weekEnd);
+          const nextCapacity = nextPhase?.expectedCapacity ?? 100;
+          capacity = phase.expectedCapacity + phaseProgress * (nextCapacity - phase.expectedCapacity);
+          foundPhase = true;
+          break;
+        } else if (scaledWeek > phase.weekEnd) {
+          capacity = phase.expectedCapacity;
+        }
       }
     }
 
@@ -1651,7 +1666,7 @@ export function generateRecoveryTimelineChartData(
   const scaleFactor = adjustedWeeks / model.baselineWeeks;
 
   // Generate chart curves
-  const estimatedCurve = generateEstimatedCurve(injuryDate, model, adjustedWeeks);
+  const estimatedCurve = generateEstimatedCurve(injuryDate, model, adjustedWeeks, weeksElapsed);
   const { curve: actualCurve, markers: certificateMarkers } = generateActualCurve(
     injuryDate,
     certificates,
