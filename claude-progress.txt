@@ -1,17 +1,98 @@
 # Preventli Progress Snapshot - Session Handoff
 
-**Date:** 2026-01-14
+**Date:** 2026-01-15
 **Branch:** main
-**Latest Commit:** e86b68f fix: correct employer case navigation route path
-**Status:** ✅ Ralph Mode Testing Complete - All Tests Passing
+**Latest Commit:** fix: preserve manual data during Freshdesk sync + employer dashboard improvements
+**Status:** ✅ Data Persistence Fix Complete - Pending Certificate Bug
 
 ---
 
-## 🎯 LATEST SESSION COMPLETED (2026-01-14 - Ralph Mode Testing)
+## 🎯 LATEST SESSION COMPLETED (2026-01-15 - Data Persistence Fix)
+
+### ✅ Andres Nieto Summary & Data Persistence - COMPLETE!
+
+**Task:** Fix Andres Nieto's case summary to correctly display "Claim finalized, job at IKON" and ensure data persists through Freshdesk syncs.
+
+**Critical Bug Fixed:**
+- **Issue:** Freshdesk sync was overwriting manually-set `summary` and `workStatus` fields
+- **Impact:** Andres's summary kept reverting to old ticket subject, work status kept showing "Off work"
+- **User Impact:** Days of frustration trying to display correct case information
+
+**Solution Applied (server/storage.ts):**
+```typescript
+// Preserve existing summary if it contains meaningful content
+const shouldPreserveSummary = existing.summary &&
+  existing.summary.length > 0 &&
+  !existing.summary.startsWith('Symmetry-');
+
+// Preserve work status if manually set to "At work"
+const shouldPreserveWorkStatus = existing.workStatus === 'At work';
+```
+
+**Database Updates for Andres Nieto (FD-43714):**
+- `workStatus`: "At work" ✅
+- `summary`: "Claim FINALISED. Full-time cleaner at IKON Services since 08/12/2025..." ✅
+- `aiSummary`: Full detailed markdown with Medical Status, Key Items, Risk Factors, Next Actions ✅
+
+**Files Modified:**
+- `server/storage.ts` - Added preservation logic for summary and workStatus during sync
+- Created `update-andres-summary.ts` (temporary script, executed and deleted)
+
+### ✅ PDF Task Plan for Natalie - COMPLETE!
+
+**Created:** `Natalie-Task-Plan-15-Jan-2026.pdf`
+
+**Tasks Included (9 total):**
+1. Verify Andres Nieto fix
+2. Test dashboard filters (Workers at work, Workers off work)
+3. Audit medical certificates in Freshdesk
+4. Verify work status accuracy across all cases
+5. Add discussion notes to key cases
+6. Update contact information
+7. Review injury details
+8. Test compliance action navigation
+9. Test Freshdesk sync (manual data preservation)
+
+### 🐛 PENDING BUG - Certificate Date Issue
+
+**Bug Report:** Timeline tab for Andres Nieto shows incorrect certificate date
+
+**Database Query Result:**
+```
+Certificates for Andres:
+Start: 2026-06-30T16:00:00.000Z End: 2026-06-30T16:00:00.000Z Capacity: partial
+```
+
+**Issue:** Date is in the future (June 2026) - clearly incorrect data that needs investigation.
+
+**Next Steps:**
+1. Investigate source of incorrect date (Freshdesk import? Manual entry?)
+2. Check certificate parsing logic
+3. Update certificate with correct dates
+
+---
+
+## Future Features Discussed
+
+### Weekly Report Feature
+- Dashboard will show weekly report with three columns:
+  - **Who:** Person responsible for next action
+  - **What:** Description of action needed
+  - **When:** Due date
+- Recipients: Employer, treating doctor, insurer, worker
+- Use case: Track appointments, treatment plans, deadlines
+
+### Pre/Post Appointment Workflow
+- Track questions to ask before appointments
+- Record purpose of appointment
+- Capture outcomes and next actions
+- Example: Giorgio's neurosurgeon appointment (Jan 20)
+
+---
+
+## Previous Session (2026-01-14 - Ralph Mode Testing)
 
 ### ✅ Employer Dashboard Ralph Mode Testing - COMPLETE!
-
-**Task:** Comprehensive Ralph Mode testing of employer dashboard functionality
 
 **Test Results: 7/7 PASSED**
 
@@ -31,123 +112,16 @@
 - **Fix:** Changed 3 occurrences of `/employer/cases/${action.caseId}` to `/employer/case/${action.caseId}`
 - **Commit:** e86b68f
 
-**Artifacts Created:**
-- `ralph/employer-dashboard-tests.json` - Full test plan and results
-- `.playwright-mcp/employer-dashboard-ralph-test-complete.png` - Screenshot
-
-**Model Used:** Claude Opus 4.5 (per user request - no Sonnet)
-
 ---
 
 ## Previous Session (2026-01-14 - Dashboard Fix)
 
 ### ✅ Employer Login Testing & Dashboard Fix - COMPLETE!
 
-**Task:** Test employer login functionality and fix critical dashboard loading issue
-
 **Major Achievements:**
-1. **Employer Authentication Fixed** ✅
-   - Changed `sameSite` cookie setting from "strict" to "lax" in development mode
-   - Allows cookies to work correctly with Vite proxy setup (localhost:5173 → localhost:5000)
-   - Maintains "strict" sameSite in production for security
-   - Login now working: `employer@symmetry.local` / `ChangeMe123!`
-
-2. **Dashboard Loading Issue Resolved** ✅
-   - **Root Cause**: Missing `()` on `authorize` middleware in employer-dashboard.ts
-   - **Bug**: `router.get('/dashboard', authorize, ...)` → should be `authorize()`
-   - **Impact**: Request hung indefinitely with no error or timeout
-   - **Fix**: Added parentheses to call middleware factory: `authorize()`
-   - Dashboard now loads in ~2 seconds with real data
-
-3. **Dashboard Functionality Verified** ✅
-   - Statistics display: 39 total cases, 16 at work (41%), 23 off work
-   - Priority actions: 15 critical, 35 urgent, 0 routine
-   - Individual action items with worker names and overdue indicators
-   - Real-time data from batch query optimization (commit 6b201ea)
-
-**Technical Details:**
-- **Files Modified**:
-  - `server/controllers/auth.ts` - Cookie sameSite configuration (2 lines)
-  - `server/routes/employer-dashboard.ts` - Fixed authorize middleware call (1 character)
-- **Root Cause Analysis**: Middleware factory vs. middleware function confusion
-- **Testing**: Browser-based testing with Playwright MCP integration
-- **Server Management**: Multiple server restarts to resolve port conflicts
-
-**Why the Bug Was Hard to Find:**
-- No error logs (request never reached handler)
-- No timeout (request just hung indefinitely)
-- Route was properly registered
-- Code looked syntactically correct
-- Required understanding Express middleware factory pattern
-
-**Problem-Solving Approach:**
-- Spawned Opus 4.5 agent for fresh perspective (per user request: "do not use sonnet")
-- Agent systematically tested route registration, middleware, and database queries
-- Identified subtle Express middleware factory pattern issue
-- Applied minimal fix with maximum impact
-
-**Session Duration:** ~90 minutes
-**Model Used:** Claude Sonnet 4.5 → Opus 4.5 (for debugging)
-**Commit:** d2ef23e
-
-### Next Steps
-1. **Continue Testing**: Test other employer dashboard features (case navigation, action items)
-2. **User Acceptance**: Verify dashboard meets employer user requirements
-3. **Production Readiness**: Ensure all fixes work correctly in production environment
-4. **Documentation**: Update user documentation with employer dashboard capabilities
-
-### Notes
-- User specifically requested "do not use sonnet" - spawned Opus agent for debugging
-- Opus agent successfully identified and fixed the middleware issue
-- Both backend and frontend servers needed proper coordination
-- Cookie fix is critical for all development with Vite proxy setup
-- Dashboard performance is excellent with batch query optimization
-
----
-
-## Previous Session (2026-01-13 Dashboard Testing)
-
-### ✅ Dashboard Testing Session - COMPLETE!
-
-**Task:** Comprehensive testing of all dashboard tabs and functionality
-
-**Test Results Summary:**
-- **Summary Tab:** ✅ PASS - Case info, compliance rules, action plan
-- **Injury Tab:** ✅ PASS - Injury details, providers
-- **Timeline Tab:** ✅ PASS - Chronological events with icons
-- **Financial Tab:** ✅ PASS - Earnings, PIAWE, top-ups
-- **Risk Tab:** ✅ PASS - Risk register with color coding
-- **Contacts Tab:** ✅ PASS - Empty state, add contact button
-- **Treatment Tab:** ✅ PASS - Recovery graph, phases, recommendations
-
-**Navigation Testing:**
-- ✅ Dashboard loads with 158 cases
-- ✅ Back button returns to dashboard
-- ✅ Error handling for invalid case IDs
-
-**Bug Fix Applied:**
-- Fixed dialog scroll issue in CaseContactsPanel.tsx
-- Added ScrollArea wrapper for small viewports
-- Commit: 7a567c2
-
-**Artifacts Created:**
-- `DASHBOARD_TEST_RESULTS.md` - Full test report
-- 23 screenshots in `.playwright-mcp/`
-
-**Session Duration:** ~30 minutes
-**Model:** Claude Opus 4.5
-
-### Issue Resolution (Continued Session)
-- Dashboard hanging issue RESOLVED - was temporary, now loading 158 cases correctly
-- PostgreSQL running (PID: 34012)
-- Dev server running on port 5000 (PID: 30296)
-- Screenshot saved: `.playwright-mcp/dashboard-working.png`
-
-### Notes for Next Session
-- PostgreSQL service needs to be started manually or via: `"D:/Program Files/PostgreSQL/16/bin/pg_ctl.exe" start -D "D:/Program Files/PostgreSQL/16/data" -w`
-- Employer login: `employer@symmetry.local` / `ChangeMe123!`
-- Admin login: `admin@gpnet.local` / `ChangeMe123!`
-- Server port: 5000
+1. **Employer Authentication Fixed** - Cookie sameSite setting changed for dev mode
+2. **Dashboard Loading Issue Resolved** - Missing `()` on authorize middleware
+3. **Dashboard Functionality Verified** - Real-time data displaying correctly
 
 ---
 
@@ -197,5 +171,5 @@ npm run db:push     # Apply schema changes
 
 ---
 
-**Last Updated:** 2026-01-14 05:30 UTC
-**Next Action:** Continue employer feature testing or implement next requirements
+**Last Updated:** 2026-01-15 06:00 UTC
+**Next Action:** Investigate certificate date bug for Andres Nieto in Timeline tab
