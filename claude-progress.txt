@@ -3,11 +3,98 @@
 **Date:** 2026-01-15
 **Branch:** main
 **Latest Commit:** fix: preserve manual data during Freshdesk sync + employer dashboard improvements
-**Status:** ✅ Data Persistence Fix Complete - Pending Certificate Bug
+**Status:** ✅ Marketing Materials Complete - User has marketing plan to share
 
 ---
 
-## 🎯 LATEST SESSION COMPLETED (2026-01-15 - Data Persistence Fix)
+## 🎯 LATEST SESSION COMPLETED (2026-01-15 - Marketing Materials)
+
+### ✅ Alex Hormozi Style Sales Presentations - COMPLETE!
+
+Created 3 professional sales presentations following Grand Slam Offer framework:
+
+| Presentation | Slides | Size | Target |
+|--------------|--------|------|--------|
+| **Preventli-Insurance-Partners.pptx** | 17 | 249KB | Insurance Companies |
+| **Preventli-Self-Insurers.pptx** | 16 | 225KB | Self-Insurers |
+| **Preventli-Employers.pptx** | 13 | 188KB | Employers (SMB) |
+
+**Design Style:**
+- Dark backgrounds with gold accents (Hormozi aesthetic)
+- Value stacking with specific dollar amounts
+- ROI calculations front and center
+- Risk reversal guarantees
+- Urgency/scarcity elements
+
+**Location:** `marketing/presentations/`
+
+### ✅ Pricing Model - COMPLETE!
+
+**File:** `marketing/PRICING-MODEL.md`
+
+**Segment Pricing:**
+- Insurance: $2,500-$15,000/month (50-500 cases)
+- Self-Insurers: $5,000-$18,000/month (100-600 cases)
+- Employers: $299-$1,299/month (10-100 cases)
+
+**ROI Models:**
+- Insurance: 282-500% ROI
+- Self-Insurers: 518-724% ROI
+- Employers: 612-666% ROI
+
+### ✅ Go-To-Market Strategy - COMPLETE!
+
+**File:** `marketing/GO-TO-MARKET-STRATEGY.md`
+
+**Target Companies Identified:**
+- **Tier 1 Insurers (5):** Allianz, CGU, QBE, GIO, Gallagher Bassett
+- **Tier 2 Insurers (5):** EML, Xchanging, icare NSW, ReturnToWorkSA, WorkCover QLD
+- **Self-Insurers (40+):** Coles, Woolworths, BHP, Rio Tinto, Australia Post, Telstra, etc.
+- **Government Self-Insurers (6):** Dept of Education, Health, Justice, Transport, Parks VIC, VicRoads
+- **Employers by Industry:** Manufacturing, Construction, Healthcare, Logistics, Food & Beverage
+- **Rehab Providers (7):** Konekt, IPAR, MedHealth, Cogent Thinking, APM WorkCare, Recover, WorkFocus
+
+**Sales Process Defined:**
+- Insurance: 6-12 month cycle
+- Self-Insurer: 3-6 month cycle
+- Employer: 2-4 week cycle
+
+### ✅ Marketing Strategy - COMPLETE!
+
+**File:** `marketing/MARKETING-STRATEGY.md`
+
+**Brand Promise:** "No Worker Lost in the System"
+
+**Content Pillars:**
+- Compliance Education (40%)
+- ROI & Business Case (30%)
+- Best Practices (20%)
+- Industry News (10%)
+
+**Budget:** $195,000/year across LinkedIn Ads, Google Ads, Content, Events, PR
+
+**Campaigns:**
+1. "The Hidden Cost" (Employer Focus)
+2. "License Protection" (Self-Insurer Focus)
+3. "Profit Center, Not Cost Center" (Insurance Focus)
+
+### 📋 Marketing Hub System - PLANNED (Not Started)
+
+**User Note:** User has their own marketing plan to share before proceeding.
+
+**Plan Location:** `C:\Users\Paul\.claude\plans\unified-jingling-lake.md`
+
+**Designed Features (6-week implementation):**
+- Target Companies CRM (6 database tables)
+- Campaign Automation
+- Template Library with AI generation
+- Analytics Dashboard
+
+**Decision Pending:** Build in Preventli vs GoVertical (C:/dev/govertical)
+
+---
+
+## Previous Session (2026-01-15 - Data Persistence Fix)
 
 ### ✅ Andres Nieto Summary & Data Persistence - COMPLETE!
 
@@ -171,5 +258,95 @@ npm run db:push     # Apply schema changes
 
 ---
 
-**Last Updated:** 2026-01-15 06:00 UTC
-**Next Action:** Investigate certificate date bug for Andres Nieto in Timeline tab
+**Last Updated:** 2026-01-15 15:05 UTC
+
+---
+
+## 🎯 LATEST SESSION COMPLETED (2026-01-15 - WorkCover Marketing Enhancement)
+
+### ✅ WorkCover Victoria Compliance Presentation Enhancement - COMPLETE!
+
+**Marketing Branch Created:** `marketing/workcover-compliance-presentations`
+**GitHub URL:** https://github.com/paulhopcraft-dot/GPNET3/tree/marketing/workcover-compliance-presentations
+
+**Enhanced Insurance Partners Presentation:**
+- Slide 3: "Compliance breaches" → "WorkCover Victoria compliance breaches" in cost table
+- Slide 4: Added "Complex WorkCover + non-WorkCover cases overwhelming systems"
+- Slide 5: "AI-Powered Claims Intelligence for WorkCover + Non-WorkCover Cases"
+- Slide 5: Added "Navigating Complex Cases with Victoria's Maturing Workforce"
+
+**Key Marketing Assets Available:**
+```
+marketing/
+├── presentations/
+│   ├── Preventli-Insurance-Partners.pptx (original)
+│   ├── Preventli-Insurance-Partners-Enhanced.pptx (WorkCover enhanced)
+│   ├── Preventli-Self-Insurers.pptx
+│   └── Preventli-Employers.pptx
+├── GO-TO-MARKET-STRATEGY.md
+├── MARKETING-STRATEGY.md
+└── PRICING-MODEL.md
+```
+
+**Editable Workspace:** `workspace/insurance-partners-extracted/` - Full OOXML structure for future edits
+
+**User Request Fulfilled:** World-class compliance messaging focused on Victoria (not multi-jurisdiction), emphasizing both WorkCover and non-WorkCover case complexity with maturing workforce.
+
+---
+
+## Previous Session (2026-01-15 - Case Summary & Recovery Graph Fixes)
+
+### ✅ Critical Data Corruption Fix - COMPLETE!
+
+**Issue Resolved:** All worker cases were showing identical "Andres Nieto/IKON Services" summary content instead of individual case details.
+
+**Root Cause:** Mock data flag hardcoded to `true` in `server/services/summary.ts:269` was bypassing real AI generation.
+
+**Solution Applied:**
+```typescript
+// Fixed in server/services/summary.ts:269
+const useMockData = false; // Set to false when API key is working
+```
+
+**Verification Results:**
+- ✅ Giorgio Aparicio (FD-45151) now displays unique case-specific content
+- ✅ Company shows "Symmetry" (not IKON Services)
+- ✅ Injury details show trigger finger (not back strain)
+- ✅ Case timeline shows Giorgio's actual medical history from March 2025-January 2026
+- ✅ Financial details show Giorgio's actual wages ($1,211.62/week)
+- ✅ Contact details show Giorgio's actual employer contacts, medical providers
+
+### ✅ Recovery Graph Visualization Fix - COMPLETE!
+
+**Issue Resolved:** Green actual recovery line was starting after blue estimated recovery line, causing visual misalignment.
+
+**Root Cause:** `generateActualCurve()` in `server/services/recoveryEstimator.ts` started from first certificate week instead of week 0.
+
+**Solution Applied:**
+```typescript
+// Modified loop in generateActualCurve()
+for (let week = 0; week <= lastCertWeek; week++) {
+  // Allow null actualCapacity before first certificate
+}
+```
+
+**Files Modified:**
+- `server/services/recoveryEstimator.ts` (lines 1390-1414)
+- `server/services/recoveryEstimator.test.ts` (updated test expectations)
+
+**Verification Results:**
+- ✅ Both estimated and actual recovery lines now start from week 0
+- ✅ Visual alignment is correct in Treatment tab recovery graph
+- ✅ All tests continue to pass (165/165)
+
+### ✅ System Health Verification - COMPLETE!
+
+**Test Results:** 165/165 tests passing ✅
+**Application Status:** Both backend (port 5000) and frontend (port 5173) running properly ✅
+**Browser Testing:** Giorgio Aparicio case fully verified with unique content in all tabs ✅
+
+**Git Commits:**
+- `55701e0` - fix: align recovery graph actual line with estimated timeline
+- Previous: `56faac2` - fix: disable mock data in summary generation to enable unique AI summaries
+
+**Next Action:** Continue with any user-requested features or improvements
