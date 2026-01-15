@@ -266,7 +266,7 @@ ${workerCase.workerName} queried $238 shortfall for first fortnight (earned $1,9
     actionItems: Array<{ type: string; description: string; priority: number }>;
   }> {
     // TEMPORARY: Use mock data if Anthropic API key is not working
-    const useMockData = true; // Set to false when API key is working
+    const useMockData = false; // Set to false when API key is working
 
     if (useMockData) {
       return this.getMockSummary(workerCase);
