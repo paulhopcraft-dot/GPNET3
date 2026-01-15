@@ -342,11 +342,14 @@ describe("Recovery Timeline Estimator", () => {
       const actualWeeks = result.actualCurve.map(p => p.week);
       expect(actualWeeks.length).toBeGreaterThanOrEqual(2);
 
-      // Each point should have actualCapacity defined
+      // Points should have actualCapacity defined (can be null before first certificate)
       result.actualCurve.forEach(point => {
-        expect(point.actualCapacity).toBeDefined();
-        expect(point.actualCapacity).not.toBeNull();
+        expect(point.actualCapacity).toBeDefined(); // Still defined, just null
       });
+
+      // Should have some non-null capacity points (from certificates)
+      const nonNullPoints = result.actualCurve.filter(p => p.actualCapacity !== null);
+      expect(nonNullPoints.length).toBeGreaterThan(0);
 
       // Should have certificate markers
       expect(result.certificateMarkers.length).toBe(2);

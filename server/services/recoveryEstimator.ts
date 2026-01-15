@@ -1387,31 +1387,30 @@ function generateActualCurve(
     capacityChanges.set(marker.week, marker.capacity);
   }
 
-  // Generate data points for every week from first certificate to current week
+  // Generate data points for every week from week 0 to current week
+  // This ensures the actual curve starts at the same point as the estimated curve
   let currentCapacity: number | null = null;
 
-  for (let week = firstCertWeek; week <= lastCertWeek; week++) {
+  for (let week = 0; week <= lastCertWeek; week++) {
     // Check if there's a capacity change at this week
     if (capacityChanges.has(week)) {
       currentCapacity = capacityChanges.get(week)!;
     }
 
-    // Only add points if we have capacity data
-    if (currentCapacity !== null) {
-      const date = new Date(injuryDate);
-      date.setDate(date.getDate() + week * 7);
+    // Add points for all weeks, with null capacity before first certificate
+    const date = new Date(injuryDate);
+    date.setDate(date.getDate() + week * 7);
 
-      // Find if this week corresponds to a certificate marker
-      const matchingMarker = markers.find(m => m.week === week);
+    // Find if this week corresponds to a certificate marker
+    const matchingMarker = markers.find(m => m.week === week);
 
-      curve.push({
-        date: date.toISOString(),
-        week,
-        estimatedCapacity: 0, // Will be filled from estimated curve
-        actualCapacity: currentCapacity,
-        label: matchingMarker ? `Cert #${matchingMarker.certificateNumber}` : undefined,
-      });
-    }
+    curve.push({
+      date: date.toISOString(),
+      week,
+      estimatedCapacity: 0, // Will be filled from estimated curve
+      actualCapacity: currentCapacity, // Will be null before first certificate
+      label: matchingMarker ? `Cert #${matchingMarker.certificateNumber}` : undefined,
+    });
   }
 
   // Ensure we have a point at the current week if we have any certificate data
