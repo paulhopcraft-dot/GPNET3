@@ -677,3 +677,20 @@ for (let week = 0; week <= lastCertWeek; week++) {
 - Previous: `56faac2` - fix: disable mock data in summary generation to enable unique AI summaries
 
 **Next Action:** Continue with any user-requested features or improvements
+
+
+  ## Session [N] - 2026-01-16
+
+  ### Completed
+  - Company filtering bug FIXED (queryClient.ts URL parameter handling)
+  - Action queue navigation IMPLEMENTED (clickable worker names → case details)
+  - Both fixes committed and pushed to main branch by GPT-5 nano
+
+  ### Next Steps
+  - Manual testing of company filtering and action queue navigation
+  - Clean up investigation script files (check-users.ts, investigate-andres-certificates.ts, simple-investigate.ts)
+
+  ### Notes
+  - OpenCode.ai (GPT-5 nano) successfully implemented both admin dashboard fixes
+  - Both features ready for testing at CloudFlare tunnel URL
+  - All major admin dashboard issues now resolved
