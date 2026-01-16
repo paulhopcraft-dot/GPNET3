@@ -220,7 +220,29 @@ export const getQueryFn =
   async ({ queryKey }: { queryKey: readonly unknown[] }): Promise<T | null> => {
     const authHeaders = getAuthHeaders(true);
 
-    const res = await fetch(queryKey.join("/") as string, {
+    // Build URL from queryKey with proper URL params
+    const [endpoint, ...rest] = queryKey as readonly unknown[];
+
+    let urlStr = (endpoint as string) ?? "";
+
+    const searchParams = new URLSearchParams();
+
+    for (const part of rest) {
+      if (part == null) continue;
+      if (typeof part === "object") {
+        for (const [k, v] of Object.entries(part as Record<string, unknown>)) {
+          if (v !== undefined && v !== null) {
+            searchParams.append(k, String(v));
+          }
+        }
+      } else {
+        urlStr += `/${encodeURIComponent(String(part))}`;
+      }
+    }
+
+    const finalUrl = searchParams.toString() ? `${urlStr}?${searchParams.toString()}` : urlStr;
+
+    const res = await fetch(finalUrl as string, {
       headers: authHeaders,
       credentials: "include",
     });

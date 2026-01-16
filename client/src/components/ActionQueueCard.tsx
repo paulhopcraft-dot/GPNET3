@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
-import { Button } from "./ui/button";
+
 import type { CaseAction, CaseActionType } from "@shared/schema";
 import { fetchWithCsrf } from "../lib/queryClient";
 
@@ -163,20 +163,30 @@ export function ActionQueueCard({ onCaseClick, limit = 5 }: ActionQueueCardProps
             {actions.map((action) => {
               const dueInfo = getDueDateInfo(action.dueDate);
               return (
-                <button
+<button
                   key={action.id}
                   onClick={() => handleActionClick(action)}
-                  className={`w-full text-left rounded-lg border-2 p-3 transition-all cursor-pointer
-                    hover:shadow-md hover:scale-[1.02] active:scale-[0.98]
-                    ${dueInfo.isOverdue
-                      ? "border-red-300 bg-red-50 hover:border-red-400"
-                      : dueInfo.urgency === "high"
-                      ? "border-amber-300 bg-amber-50 hover:border-amber-400"
-                      : "border-slate-200 bg-slate-50 hover:border-primary/50"
-                  }`}
-                >
-                  {/* Worker Name - Primary */}
-                  <div className="font-semibold text-sm text-card-foreground mb-1">
+                  className={`w-full text-left rounded-lg border-2 p-3 transition-all cursor-pointer hover:shadow-md hover:scale-[1.02] active:scale-[0.98] ${urgencyBadgeClass(dueInfo.urgency, dueInfo.isOverdue)}`}
+                  >
+                  {/* Worker Name - Primary (clickable) */}
+                  <div
+                    className="font-semibold text-sm text-card-foreground mb-1 cursor-pointer hover:text-primary hover:underline transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!action.caseId) return;
+                      window.location.href = `/employer/case/${action.caseId}`;
+                    }}
+                    role="link"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (!action.caseId) return;
+                        window.location.href = `/employer/case/${action.caseId}`;
+                      }
+                    }}
+                  >
                     {action.workerName || "Unknown Worker"}
                   </div>
 
