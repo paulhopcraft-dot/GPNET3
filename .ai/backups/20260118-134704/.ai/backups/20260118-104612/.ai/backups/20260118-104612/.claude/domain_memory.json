@@ -1,0 +1,285 @@
+{
+  "project": {
+    "name": "Preventli",
+    "description": "Claims, compliance, and return-to-work management system for WorkSafe Victoria",
+    "version": "1.0.0",
+    "lastUpdated": "2025-12-16"
+  },
+  "stack": {
+    "backend": "Express + TypeScript",
+    "frontend": "React 18 + Vite",
+    "database": "PostgreSQL + Drizzle ORM",
+    "testing": "Vitest + Playwright",
+    "ai": "Anthropic Claude API"
+  },
+  "constraints": [
+    "Must comply with WorkSafe Victoria regulations",
+    "All state-changing endpoints require CSRF protection",
+    "JWT tokens must be short-lived (15 min)",
+    "Never store secrets in code or version control",
+    "Medical data requires audit logging"
+  ],
+  "features": [
+    {
+      "id": "F001",
+      "name": "User Authentication",
+      "description": "JWT-based login, logout, role-based access (admin, employer, clinician, insurer)",
+      "passes": true,
+      "files": ["server/routes/auth.ts", "server/controllers/auth.ts", "client/src/pages/LoginPage.tsx"],
+      "acceptanceCriteria": ["Login with email/password", "JWT token issued", "Protected routes work"]
+    },
+    {
+      "id": "F002",
+      "name": "Worker Cases Dashboard",
+      "description": "Main dashboard showing all worker cases with filtering and search",
+      "passes": true,
+      "files": ["client/src/pages/GPNet2Dashboard.tsx", "server/routes.ts", "server/storage.ts"],
+      "acceptanceCriteria": ["Cases load from API", "Filter by company", "Search by name"]
+    },
+    {
+      "id": "F003",
+      "name": "Freshdesk Sync",
+      "description": "Synchronize tickets from Freshdesk into worker cases",
+      "passes": true,
+      "files": ["server/services/freshdesk.ts", "server/routes.ts"],
+      "acceptanceCriteria": ["POST /api/freshdesk/sync triggers sync", "Tickets mapped to cases"]
+    },
+    {
+      "id": "F004",
+      "name": "Medical Certificates",
+      "description": "Track medical certificates with compliance checking",
+      "passes": true,
+      "files": ["server/routes/certificates.ts", "server/services/certificateService.ts", "server/services/certificateCompliance.ts"],
+      "acceptanceCriteria": ["CRUD operations work", "Expiry alerts generated", "Compliance status calculated"]
+    },
+    {
+      "id": "F005",
+      "name": "Case Detail Panel",
+      "description": "Detailed view of individual worker cases",
+      "passes": true,
+      "files": ["client/src/components/CaseDetailPanel.tsx"],
+      "acceptanceCriteria": ["Shows case summary", "Shows certificates", "Shows timeline"]
+    },
+    {
+      "id": "F006",
+      "name": "AI Case Summaries",
+      "description": "Claude-powered intelligent case summaries",
+      "passes": true,
+      "files": ["server/services/summary.ts", "server/services/smartSummary.ts", "server/routes/smartSummary.ts"],
+      "acceptanceCriteria": ["Summary generated on demand", "Cached for performance", "Includes work status classification"]
+    },
+    {
+      "id": "F007",
+      "name": "Case Timeline",
+      "description": "Chronological event history for cases",
+      "passes": true,
+      "files": ["client/src/components/TimelineCard.tsx", "server/storage.ts"],
+      "acceptanceCriteria": ["Events sorted by date", "Different event types shown", "Loads efficiently"]
+    },
+    {
+      "id": "F008",
+      "name": "Recovery Chart",
+      "description": "Visual recovery timeline with certificate history",
+      "passes": true,
+      "files": ["client/src/components/RecoveryChart.tsx"],
+      "acceptanceCriteria": ["Shows capacity over time", "Certificate periods visible"]
+    },
+    {
+      "id": "F009",
+      "name": "Action Queue",
+      "description": "Task management for case actions (chase certificates, follow-ups)",
+      "passes": true,
+      "files": ["server/routes/actions.ts", "client/src/components/ActionQueueCard.tsx", "shared/schema.ts"],
+      "acceptanceCriteria": ["Create/update/complete actions", "Priority ordering", "Due dates work"]
+    },
+    {
+      "id": "F010",
+      "name": "Termination Workflow",
+      "description": "Multi-step termination of employment process",
+      "passes": true,
+      "files": ["server/routes/termination.ts", "server/services/termination.ts", "client/src/components/TerminationPanel.tsx"],
+      "acceptanceCriteria": ["Step progression works", "Document generation", "Status tracking"]
+    },
+    {
+      "id": "F011",
+      "name": "Transcript Ingestion",
+      "description": "Auto-ingest discussion transcripts from files",
+      "passes": true,
+      "files": ["server/services/transcripts/index.ts", "server/services/transcripts/parser.ts"],
+      "acceptanceCriteria": ["Watches transcripts/ folder", "Parses VTT/MD/TXT", "Links to cases"]
+    },
+    {
+      "id": "F012",
+      "name": "Email Draft Generation",
+      "description": "AI-powered email drafts for case communications",
+      "passes": true,
+      "files": ["server/routes/emailDrafts.ts", "server/services/emailDraftService.ts", "client/src/components/EmailDraftModal.tsx"],
+      "acceptanceCriteria": ["Generate drafts by type", "Edit before sending", "Save/discard workflow"]
+    },
+    {
+      "id": "F013",
+      "name": "Notification System",
+      "description": "Automated alerts for certificate expiry, overdue actions",
+      "passes": true,
+      "files": ["server/routes/notifications.ts", "server/services/notificationService.ts", "server/services/notificationScheduler.ts"],
+      "acceptanceCriteria": ["Scheduled checks run", "Notifications created", "Dedupe prevents spam"]
+    },
+    {
+      "id": "F014",
+      "name": "User Invites",
+      "description": "Secure invite-based user registration",
+      "passes": true,
+      "files": ["server/routes/invites.ts", "server/controllers/invites.ts"],
+      "acceptanceCriteria": ["Admin can send invites", "Tokens expire", "One-time use"]
+    },
+    {
+      "id": "F015",
+      "name": "Webhook Handlers",
+      "description": "Secure webhook endpoints for external integrations",
+      "passes": true,
+      "files": ["server/routes/webhooks.ts", "server/controllers/webhooks.ts", "server/webhookSecurity.ts"],
+      "acceptanceCriteria": ["Password verification", "Form type routing", "Error handling"]
+    },
+    {
+      "id": "F016",
+      "name": "Clinical Evidence Evaluation",
+      "description": "Evaluate clinical evidence completeness for cases",
+      "passes": true,
+      "files": ["server/services/clinicalEvidence.ts"],
+      "acceptanceCriteria": ["Flags generated", "Risk levels assigned", "Recommendations provided"]
+    },
+    {
+      "id": "F017",
+      "name": "Compliance AI Assistant",
+      "description": "Claude-powered compliance Q&A assistant",
+      "passes": true,
+      "files": ["server/routes.ts", "client/src/components/ai-assistant.tsx"],
+      "acceptanceCriteria": ["Chat interface works", "Claude responds", "WorkSafe context"]
+    },
+    {
+      "id": "F018",
+      "name": "Security Middleware",
+      "description": "CSRF, rate limiting, helmet headers",
+      "passes": true,
+      "files": ["server/middleware/security.ts", "server/index.ts"],
+      "acceptanceCriteria": ["CSRF tokens required", "Rate limits enforced", "Headers set"]
+    },
+    {
+      "id": "F019",
+      "name": "Multi-Tenant Isolation",
+      "description": "Organization-level data isolation to prevent cross-tenant data access",
+      "passes": true,
+      "files": [
+        "server/middleware/caseOwnership.ts",
+        "server/middleware/auth.ts",
+        "server/services/auditLogger.ts",
+        "server/storage.ts",
+        "server/routes.ts",
+        "server/routes/actions.ts",
+        "server/routes/notifications.ts",
+        "server/routes/emailDrafts.ts",
+        "server/routes/smartSummary.ts",
+        "migrations/0009_add_organization_to_remaining_tables.sql",
+        "shared/schema.ts"
+      ],
+      "acceptanceCriteria": [
+        "Users can only access cases in their organization",
+        "Admins can access all organizations",
+        "All case endpoints verify organizationId",
+        "Access denials logged to audit_events",
+        "Returns 404 (not 403) to prevent info disclosure",
+        "Migration 0009 applies organizationId to all tables"
+      ],
+      "notes": "Implemented 2025-12-16. Code complete and pushed. Migration pending."
+    },
+    {
+      "id": "F020",
+      "name": "Close Case",
+      "description": "Close worker cases with optional reason, syncs with Freshdesk",
+      "passes": true,
+      "files": ["server/routes.ts", "server/storage.ts", "shared/schema.ts"],
+      "acceptanceCriteria": ["POST /api/cases/:id/close endpoint works", "Freshdesk tickets closed", "Audit logged"],
+      "notes": "Implemented 2025-12-30"
+    },
+    {
+      "id": "F021",
+      "name": "Compliance Override",
+      "description": "Manually override compliance status with reason",
+      "passes": true,
+      "files": ["server/routes.ts", "server/storage.ts", "shared/schema.ts", "client/src/components/CaseDetailPanel.tsx"],
+      "acceptanceCriteria": ["Set/clear override endpoints", "Reason required", "UI shows override status"],
+      "notes": "Implemented 2025-12-30"
+    },
+    {
+      "id": "F022",
+      "name": "Ticket Merge",
+      "description": "Merge multiple Freshdesk tickets into single master ticket",
+      "passes": true,
+      "files": ["server/routes.ts", "server/storage.ts", "shared/schema.ts", "client/src/components/CaseDetailPanel.tsx"],
+      "acceptanceCriteria": ["Master ticket selection", "Other tickets closed in Freshdesk", "Ticket count updated"],
+      "notes": "Implemented 2025-12-30"
+    },
+    {
+      "id": "F023",
+      "name": "Employer Dashboard",
+      "description": "Simplified dashboard for employer role users",
+      "passes": true,
+      "files": ["client/src/pages/EmployerDashboard.tsx", "client/src/components/RoleBasedDashboard.tsx", "client/src/App.tsx"],
+      "acceptanceCriteria": ["Role-based routing", "Worker list view", "Stats cards", "Case detail modal"],
+      "notes": "Implemented 2025-12-30"
+    },
+    {
+      "id": "F024",
+      "name": "Reports & Analytics",
+      "description": "Reports page with compliance and work status charts",
+      "passes": true,
+      "files": ["client/src/pages/ReportsPage.tsx", "client/src/App.tsx", "client/src/pages/GPNet2Dashboard.tsx"],
+      "acceptanceCriteria": ["Pie charts for compliance/work status", "Bar chart by company", "Cases needing attention list"],
+      "notes": "Implemented 2025-12-30"
+    }
+  ],
+  "incomplete": [],
+  "resolved": [
+    {
+      "id": "I001",
+      "name": "Medical Certificate Webhook Processing",
+      "source": "server/controllers/webhooks.ts",
+      "resolvedAt": "2025-12-10",
+      "resolution": "Implemented handleMedicalCertificateForm with worker name matching, restriction parsing, and certificate creation"
+    },
+    {
+      "id": "I002",
+      "name": "RTW Plan Webhook Processing",
+      "source": "server/controllers/webhooks.ts",
+      "resolvedAt": "2025-12-10",
+      "resolution": "Implemented handleReturnToWorkForm with clinical status updates and functional capacity tracking"
+    },
+    {
+      "id": "I003",
+      "name": "Remove Debug Tokens in Production",
+      "source": "server/controllers/invites.ts",
+      "resolvedAt": "2025-12-10",
+      "resolution": "Tokens now only returned when NODE_ENV !== 'production'"
+    },
+    {
+      "id": "I004",
+      "name": "Multi-Tenant Data Isolation Security Vulnerability",
+      "source": "Security audit - system-wide",
+      "resolvedAt": "2025-12-16",
+      "resolution": "Implemented comprehensive organizationId filtering across all storage methods, routes, and services. Created requireCaseOwnership() middleware, audit logging system, and migration 0009. Users can now only access cases within their organization. Admins retain cross-tenant access. All access denials logged. Commit: 2b58b57",
+      "impact": "Critical - Prevented cross-organization data access vulnerability",
+      "filesChanged": 21,
+      "linesChanged": 1360
+    }
+  ],
+  "dependencies": {
+    "F005": ["F002"],
+    "F006": ["F002"],
+    "F007": ["F005"],
+    "F008": ["F004"],
+    "F009": ["F002"],
+    "F010": ["F002"],
+    "F012": ["F006"],
+    "F013": ["F004", "F009"]
+  }
+}

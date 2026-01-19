@@ -1,0 +1,32 @@
+{
+  "domain": "healthcare",
+  "compliance": ["HIPAA", "CMS"],
+  "agents": {
+    "enabled": ["healthcare-validator", "test-specialist", "code-reviewer"],
+    "auto_trigger": {
+      "healthcare-validator": ["prd-check", "build-prd", "verify"],
+      "test-specialist": ["tdd", "verify"],
+      "code-reviewer": ["review", "verify"]
+    }
+  },
+  "phi_patterns": {
+    "enabled": true,
+    "custom_patterns": [
+      {"name": "MRN", "regex": "\\bMRN[:=\\s]+[\\w-]+\\b"},
+      {"name": "ClaimID", "regex": "\\b(CLM|claim)[-_][0-9A-Z]+\\b"},
+      {"name": "PatientID", "regex": "\\bpatient[-_]?id[:=\\s]+[\\w-]+\\b"},
+      {"name": "ProviderNPI", "regex": "\\bNPI[:=\\s]*\\d{10}\\b"}
+    ]
+  },
+  "evidence_chain": {
+    "required": true,
+    "schema_file": ".claude/domains/healthcare/evidence-schema.json",
+    "retention_years": 7
+  },
+  "quality_gates": {
+    "min_test_coverage": 90,
+    "max_complexity": 8,
+    "security_scan": "required",
+    "phi_scan": "required"
+  }
+}

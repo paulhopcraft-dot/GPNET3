@@ -1,0 +1,28 @@
+{
+  "_readme": "Architecture and design decisions - persisted across sessions",
+  "_version": "1.0.0",
+
+  "decisions": [
+    {
+      "id": "d_001",
+      "content": "Use Drizzle ORM for database access",
+      "rationale": "Provides type-safe database operations with TypeScript inference, better developer experience than raw SQL, automatic type generation from schema, supports PostgreSQL features, and integrates well with the existing Node.js/TypeScript stack",
+      "applies_to": ["gpnet3"],
+      "tags": ["database", "orm", "typescript", "architecture"],
+      "created": "2026-01-08T00:00:00Z",
+      "session": "reload-001",
+      "status": "active"
+    }
+  ],
+
+  "schema": {
+    "id": "string (d_XXX)",
+    "content": "string (the decision)",
+    "rationale": "string (why this decision)",
+    "applies_to": ["project names"],
+    "tags": ["optional tags"],
+    "created": "ISO timestamp",
+    "session": "session ID",
+    "status": "active | superseded | deprecated"
+  }
+}

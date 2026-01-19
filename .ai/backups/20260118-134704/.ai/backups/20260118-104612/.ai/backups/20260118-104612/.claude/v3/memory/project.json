@@ -1,0 +1,64 @@
+{
+  "_readme": "Project-level memory - cross-session understanding of this codebase",
+  "_version": "1.0.0",
+
+  "project": {
+    "name": "Preventli",
+    "domain": "WorkSafe Victoria compliance and claims management system",
+    "compliance": [
+      "WIRC Act (Workers' Injury Rehabilitation and Compensation Act)",
+      "WorkSafe Victoria Manual compliance",
+      "Medical certificate tracking and validation",
+      "Return-to-work (RTW) compliance monitoring"
+    ],
+    "tech_stack": [
+      "Backend: Node.js + Express + TypeScript",
+      "Frontend: React 18 + Vite + TanStack Query",
+      "Database: PostgreSQL 16 with Drizzle ORM",
+      "Auth: JWT + bcrypt + CSRF protection",
+      "AI: Anthropic Claude API for summaries and analysis",
+      "Testing: Vitest (unit), Playwright (E2E)",
+      "UI: Tailwind CSS + Radix UI + shadcn/ui"
+    ],
+    "key_patterns": [
+      "Freshdesk integration with automatic sync scheduler",
+      "Compliance rules engine with RAG-based evaluation",
+      "3-tier date fallback strategy (98.7% accuracy)",
+      "Automatic retry logic with exponential backoff",
+      "Medical certificate lifecycle tracking",
+      "Action queue for compliance notifications"
+    ]
+  },
+
+  "architecture": {
+    "overview": "Full-stack TypeScript application aggregating Freshdesk tickets into worker injury cases with WorkSafe compliance tracking, medical certificate management, and AI-powered case analysis",
+    "key_decisions": [
+      "d_001: Use Drizzle ORM for type-safe database access"
+    ],
+    "constraints": [
+      "Must maintain audit trail for all actions",
+      "CSRF protection required on all state-changing endpoints",
+      "JWT tokens expire in 15 minutes for security",
+      "Rate limiting on authentication endpoints",
+      "No hardcoded secrets in codebase"
+    ]
+  },
+
+  "technical_debt": [
+    "E2E tests at 34% passing (11/32) - test code needs updating",
+    "features.json not yet created - feature tracking manual",
+    "Deployment workflow not formalized"
+  ],
+
+  "context_history": [
+    "2026-01-05: Freshdesk date parsing enhancement (3-tier fallback)",
+    "2026-01-06: Automatic daily sync scheduler with retry logic",
+    "2026-01-07: Compliance rules engine system implementation"
+  ],
+
+  "stats": {
+    "sessions": 5,
+    "features_built": 12,
+    "learnings_captured": 2
+  }
+}

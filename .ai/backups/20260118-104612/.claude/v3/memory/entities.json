@@ -1,0 +1,53 @@
+{
+  "_readme": "Code entity tracking - functions, classes, patterns",
+  "_version": "1.0.0",
+
+  "entities": [
+    {
+      "id": "e_001",
+      "type": "configuration",
+      "name": "Freshdesk Integration",
+      "file": ".env",
+      "notes": [
+        "Freshdesk Domain: gpnet.freshdesk.com (domain value: gpnet)",
+        "API Key: Stored in .env as FRESHDESK_API_KEY",
+        "Sync endpoint: POST /api/freshdesk/sync",
+        "Handles 150+ tickets with automatic pagination",
+        "Groups tickets by worker name to reduce duplication",
+        "Processes medical certificate attachments automatically"
+      ],
+      "relationships": ["uses:server/services/freshdesk.ts", "called_by:server/routes.ts"],
+      "last_modified": "2026-01-05",
+      "tags": ["freshdesk", "configuration", "credentials", "integration"]
+    },
+    {
+      "id": "e_002",
+      "type": "module",
+      "name": "complianceEngine",
+      "file": "server/services/complianceEngine.ts",
+      "notes": [
+        "Core compliance evaluation engine for WorkSafe Victoria compliance",
+        "evaluateCase(): Evaluates case against all active compliance rules",
+        "evaluateRule(): Evaluates single rule for a case",
+        "Returns compliance report with status (compliant/warning/non_compliant)",
+        "Generates compliance score (0-100%), issue counts by severity",
+        "Stores evaluation results in case_compliance_checks table",
+        "Integrated with WIRC Act knowledge base and compliance rules"
+      ],
+      "relationships": ["uses:shared/schema.ts", "uses:server/storage.ts", "called_by:server/routes.ts"],
+      "last_modified": "2026-01-07",
+      "tags": ["compliance", "evaluation", "worksafe", "wirc-act", "service"]
+    }
+  ],
+
+  "schema": {
+    "id": "string (e_XXX)",
+    "type": "function | class | module | pattern | configuration",
+    "name": "string",
+    "file": "file path",
+    "notes": ["array of notes"],
+    "relationships": ["uses:e_XXX", "called_by:e_YYY"],
+    "last_modified": "date",
+    "tags": ["optional tags"]
+  }
+}

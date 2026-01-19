@@ -1,0 +1,179 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Healthcare Evidence Chain Event",
+  "description": "HIPAA-compliant audit trail schema for all PHI and claims data mutations",
+  "type": "object",
+  "required": [
+    "event_id",
+    "timestamp",
+    "actor",
+    "action",
+    "resource_type",
+    "resource_id",
+    "component"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this audit event (UUID v4)"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 UTC timestamp of when the event occurred"
+    },
+    "actor": {
+      "type": "string",
+      "description": "User ID or system component that performed the action",
+      "examples": ["user:12345", "system:claims-processor-v2", "batch:nightly-adjudication"]
+    },
+    "action": {
+      "type": "string",
+      "enum": ["CREATE", "READ", "UPDATE", "DELETE", "EXPORT", "PRINT"],
+      "description": "Type of operation performed on the resource"
+    },
+    "resource_type": {
+      "type": "string",
+      "enum": ["claim", "patient", "provider", "adjudication", "payment", "authorization"],
+      "description": "Type of healthcare resource affected"
+    },
+    "resource_id": {
+      "type": "string",
+      "description": "Unique identifier of the specific resource (claim ID, patient ID, etc.)"
+    },
+    "before": {
+      "type": "object",
+      "description": "State of the resource before the change (null for CREATE, required for UPDATE/DELETE)"
+    },
+    "after": {
+      "type": "object",
+      "description": "State of the resource after the change (null for DELETE, required for CREATE/UPDATE)"
+    },
+    "reason": {
+      "type": "string",
+      "description": "Reason code, authorization reference, or ticket number justifying the change",
+      "examples": ["AUTH-2023-1234", "TICKET-567", "AUTO-ADJUDICATION", "MANUAL-REVIEW"]
+    },
+    "component": {
+      "type": "string",
+      "description": "System component or service that performed the action",
+      "examples": ["claims-api-v2", "web-portal", "batch-processor", "mobile-app-ios"]
+    },
+    "ip_address": {
+      "type": "string",
+      "description": "Hashed IP address of the client (for user actions, not batch jobs)",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "session_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Session identifier for user actions (helps correlate related events)"
+    },
+    "phi_accessed": {
+      "type": "array",
+      "description": "List of PHI fields accessed during this operation (for READ operations)",
+      "items": {
+        "type": "string",
+        "enum": [
+          "name",
+          "ssn",
+          "dob",
+          "address",
+          "phone",
+          "email",
+          "mrn",
+          "diagnosis",
+          "procedure",
+          "medication",
+          "lab_results",
+          "insurance_id"
+        ]
+      }
+    },
+    "compliance_flags": {
+      "type": "object",
+      "description": "Compliance-related metadata for this event",
+      "properties": {
+        "requires_authorization": {
+          "type": "boolean",
+          "description": "Whether this action required prior authorization"
+        },
+        "authorization_verified": {
+          "type": "boolean",
+          "description": "Whether authorization was verified before action"
+        },
+        "minimum_necessary": {
+          "type": "boolean",
+          "description": "Whether minimum necessary standard was applied"
+        },
+        "business_associate": {
+          "type": "string",
+          "description": "Name of Business Associate if action performed by third party"
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional contextual information (non-PHI only)",
+      "additionalProperties": true
+    }
+  },
+  "examples": [
+    {
+      "event_id": "550e8400-e29b-41d4-a716-446655440000",
+      "timestamp": "2024-01-15T14:32:15.123Z",
+      "actor": "user:jane.doe@gpnet.com",
+      "action": "UPDATE",
+      "resource_type": "claim",
+      "resource_id": "CLM-2024-00123",
+      "before": {
+        "status": "pending",
+        "amount": 1500.00,
+        "reviewer": null
+      },
+      "after": {
+        "status": "approved",
+        "amount": 1500.00,
+        "reviewer": "user:jane.doe@gpnet.com"
+      },
+      "reason": "AUTH-2024-0567",
+      "component": "claims-web-portal-v2",
+      "ip_address": "a3f5e8c2d1b4f6a9e7c0d8b5f1a4e6c9d2b7f0a5e3c8d6b1f9a2e4c7d0b8f5a1e3",
+      "session_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+      "compliance_flags": {
+        "requires_authorization": true,
+        "authorization_verified": true,
+        "minimum_necessary": true,
+        "business_associate": null
+      }
+    },
+    {
+      "event_id": "660f9511-f3ac-52e5-b827-557766551111",
+      "timestamp": "2024-01-15T14:35:22.456Z",
+      "actor": "system:auto-adjudicator-v3",
+      "action": "CREATE",
+      "resource_type": "adjudication",
+      "resource_id": "ADJ-2024-00456",
+      "before": null,
+      "after": {
+        "claim_id": "CLM-2024-00789",
+        "decision": "approved",
+        "amount_approved": 2300.00,
+        "reason_codes": ["R001", "R042"]
+      },
+      "reason": "AUTO-ADJUDICATION",
+      "component": "batch-adjudicator-v3",
+      "compliance_flags": {
+        "requires_authorization": false,
+        "authorization_verified": true,
+        "minimum_necessary": true,
+        "business_associate": null
+      },
+      "metadata": {
+        "processing_batch": "BATCH-2024-01-15-001",
+        "rule_version": "v3.2.1"
+      }
+    }
+  ]
+}

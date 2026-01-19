@@ -1,0 +1,35 @@
+{
+  "_readme": "Patterns learned from experience - what works and what doesn't",
+  "_version": "1.0.0",
+
+  "learnings": [
+    {
+      "id": "l_001",
+      "pattern": "3-tier date fallback strategy for Freshdesk sync achieves 98.7% accuracy: (1) custom field cf_injury_date, (2) text extraction from subject/description, (3) fallback to created_at timestamp",
+      "source": "Session 2026-01-05, date quality analysis across 160 cases",
+      "success_rate": 98.7,
+      "created": "2026-01-08",
+      "tags": ["freshdesk", "date-parsing", "data-quality", "sync"],
+      "verified": true
+    },
+    {
+      "id": "l_002",
+      "pattern": "Automatic retry logic with exponential backoff prevents sync failures: 3 attempts with 60-second delay handles transient network issues and API rate limits",
+      "source": "Session 2026-01-06, sync scheduler implementation",
+      "success_rate": null,
+      "created": "2026-01-08",
+      "tags": ["sync", "reliability", "error-handling", "scheduler"],
+      "verified": true
+    }
+  ],
+
+  "schema": {
+    "id": "string (l_XXX)",
+    "pattern": "string (the learning)",
+    "source": "string (where learned - session, failure, etc)",
+    "success_rate": "number or null",
+    "created": "date",
+    "tags": ["optional tags"],
+    "verified": "boolean"
+  }
+}

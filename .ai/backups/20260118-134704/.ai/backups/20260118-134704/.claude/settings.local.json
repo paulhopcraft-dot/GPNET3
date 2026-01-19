@@ -1,0 +1,79 @@
+{
+  "hooks": {
+    "afterEdit": [
+      {
+        "match": "**/*.{ts,tsx,js,jsx}",
+        "run": "npm run lint --silent || exit 1",
+        "description": "Lint TypeScript and JavaScript files after edit"
+      },
+      {
+        "match": "**/*.{ts,tsx}",
+        "run": "npm run typecheck || exit 1",
+        "description": "Type check TypeScript files after edit"
+      }
+    ],
+    "onStop": [
+      {
+        "run": "npm run test || exit 1",
+        "description": "Run test suite before completion"
+      },
+      {
+        "run": "npm run build || exit 1",
+        "description": "Verify build succeeds before completion"
+      }
+    ],
+    "beforePlanExecution": [
+      {
+        "run": "./scripts/lint-plan.sh || exit 1",
+        "description": "Validate plan quality before execution"
+      }
+    ]
+  },
+  "plan_system": {
+    "enabled": true,
+    "auto_lint": true,
+    "enforce_schema": true,
+    "auto_detect_repo": true,
+    "parallel_execution": true
+  },
+  "execution_context": {
+    "enforce_fresh_context": true,
+    "prevent_scope_creep": true,
+    "require_plan_compliance": true
+  },
+  "validation": {
+    "lint_on_edit": true,
+    "typecheck_on_edit": true,
+    "test_on_completion": true,
+    "build_verification": true
+  },
+  "quality_gates": {
+    "forbidden_words": [
+      "optimize",
+      "improve",
+      "refactor",
+      "clean up",
+      "enhance",
+      "etc."
+    ],
+    "required_sections": [
+      "## Goal",
+      "## Constraints",
+      "## Steps",
+      "## Done When"
+    ],
+    "min_specificity_score": 80
+  },
+  "parallel_settings": {
+    "max_concurrent_sessions": 3,
+    "task_isolation": true,
+    "auto_detect_parallelizable": true,
+    "fallback_to_sequential": true
+  },
+  "feedback": {
+    "show_validation_results": true,
+    "show_hook_execution": true,
+    "show_parallel_progress": true,
+    "show_quality_scores": true
+  }
+}
