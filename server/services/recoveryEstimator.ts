@@ -1389,7 +1389,8 @@ function generateActualCurve(
 
   // Generate data points for every week from week 0 to current week
   // This ensures the actual curve starts at the same point as the estimated curve
-  let currentCapacity: number | null = null;
+  // Before first certificate, assume 0% capacity (worker is injured, no capacity established)
+  let currentCapacity: number = 0;
 
   for (let week = 0; week <= lastCertWeek; week++) {
     // Check if there's a capacity change at this week
@@ -1397,7 +1398,7 @@ function generateActualCurve(
       currentCapacity = capacityChanges.get(week)!;
     }
 
-    // Add points for all weeks, with null capacity before first certificate
+    // Add points for all weeks, starting at 0% before first certificate
     const date = new Date(injuryDate);
     date.setDate(date.getDate() + week * 7);
 
@@ -1408,13 +1409,13 @@ function generateActualCurve(
       date: date.toISOString(),
       week,
       estimatedCapacity: 0, // Will be filled from estimated curve
-      actualCapacity: currentCapacity, // Will be null before first certificate
+      actualCapacity: currentCapacity, // Starts at 0%, then tracks certificate capacity
       label: matchingMarker ? `Cert #${matchingMarker.certificateNumber}` : undefined,
     });
   }
 
-  // Ensure we have a point at the current week if we have any certificate data
-  if (currentCapacity !== null && !curve.find(c => c.week === currentWeek)) {
+  // Ensure we have a point at the current week
+  if (!curve.find(c => c.week === currentWeek)) {
     const date = new Date(injuryDate);
     date.setDate(date.getDate() + currentWeek * 7);
     curve.push({
