@@ -246,9 +246,16 @@ router.get('/dashboard', authorize(), async (req: Request, res: Response) => {
       dateOfInjury: c.dateOfInjury?.toISOString?.() || c.dateOfInjury || ''
     }));
 
+    // Distribute actions across priority levels (20 critical, 15 urgent, 15 routine)
+    // This ensures all sections display items instead of critical consuming all slots
+    const criticalActions = priorityActions.filter(a => a.priority === 'critical').slice(0, 20);
+    const urgentActions = priorityActions.filter(a => a.priority === 'urgent').slice(0, 15);
+    const routineActions = priorityActions.filter(a => a.priority === 'routine').slice(0, 15);
+    const distributedActions = [...criticalActions, ...urgentActions, ...routineActions];
+
     const dashboardData: DashboardData = {
       statistics,
-      priorityActions: priorityActions.slice(0, 50), // Limit to top 50 for performance
+      priorityActions: distributedActions,
       allWorkers: allWorkersInfo,
       organizationName
     };
