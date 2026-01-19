@@ -1,9 +1,124 @@
 # Preventli Progress Snapshot - Session Handoff
 
 **Date:** 2026-01-19
-**Branch:** main
-**Latest Commit:** d8a9ee0 docs: add implementation plans for dashboard fixes
-**Status:** ✅ Planning session complete - 3 plans ready for execution
+**Branch:** fix/dashboard-issues
+**Latest Commit:** 1296f84 feat(recovery): redesign recovery graph with dual-track visualization
+**Status:** ✅ Phase 1-3 of Recovery Graph Redesign COMPLETE
+
+---
+
+## [2026-01-19] - Recovery Graph Redesign: "The Decision Weapon" (Phases 1-3)
+
+### Completed
+- ✅ **Phase 1: Foundation** - Dual-track lines, semantic coloring, certificate modal
+- ✅ **Phase 2: Visual Polish** - Confidence bands, animations, glassmorphism, hover transitions
+- ✅ **Phase 3: Intelligence** - Trajectory projection, friction index, AI narrative caption
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `server/services/recoveryEstimator.ts` | +476 lines - Added trajectory projection, friction index, narrative caption |
+| `client/src/components/DynamicRecoveryTimeline.tsx` | +654/-52 lines - Complete redesign with all Phase 1-3 features |
+
+### Key Features Implemented
+
+**Phase 1 - Foundation:**
+- Dual-track lines (Functional Capacity + Role Demand)
+- Semantic colored areas (green/amber/red based on capacity vs demand gap)
+- Certificate markers with click modal for details
+- Backfilled actual capacity from week 1
+
+**Phase 2 - Visual Polish:**
+- Confidence band (shaded area showing volatility envelope)
+- Framer Motion animations (fade-in card, animated lines)
+- Glassmorphism card styling (backdrop-blur, semi-transparent)
+- Gradient fills for semantic areas
+- Hover transitions on badges and buttons
+
+**Phase 3 - Intelligence:**
+- **Trajectory Projection** - Linear regression predicting 30/60/90 day outlook
+  - Direction: improving/stable/declining/unknown
+  - RTW likelihood and estimated week
+- **Recovery Friction Index** - 0.00-1.00 score from weighted factors:
+  - Missed duties (25%), Cert delays (20%), Engagement (20%), Role-capacity gap (20%), Psychosocial flags (15%)
+  - Displays as badge with gauge icon
+- **AI Narrative Caption** - Auto-generated one-sentence summary
+  - Purple gradient styling with sparkle icon
+  - Context-aware based on recovery status and trajectory
+
+### Technical Implementation
+
+**Backend (recoveryEstimator.ts):**
+```typescript
+// New interfaces added
+interface TrajectoryProjection {
+  direction: "improving" | "stable" | "declining" | "unknown";
+  confidence: "low" | "medium" | "high";
+  projectedWeeks: number[];
+  projectedCapacity: number[];
+  rtwLikelihood: "likely" | "possible" | "unlikely" | "unknown";
+  rtwEstimatedWeek: number | null;
+  insight: string;
+}
+
+interface RecoveryFrictionIndex {
+  score: number; // 0.00 - 1.00
+  level: "low" | "moderate" | "high" | "critical";
+  breakdown: { missedDutiesRate, certDelayRate, engagementInconsistency, roleCapacityGap, psychosocialFlags };
+  topFactors: string[];
+  trend: "improving" | "stable" | "worsening" | "unknown";
+}
+```
+
+**Frontend (DynamicRecoveryTimeline.tsx):**
+- Recharts ComposedChart with Line, Area, ReferenceDot components
+- Framer Motion for card animations
+- Dynamic confidence band calculation from certificate variance
+- Semantic color logic for recovery status areas
+
+### Bug Fix During Implementation
+- **Issue:** TypeScript error - `f.severity === "moderate"` had no overlap with `"info" | "warning" | "high_risk"`
+- **Fix:** Changed `"moderate"` to `"warning"` to match ClinicalEvidenceFlag severity type
+
+### Verification
+- ✅ Frontend build passes (`npm run build`)
+- ✅ Backend compiles with pre-existing unrelated TypeScript warnings
+- ✅ Visual inspection of Andres Nieto case (FD-43714) Treatment tab confirmed working
+
+### Git Commit
+```
+1296f84 feat(recovery): redesign recovery graph with dual-track visualization
+
+Phase 1 (Foundation):
+- Dual-track lines: Functional Capacity (solid) + Role Demand (dashed)
+- Semantic colored areas between lines (green/amber/red)
+- Certificate markers with click modal for details
+- Backfilled actual capacity starting from week 1
+
+Phase 2 (Visual Polish):
+- Confidence band showing volatility envelope around capacity line
+- Framer Motion animations (card fade-in, line drawing)
+- Glassmorphism card styling (backdrop-blur, shadows)
+- Enhanced gradient fills and hover transitions
+
+Phase 3 (Intelligence):
+- Trajectory projection using linear regression (30/60/90 day outlook)
+- Recovery Friction Index (0.00-1.00) with weighted scoring
+- AI-generated narrative caption with recovery insights
+- Direction indicators and RTW likelihood estimates
+
+Files changed:
+- server/services/recoveryEstimator.ts (+476 lines)
+- client/src/components/DynamicRecoveryTimeline.tsx (+654/-52 lines)
+```
+
+### Next Steps (Phase 4 - Events & Annotations)
+If user requests Phase 4:
+1. Event markers (RTW attempts, duty changes, interventions)
+2. Marker-to-slope correlation visualization
+3. Clickable events opening details
+4. Timeline integration below graph
 
 ---
 
