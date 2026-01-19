@@ -355,7 +355,7 @@ export interface IStorage {
   }): Promise<WorkerCase>;
   clearAllWorkerCases(): Promise<void>;
   updateAISummary(caseId: string, organizationId: string, summary: string, model: string, workStatusClassification?: string): Promise<void>;
-  needsSummaryRefresh(caseId: string, organizationId: string): Promise<boolean>;
+  needsSummaryRefresh(caseId: string, organizationId: string, currentModel?: string): Promise<boolean>;
   getCaseRecoveryTimeline(caseId: string, organizationId: string): Promise<MedicalCertificate[]>;
   getCaseDiscussionNotes(caseId: string, organizationId: string, limit?: number): Promise<CaseDiscussionNote[]>;
   upsertCaseDiscussionNotes(notes: InsertCaseDiscussionNote[]): Promise<void>;
@@ -1457,7 +1457,7 @@ class DbStorage implements IStorage {
       ));
   }
 
-  async needsSummaryRefresh(caseId: string, organizationId: string): Promise<boolean> {
+  async needsSummaryRefresh(caseId: string, organizationId: string, currentModel?: string): Promise<boolean> {
     const dbCase = await db
       .select()
       .from(workerCases)
@@ -1475,6 +1475,11 @@ class DbStorage implements IStorage {
 
     // Need refresh if summary doesn't exist
     if (!workerCase.aiSummary || !workerCase.aiSummaryGeneratedAt) {
+      return true;
+    }
+
+    // PRD Story 4: Need refresh if model has changed (e.g., Haiku -> Sonnet 4)
+    if (currentModel && workerCase.aiSummaryModel && workerCase.aiSummaryModel !== currentModel) {
       return true;
     }
 

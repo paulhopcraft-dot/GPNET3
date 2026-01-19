@@ -4,7 +4,8 @@ import { storage } from "./storage";
 import { FreshdeskService } from "./services/freshdesk";
 import { syncScheduler } from "./services/syncScheduler";
 import { complianceScheduler } from "./services/complianceScheduler";
-import { summaryService } from "./services/summary";
+import { HybridSummaryService } from "./services/hybridSummary";
+const hybridSummaryService = new HybridSummaryService();
 import Anthropic from "@anthropic-ai/sdk";
 import { logger, createLogger } from "./lib/logger";
 
@@ -1025,17 +1026,14 @@ Example next steps based on case status:
       const workerCase = req.workerCase!; // Populated by requireCaseOwnership middleware
       const force = req.query.force === 'true';
 
-      // If force=true, always regenerate; otherwise use cached if valid
+      // PRD Story 1: Use unified interface with force parameter
       let result;
-      if (force) {
-        try {
-          // Force regeneration
-          const generated = await summaryService.generateCaseSummary(workerCase);
+      try {
+        // Use getCachedOrGenerateSummary with force parameter - handles caching logic internally
+        result = await hybridSummaryService.getCachedOrGenerateSummary(workerCase.id, force);
 
-          // Store in database
-          await storage.updateAISummary(workerCase.id, workerCase.organizationId, generated.summary, summaryService.model, generated.workStatusClassification);
-
-          // Log AI summary generation
+        // Log AI summary generation if it was freshly generated (not cached)
+        if (!result.cached) {
           await logAuditEvent({
             userId: req.user!.id,
             organizationId: req.user!.organizationId,
@@ -1043,36 +1041,25 @@ Example next steps based on case status:
             resourceType: "worker_case",
             resourceId: workerCase.id,
             metadata: {
-              model: summaryService.model,
-              forced: true,
+              model: result.model,
+              forced: force,
             },
             ...getRequestMetadata(req),
           });
-          
-          result = {
-            summary: generated.summary,
-            cached: false,
-            generatedAt: new Date().toISOString(),
-            model: summaryService.model,
-            workStatusClassification: generated.workStatusClassification,
-          };
-        } catch (err) {
-          // If generation fails, fall back to cached summary with warning
-          if (workerCase.aiSummary) {
-            result = {
-              summary: workerCase.aiSummary,
-              cached: true,
-              generatedAt: workerCase.aiSummaryGeneratedAt,
-              model: workerCase.aiSummaryModel,
-              workStatusClassification: workerCase.aiWorkStatusClassification,
-            };
-          } else {
-            throw err; // Re-throw if no cached summary exists
-          }
         }
-      } else {
-        // Generate or fetch cached summary (API key check happens inside service if needed)
-        result = await summaryService.getCachedOrGenerateSummary(workerCase.id);
+      } catch (err) {
+        // If generation fails, fall back to cached summary with warning
+        if (workerCase.aiSummary) {
+          result = {
+            summary: workerCase.aiSummary,
+            cached: true,
+            generatedAt: workerCase.aiSummaryGeneratedAt,
+            model: workerCase.aiSummaryModel,
+            workStatusClassification: workerCase.aiWorkStatusClassification,
+          };
+        } else {
+          throw err; // Re-throw if no cached summary exists
+        }
 
         // Log AI summary generation if it was freshly generated (not cached)
         if (!result.cached) {
