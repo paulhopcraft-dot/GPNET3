@@ -1,9 +1,48 @@
 # Preventli Progress Snapshot - Session Handoff
 
-**Date:** 2026-01-16
+**Date:** 2026-01-19
 **Branch:** main
-**Latest Commit:** c222ded fix: resolve certificate date corruption (July 2026 → July 2025)
-**Status:** ✅ MAJOR Certificate Date Corruption FIX COMPLETED
+**Latest Commit:** d8a9ee0 docs: add implementation plans for dashboard fixes
+**Status:** ✅ Planning session complete - 3 plans ready for execution
+
+---
+
+## [2026-01-19] - Planning Session with Plan-Writer Skill
+
+### Completed
+- ✅ Fixed .claude/settings.local.json (invalid hook configuration removed)
+- ✅ Cleaned up 7 temporary investigation scripts from root directory
+- ✅ Tested plan-writer skill workflow
+- ✅ Created 3 implementation plans:
+  1. `.ai/gpnet3-plan.md` - Fix urgent/routine actions not displaying on employer dashboard
+  2. `.ai/gpnet3-remote-access-plan.md` - Set up Cloudflare tunnel for remote testing
+  3. `.ai/gpnet3-summary-tab-plan.md` - Fix Summary tab duplication and layout
+
+### Plans Ready for Execution
+| Plan | Goal | Complexity |
+|------|------|------------|
+| gpnet3-plan.md | Fix API to distribute actions across priority levels (urgent/routine showing 0) | Low |
+| gpnet3-remote-access-plan.md | Cloudflare tunnel for remote GPNet testing | Low |
+| gpnet3-summary-tab-plan.md | Remove duplicate sections from Summary tab | Low-Medium |
+
+### Bugs Identified This Session
+1. **Employer Dashboard** - Urgent (0) and Routine (0) actions not showing because API limits to 50 total, all consumed by critical
+2. **Summary Tab** - Duplicate sections, incorrect "worker company injury date..." row appearing
+
+### Uncommitted Changes (Not from this session)
+- `client/src/pages/EmployerCaseDetailPage.tsx` - 206 lines changed
+- `server/routes/employer-dashboard.ts` - 52 lines changed
+- ⚠️ Investigate these before next implementation session
+
+### Next Steps
+1. Start fresh session: `claude`
+2. Execute plan: `Read .ai/gpnet3-plan.md and implement exactly`
+3. Or execute: `Read .ai/gpnet3-summary-tab-plan.md and implement exactly`
+
+### Notes
+- Servers were running during session (backend:5000, frontend:5173)
+- Browser open to employer dashboard for testing
+- Test credentials: employer@symmetry.local / ChangeMe123!
 
 ---
 
