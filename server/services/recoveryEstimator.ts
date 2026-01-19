@@ -1196,6 +1196,45 @@ export interface RecoveryAnalysis {
   message: string;
 }
 
+export interface RoleDemandPoint {
+  date: string;
+  week: number;
+  demand: number; // 0-100% - what the job requires
+  label?: string; // e.g., "Modified duties", "Full duties"
+}
+
+// =====================================================
+// TRAJECTORY PROJECTION - Future-facing recovery prediction
+// =====================================================
+
+export interface TrajectoryProjection {
+  direction: "improving" | "stable" | "declining" | "unknown";
+  confidence: "low" | "medium" | "high";
+  projectedWeeks: number[]; // [30, 60, 90] day projections
+  projectedCapacity: number[]; // Capacity at each projection point
+  rtwLikelihood: "likely" | "possible" | "unlikely" | "unknown";
+  rtwEstimatedWeek: number | null;
+  insight: string; // Human-readable insight
+}
+
+// =====================================================
+// RECOVERY FRICTION INDEX - Early warning indicator
+// =====================================================
+
+export interface RecoveryFrictionIndex {
+  score: number; // 0.00 - 1.00 (higher = more friction/risk)
+  level: "low" | "moderate" | "high" | "critical";
+  breakdown: {
+    missedDutiesRate: number; // 0-1
+    certDelayRate: number; // 0-1
+    engagementInconsistency: number; // 0-1
+    roleCapacityGap: number; // 0-1
+    psychosocialFlags: number; // 0-1
+  };
+  topFactors: string[]; // Top contributing factors
+  trend: "improving" | "stable" | "worsening" | "unknown";
+}
+
 export interface RecoveryTimelineChartData {
   caseId: string;
   workerName: string;
@@ -1213,6 +1252,7 @@ export interface RecoveryTimelineChartData {
   // Chart data points
   estimatedCurve: ChartDataPoint[];
   actualCurve: ChartDataPoint[];
+  roleDemandCurve: RoleDemandPoint[]; // NEW: Role requirements over time
   certificateMarkers: CertificateMarker[];
 
   // Phase information
@@ -1222,6 +1262,11 @@ export interface RecoveryTimelineChartData {
   // Analysis
   analysis: RecoveryAnalysis;
   diagnosticRecommendations: DiagnosticRecommendation[];
+
+  // Phase 3: Intelligence features
+  trajectoryProjection: TrajectoryProjection;
+  frictionIndex: RecoveryFrictionIndex;
+  narrativeCaption: string; // AI-generated one-liner summary
 
   // Injury model info
   riskFactors: string[];
@@ -1434,6 +1479,79 @@ function generateActualCurve(
 }
 
 /**
+ * Generate role demand curve - shows what the job requires over time
+ * Phase 1: Simple approach - 100% full duties, reduced if worker has modified duties
+ */
+function generateRoleDemandCurve(
+  injuryDate: Date,
+  weeksElapsed: number,
+  certificates: MedicalCertificate[]
+): RoleDemandPoint[] {
+  const curve: RoleDemandPoint[] = [];
+  const maxWeeks = Math.max(weeksElapsed + 20, 52); // Project forward
+
+  // Analyze certificates to detect modified duties periods
+  // If worker is on partial capacity, assume employer has provided modified duties
+  const sortedCerts = [...certificates].sort(
+    (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+  );
+
+  // Build a map of weeks to capacity status
+  const weekCapacityMap = new Map<number, WorkCapacity>();
+  for (const cert of sortedCerts) {
+    const certStart = new Date(cert.startDate);
+    const certEnd = new Date(cert.endDate);
+    const startWeek = Math.floor((certStart.getTime() - injuryDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
+    const endWeek = Math.floor((certEnd.getTime() - injuryDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
+
+    for (let week = startWeek; week <= endWeek && week <= maxWeeks; week++) {
+      if (week >= 0) {
+        weekCapacityMap.set(week, cert.capacity);
+      }
+    }
+  }
+
+  // Generate demand curve
+  // Logic: Full duties (100%) is the goal, but when worker is on partial/unfit,
+  // we assume modified duties are in place
+  for (let week = 0; week <= maxWeeks; week++) {
+    const date = new Date(injuryDate);
+    date.setDate(date.getDate() + week * 7);
+
+    const capacity = weekCapacityMap.get(week);
+    let demand: number;
+    let label: string;
+
+    if (capacity === "unfit") {
+      // Worker is unfit - no duties expected
+      demand = 0;
+      label = "Off work";
+    } else if (capacity === "partial") {
+      // Worker on partial capacity - modified duties
+      demand = 50; // Assume modified duties match partial capacity
+      label = "Modified duties";
+    } else if (capacity === "fit") {
+      // Worker fit - full duties
+      demand = 100;
+      label = "Full duties";
+    } else {
+      // No certificate data - assume full duties required (pre-injury baseline)
+      demand = 100;
+      label = "Full duties";
+    }
+
+    curve.push({
+      date: date.toISOString(),
+      week,
+      demand,
+      label,
+    });
+  }
+
+  return curve;
+}
+
+/**
  * Analyze recovery progress compared to expected timeline
  */
 function analyzeRecoveryProgress(
@@ -1632,6 +1750,333 @@ function generatePhases(
 }
 
 /**
+ * Calculate trajectory projection based on recent capacity trend
+ * Uses linear regression on certificate data to project future capacity
+ */
+function calculateTrajectoryProjection(
+  certificates: MedicalCertificate[],
+  weeksElapsed: number,
+  estimatedWeeks: number,
+  roleDemandCurve: RoleDemandPoint[]
+): TrajectoryProjection {
+  // Default for insufficient data
+  if (certificates.length < 2) {
+    return {
+      direction: "unknown",
+      confidence: "low",
+      projectedWeeks: [weeksElapsed + 4, weeksElapsed + 9, weeksElapsed + 13], // 30/60/90 days
+      projectedCapacity: [50, 50, 50],
+      rtwLikelihood: "unknown",
+      rtwEstimatedWeek: null,
+      insight: "Insufficient data to project recovery trajectory. More medical certificates needed.",
+    };
+  }
+
+  // Sort certificates chronologically
+  const sortedCerts = [...certificates].sort(
+    (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+  );
+
+  // Get capacity data points with weeks
+  const dataPoints = sortedCerts.map((cert, index) => {
+    const certDate = new Date(cert.startDate);
+    const injuryDate = new Date(sortedCerts[0].startDate);
+    injuryDate.setDate(injuryDate.getDate() - (sortedCerts[0] as any).weeksSinceInjury || 0);
+    return {
+      week: index, // Simple index for trend calculation
+      capacity: capacityToPercentage(cert.capacity),
+    };
+  });
+
+  // Calculate trend using linear regression
+  const n = dataPoints.length;
+  const sumX = dataPoints.reduce((s, p) => s + p.week, 0);
+  const sumY = dataPoints.reduce((s, p) => s + p.capacity, 0);
+  const sumXY = dataPoints.reduce((s, p) => s + p.week * p.capacity, 0);
+  const sumXX = dataPoints.reduce((s, p) => s + p.week * p.week, 0);
+
+  const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+  const intercept = (sumY - slope * sumX) / n;
+
+  // Determine direction
+  let direction: TrajectoryProjection["direction"];
+  if (slope > 5) {
+    direction = "improving";
+  } else if (slope < -5) {
+    direction = "declining";
+  } else {
+    direction = "stable";
+  }
+
+  // Calculate confidence based on data consistency
+  const latestCapacity = dataPoints[dataPoints.length - 1].capacity;
+  const variance = dataPoints.reduce((s, p) => s + Math.pow(p.capacity - (intercept + slope * p.week), 2), 0) / n;
+  const stdDev = Math.sqrt(variance);
+
+  let confidence: TrajectoryProjection["confidence"];
+  if (n >= 4 && stdDev < 15) {
+    confidence = "high";
+  } else if (n >= 3 && stdDev < 25) {
+    confidence = "medium";
+  } else {
+    confidence = "low";
+  }
+
+  // Project future capacity (30, 60, 90 days = ~4, 9, 13 weeks)
+  const projectWeeks = [4, 9, 13];
+  const projectedCapacity = projectWeeks.map((w) => {
+    const projectedWeek = weeksElapsed + w;
+    const projected = latestCapacity + slope * w;
+    return Math.max(0, Math.min(100, Math.round(projected)));
+  });
+
+  // Estimate RTW likelihood
+  const currentDemand = roleDemandCurve.find(p => p.week === weeksElapsed)?.demand ?? 100;
+  const capacityGap = latestCapacity - currentDemand;
+
+  let rtwLikelihood: TrajectoryProjection["rtwLikelihood"];
+  let rtwEstimatedWeek: number | null = null;
+
+  if (latestCapacity >= 100) {
+    rtwLikelihood = "likely";
+    rtwEstimatedWeek = weeksElapsed;
+  } else if (direction === "improving" && slope > 0) {
+    // Estimate weeks to reach 100%
+    const weeksTo100 = Math.ceil((100 - latestCapacity) / slope);
+    rtwEstimatedWeek = weeksElapsed + weeksTo100;
+    if (weeksTo100 <= 4) {
+      rtwLikelihood = "likely";
+    } else if (weeksTo100 <= 12) {
+      rtwLikelihood = "possible";
+    } else {
+      rtwLikelihood = "unlikely";
+    }
+  } else if (direction === "stable" && latestCapacity >= 80) {
+    rtwLikelihood = "possible";
+    rtwEstimatedWeek = weeksElapsed + 4;
+  } else if (direction === "declining") {
+    rtwLikelihood = "unlikely";
+  } else {
+    rtwLikelihood = "possible";
+  }
+
+  // Generate insight
+  let insight: string;
+  if (direction === "improving") {
+    if (rtwLikelihood === "likely") {
+      insight = `Recovery trajectory positive. RTW within ${rtwEstimatedWeek ? rtwEstimatedWeek - weeksElapsed : 4} weeks is achievable if current progress maintained.`;
+    } else {
+      insight = `Recovery improving but gradual. Continued treatment and support recommended to maintain momentum.`;
+    }
+  } else if (direction === "declining") {
+    insight = `Recovery trend concerning - capacity declining. Immediate review recommended to identify barriers and adjust treatment plan.`;
+  } else {
+    if (latestCapacity >= 80) {
+      insight = `Recovery plateaued near full capacity. Final push to RTW may require graduated duties program.`;
+    } else {
+      insight = `Recovery stable but below target. Consider additional interventions to break through plateau.`;
+    }
+  }
+
+  return {
+    direction,
+    confidence,
+    projectedWeeks: projectWeeks.map(w => weeksElapsed + w),
+    projectedCapacity,
+    rtwLikelihood,
+    rtwEstimatedWeek,
+    insight,
+  };
+}
+
+/**
+ * Calculate Recovery Friction Index
+ * Weighted score from 0.00 (no friction) to 1.00 (maximum friction/risk)
+ *
+ * Weights:
+ * - 0.25: Missed duties rate
+ * - 0.20: Certificate delay rate
+ * - 0.20: Engagement inconsistency
+ * - 0.20: Role-capacity gap
+ * - 0.15: Psychosocial flags
+ */
+function calculateFrictionIndex(
+  certificates: MedicalCertificate[],
+  weeksElapsed: number,
+  clinicalFlags: ClinicalEvidenceFlag[],
+  roleDemandCurve: RoleDemandPoint[],
+  analysis: RecoveryAnalysis
+): RecoveryFrictionIndex {
+  const breakdown = {
+    missedDutiesRate: 0,
+    certDelayRate: 0,
+    engagementInconsistency: 0,
+    roleCapacityGap: 0,
+    psychosocialFlags: 0,
+  };
+
+  // 1. Certificate delay rate (based on gaps between certificates)
+  if (certificates.length > 0) {
+    const sortedCerts = [...certificates].sort(
+      (a, b) => new Date(a.endDate).getTime() - new Date(b.endDate).getTime()
+    );
+    const latestCert = sortedCerts[sortedCerts.length - 1];
+    const daysSinceLastCert = Math.floor(
+      (Date.now() - new Date(latestCert.endDate).getTime()) / (24 * 60 * 60 * 1000)
+    );
+    // More than 14 days without cert = increasing friction
+    breakdown.certDelayRate = Math.min(1, Math.max(0, (daysSinceLastCert - 7) / 21));
+  } else {
+    breakdown.certDelayRate = 1; // No certs = maximum friction
+  }
+
+  // 2. Engagement inconsistency (based on capacity variance)
+  if (certificates.length >= 2) {
+    const capacities = certificates.map(c => capacityToPercentage(c.capacity));
+    const mean = capacities.reduce((a, b) => a + b, 0) / capacities.length;
+    const variance = capacities.reduce((s, c) => s + Math.pow(c - mean, 2), 0) / capacities.length;
+    const stdDev = Math.sqrt(variance);
+    // High variance = inconsistent engagement
+    breakdown.engagementInconsistency = Math.min(1, stdDev / 40);
+  }
+
+  // 3. Role-capacity gap (current capacity vs demand)
+  if (certificates.length > 0 && roleDemandCurve.length > 0) {
+    const latestCert = certificates.sort(
+      (a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
+    )[0];
+    const currentCapacity = capacityToPercentage(latestCert.capacity);
+    const currentDemand = roleDemandCurve.find(p => p.week === weeksElapsed)?.demand ?? 100;
+    const gap = Math.max(0, currentDemand - currentCapacity);
+    breakdown.roleCapacityGap = gap / 100;
+  }
+
+  // 4. Psychosocial flags
+  const highRiskFlags = clinicalFlags.filter(f => f.severity === "high_risk").length;
+  const warningFlags = clinicalFlags.filter(f => f.severity === "warning").length;
+  breakdown.psychosocialFlags = Math.min(1, (highRiskFlags * 0.4 + warningFlags * 0.15));
+
+  // 5. Missed duties rate (inferred from analysis trend)
+  if (analysis.trend === "declining") {
+    breakdown.missedDutiesRate = 0.6;
+  } else if (analysis.trend === "stable" && analysis.comparedToExpected === "behind") {
+    breakdown.missedDutiesRate = 0.4;
+  } else if (analysis.comparedToExpected === "behind") {
+    breakdown.missedDutiesRate = 0.3;
+  }
+
+  // Calculate weighted score
+  const score =
+    0.25 * breakdown.missedDutiesRate +
+    0.20 * breakdown.certDelayRate +
+    0.20 * breakdown.engagementInconsistency +
+    0.20 * breakdown.roleCapacityGap +
+    0.15 * breakdown.psychosocialFlags;
+
+  // Determine level
+  let level: RecoveryFrictionIndex["level"];
+  if (score >= 0.7) {
+    level = "critical";
+  } else if (score >= 0.5) {
+    level = "high";
+  } else if (score >= 0.3) {
+    level = "moderate";
+  } else {
+    level = "low";
+  }
+
+  // Identify top factors
+  const factors: Array<{ name: string; value: number }> = [
+    { name: "Missed duties", value: breakdown.missedDutiesRate },
+    { name: "Certificate delays", value: breakdown.certDelayRate },
+    { name: "Engagement inconsistency", value: breakdown.engagementInconsistency },
+    { name: "Role-capacity gap", value: breakdown.roleCapacityGap },
+    { name: "Psychosocial concerns", value: breakdown.psychosocialFlags },
+  ];
+  factors.sort((a, b) => b.value - a.value);
+  const topFactors = factors.filter(f => f.value > 0.2).map(f => f.name);
+
+  // Determine trend
+  let trend: RecoveryFrictionIndex["trend"] = "unknown";
+  if (analysis.trend === "improving") {
+    trend = "improving";
+  } else if (analysis.trend === "declining") {
+    trend = "worsening";
+  } else if (analysis.trend === "stable") {
+    trend = "stable";
+  }
+
+  return {
+    score: Math.round(score * 100) / 100,
+    level,
+    breakdown,
+    topFactors,
+    trend,
+  };
+}
+
+/**
+ * Generate narrative caption - one-sentence AI-style summary
+ */
+function generateNarrativeCaption(
+  analysis: RecoveryAnalysis,
+  trajectory: TrajectoryProjection,
+  frictionIndex: RecoveryFrictionIndex,
+  weeksElapsed: number,
+  injuryTypeLabel: string
+): string {
+  // Build narrative based on key indicators
+  const parts: string[] = [];
+
+  // Recovery status
+  if (analysis.comparedToExpected === "ahead") {
+    parts.push(`Recovery progressing well`);
+  } else if (analysis.comparedToExpected === "behind") {
+    parts.push(`Recovery behind schedule`);
+  } else if (analysis.comparedToExpected === "on_track") {
+    parts.push(`Recovery on track`);
+  } else {
+    parts.push(`Recovery status unclear`);
+  }
+
+  // Trajectory direction
+  if (trajectory.direction === "improving") {
+    parts.push(`with positive trajectory`);
+  } else if (trajectory.direction === "declining") {
+    parts.push(`but showing concerning decline`);
+  } else if (trajectory.direction === "stable") {
+    if (analysis.comparedToExpected === "behind") {
+      parts.push(`but plateaued`);
+    } else {
+      parts.push(`and stable`);
+    }
+  }
+
+  // RTW outlook
+  if (trajectory.rtwLikelihood === "likely" && trajectory.rtwEstimatedWeek) {
+    const weeksToRTW = trajectory.rtwEstimatedWeek - weeksElapsed;
+    if (weeksToRTW <= 0) {
+      parts.push(`— RTW viable now`);
+    } else {
+      parts.push(`— RTW viable within ${weeksToRTW} weeks`);
+    }
+  } else if (trajectory.rtwLikelihood === "unlikely") {
+    parts.push(`— extended recovery expected`);
+  }
+
+  // Friction warning
+  if (frictionIndex.level === "critical") {
+    parts.push(`. Urgent intervention needed.`);
+  } else if (frictionIndex.level === "high" && frictionIndex.topFactors.length > 0) {
+    parts.push(`. Watch: ${frictionIndex.topFactors[0].toLowerCase()}.`);
+  } else {
+    parts.push(`.`);
+  }
+
+  return parts.join(" ").replace(/\s+/g, " ").trim();
+}
+
+/**
  * Generate complete recovery timeline chart data for a case
  */
 export function generateRecoveryTimelineChartData(
@@ -1672,6 +2117,7 @@ export function generateRecoveryTimelineChartData(
     certificates,
     weeksElapsed
   );
+  const roleDemandCurve = generateRoleDemandCurve(injuryDate, weeksElapsed, certificates);
 
   // Generate phases
   const phases = generatePhases(model, weeksElapsed, scaleFactor);
@@ -1690,6 +2136,32 @@ export function generateRecoveryTimelineChartData(
     certificates
   );
 
+  // Phase 3: Calculate trajectory projection
+  const trajectoryProjection = calculateTrajectoryProjection(
+    certificates,
+    weeksElapsed,
+    adjustedWeeks,
+    roleDemandCurve
+  );
+
+  // Phase 3: Calculate friction index
+  const frictionIndex = calculateFrictionIndex(
+    certificates,
+    weeksElapsed,
+    clinicalFlags,
+    roleDemandCurve,
+    analysis
+  );
+
+  // Phase 3: Generate narrative caption
+  const narrativeCaption = generateNarrativeCaption(
+    analysis,
+    trajectoryProjection,
+    frictionIndex,
+    weeksElapsed,
+    injuryTypeLabel
+  );
+
   return {
     caseId,
     workerName,
@@ -1703,11 +2175,15 @@ export function generateRecoveryTimelineChartData(
     confidence: estimate.confidence,
     estimatedCurve,
     actualCurve,
+    roleDemandCurve,
     certificateMarkers,
     phases,
     currentPhase,
     analysis,
     diagnosticRecommendations,
+    trajectoryProjection,
+    frictionIndex,
+    narrativeCaption,
     riskFactors: model.riskFactors,
     suggestedDiagnosticTests: model.diagnosticTests,
     potentialSpecialistReferrals: model.specialistReferrals,
