@@ -2,8 +2,33 @@
 
 **Date:** 2026-01-20
 **Branch:** fix/dashboard-issues
-**Latest Commit:** 1c9da81 feat(recovery): complete Phase 4 event markers with details modal
-**Status:** ✅ Phase 1-4 of Recovery Graph Redesign COMPLETE
+**Latest Commit:** 7799704 fix: use DynamicRecoveryTimeline in clinician view Treatment tab
+**Status:** ✅ Phase 1-4 Recovery Graph now visible in BOTH clinician and employer views
+
+---
+
+## [2026-01-20] - Recovery Graph Fix for Clinician View
+
+### Completed
+- ✅ Diagnosed why Phase 3-4 features weren't showing in Treatment tab
+- ✅ Found root cause: CaseDetailPanel.tsx was using OLD RecoveryChart component
+- ✅ Fixed: Replaced import and usage with DynamicRecoveryTimeline component
+- ✅ Verified: New design shows in browser with all Phase 3-4 features:
+  - Dual-track visualization (Capacity vs Role Demand)
+  - Semantic status indicators (Behind Schedule, Fragile, etc.)
+  - Trajectory projection (0.17 RTW Possible)
+  - AI narrative captions
+  - Certificate markers (#1, #2, #3, #4)
+  - Event markers (DC = Duty Change)
+- ✅ Committed: 7799704 fix: use DynamicRecoveryTimeline in clinician view Treatment tab
+
+### File Changed
+- `client/src/components/CaseDetailPanel.tsx` - Swapped RecoveryChart → DynamicRecoveryTimeline
+
+### Note
+- The fancy recovery graph was already implemented in DynamicRecoveryTimeline
+- It was only being used in EmployerCaseDetailPage (employer view)
+- Now both clinician (CaseDetailPanel) and employer views use the same component
 
 ---
 
