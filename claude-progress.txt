@@ -1,13 +1,13 @@
 # Preventli Progress Snapshot - Session Handoff
 
-**Date:** 2026-01-19
+**Date:** 2026-01-20
 **Branch:** fix/dashboard-issues
-**Latest Commit:** 1296f84 feat(recovery): redesign recovery graph with dual-track visualization
-**Status:** ✅ Phase 1-3 of Recovery Graph Redesign COMPLETE
+**Latest Commit:** 1c9da81 feat(recovery): complete Phase 4 event markers with details modal
+**Status:** ✅ Phase 1-4 of Recovery Graph Redesign COMPLETE
 
 ---
 
-## [2026-01-20] - Phase 4 Event Markers (80% Complete)
+## [2026-01-20] - Phase 4 Event Markers COMPLETE
 
 ### Completed
 - ✅ Added `RecoveryEventMarker` interface and types to recoveryEstimator.ts
@@ -19,25 +19,22 @@
 - ✅ Updated API route to fetch event data and pass to chart generator
 - ✅ Added `eventMarkers` to `RecoveryTimelineChartData` response
 - ✅ Frontend: Added types, chart ReferenceLine markers, legend with icons
+- ✅ Frontend: Event details modal with:
+  - Event type icon (RTW, duty change, intervention, risk flag, termination)
+  - Event label, week number, and formatted date
+  - Full description with severity-based color coding
+  - Impact badge (positive/neutral/negative for recovery)
+  - Source type indicator (action, note, milestone, termination)
 
-### Next Steps
-- Add event details modal (onClick handler exists, modal UI needed)
-- Test with actual case data (Andres Nieto FD-43714)
-- Verify event markers appear on graph
-
-### Remaining for Phase 4
-```typescript
-// Need to add Dialog component for event details:
-<Dialog open={!!selectedEvent} onOpenChange={() => setSelectedEvent(null)}>
-  <DialogContent>
-    <DialogHeader>
-      <DialogTitle>{eventConfig[selectedEvent.type].label}</DialogTitle>
-    </DialogHeader>
-    <p>{selectedEvent.description}</p>
-    <p>Date: {new Date(selectedEvent.date).toLocaleDateString()}</p>
-  </DialogContent>
-</Dialog>
-```
+### Note on Testing
+- Event markers only appear when cases have matching data:
+  - Completed `review_case` actions → RTW Attempt markers
+  - Completed `follow_up` actions with "duty" in notes → Duty Change markers
+  - Discussion notes with `updatesRecoveryTimeline` → Recovery Update markers
+  - Discussion notes with `riskFlags` → Risk Flag markers
+  - Treatment milestones with `completed: true` → Intervention markers
+  - Termination process dates → Termination milestone markers
+- Andres Nieto case (FD-43714) has no matching events currently
 
 ### Dashboard Research
 - Background task completed: 562KB of dashboard design research
@@ -46,7 +43,7 @@
 
 ### Git
 - Branch: fix/dashboard-issues
-- Commit: c051b75 feat(recovery): add Phase 4 event markers to recovery graph
+- Commit: 1c9da81 feat(recovery): complete Phase 4 event markers with details modal
 - PR #18 open (Phases 1-3, need to update with Phase 4)
 
 ---
