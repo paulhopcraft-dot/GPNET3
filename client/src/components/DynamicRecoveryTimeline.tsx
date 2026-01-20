@@ -1238,6 +1238,99 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Phase 4: Event Details Modal */}
+      <Dialog open={!!selectedEvent} onOpenChange={() => setSelectedEvent(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {selectedEvent && (() => {
+                const eventConfig: Record<RecoveryEventType, { color: string; label: string; Icon: typeof Briefcase }> = {
+                  rtw_attempt: { color: "#22c55e", label: "RTW Attempt", Icon: Briefcase },
+                  duty_change: { color: "#3b82f6", label: "Duty Change", Icon: Clock },
+                  intervention: { color: "#f59e0b", label: "Medical Intervention", Icon: HeartPulse },
+                  risk_flag: { color: "#ef4444", label: "Risk Flag", Icon: Flag },
+                  termination: { color: "#6b7280", label: "Termination Milestone", Icon: XCircle },
+                };
+                const config = eventConfig[selectedEvent.type];
+                const IconComponent = config.Icon;
+                return (
+                  <>
+                    <IconComponent className="h-5 w-5" style={{ color: config.color }} />
+                    <span style={{ color: config.color }}>{config.label}</span>
+                  </>
+                );
+              })()}
+            </DialogTitle>
+            <DialogDescription>
+              Recovery event details and context
+            </DialogDescription>
+          </DialogHeader>
+          {selectedEvent && (
+            <div className="space-y-4">
+              {/* Event Label */}
+              <div className="p-3 bg-slate-50 rounded-lg">
+                <span className="text-lg font-semibold text-slate-800">{selectedEvent.label}</span>
+              </div>
+
+              {/* Event Info */}
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-slate-500 block">Week</span>
+                  <span className="font-medium">Week {selectedEvent.week}</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block">Date</span>
+                  <span className="font-medium">{formatDate(selectedEvent.date)}</span>
+                </div>
+              </div>
+
+              {/* Description */}
+              <div className={cn(
+                "p-3 rounded-lg text-sm border",
+                selectedEvent.severity === "positive" && "bg-emerald-50 border-emerald-200",
+                selectedEvent.severity === "neutral" && "bg-blue-50 border-blue-200",
+                selectedEvent.severity === "negative" && "bg-red-50 border-red-200"
+              )}>
+                <p className={cn(
+                  selectedEvent.severity === "positive" && "text-emerald-800",
+                  selectedEvent.severity === "neutral" && "text-blue-800",
+                  selectedEvent.severity === "negative" && "text-red-800"
+                )}>
+                  {selectedEvent.description}
+                </p>
+              </div>
+
+              {/* Severity Badge */}
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-slate-500">Impact</span>
+                <Badge
+                  className={cn(
+                    "text-xs",
+                    selectedEvent.severity === "positive" && "bg-emerald-100 text-emerald-800",
+                    selectedEvent.severity === "neutral" && "bg-blue-100 text-blue-800",
+                    selectedEvent.severity === "negative" && "bg-red-100 text-red-800"
+                  )}
+                >
+                  {selectedEvent.severity === "positive" && "Positive for Recovery"}
+                  {selectedEvent.severity === "neutral" && "Neutral"}
+                  {selectedEvent.severity === "negative" && "Negative for Recovery"}
+                </Badge>
+              </div>
+
+              {/* Source Info */}
+              {selectedEvent.sourceType && (
+                <div className="text-xs text-slate-500 pt-2 border-t">
+                  Source: {selectedEvent.sourceType === "action" && "Case Action"}
+                  {selectedEvent.sourceType === "note" && "Discussion Note"}
+                  {selectedEvent.sourceType === "milestone" && "Treatment Milestone"}
+                  {selectedEvent.sourceType === "termination" && "Termination Process"}
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
