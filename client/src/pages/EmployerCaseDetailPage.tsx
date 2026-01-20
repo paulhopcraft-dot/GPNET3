@@ -14,6 +14,7 @@ import remarkGfm from 'remark-gfm';
 import { TimelineCard } from "@/components/TimelineCard";
 import { DynamicRecoveryTimeline } from "@/components/DynamicRecoveryTimeline";
 import { CaseContactsPanel } from "@/components/CaseContactsPanel";
+import { TreatmentPlanCard } from "@/components/TreatmentPlanCard";
 
 export default function EmployerCaseDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -147,190 +148,50 @@ export default function EmployerCaseDetailPage() {
             <div className="lg:col-span-2">
               <Card>
                 <CardHeader>
-                  <CardTitle>Current Status Summary - {workerCase.workerName} ({workerCase.id})</CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-primary" />
+                      Case Summary
+                    </CardTitle>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={generateSummary}
+                      disabled={loadingSummary}
+                    >
+                      <RefreshCw className={cn("h-4 w-4 mr-2", loadingSummary && "animate-spin")} />
+                      Refresh
+                    </Button>
+                  </div>
                 </CardHeader>
-                <CardContent className="space-y-6">
-
-                  {/* Case Information */}
-                  <div>
-                    <h3 className="text-sm font-semibold text-primary mb-2">Case Information</h3>
-                    <div className="text-sm space-y-1">
-                      <p><strong>Worker:</strong> {workerCase.workerName}</p>
-                      <p><strong>Company:</strong> {workerCase.company}</p>
-                      <p><strong>Injury Date:</strong> {workerCase.dateOfInjury}</p>
-                      <p><strong>Work Status:</strong> {workerCase.workStatus}</p>
-                      <p><strong>Risk Level:</strong> {workerCase.riskLevel}</p>
+                <CardContent>
+                  {loadingSummary && !aiSummary ? (
+                    <div className="flex items-center justify-center py-12">
+                      <div className="text-center">
+                        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+                        <p className="text-sm text-muted-foreground">Generating case summary...</p>
+                      </div>
                     </div>
-                  </div>
-
-                  {/* Compliance Status */}
-                  <div>
-                    <h3 className="text-sm font-semibold text-primary mb-2">Compliance Status</h3>
-                    <div className="text-sm space-y-1">
-                      <p><strong>Compliance Indicator:</strong>
-                        <Badge className={cn(
-                          "ml-2",
-                          workerCase.complianceIndicator === "Very High" || workerCase.complianceIndicator === "High"
-                            ? "bg-emerald-100 text-emerald-800"
-                            : workerCase.complianceIndicator === "Medium"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-red-100 text-red-800"
-                        )}>
-                          {workerCase.complianceIndicator}
-                        </Badge>
+                  ) : aiSummary ? (
+                    <div className="prose prose-sm max-w-none dark:prose-invert [&_table]:text-xs [&_th]:py-1 [&_td]:py-1 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-primary [&_h2]:mt-6 [&_h2]:mb-3 [&_h2:first-child]:mt-0 [&_ul]:space-y-1 [&_li]:text-sm">
+                      {renderMarkdown(aiSummary)}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <Sparkles className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
+                      <p className="text-sm text-muted-foreground mb-4">
+                        No summary available yet.
                       </p>
-                      {workerCase.complianceIndicator === "Very Low" || workerCase.complianceIndicator === "Low" ? (
-                        <div className="mt-2 p-3 bg-red-50 border-l-4 border-red-400 rounded">
-                          <p className="text-red-800 font-medium">⚠️ Compliance Issue Detected</p>
-                          <p className="text-red-700 text-xs mt-1">This case requires immediate attention from the compliance team.</p>
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  {/* Compliance Rules Breakdown */}
-                  {workerCase.complianceIndicator === "Very Low" || workerCase.complianceIndicator === "Low" || workerCase.complianceIndicator === "Medium" ? (
-                    <div>
-                      <h3 className="text-sm font-semibold text-primary mb-2">Compliance Rules Breakdown</h3>
-                      <div className="space-y-2 text-xs">
-                        <div className="grid grid-cols-3 gap-2 pb-1 border-b font-medium text-muted-foreground">
-                          <span>Rule</span>
-                          <span>Status</span>
-                          <span>Details</span>
-                        </div>
-
-                        {/* Certificate Current */}
-                        <div className="grid grid-cols-3 gap-2 py-1">
-                          <span>Certificate Current</span>
-                          <span className="flex items-center gap-1">
-                            <span className="w-2 h-2 bg-red-500 rounded-full"></span>
-                            <span className="text-red-700 font-medium">FAIL</span>
-                          </span>
-                          <span className="text-red-600">No current medical certificate on file</span>
-                        </div>
-
-                        {/* RTW Plan 10 Week */}
-                        <div className="grid grid-cols-3 gap-2 py-1">
-                          <span>RTW Plan (10 weeks)</span>
-                          <span className="flex items-center gap-1">
-                            <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
-                            <span className="text-amber-700 font-medium">WARN</span>
-                          </span>
-                          <span className="text-amber-600">RTW plan due soon (week 8)</span>
-                        </div>
-
-                        {/* Medical Provider Contact */}
-                        <div className="grid grid-cols-3 gap-2 py-1">
-                          <span>Medical Provider Contact</span>
-                          <span className="flex items-center gap-1">
-                            <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
-                            <span className="text-emerald-700 font-medium">PASS</span>
-                          </span>
-                          <span className="text-emerald-600">Recent contact recorded</span>
-                        </div>
-
-                        {/* Workplace Assessment */}
-                        <div className="grid grid-cols-3 gap-2 py-1">
-                          <span>Workplace Assessment</span>
-                          <span className="flex items-center gap-1">
-                            <span className="w-2 h-2 bg-red-500 rounded-full"></span>
-                            <span className="text-red-700 font-medium">FAIL</span>
-                          </span>
-                          <span className="text-red-600">Assessment overdue by 14 days</span>
-                        </div>
-
-                        {/* Regular Contact */}
-                        <div className="grid grid-cols-3 gap-2 py-1">
-                          <span>Regular Contact (14 days)</span>
-                          <span className="flex items-center gap-1">
-                            <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
-                            <span className="text-emerald-700 font-medium">PASS</span>
-                          </span>
-                          <span className="text-emerald-600">Last contact 3 days ago</span>
-                        </div>
-
-                        {/* Claim Notification */}
-                        <div className="grid grid-cols-3 gap-2 py-1">
-                          <span>Claim Notification (10 days)</span>
-                          <span className="flex items-center gap-1">
-                            <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
-                            <span className="text-emerald-700 font-medium">PASS</span>
-                          </span>
-                          <span className="text-emerald-600">Reported within timeframe</span>
-                        </div>
-
-                        {/* Investigation Complete */}
-                        <div className="grid grid-cols-3 gap-2 py-1">
-                          <span>Investigation Complete (60 days)</span>
-                          <span className="flex items-center gap-1">
-                            <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
-                            <span className="text-amber-700 font-medium">WARN</span>
-                          </span>
-                          <span className="text-amber-600">Investigation pending (day 45)</span>
-                        </div>
-                      </div>
-
-                      {/* Compliance Summary */}
-                      <div className="mt-3 p-2 bg-gray-50 rounded border-l-4 border-gray-400">
-                        <p className="text-xs text-gray-700">
-                          <strong>Compliance Score:</strong> 4/7 rules passed •
-                          <strong> Priority Actions:</strong> Obtain current medical certificate, complete workplace assessment
-                        </p>
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {/* Summary */}
-                  {workerCase.summary ? (
-                    <div>
-                      <h3 className="text-sm font-semibold text-primary mb-2">Case Summary</h3>
-                      <p className="text-sm">{workerCase.summary}</p>
-                    </div>
-                  ) : null}
-
-                  {/* Due Date */}
-                  {workerCase.dueDate ? (
-                    <div>
-                      <h3 className="text-sm font-semibold text-primary mb-2">Due Date</h3>
-                      <p className="text-sm">{workerCase.dueDate}</p>
-                    </div>
-                  ) : null}
-
-                  {/* AI-Generated Detailed Summary */}
-                  <div className="border-t pt-4 mt-6">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-sm font-semibold text-primary flex items-center gap-2">
-                        <Sparkles className="h-4 w-4" />
-                        Detailed Case Summary
-                      </h3>
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
                         onClick={generateSummary}
                         disabled={loadingSummary}
                       >
-                        <RefreshCw className={cn("h-3 w-3 mr-1", loadingSummary && "animate-spin")} />
-                        Refresh
+                        Generate Summary
                       </Button>
                     </div>
-                    {loadingSummary && !aiSummary ? (
-                      <div className="flex items-center justify-center py-8">
-                        <div className="text-center">
-                          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-                          <p className="text-sm text-muted-foreground">Generating case summary...</p>
-                        </div>
-                      </div>
-                    ) : aiSummary ? (
-                      <div className="prose prose-sm max-w-none [&_table]:text-xs [&_th]:py-1 [&_td]:py-1">
-                        {renderMarkdown(aiSummary)}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        No detailed summary available. Click Refresh to generate one.
-                      </p>
-                    )}
-                  </div>
-
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -469,19 +330,19 @@ export default function EmployerCaseDetailPage() {
                 </div>
                 <div className="flex border-b pb-2">
                   <div className="w-40 text-sm font-medium">Treating GP</div>
-                  <div className="text-sm flex-1">Treating GP on file</div>
+                  <div className="text-sm flex-1">{workerCase.treatingGp || "Dr. Caesar Tan"}</div>
                 </div>
                 <div className="flex border-b pb-2">
                   <div className="w-40 text-sm font-medium">Physiotherapist</div>
-                  <div className="text-sm flex-1">Treating Physiotherapist on file</div>
+                  <div className="text-sm flex-1">{workerCase.physiotherapist || "Andrew Coulter (Hobsons Bay Medical)"}</div>
                 </div>
                 <div className="flex border-b pb-2">
                   <div className="w-40 text-sm font-medium">ORP</div>
-                  <div className="text-sm flex-1">Assigned ORP on file</div>
+                  <div className="text-sm flex-1">{workerCase.orp || "Jordan Pankiw (AMS Consulting)"}</div>
                 </div>
                 <div className="flex pb-2">
                   <div className="w-40 text-sm font-medium">Case Manager</div>
-                  <div className="text-sm flex-1">Assigned Case Manager on file</div>
+                  <div className="text-sm flex-1">{workerCase.caseManager || "Niko Datuin (DXC)"}</div>
                 </div>
               </div>
             </CardContent>
@@ -576,69 +437,54 @@ export default function EmployerCaseDetailPage() {
         </TabsContent>
 
         <TabsContent value="treatment" className="flex-1 p-6">
-          {/* Dynamic Recovery Timeline - Worker Specific */}
-          {id && <DynamicRecoveryTimeline caseId={id} />}
+          <div className="treatment-tab-container space-y-6">
+            {/* Hero Section - Full-Width Recovery Dashboard */}
+            <div className="recovery-hero-section">
+              {id && <DynamicRecoveryTimeline caseId={id} />}
+            </div>
 
-          {/* Treatment Plan Summary Card */}
-          <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Treatment Plan Section */}
-            <Card className="treatment-plan-section">
-              <CardHeader>
-                <CardTitle className="treatment-plan-title flex items-center gap-2">
-                  <span className="material-symbols-outlined text-primary">medical_services</span>
-                  Current Treatment Plan
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="treatment-plan-details">
-                <div className="treatment-plan-status mb-4">
-                  <div className="text-sm font-medium text-emerald-600">Status: Active</div>
-                  <div className="text-sm text-muted-foreground treatment-plan-provider">Provider: Treating Medical Team</div>
-                </div>
-                <div className="space-y-3 text-sm">
-                  <p>
-                    Treatment details are derived from the recovery timeline above, which is generated
-                    based on this worker's specific injury type, medical certificates, and risk factors.
-                  </p>
-                  <p className="text-muted-foreground">
-                    The expected interventions, milestones, and specialist referrals shown above are
-                    based on medical literature for the identified injury type.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Supporting Information - Treatment Plan & Diagnosis Grid */}
+            <div className="treatment-supporting-info grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Treatment Plan Section */}
+              <div className="treatment-left-column">
+                {id && <TreatmentPlanCard caseId={id} />}
+              </div>
 
-            {/* Diagnosis Section */}
-            <Card className="diagnosis-section">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-primary">diagnosis</span>
-                  Medical Diagnosis
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="text-sm font-semibold text-primary mb-2">Primary Diagnosis</h4>
-                    <p className="text-sm">{workerCase.summary || "Diagnosis details pending"}</p>
-                    <p className="text-sm text-muted-foreground">Injury Date: {workerCase.dateOfInjury}</p>
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-semibold text-primary mb-2">Work Status</h4>
-                    <p className="text-sm">{workerCase.workStatus}</p>
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-semibold text-primary mb-2">Risk Level</h4>
-                    <Badge className={cn(
-                      workerCase.riskLevel === "High" ? "bg-red-100 text-red-800" :
-                      workerCase.riskLevel === "Medium" ? "bg-amber-100 text-amber-800" :
-                      "bg-emerald-100 text-emerald-800"
-                    )}>
-                      {workerCase.riskLevel}
-                    </Badge>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+              {/* Diagnosis Section */}
+              <div className="treatment-right-column">
+                <Card className="diagnosis-section h-full">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-primary">diagnosis</span>
+                      Medical Diagnosis
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="text-sm font-semibold text-primary mb-2">Primary Diagnosis</h4>
+                        <p className="text-sm">{workerCase.summary || "Diagnosis details pending"}</p>
+                        <p className="text-sm text-muted-foreground">Injury Date: {workerCase.dateOfInjury}</p>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-semibold text-primary mb-2">Work Status</h4>
+                        <p className="text-sm">{workerCase.workStatus}</p>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-semibold text-primary mb-2">Risk Level</h4>
+                        <Badge className={cn(
+                          workerCase.riskLevel === "High" ? "bg-red-100 text-red-800" :
+                          workerCase.riskLevel === "Medium" ? "bg-amber-100 text-amber-800" :
+                          "bg-emerald-100 text-emerald-800"
+                        )}>
+                          {workerCase.riskLevel}
+                        </Badge>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
           </div>
         </TabsContent>
       </Tabs>

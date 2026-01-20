@@ -52,6 +52,7 @@
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "csrf-csrf": "^4.0.3",
+    "date-fns": "^4.1.0",
     "dayjs": "^1.11.19",
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.39.1",

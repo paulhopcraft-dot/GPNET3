@@ -1,147 +1,452 @@
 {
-  "version": "3.0.0",
-  "project": "Preventli Treatment Tab Integration",
-  "description": "Replace Recovery tab with comprehensive Treatment tab for enhanced clinical oversight",
+  "version": "4.0.0",
+  "project": "Ultra-Modern Treatment Dashboard Transformation",
+  "description": "Transform Treatment/Recovery dashboard with glassmorphism effects, vibrant gradients, particle animations, and immersive visualizations matching modern design standards",
   "features": [
     {
-      "id": "treatment-tab-integration",
-      "name": "Treatment Tab with Recovery Integration",
-      "description": "Replace Recovery tab with comprehensive Treatment tab showing latest treatment plan, diagnosis, and recovery graph for enhanced clinical oversight",
+      "id": "ultra-modern-foundation",
+      "name": "Ultra-Modern Design Foundation",
+      "description": "Establish CSS foundation for glassmorphism, gradients, and modern animations",
       "priority": "high",
-      "status": "completed",
-      "estimatedTotalMinutes": 95,
+      "status": "pending",
+      "estimatedTotalMinutes": 120,
       "prerequisites": [
-        "Treatment plan service exists and is functional",
-        "Recovery estimator service provides graph data",
-        "Employer case detail page tabs are working",
-        "Medical certificate tracking is available"
+        "Tailwind CSS is configured and working",
+        "index.css file exists for custom CSS",
+        "Development server is running on port 5173"
       ],
       "userStories": [
         {
-          "id": "remove-recovery-tab",
-          "story": "As a case manager, I want the standalone Recovery tab removed so that recovery information is consolidated into the Treatment tab",
+          "id": "gradient-css-foundation",
+          "story": "As a developer, I can see ultra-modern gradient utilities in CSS so that components can use vibrant gradient backgrounds",
           "acceptanceCriteria": [
-            "browser_verify: not-exists [data-value='recovery']",
-            "browser_verify: text .tab-list not-contains 'Recovery'",
-            "browser_verify: exists [data-value='treatment']",
-            "browser_verify: text .tab-list contains 'Treatment'"
+            "browser_verify: navigate http://localhost:5173",
+            "browser_verify: inspect-css :root --gradient-hero exists",
+            "browser_verify: inspect-css :root --gradient-recovery exists",
+            "browser_verify: inspect-css :root --gradient-treatment exists",
+            "browser_verify: inspect-css .gradient-mesh background contains radial-gradient"
           ],
           "prerequisites": [
-            "Current employer case detail page is accessible",
-            "Tab structure is working correctly"
+            "Access to client/src/index.css file",
+            "CSS custom properties are supported"
           ],
-          "implementation": "Remove Recovery tab from EmployerCaseDetailPage.tsx and replace with Treatment tab in tab list",
-          "rollbackProcedure": "Restore Recovery tab and remove Treatment tab reference",
-          "estimatedMinutes": 15,
-          "passes": true
+          "implementation": "Add ultra-modern gradient CSS variables to index.css with purple/pink/blue/green color schemes for hero, recovery, treatment, and mesh backgrounds",
+          "rollbackProcedure": "Remove added gradient CSS variables from index.css",
+          "estimatedMinutes": 25
         },
         {
-          "id": "treatment-plan-display",
-          "story": "As a case manager, I can view the latest treatment plan in the Treatment tab so that I understand the current clinical approach",
+          "id": "glassmorphism-utilities",
+          "story": "As a developer, I can apply glassmorphism effects to components so that they have modern backdrop blur and transparency",
+          "acceptanceCriteria": [
+            "browser_verify: inspect-css .glass-panel backdrop-filter contains blur",
+            "browser_verify: inspect-css .glass-panel background contains rgba",
+            "browser_verify: inspect-css .glass-panel border exists",
+            "browser_verify: inspect-css .glass-panel box-shadow exists"
+          ],
+          "prerequisites": [
+            "Modern browser supporting backdrop-filter",
+            "CSS custom properties for glassmorphism values"
+          ],
+          "implementation": "Add glassmorphism utility classes with backdrop-filter blur, semi-transparent backgrounds, and glass-like borders",
+          "rollbackProcedure": "Remove .glass-panel CSS class and related utilities",
+          "estimatedMinutes": 20
+        },
+        {
+          "id": "animation-tokens",
+          "story": "As a developer, I can use modern animation utilities so that components have smooth floating and gradient animations",
+          "acceptanceCriteria": [
+            "browser_verify: inspect-css .animate-float animation-duration exists",
+            "browser_verify: inspect-css .animate-gradient animation exists",
+            "browser_verify: inspect-css .animate-pulse-slow animation exists"
+          ],
+          "prerequisites": [
+            "Tailwind CSS configuration file exists",
+            "Animation keyframes can be extended"
+          ],
+          "implementation": "Extend tailwind.config.ts with modern animation tokens including float, gradient, and pulse-slow animations",
+          "rollbackProcedure": "Remove animation extensions from tailwind.config.ts",
+          "estimatedMinutes": 15
+        },
+        {
+          "id": "glass-panel-component",
+          "story": "As a developer, I can use a reusable GlassPanel component so that glassmorphism can be consistently applied",
+          "acceptanceCriteria": [
+            "browser_verify: exists .glass-panel-test",
+            "browser_verify: class .glass-panel-test contains glass-panel",
+            "browser_verify: css .glass-panel-test backdrop-filter contains blur"
+          ],
+          "prerequisites": [
+            "React component structure exists",
+            "Glassmorphism CSS utilities are available",
+            "cn utility function is available"
+          ],
+          "implementation": "Create reusable GlassPanel component in client/src/components/ui/glass-panel.tsx with gradient variant support",
+          "rollbackProcedure": "Remove GlassPanel component file",
+          "estimatedMinutes": 30,
+          "testSetup": "Create test page or component using GlassPanel with class 'glass-panel-test'"
+        }
+      ]
+    },
+    {
+      "id": "immersive-hero-transformation",
+      "name": "Immersive Hero Section",
+      "description": "Transform DynamicRecoveryTimeline into full-height immersive experience with gradient backgrounds and glassmorphism panels",
+      "priority": "high",
+      "status": "pending",
+      "estimatedTotalMinutes": 180,
+      "prerequisites": [
+        "Ultra-modern foundation is complete",
+        "DynamicRecoveryTimeline component exists",
+        "Treatment tab is accessible",
+        "Recovery data API is working"
+      ],
+      "userStories": [
+        {
+          "id": "immersive-hero-container",
+          "story": "As a user, I can see an immersive full-height hero section when I visit the Treatment tab so that I experience modern dashboard aesthetics",
+          "acceptanceCriteria": [
+            "browser_verify: navigate http://localhost:5173",
+            "browser_verify: click [data-value='treatment']",
+            "browser_verify: exists .immersive-hero-container",
+            "browser_verify: css .immersive-hero-container min-height contains 80vh",
+            "browser_verify: css .immersive-hero-container background contains gradient"
+          ],
+          "prerequisites": [
+            "Treatment tab exists and is clickable",
+            "DynamicRecoveryTimeline component can be modified"
+          ],
+          "implementation": "Transform DynamicRecoveryTimeline container to immersive full-height section with gradient backgrounds",
+          "rollbackProcedure": "Restore original DynamicRecoveryTimeline container structure",
+          "estimatedMinutes": 45
+        },
+        {
+          "id": "gradient-background-layers",
+          "story": "As a user, I can see vibrant gradient backgrounds with animated mesh effects so that the dashboard feels modern and dynamic",
+          "acceptanceCriteria": [
+            "browser_verify: exists .gradient-mesh-background",
+            "browser_verify: css .gradient-mesh-background background contains radial-gradient",
+            "browser_verify: class .gradient-mesh-background contains animate-gradient",
+            "browser_verify: exists .gradient-overlay"
+          ],
+          "prerequisites": [
+            "Gradient CSS utilities are available",
+            "Animation utilities are working"
+          ],
+          "implementation": "Add layered gradient backgrounds with animated mesh patterns and overlay effects",
+          "rollbackProcedure": "Remove gradient background layers",
+          "estimatedMinutes": 35
+        },
+        {
+          "id": "glassmorphism-panels-grid",
+          "story": "As a user, I can see recovery data in glassmorphism panels so that information is displayed with modern visual depth",
+          "acceptanceCriteria": [
+            "browser_verify: exists .glassmorphism-panels-grid",
+            "browser_verify: class .glassmorphism-panels-grid contains grid-cols-12",
+            "browser_verify: exists .glass-panel:first-child",
+            "browser_verify: css .glass-panel backdrop-filter contains blur"
+          ],
+          "prerequisites": [
+            "GlassPanel component is available",
+            "Grid system is working",
+            "Recovery data is loading"
+          ],
+          "implementation": "Create 12-column grid with glassmorphism panels for recovery chart and progress indicators",
+          "rollbackProcedure": "Restore original recovery timeline layout",
+          "estimatedMinutes": 40
+        },
+        {
+          "id": "hero-typography",
+          "story": "As a user, I can see modern typography with proper hierarchy so that the hero section has professional presentation",
+          "acceptanceCriteria": [
+            "browser_verify: exists .hero-title",
+            "browser_verify: text .hero-title contains 'Recovery Dashboard'",
+            "browser_verify: css .hero-title color contains white",
+            "browser_verify: css .hero-title font-size contains 4xl"
+          ],
+          "prerequisites": [
+            "Typography system is available",
+            "White text is readable on gradient background"
+          ],
+          "implementation": "Add modern typography with white text, large headings, and proper spacing for hero section",
+          "rollbackProcedure": "Remove hero typography styles",
+          "estimatedMinutes": 20
+        }
+      ]
+    },
+    {
+      "id": "enhanced-visualizations",
+      "name": "Enhanced Chart Visualizations",
+      "description": "Transform Recharts components with gradient fills, particle animations, and modern styling",
+      "priority": "high",
+      "status": "pending",
+      "estimatedTotalMinutes": 200,
+      "prerequisites": [
+        "Recharts library is installed and working",
+        "Recovery data is available",
+        "Immersive hero section is complete"
+      ],
+      "userStories": [
+        {
+          "id": "gradient-filled-area-chart",
+          "story": "As a user, I can see recovery progress as gradient-filled area charts so that the visualization is more visually appealing than basic line charts",
+          "acceptanceCriteria": [
+            "browser_verify: exists .enhanced-recovery-chart",
+            "browser_verify: exists .recharts-area",
+            "browser_verify: inspect-svg .recharts-area fill contains url(#gradient",
+            "browser_verify: exists defs linearGradient"
+          ],
+          "prerequisites": [
+            "Recharts AreaChart component is available",
+            "Recovery data structure supports area charts",
+            "SVG gradients can be defined"
+          ],
+          "implementation": "Replace Recharts LineChart with AreaChart and add gradient fills using SVG linearGradient definitions",
+          "rollbackProcedure": "Restore original LineChart without gradients",
+          "estimatedMinutes": 50
+        },
+        {
+          "id": "floating-progress-rings",
+          "story": "As a user, I can see circular progress rings for recovery phases so that progress is visualized in a modern, intuitive way",
+          "acceptanceCriteria": [
+            "browser_verify: exists .progress-rings-container",
+            "browser_verify: exists .progress-ring svg circle",
+            "browser_verify: css .progress-ring stroke-dasharray exists",
+            "browser_verify: class .progress-rings-container contains animate-float"
+          ],
+          "prerequisites": [
+            "SVG circle elements can be created",
+            "stroke-dasharray animation is supported",
+            "Recovery phase data is available"
+          ],
+          "implementation": "Create floating circular progress indicators using SVG with animated stroke-dasharray for recovery phases",
+          "rollbackProcedure": "Remove progress rings component",
+          "estimatedMinutes": 60
+        },
+        {
+          "id": "particle-animation-system",
+          "story": "As a user, I can see particle animations following the recovery curve so that the chart feels dynamic and engaging",
+          "acceptanceCriteria": [
+            "browser_verify: exists .particle-container",
+            "browser_verify: exists .particle-dot",
+            "browser_verify: css .particle-dot position contains absolute",
+            "browser_verify: class .particle-dot contains animate-pulse"
+          ],
+          "prerequisites": [
+            "Recovery curve path data is available",
+            "CSS animations are working",
+            "Particle positioning can be calculated"
+          ],
+          "implementation": "Create particle animation system with dots that follow the recovery curve path using CSS transforms and animations",
+          "rollbackProcedure": "Remove particle animation components",
+          "estimatedMinutes": 70
+        },
+        {
+          "id": "interactive-chart-tooltips",
+          "story": "As a user, I can see enhanced tooltips with modern styling so that chart data is presented with professional appearance",
+          "acceptanceCriteria": [
+            "browser_verify: hover .recharts-area",
+            "browser_verify: exists .custom-tooltip",
+            "browser_verify: css .custom-tooltip background contains rgba",
+            "browser_verify: css .custom-tooltip backdrop-filter contains blur"
+          ],
+          "prerequisites": [
+            "Recharts tooltip customization is supported",
+            "Glassmorphism styles are available",
+            "Hover interactions work properly"
+          ],
+          "implementation": "Enhance Recharts tooltips with glassmorphism styling, better typography, and smooth animations",
+          "rollbackProcedure": "Restore default Recharts tooltips",
+          "estimatedMinutes": 35
+        }
+      ]
+    },
+    {
+      "id": "glassmorphism-treatment-cards",
+      "name": "Glassmorphism Treatment Cards",
+      "description": "Apply modern glassmorphism effects to TreatmentPlanCard and related components",
+      "priority": "medium",
+      "status": "pending",
+      "estimatedTotalMinutes": 140,
+      "prerequisites": [
+        "TreatmentPlanCard component exists",
+        "GlassPanel component is available",
+        "Treatment data is loading properly"
+      ],
+      "userStories": [
+        {
+          "id": "treatment-card-glassmorphism",
+          "story": "As a user, I can see the treatment plan in a glassmorphism card so that it has modern visual depth and consistency",
+          "acceptanceCriteria": [
+            "browser_verify: exists .treatment-plan-glass-card",
+            "browser_verify: css .treatment-plan-glass-card backdrop-filter contains blur",
+            "browser_verify: css .treatment-plan-glass-card background contains rgba",
+            "browser_verify: css .treatment-plan-glass-card border contains rgba"
+          ],
+          "prerequisites": [
+            "TreatmentPlanCard can be wrapped in GlassPanel",
+            "Treatment plan data is available"
+          ],
+          "implementation": "Wrap TreatmentPlanCard content in GlassPanel component with appropriate gradient variant",
+          "rollbackProcedure": "Remove GlassPanel wrapper from TreatmentPlanCard",
+          "estimatedMinutes": 30
+        },
+        {
+          "id": "intervention-badges-gradients",
+          "story": "As a user, I can see treatment interventions with gradient badges so that priorities and types are visually distinct",
+          "acceptanceCriteria": [
+            "browser_verify: exists .intervention-badge",
+            "browser_verify: css .intervention-badge.critical background contains gradient",
+            "browser_verify: css .intervention-badge.recommended background contains gradient",
+            "browser_verify: exists .intervention-badge.optional"
+          ],
+          "prerequisites": [
+            "Intervention data includes priority levels",
+            "Gradient utilities for badges are available"
+          ],
+          "implementation": "Apply gradient backgrounds to intervention badges based on priority (critical, recommended, optional)",
+          "rollbackProcedure": "Restore original badge styling",
+          "estimatedMinutes": 35
+        },
+        {
+          "id": "diagnosis-card-modernization",
+          "story": "As a user, I can see diagnosis information in a modern glassmorphism card so that medical context is presented elegantly",
+          "acceptanceCriteria": [
+            "browser_verify: exists .diagnosis-glass-card",
+            "browser_verify: css .diagnosis-glass-card backdrop-filter exists",
+            "browser_verify: exists .diagnosis-status-indicator",
+            "browser_verify: css .diagnosis-status-indicator background contains gradient"
+          ],
+          "prerequisites": [
+            "Diagnosis card component exists",
+            "Diagnosis data is available"
+          ],
+          "implementation": "Apply glassmorphism styling to diagnosis card with gradient status indicators",
+          "rollbackProcedure": "Restore original diagnosis card styling",
+          "estimatedMinutes": 40
+        },
+        {
+          "id": "floating-badge-animations",
+          "story": "As a user, I can see subtle floating animations on badges and indicators so that the interface feels dynamic but not distracting",
+          "acceptanceCriteria": [
+            "browser_verify: class .floating-badge contains animate-float",
+            "browser_verify: css .floating-badge animation-duration exists",
+            "browser_verify: exists .confidence-indicator.animate-pulse-slow"
+          ],
+          "prerequisites": [
+            "Float animation utilities are available",
+            "Performance is acceptable for multiple animations"
+          ],
+          "implementation": "Add subtle floating animations to badges, confidence indicators, and status elements",
+          "rollbackProcedure": "Remove animation classes from badges",
+          "estimatedMinutes": 35
+        }
+      ]
+    },
+    {
+      "id": "framer-motion-polish",
+      "name": "Framer Motion Animation Polish",
+      "description": "Add smooth transitions, micro-interactions, and sophisticated animations using Framer Motion",
+      "priority": "medium",
+      "status": "pending",
+      "estimatedTotalMinutes": 160,
+      "prerequisites": [
+        "Framer Motion is installed",
+        "All previous transformations are complete",
+        "Components are stable and functional"
+      ],
+      "userStories": [
+        {
+          "id": "hero-entrance-animation",
+          "story": "As a user, I can see smooth entrance animations when the Treatment tab loads so that the experience feels polished and professional",
           "acceptanceCriteria": [
             "browser_verify: click [data-value='treatment']",
-            "browser_verify: exists .treatment-plan-section",
-            "browser_verify: text .treatment-plan-title contains 'Current Treatment Plan'",
-            "browser_verify: exists .treatment-plan-details",
-            "browser_verify: text .treatment-plan-status exists",
-            "browser_verify: text .treatment-plan-provider exists"
+            "browser_verify: exists .hero-motion-container",
+            "browser_verify: css .hero-motion-container opacity initially 0",
+            "browser_verify: wait 1000",
+            "browser_verify: css .hero-motion-container opacity equals 1"
           ],
           "prerequisites": [
-            "Treatment plan API endpoint returns current plan data",
-            "Treatment plan service is functional",
-            "API endpoint /api/cases/:id/treatment-plan exists"
+            "Framer Motion components can be imported",
+            "Hero section is stable"
           ],
-          "implementation": "Create TreatmentPlanCard component that fetches and displays current treatment plan with provider details, plan status, and key interventions",
-          "rollbackProcedure": "Remove TreatmentPlanCard component and API integration",
-          "estimatedMinutes": 30,
-          "passes": true,
-          "edgeCases": [
-            {
-              "scenario": "No active treatment plan exists",
-              "handling": "Display 'No active treatment plan' with option to create one"
-            },
-            {
-              "scenario": "Treatment plan API fails",
-              "handling": "Show error state with retry option"
-            }
-          ]
+          "implementation": "Add Framer Motion entrance animations to hero section with staggered children animations",
+          "rollbackProcedure": "Remove Framer Motion wrappers from hero section",
+          "estimatedMinutes": 45
         },
         {
-          "id": "diagnosis-display",
-          "story": "As a case manager, I can view the current diagnosis information in the Treatment tab so that I understand the medical context",
+          "id": "panel-stagger-animation",
+          "story": "As a user, I can see glassmorphism panels appear with staggered animations so that the layout builds elegantly",
           "acceptanceCriteria": [
-            "browser_verify: exists .diagnosis-section",
-            "browser_verify: text .primary-diagnosis exists",
-            "browser_verify: text .secondary-diagnoses exists",
-            "browser_verify: text .diagnosis-date exists",
-            "browser_verify: exists .diagnostic-provider"
+            "browser_verify: exists .motion-panel:first-child",
+            "browser_verify: exists .motion-panel:last-child",
+            "browser_verify: wait 500",
+            "browser_verify: css .motion-panel:first-child transform not-contains translateY",
+            "browser_verify: css .motion-panel:last-child transform not-contains translateY"
           ],
           "prerequisites": [
-            "Medical certificate data includes diagnosis information",
-            "Case data structure includes diagnosis fields",
-            "Medical provider information is available"
+            "Glassmorphism panels are working",
+            "Animation performance is acceptable"
           ],
-          "implementation": "Create DiagnosisCard component that extracts and displays diagnosis from medical certificates and case data",
-          "rollbackProcedure": "Remove DiagnosisCard component",
-          "estimatedMinutes": 25,
-          "passes": true
+          "implementation": "Add staggered entrance animations to glassmorphism panels using Framer Motion",
+          "rollbackProcedure": "Remove motion components from panels",
+          "estimatedMinutes": 40
         },
         {
-          "id": "recovery-graph-integration",
-          "story": "As a case manager, I can view the recovery progress graph within the Treatment tab so that I can see medical progress alongside treatment plans",
+          "id": "chart-data-animations",
+          "story": "As a user, I can see charts animate in smoothly when data loads so that the visualization feels responsive and alive",
           "acceptanceCriteria": [
-            "browser_verify: exists .recovery-graph-section",
-            "browser_verify: exists .recovery-timeline-chart",
-            "browser_verify: text .recovery-graph-title contains 'Recovery Progress'",
-            "browser_verify: exists .recovery-milestones",
-            "browser_verify: exists .projected-rtw-date"
+            "browser_verify: exists .animated-chart-container",
+            "browser_verify: exists .recharts-area",
+            "browser_verify: css .animated-chart-container transition exists"
           ],
           "prerequisites": [
-            "Recovery estimator service provides graph data",
-            "Existing recovery graph component can be reused",
-            "Recovery timeline data is available from API"
+            "Enhanced charts are working",
+            "Chart data loading is stable"
           ],
-          "implementation": "Move existing recovery graph component from Recovery tab into Treatment tab layout, ensuring proper responsive design",
-          "rollbackProcedure": "Move recovery graph back to standalone Recovery tab",
-          "estimatedMinutes": 20,
-          "passes": true
+          "implementation": "Add smooth data loading animations to enhanced charts using Framer Motion layout animations",
+          "rollbackProcedure": "Remove animation wrappers from charts",
+          "estimatedMinutes": 50
         },
         {
-          "id": "treatment-tab-layout",
-          "story": "As a case manager, I can see all treatment information in a well-organized layout so that I can quickly assess medical status",
+          "id": "hover-micro-interactions",
+          "story": "As a user, I can see subtle hover effects on interactive elements so that the interface feels responsive and modern",
           "acceptanceCriteria": [
-            "browser_verify: exists .treatment-tab-container",
-            "browser_verify: exists .treatment-left-column",
-            "browser_verify: exists .treatment-right-column",
-            "browser_verify: class .treatment-tab-container contains 'grid'",
-            "browser_verify: class .treatment-left-column contains 'lg:col-span-2'",
-            "browser_verify: class .treatment-right-column contains 'lg:col-span-1'"
+            "browser_verify: hover .glass-panel",
+            "browser_verify: css .glass-panel transform contains scale",
+            "browser_verify: hover .intervention-badge",
+            "browser_verify: css .intervention-badge box-shadow exists"
           ],
           "prerequisites": [
-            "All treatment components are created",
-            "Responsive grid layout system is available",
-            "Tailwind CSS classes are working"
+            "Interactive elements are identified",
+            "Hover states don't interfere with functionality"
           ],
-          "implementation": "Create responsive grid layout with treatment plan and diagnosis on left (2/3 width), recovery graph on right (1/3 width) for optimal information hierarchy",
-          "rollbackProcedure": "Remove treatment tab layout structure",
-          "estimatedMinutes": 15,
-          "passes": true
+          "implementation": "Add subtle hover micro-interactions using Framer Motion whileHover animations",
+          "rollbackProcedure": "Remove hover animation properties",
+          "estimatedMinutes": 25
         }
-      ],
-      "integrationTests": [
-        "npm test -- treatment-tab",
-        "npm run test:e2e -- treatment-integration",
-        "curl http://localhost:5000/api/cases/test-case/treatment-plan"
-      ],
-      "completeRollback": "Restore Recovery tab, remove Treatment tab, remove all treatment components"
+      ]
     }
   ],
   "ralphConfig": {
-    "maxIterations": 10,
+    "maxIterations": 20,
     "serverUrl": "http://localhost:5173",
-    "browserTimeout": 30000,
+    "browserTimeout": 45000,
     "rollbackOnFailure": true,
     "commitEachStory": true,
-    "pauseBetweenStories": 5000
+    "pauseBetweenStories": 8000
+  },
+  "integrationTests": [
+    "npm run build",
+    "npm test",
+    "curl http://localhost:5173"
+  ],
+  "acceptance": {
+    "endToEndTest": "User can navigate to Treatment tab and see immersive glassmorphism dashboard with gradient-filled charts, floating progress rings, and smooth animations",
+    "performanceTargets": {
+      "initialLoad": "< 3 seconds",
+      "chartAnimation": "< 1 second",
+      "panelTransitions": "< 500ms"
+    },
+    "browserSupport": "Chrome 90+, Firefox 88+, Safari 14+, Edge 90+"
   }
 }
