@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import {
   LineChart,
   Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -10,7 +12,6 @@ import {
   Legend,
   ResponsiveContainer,
   ReferenceLine,
-  Area,
   ComposedChart,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -288,8 +289,8 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
         </div>
       </div>
 
-      {/* Recovery Chart */}
-      <Card>
+      {/* Enhanced Recovery Chart */}
+      <Card className="enhanced-recovery-chart">
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
             Recovery Progress: Estimated vs Actual
@@ -298,7 +299,7 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
         <CardContent>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
+              <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                 <XAxis
                   dataKey="week"
@@ -322,23 +323,26 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
                 <Tooltip content={<CustomTooltip />} />
                 <Legend />
 
-                {/* Estimated recovery line (dashed) */}
-                <Line
+                {/* Estimated recovery area (dashed outline) */}
+                <Area
                   type="monotone"
                   dataKey="estimated"
                   stroke="#3b82f6"
                   strokeWidth={2}
                   strokeDasharray="8 4"
+                  fill="transparent"
                   name="Estimated Recovery"
                   dot={false}
                 />
 
-                {/* Actual recovery line (solid) */}
-                <Line
+                {/* Actual recovery area (solid) */}
+                <Area
                   type="monotone"
                   dataKey="actual"
                   stroke="#10b981"
                   strokeWidth={3}
+                  fill="#10b981"
+                  fillOpacity={0.3}
                   name="Actual Recovery"
                   dot={{ r: 4, fill: "#10b981" }}
                   connectNulls
@@ -371,7 +375,7 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
                     fontSize: 10,
                   }}
                 />
-              </ComposedChart>
+              </AreaChart>
             </ResponsiveContainer>
           </div>
 
