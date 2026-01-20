@@ -393,6 +393,51 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
         </CardContent>
       </Card>
 
+      {/* Glassmorphism Recovery Data Panels Grid */}
+      <div className="glassmorphism-panels-grid grid grid-cols-12 gap-4 mt-6">
+        {/* Recovery Phase Panel - Spans 4 columns */}
+        <div className="col-span-12 md:col-span-4 glass-panel p-4 rounded-lg">
+          <h4 className="text-sm font-semibold text-white/90 mb-2 flex items-center gap-2">
+            <Activity className="h-4 w-4" />
+            Recovery Phase
+          </h4>
+          <div className="text-2xl font-bold text-white mb-1">
+            Week {Math.floor(data.weeksOffWork || 0)}
+          </div>
+          <div className="text-xs text-white/70">
+            Current phase: {data.weeksOffWork > 8 ? 'Extended' : data.weeksOffWork > 4 ? 'Mid-term' : 'Early'}
+          </div>
+        </div>
+
+        {/* Capacity Status Panel - Spans 4 columns */}
+        <div className="col-span-12 md:col-span-4 glass-panel p-4 rounded-lg">
+          <h4 className="text-sm font-semibold text-white/90 mb-2 flex items-center gap-2">
+            <TrendingUp className="h-4 w-4" />
+            Work Capacity
+          </h4>
+          <div className="text-2xl font-bold text-white mb-1">
+            {data.currentCapacityPercentage || 0}%
+          </div>
+          <div className="text-xs text-white/70">
+            {data.currentCapacityPercentage >= 75 ? 'High capacity' : data.currentCapacityPercentage >= 25 ? 'Limited capacity' : 'Unfit for work'}
+          </div>
+        </div>
+
+        {/* Risk Level Panel - Spans 4 columns */}
+        <div className="col-span-12 md:col-span-4 glass-panel p-4 rounded-lg">
+          <h4 className="text-sm font-semibold text-white/90 mb-2 flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4" />
+            Risk Level
+          </h4>
+          <div className="text-2xl font-bold text-white mb-1">
+            {data.riskCategory || 'Unknown'}
+          </div>
+          <div className="text-xs text-white/70">
+            Based on injury type and duration
+          </div>
+        </div>
+      </div>
+
       {/* Analysis Summary */}
       <Card>
         <CardHeader className="pb-2">
