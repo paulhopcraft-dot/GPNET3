@@ -1,13 +1,158 @@
 # Preventli Progress Snapshot - Session Handoff
 
 **Date:** 2026-01-20
-**Branch:** main + feature/presentations-work worktree
-**Latest Commit:** b5a3f1e feat: enhance presentations with avatar technology and Australian market research
-**Status:** ✅ Enhanced investment presentations completed - Avatar technology and Australian market research integrated
+**Branch:** main
+**Latest Commit:** 7dcb919 feat: generate comprehensive PRD for ultra-modern dashboard transformation
+**Status:** ✅ Ultra-modern dashboard PRD generated - Ready for Ralph Loop autonomous implementation
 
 ---
 
-## [2026-01-20] - Enhanced Investment Presentations with Avatar Technology
+## Session 5 - 2026-01-20 - Ultra-Modern Dashboard Transformation PRD Generation
+
+### Completed
+- **✅ Ultra-Modern Dashboard Transformation Planning**: Created comprehensive PRD for transforming Treatment/Recovery dashboard with modern aesthetics
+- **✅ PRD Generation**: Generated features.json with 5 features and 18 user stories for glassmorphism effects, vibrant gradients, and particle animations
+- **✅ Ralph Loop Setup**: Configured autonomous development framework for overnight implementation
+- **✅ Current Graph Analysis**: Conducted thorough inventory of existing visualizations:
+  - DynamicRecoveryTimeline: Recharts ComposedChart with line charts (estimated vs actual recovery)
+  - RecoveryChart: Basic LineChart for capacity visualization
+  - Vertical Timeline: Custom timeline with recovery phases (W1-W4, W5-W8, etc.)
+  - TreatmentPlanCard: Badge system for interventions and priorities
+  - ComplianceDashboardWidget: Progress bars and status indicators
+- **✅ Technical Foundation Review**: Analyzed Tailwind CSS, Framer Motion, and Recharts capabilities for modern transformation
+- **✅ Plan File Created**: C:\Users\Paul\.claude\plans\prancy-churning-starfish.md with detailed implementation strategy
+
+### Features Planned for Implementation (5 Features, 18 User Stories, ~13 hours)
+1. **Ultra-Modern Foundation** (120min): CSS gradients (purple/pink/blue/green), glassmorphism utilities, animation tokens, GlassPanel component
+2. **Immersive Hero Section** (180min): Full-height hero experience, gradient mesh backgrounds, glassmorphism panels grid
+3. **Enhanced Visualizations** (200min): Gradient-filled area charts, floating circular progress rings, particle animations following recovery curves
+4. **Glassmorphism Treatment Cards** (140min): Modern card styling with backdrop blur, gradient intervention badges, floating animations
+5. **Framer Motion Polish** (160min): Entrance animations, staggered panel transitions, hover micro-interactions
+
+### Next Steps (Ready for Next Session)
+1. **Fix PRD Validation Issues** (Required before Ralph):
+   - Split oversized stories: "immersive-hero-container" (45min) and "particle-animation-system" (70min) into ≤30min atomic stories
+   - Add edge case handling for network/API failures
+   - Add performance fallbacks for animations
+   - Add backdrop-filter browser compatibility fallbacks
+2. **Complete PRD Hardening**: Run /prd-harden validation and create .ralph-approved.json approval file
+3. **Launch Ralph Loop**: Execute /ralph-loop for autonomous overnight implementation
+4. **Morning Review**: Check ralph/progress.txt for implementation results and commit status
+
+### Technical Context
+- **Current State**: Treatment tab integration completed (features.json v3.0) but needs modern visual transformation
+- **Target**: Ultra-modern dashboard matching Freepik examples with glassmorphism and vibrant gradients
+- **Approach**: Ralph Loop autonomous development with browser-verified user stories
+- **Foundation Ready**: Recharts v2.15.2, Tailwind CSS, Framer Motion v11.13.1, shadcn/ui components, HSL color system
+- **Server**: Running on http://localhost:5173 (Vite dev server) - confirmed operational
+- **Browser Testing**: All 18 stories have browser_verify acceptance criteria for autonomous validation
+
+### Key Files for Next Session
+- **features.json**: Comprehensive PRD with 18 user stories ready for Ralph (needs validation fixes)
+- **.ralph-approved.json**: Will be created after PRD hardening (required for Ralph execution)
+- **client/src/components/DynamicRecoveryTimeline.tsx**: Main component for immersive hero transformation
+- **client/src/components/TreatmentPlanCard.tsx**: Secondary component for glassmorphism modernization
+- **client/src/index.css**: Target for gradient and glassmorphism utility additions
+
+### Ralph Configuration
+- **Max Iterations**: 20 (configured for complex visual transformation)
+- **Server URL**: http://localhost:5173 (Vite frontend)
+- **Browser Timeout**: 45s (extended for animation testing)
+- **Pause Between Stories**: 8s (allows visual inspection)
+- **Rollback on Failure**: Enabled (safe development)
+
+### Notes
+- **Ralph Loop Optimal**: Identified as ideal approach for iterative visual development with real-time browser validation
+- **User Examples**: Provided Freepik dashboard examples showing desired modern aesthetic (glassmorphism, gradients)
+- **PRD Validation Issues**: Found 2 stories exceeding 30min limit - requires atomization before Ralph execution
+- **Prerequisites Verified**: Tailwind CSS, Recharts, Framer Motion all confirmed ready
+- **Context Management**: Reached ~85% context usage - appropriate handoff timing
+
+### Git Status
+- **Committed**: features.json PRD generation with comprehensive user stories
+- **Ready for**: PRD validation fixes and Ralph Loop autonomous execution
+- **Clean State**: All changes committed, ready for next session development
+
+### Command to Resume Next Session
+```bash
+/status  # Check project status and continue with PRD hardening
+```
+
+---
+
+## Session 6 - 2026-01-20 - PRD Hardening Complete - Ralph Loop Ready
+
+### Completed
+- **✅ PRD Hardening Validation Complete**: Successfully validated and hardened features.json for Ralph Loop autonomous execution
+- **✅ Story Atomization**: Split 11 oversized stories (45min-70min) into 35 atomic stories (≤30min each)
+  - immersive-hero-container (45min) → hero-container-structure (25min) + hero-gradient-backgrounds (20min)
+  - particle-animation-system (70min) → particle-dot-creation (25min) + particle-path-animation (25min) + particle-pulse-effects (20min)
+  - floating-progress-rings (60min) → progress-ring-structure (20min) + progress-ring-animation (20min) + progress-ring-floating (15min)
+  - gradient-filled-area-chart (50min) → area-chart-conversion (25min) + area-chart-gradients (25min)
+  - chart-data-animations (50min) → chart-container-animations (20min) + chart-data-loading-effects (30min)
+  - Plus 6 additional story splits for perfect atomic sizing
+- **✅ Comprehensive Edge Case Handling**: Added network timeout (30s), API failure fallbacks, server health checks, and retry logic (3 attempts)
+- **✅ Performance Safeguards**: Added reduced-motion support, low-end device detection, frame rate monitoring (30fps threshold)
+- **✅ Browser Compatibility**: Added backdrop-filter fallbacks with CSS.supports detection and graceful degradation
+- **✅ Ralph Safety Configuration**: Enhanced ralphConfig with error handling, retry logic, and comprehensive fallback strategies
+- **✅ Validation Approval**: Created validated .ralph-approved.json approval file with all safety gates passed
+
+### Validation Results
+- **PRD Structure**: ✅ features.json v4.0.0 with 5 features
+- **Atomicity**: ✅ All 35 user stories ≤30 minutes
+- **Browser Testability**: ✅ 93 browser_verify criteria
+- **Prerequisites**: ✅ 40 prerequisite definitions
+- **Rollback Procedures**: ✅ 35 rollback procedures
+- **Edge Case Handling**: ✅ Network, API, browser compatibility covered
+- **System Validation**: ✅ Integration tests, environment setup complete
+
+### Ralph Configuration Ready
+- **Max Iterations**: 20 (for complex visual transformation)
+- **Server URL**: http://localhost:5173 (Vite frontend)
+- **Browser Timeout**: 45s (extended for animation testing)
+- **Safety Features**: Rollback on failure, commit each story, pause between stories (8s)
+- **Error Handling**: 30s timeout, 3 retry attempts, 2s delay, comprehensive fallbacks
+
+### Next Steps (Ready for Next Session)
+1. **Execute Ralph Loop**: `/ralph-loop` for overnight autonomous implementation (all safety gates passed)
+2. **Monitor Progress**: Check ralph/progress.txt for implementation status
+3. **Morning Review**: Verify visual transformation results and commit history
+4. **User Acceptance**: Test immersive glassmorphism dashboard with gradient charts and animations
+
+### Technical Context
+- **Target**: Ultra-modern dashboard with glassmorphism, gradients, particle animations, Framer Motion polish
+- **Foundation Ready**: Tailwind CSS, Recharts v2.15.2, Framer Motion v11.13.1, shadcn/ui components
+- **Server Confirmed**: Running on http://localhost:5173 with proper development environment
+- **Browser Support**: Chrome 90+, Firefox 88+, Safari 14+, Edge 90+ with fallbacks for older browsers
+- **Estimated Duration**: ~800 minutes (~13 hours) split into 35 atomic user stories
+
+### Key Files for Ralph Execution
+- **features.json**: Comprehensive PRD with 35 validated user stories (fully hardened)
+- **.ralph-approved.json**: Validation approval file (required for Ralph execution)
+- **client/src/components/DynamicRecoveryTimeline.tsx**: Primary transformation target
+- **client/src/components/TreatmentPlanCard.tsx**: Secondary glassmorphism target
+- **client/src/index.css**: CSS utilities destination for gradients and glassmorphism
+
+### Git Status
+- **Latest Commit**: 889dd0d feat: complete PRD hardening for Ralph Loop autonomous execution
+- **Branch**: main (clean, ready for Ralph development)
+- **Files Ready**: All PRD hardening committed and staged for autonomous execution
+
+### Notes
+- **Ralph Loop Optimal**: Perfect fit for iterative visual development with real-time browser validation
+- **Safety First**: Comprehensive error handling, performance monitoring, and rollback procedures in place
+- **Browser Compatibility**: Full fallback strategies for unsupported features (backdrop-filter, etc.)
+- **Performance Monitoring**: Reduced motion, low-end device detection, frame rate thresholds configured
+- **Context Optimization**: Reached 85% context usage - optimal handoff timing for Ralph execution
+
+### Command to Resume Next Session
+```bash
+/ralph-loop  # Execute autonomous overnight implementation of ultra-modern dashboard transformation
+```
+
+---
+
+## Previous Session (Session 4 - 2026-01-20) - Enhanced Investment Presentations with Avatar Technology
 
 ### Completed
 - ✅ **Created isolated git worktree** for presentations development:
@@ -53,885 +198,3 @@
 - **Technical Differentiation**: Avatar meetings provide competitive moat
 - **Ready for Implementation**: WebRTC foundation and voice integration already exists
 - **Investment Ready**: Enhanced value proposition with clear technology differentiation
-
----
-
-## Previous Session - [2026-01-20] - Missing Info Prompts Feature Planning
-
-### Completed
-- ✅ Created isolated git worktree for feature development:
-  - **Path:** `C:\Dev\worktrees\missing-info-prompts`
-  - **Branch:** `feature/missing-info-prompts`
-  - **Based on:** main (e56c370)
-- ✅ Explored codebase to understand AI summary, recovery graph, and compliance systems
-- ✅ Designed comprehensive implementation plan for "Missing Information Prompts" feature
-- ✅ Created detailed plan file: `C:\Users\Paul\.claude\plans\expressive-marinating-iverson.md`
-
-### Feature Summary
-AI-powered feature that detects missing data (certificates, injury details, treatment plans) and prompts users to add it via modal dialogs. Integrates at:
-- Case page load (banner alert)
-- AI summary generation
-- Dedicated "Data Quality" tab
-
-### Files to Create
-| File | Purpose |
-|------|---------|
-| `server/services/missingDataService.ts` | Aggregates missing data from existing services |
-| `server/routes/missing-data.ts` | API endpoint |
-| `client/src/hooks/useMissingData.ts` | React Query hook |
-| `client/src/components/MissingInfoBanner.tsx` | Alert banner |
-| `client/src/components/DataQualityPanel.tsx` | Full panel for tab |
-| `client/src/components/dialogs/AddCertificateDialog.tsx` | Certificate entry modal |
-
-### Next Steps
-1. Open worktree folder: `C:\Dev\worktrees\missing-info-prompts`
-2. Run `/status` to resume
-3. Approve plan and begin implementation
-4. Priority: Medical certificates first (most critical for compliance)
-
-### Notes
-- No database changes required - uses existing tables
-- Leverages existing detection logic in clinicalEvidence.ts and certificateCompliance.ts
-- Plan file location: `C:\Users\Paul\.claude\plans\expressive-marinating-iverson.md`
-
----
-
-## [2026-01-19] - Planning Session with Plan-Writer Skill
-
-### Completed
-- ✅ Fixed .claude/settings.local.json (invalid hook configuration removed)
-- ✅ Cleaned up 7 temporary investigation scripts from root directory
-- ✅ Tested plan-writer skill workflow
-- ✅ Created 3 implementation plans:
-  1. `.ai/gpnet3-plan.md` - Fix urgent/routine actions not displaying on employer dashboard
-  2. `.ai/gpnet3-remote-access-plan.md` - Set up Cloudflare tunnel for remote testing
-  3. `.ai/gpnet3-summary-tab-plan.md` - Fix Summary tab duplication and layout
-
-### Plans Ready for Execution
-| Plan | Goal | Complexity |
-|------|------|------------|
-| gpnet3-plan.md | Fix API to distribute actions across priority levels (urgent/routine showing 0) | Low |
-| gpnet3-remote-access-plan.md | Cloudflare tunnel for remote GPNet testing | Low |
-| gpnet3-summary-tab-plan.md | Remove duplicate sections from Summary tab | Low-Medium |
-
-### Bugs Identified This Session
-1. **Employer Dashboard** - Urgent (0) and Routine (0) actions not showing because API limits to 50 total, all consumed by critical
-2. **Summary Tab** - Duplicate sections, incorrect "worker company injury date..." row appearing
-
-### Uncommitted Changes (Not from this session)
-- `client/src/pages/EmployerCaseDetailPage.tsx` - 206 lines changed
-- `server/routes/employer-dashboard.ts` - 52 lines changed
-- ⚠️ Investigate these before next implementation session
-
-### Next Steps
-1. Start fresh session: `claude`
-2. Execute plan: `Read .ai/gpnet3-plan.md and implement exactly`
-3. Or execute: `Read .ai/gpnet3-summary-tab-plan.md and implement exactly`
-
-### Notes
-- Servers were running during session (backend:5000, frontend:5173)
-- Browser open to employer dashboard for testing
-- Test credentials: employer@symmetry.local / ChangeMe123!
-
----
-
-## [2026-01-16 14:45] - CRITICAL CERTIFICATE DATE CORRUPTION FIX COMPLETED
-
-### 🎯 MISSION ACCOMPLISHED: System Data Integrity Restored
-
-**Problem:** System showed certificates with July 2026 dates calculated as "overdue" - user correctly identified system as "in terrible shape, nothing working" with specific example: "Certificate expired on 01/07/2026 - URGENT BY WHEN: 3 days ago ⚠️ OVERDUE"
-
-**Root Cause Discovered:** Database contained 95 medical certificates and 56 case actions with corrupted January 2026 dates that should have been July 2025 dates.
-
-### ✅ Comprehensive Database Fix Applied
-
-**Data Corruption Fixed:**
-- **95 medical certificates** corrected: January 2026 dates → July 2025 dates
-- **56 case actions** corrected: January 2026 dates → July 2025 dates
-- **All future-dated certificates** causing impossible "overdue" calculations resolved
-
-**Before Fix:**
-```
-Certificate expired on 01/07/2026 - URGENT BY WHEN: 3 days ago ⚠️ OVERDUE
-```
-
-**After Fix:**
-```
-Due date: 14/07/2025, Days overdue: 186
-Due date: 16/07/2025, Days overdue: 184
-```
-
-### ✅ Fix Implementation
-
-**Scripts Created:**
-- `fix-certificate-dates.ts` - Comprehensive fix targeting July 2026 dates
-- `simple-fix.ts` - Working implementation that successfully corrected database
-- `investigate-andres-certificates.ts` - Investigation tooling
-- `check-users.ts` - User account verification
-
-**Fix Process:**
-1. Identified corrupted certificates with string matching for "2026" + "Jan"
-2. Converted January 2026 dates to July 2025 equivalents preserving day-of-month
-3. Updated medical certificates with new Date objects to avoid type errors
-4. Fixed case action due dates and description text containing date references
-5. Verified fix through server notification logs showing correct overdue calculations
-
-### ✅ Verification Results
-
-**Server Log Evidence:**
-- **Before:** Notifications showing January 2026 certificate dates as overdue
-- **After:** Notifications showing July 2025 dates with realistic 180+ day overdue periods
-- **System Health:** All certificate timeline calculations now logically consistent
-- **User Impact:** Andres Nieto and all affected cases now display realistic timeframes
-
-### 📊 Impact Summary
-
-**Data Fixed:**
-- 95 medical certificates (start/end dates corrected)
-- 56 case actions (due dates and descriptions corrected)
-- All action queue calculations restored to logical timeframes
-
-**User Experience Restored:**
-- Timeline tabs no longer show confusing future-dated "expired" certificates
-- Action queues display realistic overdue periods
-- Certificate tracking system functioning as intended
-- System credibility restored
-
-### 📝 Technical Notes
-
-**Challenge:** Database stored dates as Date objects requiring proper type handling
-**Solution:** Convert to strings for pattern matching, create new Date objects for updates
-**Files:** Created comprehensive fix scripts preserved for future reference
-**Commit:** c222ded with full fix documentation
-
-### 🚀 Next Steps
-
-- System now ready for full end-to-end workflow testing
-- All certificate date integrity issues resolved
-- Normal operation restored across all affected cases
-
----
-
-## [2026-01-16 00:00] - Certificate Date Bug Investigation & Fix COMPLETE
-
-### 🎯 MISSION ACCOMPLISHED: Certificate Date Bug Resolved
-
-**Problem:** Timeline tab showed confusing future certificate dates (July 2026) for Andres Nieto and other workers
-
-**Root Cause:** Freshdesk import logic didn't validate certificate dates, allowing impossible future dates
-
-**Comprehensive Solution Implemented:**
-
-1. **✅ Investigation Complete**
-   - Identified 3 certificates with impossible future dates (July-September 2026)
-   - Confirmed source: Freshdesk import in `server/services/freshdesk.ts:513-570`
-   - Cases affected: FD-43714 (Andres Nieto), FD-43407, FD-44345
-
-2. **✅ Root Cause Fix**
-   - Added 30-day future date validation to Freshdesk import
-   - Implemented fallback logic using ticket creation date
-   - Added structured logging for future investigation
-   - **Prevention:** Future imports automatically use realistic dates
-
-3. **✅ Data Correction**
-   - Updated all 3 invalid certificates with realistic dates
-   - Andres Nieto: July 2026 → Jan 5-Feb 4, 2026
-   - Cases FD-43407/FD-44345: June/Sept 2026 → Jan 13-Feb 12, 2026
-   - **Validation:** All certificates now show realistic 30-day validity periods
-
-4. **✅ Testing & Verification**
-   - Created comprehensive test scripts for validation logic
-   - Verified fix prevents future imports of invalid dates
-   - Confirmed existing timeline issues resolved
-   - Server notification logs validated fix effectiveness
-
-5. **✅ Deployment**
-   - All changes committed to `fix/certificate-date-bug` branch
-   - Successfully merged to `main` branch
-   - Pushed to remote repository
-   - Feature branch cleaned up
-
-**Files Modified:**
-- `server/services/freshdesk.ts` - Core validation fix
-- `claude-progress.txt` - Progress documentation
-- Created investigation scripts for future debugging
-
-**Impact:** Timeline tab now displays realistic certificate dates, eliminating user confusion about "expired" future-dated certificates.
-
----
-
-## [2026-01-15 16:50] - Previous Session: Context Reset
-
----
-
-## [2026-01-15 16:50] - Context Reset
-
-**Completed:**
-- ✅ **CRITICAL SUCCESS:** Natalie remote access established for urgent testing
-- ✅ Created admin account: natalie@preventli.com / TestUser123!
-- ✅ Solved complex tunnel issues (localtunnel failures, ngrok TTY problems)
-- ✅ Successfully deployed Cloudflare tunnel: https://joel-facial-aqua-productivity.trycloudflare.com
-- ✅ Tested all APIs and authentication flow - 100% working
-- ✅ Session handoff completed with full documentation
-- ✅ All changes committed to feature/power-user-toolkit branch
-
-**Current Status:**
-- **Project:** Preventli (gpnet3) - WorkSafe Victoria compliance system
-- **Branch:** feature/power-user-toolkit (clean working tree)
-- **Tests:** 165/165 passing ✅
-- **Services:** Backend (5000), Frontend (5173) + Cloudflare tunnel active
-- **Critical Achievement:** Natalie has working remote access for urgent compliance testing
-
-**Natalie Access Details:**
-- **URL:** https://joel-facial-aqua-productivity.trycloudflare.com
-- **Login:** natalie@preventli.com / TestUser123!
-- **Status:** ✅ Tested and confirmed working
-- **Tunnel Process:** cloudflared tunnel --url http://localhost:5000 (background)
-
-**Next Planned Tasks:**
-1. **Support Natalie's Testing** - Monitor system during her urgent testing session
-2. **Certificate Date Bug Investigation** - Andres Nieto future date issue (June 2026)
-3. **Marketing Hub Decision** - Build in Preventli vs GoVertical
-4. **Feature Development** - Continue with additional user-requested features
-
-**Notes:**
-- Extended troubleshooting session (~2+ hours) successfully resolved
-- Backend server remained stable throughout (port conflicts were false alarms)
-- Cloudflare tunnel superior to localtunnel (no security prompts)
-- System fully operational and ready for continued development
-- Context reset requested due to high usage from extensive tunnel troubleshooting
-
----
-
-## 🎯 LATEST SESSION COMPLETED (2026-01-15 - Context Reload & Status Check)
-
-### ✅ Session Activities - COMPLETE!
-
-**Context Management:**
-- Successfully reloaded full project context using `/reload` command
-- Loaded structured memories: project understanding, decisions, learnings
-- Verified project health: 165/165 tests passing
-- Confirmed clean working tree on feature/power-user-toolkit branch
-
-**System Status Verification:**
-- All core systems operational (backend, frontend, database)
-- Marketing materials remain complete and ready for use
-- Treatment Tab Integration feature fully implemented
-- No critical issues identified
-
-**Key Context Loaded:**
-- **Project Memory**: Preventli WorkSafe Victoria compliance system
-- **Decision d_001**: Use Drizzle ORM for type-safe database access
-- **Learning l_001**: 3-tier date fallback strategy (98.7% accuracy)
-- **Learning l_002**: Automatic retry logic with exponential backoff
-
-### 📋 Next Session Options
-
-**Three paths identified for next work:**
-
-1. **Certificate Date Bug Investigation** - Andres Nieto case shows future certificate date (June 2026)
-   - Location: Timeline tab data inconsistency
-   - Action: Investigate Freshdesk import vs manual entry source
-
-2. **Marketing Hub Implementation** - User mentioned having own marketing plan
-   - Decision pending: Build in Preventli vs GoVertical (C:/dev/govertical)
-   - Features designed: CRM, automation, templates, analytics
-
-3. **Feature Development** - Continue with additional features per user request
-
-### 📝 Important Notes
-
-- All marketing presentations available in `marketing/presentations/`
-- System fully operational: backend (5000), frontend (5173)
-- Clean git state ready for new work
-- Context management tools available: `/clear`, Task agents, structured memory
-
----
-
-## Previous Session (2026-01-15 - Natalie Remote Access)
-
-### ✅ CRITICAL TASK COMPLETED - Natalie Remote Access for Urgent Testing
-
-**Mission**: Get Natalie remote access to Preventli system for urgent compliance testing
-
-**SUCCESSFUL SOLUTION:**
-- **Working URL**: `https://joel-facial-aqua-productivity.trycloudflare.com`
-- **Login Credentials**: natalie@preventli.com / TestUser123!
-- **Access Level**: Admin (full system access)
-- **Status**: ✅ Tested and confirmed working
-
-### 🛠️ Technical Solution Summary
-
-**Problem Solved**: Multiple tunnel failures (localtunnel security prompts, ngrok TTY issues)
-**Final Solution**: Cloudflare Tunnel (professional-grade, no security prompts)
-
-**Components Working:**
-1. ✅ **User Account**: Created natalie@preventli.com with admin privileges
-2. ✅ **Backend Server**: Running stable on localhost:5000
-3. ✅ **Cloudflare Tunnel**: Active tunnel to backend via `cloudflared tunnel --url http://localhost:5000`
-4. ✅ **API Access**: All endpoints tested and responding
-5. ✅ **Authentication**: Login tested and working
-6. ✅ **CORS Configuration**: Updated to allow Cloudflare tunnel domain
-
-**Files Modified:**
-- `server/index.ts`: CORS configuration updated (user modified to use CLIENT_URL env var)
-- Created temporary user creation script (executed and removed)
-
-### 📋 What Natalie Can Test
-
-**Full System Access:**
-- Worker cases dashboard (`/api/gpnet2/cases`)
-- Individual case details and timeline
-- Medical certificate management
-- Compliance action queue
-- All admin functionality
-
-**Test Data Available:**
-- 39+ worker cases across multiple organizations
-- Medical certificates with various statuses
-- Overdue actions and compliance items
-- Full audit trail and timeline data
-
-### 🔧 Technical Architecture
-
-**Network Flow:**
-```
-Natalie (Remote) → Cloudflare Tunnel → localhost:5000 (Backend) → PostgreSQL Database
-```
-
-**Security:**
-- JWT authentication with 15-minute expiry
-- CSRF protection active
-- Rate limiting configured
-- All sensitive data properly secured
-
-### ⚠️ Important Notes
-
-1. **Cloudflare Tunnel Process**: Running via `cloudflared tunnel --url http://localhost:5000`
-   - Process ID tracked in background tasks
-   - Tunnel will remain active until manually stopped
-
-2. **Backend Server**: Original server on port 5000 remained stable throughout session
-   - Multiple restart attempts failed due to "port in use" (expected - server was running)
-   - No actual downtime occurred
-
-3. **User Account Security**: Natalie's password is temporary test password (TestUser123!)
-   - Should be changed after initial testing
-   - Admin privileges granted for full system testing
-
-### 🚀 Immediate Next Steps
-
-1. **Send Natalie Access Info**: URL and credentials provided above
-2. **Monitor System**: Backend and tunnel remain active
-3. **Support Testing**: Assist with any issues during her testing session
-
-### 📊 Session Statistics
-
-**Duration**: Extended troubleshooting session (~2+ hours)
-**Primary Challenge**: Tunnel service compatibility and security prompts
-**Tools Used**: localtunnel, ngrok, cloudflare tunnels, PowerShell testing scripts
-**Final Success Rate**: 100% - All functionality tested and working
-
----
-
-## Previous Session (2026-01-15 - Marketing Materials)
-
-### ✅ Alex Hormozi Style Sales Presentations - COMPLETE!
-
-Created 3 professional sales presentations following Grand Slam Offer framework:
-
-| Presentation | Slides | Size | Target |
-|--------------|--------|------|--------|
-| **Preventli-Insurance-Partners.pptx** | 17 | 249KB | Insurance Companies |
-| **Preventli-Self-Insurers.pptx** | 16 | 225KB | Self-Insurers |
-| **Preventli-Employers.pptx** | 13 | 188KB | Employers (SMB) |
-
-**Design Style:**
-- Dark backgrounds with gold accents (Hormozi aesthetic)
-- Value stacking with specific dollar amounts
-- ROI calculations front and center
-- Risk reversal guarantees
-- Urgency/scarcity elements
-
-**Location:** `marketing/presentations/`
-
-### ✅ Pricing Model - COMPLETE!
-
-**File:** `marketing/PRICING-MODEL.md`
-
-**Segment Pricing:**
-- Insurance: $2,500-$15,000/month (50-500 cases)
-- Self-Insurers: $5,000-$18,000/month (100-600 cases)
-- Employers: $299-$1,299/month (10-100 cases)
-
-**ROI Models:**
-- Insurance: 282-500% ROI
-- Self-Insurers: 518-724% ROI
-- Employers: 612-666% ROI
-
-### ✅ Go-To-Market Strategy - COMPLETE!
-
-**File:** `marketing/GO-TO-MARKET-STRATEGY.md`
-
-**Target Companies Identified:**
-- **Tier 1 Insurers (5):** Allianz, CGU, QBE, GIO, Gallagher Bassett
-- **Tier 2 Insurers (5):** EML, Xchanging, icare NSW, ReturnToWorkSA, WorkCover QLD
-- **Self-Insurers (40+):** Coles, Woolworths, BHP, Rio Tinto, Australia Post, Telstra, etc.
-- **Government Self-Insurers (6):** Dept of Education, Health, Justice, Transport, Parks VIC, VicRoads
-- **Employers by Industry:** Manufacturing, Construction, Healthcare, Logistics, Food & Beverage
-- **Rehab Providers (7):** Konekt, IPAR, MedHealth, Cogent Thinking, APM WorkCare, Recover, WorkFocus
-
-**Sales Process Defined:**
-- Insurance: 6-12 month cycle
-- Self-Insurer: 3-6 month cycle
-- Employer: 2-4 week cycle
-
-### ✅ Marketing Strategy - COMPLETE!
-
-**File:** `marketing/MARKETING-STRATEGY.md`
-
-**Brand Promise:** "No Worker Lost in the System"
-
-**Content Pillars:**
-- Compliance Education (40%)
-- ROI & Business Case (30%)
-- Best Practices (20%)
-- Industry News (10%)
-
-**Budget:** $195,000/year across LinkedIn Ads, Google Ads, Content, Events, PR
-
-**Campaigns:**
-1. "The Hidden Cost" (Employer Focus)
-2. "License Protection" (Self-Insurer Focus)
-3. "Profit Center, Not Cost Center" (Insurance Focus)
-
-### 📋 Marketing Hub System - PLANNED (Not Started)
-
-**User Note:** User has their own marketing plan to share before proceeding.
-
-**Plan Location:** `C:\Users\Paul\.claude\plans\unified-jingling-lake.md`
-
-**Designed Features (6-week implementation):**
-- Target Companies CRM (6 database tables)
-- Campaign Automation
-- Template Library with AI generation
-- Analytics Dashboard
-
-**Decision Pending:** Build in Preventli vs GoVertical (C:/dev/govertical)
-
----
-
-## Previous Session (2026-01-15 - Data Persistence Fix)
-
-### ✅ Andres Nieto Summary & Data Persistence - COMPLETE!
-
-**Task:** Fix Andres Nieto's case summary to correctly display "Claim finalized, job at IKON" and ensure data persists through Freshdesk syncs.
-
-**Critical Bug Fixed:**
-- **Issue:** Freshdesk sync was overwriting manually-set `summary` and `workStatus` fields
-- **Impact:** Andres's summary kept reverting to old ticket subject, work status kept showing "Off work"
-- **User Impact:** Days of frustration trying to display correct case information
-
-**Solution Applied (server/storage.ts):**
-```typescript
-// Preserve existing summary if it contains meaningful content
-const shouldPreserveSummary = existing.summary &&
-  existing.summary.length > 0 &&
-  !existing.summary.startsWith('Symmetry-');
-
-// Preserve work status if manually set to "At work"
-const shouldPreserveWorkStatus = existing.workStatus === 'At work';
-```
-
-**Database Updates for Andres Nieto (FD-43714):**
-- `workStatus`: "At work" ✅
-- `summary`: "Claim FINALISED. Full-time cleaner at IKON Services since 08/12/2025..." ✅
-- `aiSummary`: Full detailed markdown with Medical Status, Key Items, Risk Factors, Next Actions ✅
-
-**Files Modified:**
-- `server/storage.ts` - Added preservation logic for summary and workStatus during sync
-- Created `update-andres-summary.ts` (temporary script, executed and deleted)
-
-### ✅ PDF Task Plan for Natalie - COMPLETE!
-
-**Created:** `Natalie-Task-Plan-15-Jan-2026.pdf`
-
-**Tasks Included (9 total):**
-1. Verify Andres Nieto fix
-2. Test dashboard filters (Workers at work, Workers off work)
-3. Audit medical certificates in Freshdesk
-4. Verify work status accuracy across all cases
-5. Add discussion notes to key cases
-6. Update contact information
-7. Review injury details
-8. Test compliance action navigation
-9. Test Freshdesk sync (manual data preservation)
-
-### 🐛 PENDING BUG - Certificate Date Issue
-
-**Bug Report:** Timeline tab for Andres Nieto shows incorrect certificate date
-
-**Database Query Result:**
-```
-Certificates for Andres:
-Start: 2026-06-30T16:00:00.000Z End: 2026-06-30T16:00:00.000Z Capacity: partial
-```
-
-**Issue:** Date is in the future (June 2026) - clearly incorrect data that needs investigation.
-
-**Next Steps:**
-1. Investigate source of incorrect date (Freshdesk import? Manual entry?)
-2. Check certificate parsing logic
-3. Update certificate with correct dates
-
----
-
-## Future Features Discussed
-
-### Weekly Report Feature
-- Dashboard will show weekly report with three columns:
-  - **Who:** Person responsible for next action
-  - **What:** Description of action needed
-  - **When:** Due date
-- Recipients: Employer, treating doctor, insurer, worker
-- Use case: Track appointments, treatment plans, deadlines
-
-### Pre/Post Appointment Workflow
-- Track questions to ask before appointments
-- Record purpose of appointment
-- Capture outcomes and next actions
-- Example: Giorgio's neurosurgeon appointment (Jan 20)
-
----
-
-## Previous Session (2026-01-14 - Ralph Mode Testing)
-
-### ✅ Employer Dashboard Ralph Mode Testing - COMPLETE!
-
-**Test Results: 7/7 PASSED**
-
-| Test | Status | Notes |
-|------|--------|-------|
-| Employer Login | ✅ PASS | Login with employer@symmetry.local successful |
-| Dashboard Stats | ✅ PASS | 39 cases, 16 at work (41%), 23 off work, 15 critical |
-| Priority Actions | ✅ PASS | Critical (15), Urgent (35), Routine (0) displayed |
-| Action Expansion | ✅ PASS | View more button works, worker names visible |
-| Case Navigation | ✅ PASS | **BUG FIXED** - Route path corrected |
-| Case Tabs | ✅ PASS | All 7 tabs working (Summary, Injury, Timeline, etc.) |
-| Back Navigation | ✅ PASS | Returns to dashboard correctly |
-
-**Bug Fixed During Testing:**
-- **File:** `client/src/components/EmployerSummaryDashboard.tsx`
-- **Issue:** Route mismatch - navigation used `/employer/cases/` but route defined as `/employer/case/`
-- **Fix:** Changed 3 occurrences of `/employer/cases/${action.caseId}` to `/employer/case/${action.caseId}`
-- **Commit:** e86b68f
-
----
-
-## Previous Session (2026-01-14 - Dashboard Fix)
-
-### ✅ Employer Login Testing & Dashboard Fix - COMPLETE!
-
-**Major Achievements:**
-1. **Employer Authentication Fixed** - Cookie sameSite setting changed for dev mode
-2. **Dashboard Loading Issue Resolved** - Missing `()` on authorize middleware
-3. **Dashboard Functionality Verified** - Real-time data displaying correctly
-
----
-
-## 📋 Quick Commands
-
-```bash
-# Start development
-npm run dev          # Backend server
-npm run dev:client   # Frontend Vite server
-
-# Test employer dashboard
-# 1. Login: employer@symmetry.local / ChangeMe123!
-# 2. Navigate to http://localhost:5173/
-
-# Run tests
-npm test            # Unit tests
-npm run test:e2e    # E2E tests
-
-# Database
-npm run db:push     # Apply schema changes
-
-# Check project status
-/status
-```
-
----
-
-## Project Health
-
-**Build Status:** ✅ Passing
-- TypeScript: No errors
-- Unit tests: 165/165 (100%)
-- Bundle size: 1.3MB
-
-**Application Status:** ✅ Production Ready
-- Backend API: Ready on port 5000
-- Frontend: Ready on port 5173 (dev), port 5000 (prod)
-- Database: PostgreSQL with full schema
-- Employer Dashboard: Fully functional with real-time data
-
-**Security Status:** ✅ Production Ready
-- CSRF protection: ✓
-- Rate limiting: ✓
-- Input validation: ✓
-- JWT authentication: ✓
-- Cookie security: ✓ (strict in prod, lax in dev)
-
----
-
-**Last Updated:** 2026-01-15 15:10 UTC
-
----
-
-## 🎯 SESSION HANDOFF - 2026-01-15
-
-### ✅ Completed This Session
-- Enhanced Insurance Partners presentation with WorkCover Victoria compliance messaging
-- Created dedicated marketing branch: `marketing/workcover-compliance-presentations`
-- Updated cost analysis table with "WorkCover Victoria compliance breaches" specificity
-- Added messaging for complex WorkCover + non-WorkCover case handling
-- Emphasized maturing workforce complexity challenges
-- Pushed all changes to GitHub (main + marketing branches)
-
-### 🚀 Next Steps
-- Review enhanced presentation: `marketing/presentations/Preventli-Insurance-Partners-Enhanced.pptx`
-- Consider applying similar WorkCover messaging to Self-Insurers and Employers presentations
-- Plan insurance partner meetings using enhanced materials
-- Decide on marketing branch merge strategy
-
-### 📋 Important Notes
-- All marketing materials available on marketing branch
-- Core application fixes on main branch (summary corruption & recovery graph alignment)
-- System health: 165/165 tests passing, all services operational
-- Marketing presentations ready for immediate use
-
-### 🔗 GitHub Status
-- Main branch: https://github.com/paulhopcraft-dot/GPNET3/tree/main
-- Marketing branch: https://github.com/paulhopcraft-dot/GPNET3/tree/marketing/workcover-compliance-presentations
-
----
-
-## 🎯 LATEST SESSION COMPLETED (2026-01-15 - WorkCover Marketing Enhancement)
-
-### ✅ WorkCover Victoria Compliance Presentation Enhancement - COMPLETE!
-
-**Marketing Branch Created:** `marketing/workcover-compliance-presentations`
-**GitHub URL:** https://github.com/paulhopcraft-dot/GPNET3/tree/marketing/workcover-compliance-presentations
-
-**Enhanced Insurance Partners Presentation:**
-- Slide 3: "Compliance breaches" → "WorkCover Victoria compliance breaches" in cost table
-- Slide 4: Added "Complex WorkCover + non-WorkCover cases overwhelming systems"
-- Slide 5: "AI-Powered Claims Intelligence for WorkCover + Non-WorkCover Cases"
-- Slide 5: Added "Navigating Complex Cases with Victoria's Maturing Workforce"
-
-**Key Marketing Assets Available:**
-```
-marketing/
-├── presentations/
-│   ├── Preventli-Insurance-Partners.pptx (original)
-│   ├── Preventli-Insurance-Partners-Enhanced.pptx (WorkCover enhanced)
-│   ├── Preventli-Self-Insurers.pptx
-│   └── Preventli-Employers.pptx
-├── GO-TO-MARKET-STRATEGY.md
-├── MARKETING-STRATEGY.md
-└── PRICING-MODEL.md
-```
-
-**Editable Workspace:** `workspace/insurance-partners-extracted/` - Full OOXML structure for future edits
-
-**User Request Fulfilled:** World-class compliance messaging focused on Victoria (not multi-jurisdiction), emphasizing both WorkCover and non-WorkCover case complexity with maturing workforce.
-
----
-
-## Previous Session (2026-01-15 - Case Summary & Recovery Graph Fixes)
-
-### ✅ Critical Data Corruption Fix - COMPLETE!
-
-**Issue Resolved:** All worker cases were showing identical "Andres Nieto/IKON Services" summary content instead of individual case details.
-
-**Root Cause:** Mock data flag hardcoded to `true` in `server/services/summary.ts:269` was bypassing real AI generation.
-
-**Solution Applied:**
-```typescript
-// Fixed in server/services/summary.ts:269
-const useMockData = false; // Set to false when API key is working
-```
-
-**Verification Results:**
-- ✅ Giorgio Aparicio (FD-45151) now displays unique case-specific content
-- ✅ Company shows "Symmetry" (not IKON Services)
-- ✅ Injury details show trigger finger (not back strain)
-- ✅ Case timeline shows Giorgio's actual medical history from March 2025-January 2026
-- ✅ Financial details show Giorgio's actual wages ($1,211.62/week)
-- ✅ Contact details show Giorgio's actual employer contacts, medical providers
-
-### ✅ Recovery Graph Visualization Fix - COMPLETE!
-
-**Issue Resolved:** Green actual recovery line was starting after blue estimated recovery line, causing visual misalignment.
-
-**Root Cause:** `generateActualCurve()` in `server/services/recoveryEstimator.ts` started from first certificate week instead of week 0.
-
-**Solution Applied:**
-```typescript
-// Modified loop in generateActualCurve()
-for (let week = 0; week <= lastCertWeek; week++) {
-  // Allow null actualCapacity before first certificate
-}
-```
-
-**Files Modified:**
-- `server/services/recoveryEstimator.ts` (lines 1390-1414)
-- `server/services/recoveryEstimator.test.ts` (updated test expectations)
-
-**Verification Results:**
-- ✅ Both estimated and actual recovery lines now start from week 0
-- ✅ Visual alignment is correct in Treatment tab recovery graph
-- ✅ All tests continue to pass (165/165)
-
-### ✅ System Health Verification - COMPLETE!
-
-**Test Results:** 165/165 tests passing ✅
-**Application Status:** Both backend (port 5000) and frontend (port 5173) running properly ✅
-**Browser Testing:** Giorgio Aparicio case fully verified with unique content in all tabs ✅
-
-**Git Commits:**
-- `55701e0` - fix: align recovery graph actual line with estimated timeline
-- Previous: `56faac2` - fix: disable mock data in summary generation to enable unique AI summaries
-
-**Next Action:** Continue with any user-requested features or improvements
-
-
-## Session [2026-01-19] - Summary Generation Cost Optimization & Hybrid Implementation
-
-### ✅ COMPLETED - Cost-Effective Summary Generation System
-
-**Major Achievement:** Implemented comprehensive hybrid summary generation system with 92% cost reduction
-
-**Core Problem Solved:**
-- Summary generation was failing due to Anthropic API credit issues
-- System hanging indefinitely on case summary requests
-- Expensive Sonnet 4 model causing high per-request costs (~2.2 cents per summary)
-
-**Solution Implemented:**
-
-1. **✅ Cost Optimization**
-   - Switched from Claude Sonnet 4 ($3/$15 per 1M tokens) to Claude Haiku ($0.25/$1.25 per 1M tokens)
-   - **92% cost reduction:** $0.022 → $0.0018 per summary
-   - Modified `server/services/summary.ts:7` model selection
-
-2. **✅ Hybrid Fallback Architecture**
-   - Created `server/services/hybridSummary.ts` - comprehensive fallback system
-   - **Priority order:** Anthropic Claude → Local Llama → Template Generation
-   - Prevents summary failures even if API services are down
-   - Automatic service health monitoring and failover
-
-3. **✅ Local AI Alternative**
-   - Implemented `server/services/llamaSummary.ts` with Ollama integration
-   - Few-shot learning approach with domain-specific medical case examples
-   - Cost-free alternative for future use (requires additional RAM)
-
-4. **✅ Template Fallback**
-   - Created `server/services/templateSummary.ts` for structured summaries
-   - Uses existing case data to generate formatted summaries without AI
-   - Ensures summary generation never fails completely
-
-5. **✅ API Integration Updates**
-   - Updated all routes to use `hybridSummaryService` instead of direct summary service
-   - API key successfully configured: `ANTHROPIC_API_KEY=sk-ant-api03-...`
-   - User added credits and confirmed "Credits created to working"
-
-**Technical Resolution:**
-- Resolved port 5000 conflicts with proper process termination
-- Fixed missing `date-fns` dependency
-- Temporarily disabled rate limiter for testing (re-enabled after verification)
-- Resolved "Too many requests" errors from previous failed API attempts
-
-**Successful Testing Results:**
-- Case FD-43714 (Andres Nieto): Summary generated successfully in 10.9 seconds
-- User successfully tested summary generation and timeline access
-- Server logs confirm: "Summary generated successfully with Anthropic (Haiku)"
-
-**Files Modified:**
-- `server/services/summary.ts` - Model switch to Haiku
-- `server/services/hybridSummary.ts` - NEW comprehensive fallback system
-- `server/services/llamaSummary.ts` - NEW local Ollama integration
-- `server/services/templateSummary.ts` - NEW template-based generation
-- `server/routes.ts` - Updated to use hybrid service
-- `server/index.ts` - Rate limiter management
-- `.env` - Updated Anthropic API key
-
-### 📊 Impact Summary
-- **Cost Reduction:** 92% savings on AI summary generation
-- **Reliability:** Multiple fallback systems prevent failures
-- **Performance:** 10-11 second response time for AI summaries
-- **Scalability:** Local options available for high-volume usage
-- **User Experience:** Summary generation now consistently works
-
-### 🚀 Next Steps
-- Monitor summary quality and performance with Haiku model
-- Consider implementing Ollama for cost-free operation (when more RAM available)
-- Continue with any additional user-requested features
-
----
-
-## Session 2026-01-20 - Andres Nieto Summary Generation Issue Investigation
-
-### Context Window & Issue Status
-- **Context Usage:** ~65-70% - Moderate usage, safe to complete current task
-- **Issue:** User reports Andres Nieto (FD-43714) summary is "still incorrect" and "worse, no real summary just very basic"
-- **Expected Content:** Detailed IKON Services employment info, January 7 welfare contact, wage top-up query, physiotherapy appointments
-- **Current Status:** Summary generating with Sonnet 4 but not producing expected detailed content
-
-### Investigation Findings
-- **Backend Server:** Running successfully on port 5000 - confirmed via logs
-- **Summary Generation:** Working with Sonnet 4 (lines 148-153, 172-177, 187-192, 194-209 in logs)
-- **API Calls:** Successful summary generation for FD-43714 with 1-3 second response times
-- **Contact API:** Returns 400 error (line 179) - contacts extraction from Freshdesk failing
-
-### Root Cause Analysis (Plan Mode Investigation)
-From comprehensive plan file investigation:
-1. **Hardcoded Mock Data:** `server/services/summary.ts` contains hardcoded mock content (lines 32-189) that matches user expectations exactly
-2. **Prompt Engineering Issue:** Case-specific instructions hardcoded (line 612) instead of data-driven prompts
-3. **Cache Persistence:** Once generated, summaries cached indefinitely unless ticket updated
-4. **Data Source Issues:** Freshdesk conversation sync may fail silently, leaving discussion notes empty
-
-### Completed
-- ✅ Context usage analysis (65-70% - moderate)
-- ✅ Server log investigation - backend running fine, summary generation successful
-- ✅ Plan mode investigation identified root causes
-- ✅ User clarification: wants quick fix for Andres first, comprehensive system fix later
-
-### Next Steps (Immediate)
-- **Quick Fix:** Clear cached summary for FD-43714 and force regeneration with proper data
-- **Investigation:** Check why expected content (IKON Services, welfare contact) not appearing despite AI generation
-- **System Fix:** Remove hardcoded mock data and prompt injection issues
-
-### Notes
-- Backend server healthy - logs show successful Sonnet 4 summary generation
-- User provided detailed expectation: "Latest Update (8 January 2026) Status: Claim FINALISED | Worker in full-time employment..."
-- Issue appears to be content quality/detail rather than generation failure
-- **Critical:** Need `/fresh` soon due to context usage approaching 70%
-
----
-
-## Previous Session 2026-01-16
-
-### Completed
-- Company filtering bug FIXED (queryClient.ts URL parameter handling)
-- Action queue navigation IMPLEMENTED (clickable worker names → case details)
-- Both fixes committed and pushed to main branch by GPT-5 nano
-
-### Next Steps
-- Manual testing of company filtering and action queue navigation
-- Clean up investigation script files (check-users.ts, investigate-andres-certificates.ts, simple-investigate.ts)
-
-### Notes
-- OpenCode.ai (GPT-5 nano) successfully implemented both admin dashboard fixes
-- Both features ready for testing at CloudFlare tunnel URL
-- All major admin dashboard issues now resolved
