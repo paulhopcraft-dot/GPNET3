@@ -43,6 +43,11 @@
             "browser_verify: inspect-css .glass-panel border exists",
             "browser_verify: inspect-css .glass-panel box-shadow exists"
           ],
+          "edgeCases": [
+            "If backdrop-filter unsupported: use opaque background with reduced opacity",
+            "If browser performance poor: disable blur and use simple transparency",
+            "If mobile device: reduce glassmorphism complexity for performance"
+          ],
           "prerequisites": [
             "Modern browser supporting backdrop-filter",
             "CSS custom properties for glassmorphism values"
@@ -58,6 +63,11 @@
             "browser_verify: inspect-css .animate-float animation-duration exists",
             "browser_verify: inspect-css .animate-gradient animation exists",
             "browser_verify: inspect-css .animate-pulse-slow animation exists"
+          ],
+          "performanceFallbacks": [
+            "If prefers-reduced-motion: disable all animations",
+            "If low-end device detected: use simpler opacity transitions",
+            "If frame rate below 30fps: automatically reduce animation complexity"
           ],
           "prerequisites": [
             "Tailwind CSS configuration file exists",
@@ -102,57 +112,97 @@
       ],
       "userStories": [
         {
-          "id": "immersive-hero-container",
-          "story": "As a user, I can see an immersive full-height hero section when I visit the Treatment tab so that I experience modern dashboard aesthetics",
+          "id": "hero-container-structure",
+          "story": "As a user, I can see a full-height hero container when I visit the Treatment tab so that the layout takes up the proper viewport space",
           "acceptanceCriteria": [
             "browser_verify: navigate http://localhost:5173",
             "browser_verify: click [data-value='treatment']",
             "browser_verify: exists .immersive-hero-container",
-            "browser_verify: css .immersive-hero-container min-height contains 80vh",
-            "browser_verify: css .immersive-hero-container background contains gradient"
+            "browser_verify: css .immersive-hero-container min-height contains 80vh"
           ],
           "prerequisites": [
             "Treatment tab exists and is clickable",
             "DynamicRecoveryTimeline component can be modified"
           ],
-          "implementation": "Transform DynamicRecoveryTimeline container to immersive full-height section with gradient backgrounds",
+          "implementation": "Transform DynamicRecoveryTimeline container to full-height layout structure with proper viewport sizing",
           "rollbackProcedure": "Restore original DynamicRecoveryTimeline container structure",
-          "estimatedMinutes": 45
+          "estimatedMinutes": 25
         },
         {
-          "id": "gradient-background-layers",
-          "story": "As a user, I can see vibrant gradient backgrounds with animated mesh effects so that the dashboard feels modern and dynamic",
+          "id": "hero-gradient-backgrounds",
+          "story": "As a user, I can see vibrant gradient backgrounds in the hero section so that the dashboard has modern visual appeal",
+          "acceptanceCriteria": [
+            "browser_verify: navigate http://localhost:5173",
+            "browser_verify: click [data-value='treatment']",
+            "browser_verify: exists .immersive-hero-container",
+            "browser_verify: css .immersive-hero-container background contains gradient"
+          ],
+          "prerequisites": [
+            "Hero container structure is implemented",
+            "Gradient CSS utilities are available"
+          ],
+          "implementation": "Add gradient backgrounds to the hero section using CSS gradient utilities",
+          "rollbackProcedure": "Remove gradient background styles from hero container",
+          "estimatedMinutes": 20
+        },
+        {
+          "id": "gradient-mesh-backgrounds",
+          "story": "As a user, I can see vibrant gradient mesh backgrounds so that the dashboard has modern visual appeal",
           "acceptanceCriteria": [
             "browser_verify: exists .gradient-mesh-background",
-            "browser_verify: css .gradient-mesh-background background contains radial-gradient",
+            "browser_verify: css .gradient-mesh-background background contains radial-gradient"
+          ],
+          "prerequisites": [
+            "Gradient CSS utilities are available"
+          ],
+          "implementation": "Add layered radial gradient mesh backgrounds using CSS gradient utilities",
+          "rollbackProcedure": "Remove gradient mesh background styles",
+          "estimatedMinutes": 20
+        },
+        {
+          "id": "gradient-animation-effects",
+          "story": "As a user, I can see animated gradient effects so that the dashboard feels dynamic and engaging",
+          "acceptanceCriteria": [
             "browser_verify: class .gradient-mesh-background contains animate-gradient",
             "browser_verify: exists .gradient-overlay"
           ],
           "prerequisites": [
-            "Gradient CSS utilities are available",
+            "Gradient mesh backgrounds exist",
             "Animation utilities are working"
           ],
-          "implementation": "Add layered gradient backgrounds with animated mesh patterns and overlay effects",
-          "rollbackProcedure": "Remove gradient background layers",
-          "estimatedMinutes": 35
+          "implementation": "Add gradient animation classes and overlay effects to mesh backgrounds",
+          "rollbackProcedure": "Remove animation classes and overlay elements",
+          "estimatedMinutes": 15
         },
         {
-          "id": "glassmorphism-panels-grid",
-          "story": "As a user, I can see recovery data in glassmorphism panels so that information is displayed with modern visual depth",
+          "id": "panels-grid-layout",
+          "story": "As a user, I can see a 12-column grid layout for recovery data so that information is properly structured",
           "acceptanceCriteria": [
             "browser_verify: exists .glassmorphism-panels-grid",
-            "browser_verify: class .glassmorphism-panels-grid contains grid-cols-12",
+            "browser_verify: class .glassmorphism-panels-grid contains grid-cols-12"
+          ],
+          "prerequisites": [
+            "Grid system is working",
+            "Recovery data structure is available"
+          ],
+          "implementation": "Create 12-column CSS grid layout for recovery timeline data",
+          "rollbackProcedure": "Remove grid layout and restore original layout",
+          "estimatedMinutes": 15
+        },
+        {
+          "id": "panels-glassmorphism-application",
+          "story": "As a user, I can see glassmorphism effects on recovery panels so that information has modern visual depth",
+          "acceptanceCriteria": [
             "browser_verify: exists .glass-panel:first-child",
             "browser_verify: css .glass-panel backdrop-filter contains blur"
           ],
           "prerequisites": [
-            "GlassPanel component is available",
-            "Grid system is working",
-            "Recovery data is loading"
+            "Panels grid layout exists",
+            "GlassPanel component is available"
           ],
-          "implementation": "Create 12-column grid with glassmorphism panels for recovery chart and progress indicators",
-          "rollbackProcedure": "Restore original recovery timeline layout",
-          "estimatedMinutes": 40
+          "implementation": "Apply glassmorphism styling to recovery data panels using GlassPanel component",
+          "rollbackProcedure": "Remove glassmorphism styling and use regular panels",
+          "estimatedMinutes": 25
         },
         {
           "id": "hero-typography",
@@ -187,76 +237,163 @@
       ],
       "userStories": [
         {
-          "id": "gradient-filled-area-chart",
-          "story": "As a user, I can see recovery progress as gradient-filled area charts so that the visualization is more visually appealing than basic line charts",
+          "id": "area-chart-conversion",
+          "story": "As a user, I can see recovery data as area charts instead of line charts so that the visualization has more visual weight",
           "acceptanceCriteria": [
             "browser_verify: exists .enhanced-recovery-chart",
-            "browser_verify: exists .recharts-area",
-            "browser_verify: inspect-svg .recharts-area fill contains url(#gradient",
-            "browser_verify: exists defs linearGradient"
+            "browser_verify: exists .recharts-area"
           ],
           "prerequisites": [
             "Recharts AreaChart component is available",
-            "Recovery data structure supports area charts",
-            "SVG gradients can be defined"
+            "Recovery data structure supports area charts"
           ],
-          "implementation": "Replace Recharts LineChart with AreaChart and add gradient fills using SVG linearGradient definitions",
-          "rollbackProcedure": "Restore original LineChart without gradients",
-          "estimatedMinutes": 50
+          "implementation": "Replace Recharts LineChart with AreaChart component",
+          "rollbackProcedure": "Restore original LineChart component",
+          "estimatedMinutes": 25
         },
         {
-          "id": "floating-progress-rings",
-          "story": "As a user, I can see circular progress rings for recovery phases so that progress is visualized in a modern, intuitive way",
+          "id": "area-chart-gradients",
+          "story": "As a user, I can see gradient fills in area charts so that the visualization is more visually appealing",
+          "acceptanceCriteria": [
+            "browser_verify: inspect-svg .recharts-area fill contains url(#gradient",
+            "browser_verify: exists defs linearGradient"
+          ],
+          "edgeCases": [
+            "If gradients not supported: fallback to solid fill colors",
+            "If SVG rendering fails: show basic area chart without gradients"
+          ],
+          "prerequisites": [
+            "Area chart is implemented",
+            "SVG gradients can be defined"
+          ],
+          "implementation": "Add gradient fills to area charts using SVG linearGradient definitions",
+          "rollbackProcedure": "Remove gradient definitions and use solid fills",
+          "estimatedMinutes": 25
+        },
+        {
+          "id": "progress-ring-structure",
+          "story": "As a user, I can see basic circular progress ring structure so that the foundation for progress visualization is established",
           "acceptanceCriteria": [
             "browser_verify: exists .progress-rings-container",
-            "browser_verify: exists .progress-ring svg circle",
-            "browser_verify: css .progress-ring stroke-dasharray exists",
-            "browser_verify: class .progress-rings-container contains animate-float"
+            "browser_verify: exists .progress-ring svg circle"
           ],
           "prerequisites": [
             "SVG circle elements can be created",
-            "stroke-dasharray animation is supported",
             "Recovery phase data is available"
           ],
-          "implementation": "Create floating circular progress indicators using SVG with animated stroke-dasharray for recovery phases",
-          "rollbackProcedure": "Remove progress rings component",
-          "estimatedMinutes": 60
+          "implementation": "Create basic SVG circle structure for progress rings without animations",
+          "rollbackProcedure": "Remove progress ring SVG elements",
+          "estimatedMinutes": 20
         },
         {
-          "id": "particle-animation-system",
-          "story": "As a user, I can see particle animations following the recovery curve so that the chart feels dynamic and engaging",
+          "id": "progress-ring-animation",
+          "story": "As a user, I can see progress rings animate their stroke so that completion percentage is visually communicated",
+          "acceptanceCriteria": [
+            "browser_verify: exists .progress-ring svg circle",
+            "browser_verify: css .progress-ring stroke-dasharray exists"
+          ],
+          "prerequisites": [
+            "Progress ring structure exists",
+            "stroke-dasharray animation is supported"
+          ],
+          "implementation": "Add stroke-dasharray animation to show progress completion percentage",
+          "rollbackProcedure": "Remove stroke-dasharray animation styles",
+          "estimatedMinutes": 20
+        },
+        {
+          "id": "progress-ring-floating",
+          "story": "As a user, I can see progress rings with subtle floating animation so that they feel dynamic and polished",
+          "acceptanceCriteria": [
+            "browser_verify: exists .progress-rings-container",
+            "browser_verify: class .progress-rings-container contains animate-float"
+          ],
+          "prerequisites": [
+            "Progress rings are functional",
+            "Animation utilities are available"
+          ],
+          "implementation": "Add floating animation to progress ring containers",
+          "rollbackProcedure": "Remove floating animation classes",
+          "estimatedMinutes": 15
+        },
+        {
+          "id": "particle-dot-creation",
+          "story": "As a user, I can see particle dots in the chart area so that the foundation for curve animations is established",
           "acceptanceCriteria": [
             "browser_verify: exists .particle-container",
             "browser_verify: exists .particle-dot",
-            "browser_verify: css .particle-dot position contains absolute",
-            "browser_verify: class .particle-dot contains animate-pulse"
+            "browser_verify: css .particle-dot position contains absolute"
           ],
           "prerequisites": [
             "Recovery curve path data is available",
-            "CSS animations are working",
-            "Particle positioning can be calculated"
+            "CSS positioning is working"
           ],
-          "implementation": "Create particle animation system with dots that follow the recovery curve path using CSS transforms and animations",
-          "rollbackProcedure": "Remove particle animation components",
-          "estimatedMinutes": 70
+          "implementation": "Create basic particle dot components with absolute positioning in a container",
+          "rollbackProcedure": "Remove particle container and dot elements",
+          "estimatedMinutes": 25
         },
         {
-          "id": "interactive-chart-tooltips",
-          "story": "As a user, I can see enhanced tooltips with modern styling so that chart data is presented with professional appearance",
+          "id": "particle-path-animation",
+          "story": "As a user, I can see particles move along the recovery curve so that the chart shows dynamic progression",
+          "acceptanceCriteria": [
+            "browser_verify: exists .particle-dot",
+            "browser_verify: css .particle-dot transform contains translateX",
+            "browser_verify: css .particle-dot animation-duration exists"
+          ],
+          "prerequisites": [
+            "Particle dots are created and positioned",
+            "Recovery curve path data is available",
+            "CSS animations are working"
+          ],
+          "implementation": "Implement path following animation logic using CSS transforms to move particles along recovery curve",
+          "rollbackProcedure": "Remove path animation CSS and transform styles",
+          "estimatedMinutes": 25
+        },
+        {
+          "id": "particle-pulse-effects",
+          "story": "As a user, I can see particle dots pulse and fade so that the animation feels polished and engaging",
+          "acceptanceCriteria": [
+            "browser_verify: exists .particle-dot",
+            "browser_verify: class .particle-dot contains animate-pulse",
+            "browser_verify: css .particle-dot opacity exists"
+          ],
+          "prerequisites": [
+            "Particle dots are created",
+            "Path animation is working",
+            "CSS animation utilities are available"
+          ],
+          "implementation": "Add pulse and fade effects to particle dots using CSS animations",
+          "rollbackProcedure": "Remove pulse animation classes and opacity styles",
+          "estimatedMinutes": 20
+        },
+        {
+          "id": "custom-tooltip-structure",
+          "story": "As a user, I can see custom tooltip components so that chart data can be presented with enhanced styling",
           "acceptanceCriteria": [
             "browser_verify: hover .recharts-area",
-            "browser_verify: exists .custom-tooltip",
+            "browser_verify: exists .custom-tooltip"
+          ],
+          "prerequisites": [
+            "Recharts tooltip customization is supported",
+            "Hover interactions work properly"
+          ],
+          "implementation": "Create custom tooltip components to replace default Recharts tooltips",
+          "rollbackProcedure": "Restore default Recharts tooltip components",
+          "estimatedMinutes": 20
+        },
+        {
+          "id": "tooltip-glassmorphism-styling",
+          "story": "As a user, I can see tooltips with glassmorphism effects so that chart data presentation feels modern and polished",
+          "acceptanceCriteria": [
             "browser_verify: css .custom-tooltip background contains rgba",
             "browser_verify: css .custom-tooltip backdrop-filter contains blur"
           ],
           "prerequisites": [
-            "Recharts tooltip customization is supported",
-            "Glassmorphism styles are available",
-            "Hover interactions work properly"
+            "Custom tooltip structure exists",
+            "Glassmorphism styles are available"
           ],
-          "implementation": "Enhance Recharts tooltips with glassmorphism styling, better typography, and smooth animations",
-          "rollbackProcedure": "Restore default Recharts tooltips",
-          "estimatedMinutes": 35
+          "implementation": "Apply glassmorphism styling and better typography to custom tooltips",
+          "rollbackProcedure": "Remove glassmorphism styles from tooltips",
+          "estimatedMinutes": 15
         }
       ]
     },
@@ -282,6 +419,11 @@
             "browser_verify: css .treatment-plan-glass-card background contains rgba",
             "browser_verify: css .treatment-plan-glass-card border contains rgba"
           ],
+          "browserCompatibility": [
+            "If backdrop-filter unsupported: apply solid background with rgba(255, 255, 255, 0.2)",
+            "If CSS variables unsupported: use hardcoded RGBA values",
+            "Include @supports queries for progressive enhancement"
+          ],
           "prerequisites": [
             "TreatmentPlanCard can be wrapped in GlassPanel",
             "Treatment plan data is available"
@@ -291,54 +433,103 @@
           "estimatedMinutes": 30
         },
         {
-          "id": "intervention-badges-gradients",
-          "story": "As a user, I can see treatment interventions with gradient badges so that priorities and types are visually distinct",
+          "id": "intervention-badge-structure",
+          "story": "As a user, I can see intervention badges with proper classification so that different priority levels are structured",
           "acceptanceCriteria": [
             "browser_verify: exists .intervention-badge",
-            "browser_verify: css .intervention-badge.critical background contains gradient",
-            "browser_verify: css .intervention-badge.recommended background contains gradient",
+            "browser_verify: exists .intervention-badge.critical",
+            "browser_verify: exists .intervention-badge.recommended",
             "browser_verify: exists .intervention-badge.optional"
           ],
           "prerequisites": [
             "Intervention data includes priority levels",
-            "Gradient utilities for badges are available"
+            "Badge component structure exists"
           ],
-          "implementation": "Apply gradient backgrounds to intervention badges based on priority (critical, recommended, optional)",
-          "rollbackProcedure": "Restore original badge styling",
-          "estimatedMinutes": 35
+          "implementation": "Create intervention badge components with proper priority classification",
+          "rollbackProcedure": "Remove intervention badge classification",
+          "estimatedMinutes": 15
         },
         {
-          "id": "diagnosis-card-modernization",
-          "story": "As a user, I can see diagnosis information in a modern glassmorphism card so that medical context is presented elegantly",
+          "id": "intervention-badge-gradients",
+          "story": "As a user, I can see gradient backgrounds on intervention badges so that priorities are visually distinct",
+          "acceptanceCriteria": [
+            "browser_verify: css .intervention-badge.critical background contains gradient",
+            "browser_verify: css .intervention-badge.recommended background contains gradient"
+          ],
+          "prerequisites": [
+            "Intervention badge structure exists",
+            "Gradient utilities for badges are available"
+          ],
+          "implementation": "Apply gradient backgrounds to intervention badges based on priority levels",
+          "rollbackProcedure": "Remove gradient styles from intervention badges",
+          "estimatedMinutes": 20
+        },
+        {
+          "id": "diagnosis-glassmorphism-styling",
+          "story": "As a user, I can see diagnosis card with glassmorphism effects so that medical context has modern visual presentation",
           "acceptanceCriteria": [
             "browser_verify: exists .diagnosis-glass-card",
-            "browser_verify: css .diagnosis-glass-card backdrop-filter exists",
+            "browser_verify: css .diagnosis-glass-card backdrop-filter exists"
+          ],
+          "prerequisites": [
+            "Diagnosis card component exists",
+            "GlassPanel component is available"
+          ],
+          "implementation": "Apply glassmorphism styling to diagnosis card using GlassPanel wrapper",
+          "rollbackProcedure": "Remove glassmorphism wrapper from diagnosis card",
+          "estimatedMinutes": 20
+        },
+        {
+          "id": "diagnosis-status-gradients",
+          "story": "As a user, I can see gradient status indicators on diagnosis card so that medical status is visually distinct",
+          "acceptanceCriteria": [
             "browser_verify: exists .diagnosis-status-indicator",
             "browser_verify: css .diagnosis-status-indicator background contains gradient"
           ],
           "prerequisites": [
-            "Diagnosis card component exists",
-            "Diagnosis data is available"
+            "Diagnosis glassmorphism styling exists",
+            "Diagnosis data includes status information"
           ],
-          "implementation": "Apply glassmorphism styling to diagnosis card with gradient status indicators",
-          "rollbackProcedure": "Restore original diagnosis card styling",
-          "estimatedMinutes": 40
+          "implementation": "Add gradient status indicators to diagnosis card based on medical status",
+          "rollbackProcedure": "Remove gradient styling from status indicators",
+          "estimatedMinutes": 20
         },
         {
-          "id": "floating-badge-animations",
-          "story": "As a user, I can see subtle floating animations on badges and indicators so that the interface feels dynamic but not distracting",
+          "id": "badge-float-animations",
+          "story": "As a user, I can see floating animations on badges so that they feel dynamic and engaging",
           "acceptanceCriteria": [
             "browser_verify: class .floating-badge contains animate-float",
-            "browser_verify: css .floating-badge animation-duration exists",
-            "browser_verify: exists .confidence-indicator.animate-pulse-slow"
+            "browser_verify: css .floating-badge animation-duration exists"
+          ],
+          "performanceFallbacks": [
+            "If reduced motion preference: show static badges with hover effects only",
+            "If poor performance detected: fall back to opacity fade instead of transform"
           ],
           "prerequisites": [
             "Float animation utilities are available",
-            "Performance is acceptable for multiple animations"
+            "Badge components are available"
           ],
-          "implementation": "Add subtle floating animations to badges, confidence indicators, and status elements",
-          "rollbackProcedure": "Remove animation classes from badges",
-          "estimatedMinutes": 35
+          "implementation": "Add floating animations to badge components using CSS animation utilities",
+          "rollbackProcedure": "Remove floating animation classes from badges",
+          "estimatedMinutes": 20
+        },
+        {
+          "id": "indicator-pulse-animations",
+          "story": "As a user, I can see subtle pulse animations on status indicators so that important information draws appropriate attention",
+          "acceptanceCriteria": [
+            "browser_verify: exists .confidence-indicator.animate-pulse-slow"
+          ],
+          "performanceFallbacks": [
+            "If multiple indicators animating: stagger start times to reduce load",
+            "If reduced motion preference: disable pulse animations"
+          ],
+          "prerequisites": [
+            "Status indicator components exist",
+            "Animation performance is acceptable"
+          ],
+          "implementation": "Add pulse animations to confidence indicators and status elements",
+          "rollbackProcedure": "Remove pulse animation classes from indicators",
+          "estimatedMinutes": 15
         }
       ]
     },
@@ -356,56 +547,97 @@
       ],
       "userStories": [
         {
-          "id": "hero-entrance-animation",
-          "story": "As a user, I can see smooth entrance animations when the Treatment tab loads so that the experience feels polished and professional",
+          "id": "hero-motion-wrapper",
+          "story": "As a user, I can see a motion-enabled hero container so that the foundation for entrance animations is established",
           "acceptanceCriteria": [
             "browser_verify: click [data-value='treatment']",
-            "browser_verify: exists .hero-motion-container",
-            "browser_verify: css .hero-motion-container opacity initially 0",
-            "browser_verify: wait 1000",
-            "browser_verify: css .hero-motion-container opacity equals 1"
+            "browser_verify: exists .hero-motion-container"
           ],
           "prerequisites": [
             "Framer Motion components can be imported",
             "Hero section is stable"
           ],
-          "implementation": "Add Framer Motion entrance animations to hero section with staggered children animations",
-          "rollbackProcedure": "Remove Framer Motion wrappers from hero section",
-          "estimatedMinutes": 45
+          "implementation": "Add Framer Motion wrapper components to hero section structure",
+          "rollbackProcedure": "Remove Framer Motion wrapper components",
+          "estimatedMinutes": 20
         },
         {
-          "id": "panel-stagger-animation",
-          "story": "As a user, I can see glassmorphism panels appear with staggered animations so that the layout builds elegantly",
+          "id": "hero-entrance-effects",
+          "story": "As a user, I can see smooth fade-in animation when the Treatment tab loads so that the experience feels polished",
+          "acceptanceCriteria": [
+            "browser_verify: css .hero-motion-container opacity initially 0",
+            "browser_verify: wait 1000",
+            "browser_verify: css .hero-motion-container opacity equals 1"
+          ],
+          "prerequisites": [
+            "Hero motion wrapper exists",
+            "Animation timing is configured"
+          ],
+          "implementation": "Add fade-in entrance animation with proper timing and opacity transitions",
+          "rollbackProcedure": "Remove entrance animation properties",
+          "estimatedMinutes": 25
+        },
+        {
+          "id": "panel-motion-wrappers",
+          "story": "As a user, I can see motion-enabled panels so that the foundation for staggered animations is ready",
           "acceptanceCriteria": [
             "browser_verify: exists .motion-panel:first-child",
-            "browser_verify: exists .motion-panel:last-child",
+            "browser_verify: exists .motion-panel:last-child"
+          ],
+          "prerequisites": [
+            "Glassmorphism panels are working",
+            "Framer Motion is available"
+          ],
+          "implementation": "Add Framer Motion wrapper components to glassmorphism panels",
+          "rollbackProcedure": "Remove motion wrapper components",
+          "estimatedMinutes": 20
+        },
+        {
+          "id": "panel-stagger-effects",
+          "story": "As a user, I can see panels appear with elegant staggered timing so that the layout builds smoothly",
+          "acceptanceCriteria": [
             "browser_verify: wait 500",
             "browser_verify: css .motion-panel:first-child transform not-contains translateY",
             "browser_verify: css .motion-panel:last-child transform not-contains translateY"
           ],
           "prerequisites": [
-            "Glassmorphism panels are working",
+            "Panel motion wrappers exist",
             "Animation performance is acceptable"
           ],
-          "implementation": "Add staggered entrance animations to glassmorphism panels using Framer Motion",
-          "rollbackProcedure": "Remove motion components from panels",
-          "estimatedMinutes": 40
+          "implementation": "Add staggered entrance animations with proper timing delays",
+          "rollbackProcedure": "Remove stagger animation properties",
+          "estimatedMinutes": 20
         },
         {
-          "id": "chart-data-animations",
-          "story": "As a user, I can see charts animate in smoothly when data loads so that the visualization feels responsive and alive",
+          "id": "chart-container-animations",
+          "story": "As a user, I can see chart containers with loading animations so that data loading feels responsive",
           "acceptanceCriteria": [
             "browser_verify: exists .animated-chart-container",
-            "browser_verify: exists .recharts-area",
             "browser_verify: css .animated-chart-container transition exists"
           ],
           "prerequisites": [
             "Enhanced charts are working",
-            "Chart data loading is stable"
+            "Chart containers are identified"
           ],
-          "implementation": "Add smooth data loading animations to enhanced charts using Framer Motion layout animations",
-          "rollbackProcedure": "Remove animation wrappers from charts",
-          "estimatedMinutes": 50
+          "implementation": "Add animation wrappers and loading transitions to chart containers",
+          "rollbackProcedure": "Remove animation container wrappers",
+          "estimatedMinutes": 20
+        },
+        {
+          "id": "chart-data-loading-effects",
+          "story": "As a user, I can see smooth chart data animations so that the visualization feels alive and responsive",
+          "acceptanceCriteria": [
+            "browser_verify: exists .recharts-area",
+            "browser_verify: css .animated-chart-container opacity exists"
+          ],
+          "prerequisites": [
+            "Chart container animations exist",
+            "Chart data loading is stable",
+            "Framer Motion is available"
+          ],
+          "implementation": "Add Framer Motion layout animations for smooth data loading effects",
+          "rollbackProcedure": "Remove Framer Motion animation components",
+          "estimatedMinutes": 30
         },
         {
           "id": "hover-micro-interactions",
@@ -433,7 +665,31 @@
     "browserTimeout": 45000,
     "rollbackOnFailure": true,
     "commitEachStory": true,
-    "pauseBetweenStories": 8000
+    "pauseBetweenStories": 8000,
+    "errorHandling": {
+      "networkTimeoutMs": 30000,
+      "retryAttempts": 3,
+      "retryDelayMs": 2000,
+      "serverHealthCheck": "curl -f http://localhost:5173 || npm run dev &",
+      "fallbackStrategies": [
+        "If server not responding: restart dev server",
+        "If API data missing: show loading states with skeleton UI",
+        "If gradients not rendering: provide solid color fallbacks",
+        "If animations laggy: reduce animation complexity or disable",
+        "If backdrop-filter unsupported: use solid background fallback"
+      ]
+    },
+    "performanceFallbacks": {
+      "animationReducedMotion": "prefers-reduced-motion: reduce",
+      "lowEndDeviceDetection": "navigator.hardwareConcurrency < 4",
+      "frameRateThreshold": 30,
+      "fallbackAnimations": {
+        "particleSystem": "Static dots instead of moving particles",
+        "floatingBadges": "Subtle opacity change instead of transform",
+        "gradientMesh": "Static gradient instead of animated",
+        "panelStagger": "Instant appearance instead of staggered"
+      }
+    }
   },
   "integrationTests": [
     "npm run build",
@@ -447,6 +703,22 @@
       "chartAnimation": "< 1 second",
       "panelTransitions": "< 500ms"
     },
-    "browserSupport": "Chrome 90+, Firefox 88+, Safari 14+, Edge 90+"
+    "browserSupport": "Chrome 90+, Firefox 88+, Safari 14+, Edge 90+",
+    "compatibilityFallbacks": {
+      "backdropFilter": {
+        "unsupportedBrowsers": ["IE", "Chrome < 76", "Firefox < 70", "Safari < 9"],
+        "fallbackStrategy": "Opaque background with rgba(255, 255, 255, 0.15) and subtle border",
+        "detectionMethod": "CSS.supports('backdrop-filter', 'blur(1px)')",
+        "gracefulDegradation": "Maintain visual hierarchy without glass effect"
+      },
+      "cssGrid": {
+        "fallback": "Flexbox layout with manual spacing",
+        "detection": "@supports (display: grid)"
+      },
+      "gradientAnimations": {
+        "fallback": "Static gradients with hover color transitions",
+        "detection": "prefers-reduced-motion query"
+      }
+    }
   }
 }
