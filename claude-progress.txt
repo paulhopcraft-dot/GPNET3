@@ -1,9 +1,98 @@
 # Preventli Progress Snapshot - Session Handoff
 
-**Date:** 2026-01-19
-**Branch:** main
-**Latest Commit:** d8a9ee0 docs: add implementation plans for dashboard fixes
-**Status:** ✅ Planning session complete - 3 plans ready for execution
+**Date:** 2026-01-20
+**Branch:** main + feature/presentations-work worktree
+**Latest Commit:** b5a3f1e feat: enhance presentations with avatar technology and Australian market research
+**Status:** ✅ Enhanced investment presentations completed - Avatar technology and Australian market research integrated
+
+---
+
+## [2026-01-20] - Enhanced Investment Presentations with Avatar Technology
+
+### Completed
+- ✅ **Created isolated git worktree** for presentations development:
+  - **Path:** `C:\Dev\worktrees\presentations-work\presentations\`
+  - **Branch:** `feature/presentations-work`
+  - **7 enhanced slide files + assets ready**
+
+- ✅ **NEW: Avatar-Enhanced Care Coordination Slide** (slide4dot5-avatar.html):
+  - Real-time virtual meetings (doctors, case managers, employers, workers)
+  - HIPAA-compliant WebRTC technology with AI avatar rendering
+  - 40% faster return-to-work coordination
+  - First-to-market avatar meetings in WorkCover compliance
+  - Built on proven voice integration foundation (Whisper STT, Edge TTS)
+
+- ✅ **Enhanced Market Opportunity Data** (slide5-market.html):
+  - Updated with comprehensive Australian workers comp research ($5.3B market)
+  - Mental health claims hitting $1B threshold (5 years ahead of projections)
+  - Complex claims value proposition (20% of claims = 90% of scheme liabilities)
+  - Expanded target market beyond Victoria to all Australian states
+
+- ✅ **Case Management Intelligence** (slide3-solution.html):
+  - AI-powered case categorization for complex vs standard claims
+  - Evidence integrity audit trails
+  - Complexity scoring for targeted resource allocation
+  - Category 2/3 case management insights
+
+- ✅ **Comprehensive Market Research**:
+  - Australian workers comp market size and structure
+  - State-by-state breakdown (NSW, VIC, QLD, WA, SA, TAS, NT, ACT)
+  - Avatar/voice meeting technology trends ($11B market growing 22.5% annually)
+  - Competitive landscape and technology gaps
+
+### Next Steps
+- **PowerPoint Generation**: Convert HTML slides to final Preventli_Enhanced_Investment_Pitch.pptx
+- **Visual Design Polish**: Add avatar mockups and healthcare imagery
+- **Market Validation**: Test messaging with Australian WorkSafe authorities
+- **Avatar Technology Roadmap**: Plan WebRTC/avatar implementation timeline
+- **Investment Pitching**: Use enhanced presentation for funding discussions
+
+### Notes
+- **Strategic Positioning**: Preventli now positioned as cutting-edge healthcare technology leader
+- **Market Authority**: Deep understanding of Australian workers comp ($5.3B opportunity)
+- **Technical Differentiation**: Avatar meetings provide competitive moat
+- **Ready for Implementation**: WebRTC foundation and voice integration already exists
+- **Investment Ready**: Enhanced value proposition with clear technology differentiation
+
+---
+
+## Previous Session - [2026-01-20] - Missing Info Prompts Feature Planning
+
+### Completed
+- ✅ Created isolated git worktree for feature development:
+  - **Path:** `C:\Dev\worktrees\missing-info-prompts`
+  - **Branch:** `feature/missing-info-prompts`
+  - **Based on:** main (e56c370)
+- ✅ Explored codebase to understand AI summary, recovery graph, and compliance systems
+- ✅ Designed comprehensive implementation plan for "Missing Information Prompts" feature
+- ✅ Created detailed plan file: `C:\Users\Paul\.claude\plans\expressive-marinating-iverson.md`
+
+### Feature Summary
+AI-powered feature that detects missing data (certificates, injury details, treatment plans) and prompts users to add it via modal dialogs. Integrates at:
+- Case page load (banner alert)
+- AI summary generation
+- Dedicated "Data Quality" tab
+
+### Files to Create
+| File | Purpose |
+|------|---------|
+| `server/services/missingDataService.ts` | Aggregates missing data from existing services |
+| `server/routes/missing-data.ts` | API endpoint |
+| `client/src/hooks/useMissingData.ts` | React Query hook |
+| `client/src/components/MissingInfoBanner.tsx` | Alert banner |
+| `client/src/components/DataQualityPanel.tsx` | Full panel for tab |
+| `client/src/components/dialogs/AddCertificateDialog.tsx` | Certificate entry modal |
+
+### Next Steps
+1. Open worktree folder: `C:\Dev\worktrees\missing-info-prompts`
+2. Run `/status` to resume
+3. Approve plan and begin implementation
+4. Priority: Medical certificates first (most critical for compliance)
+
+### Notes
+- No database changes required - uses existing tables
+- Leverages existing detection logic in clinicalEvidence.ts and certificateCompliance.ts
+- Plan file location: `C:\Users\Paul\.claude\plans\expressive-marinating-iverson.md`
 
 ---
 
