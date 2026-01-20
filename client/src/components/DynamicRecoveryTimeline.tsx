@@ -258,14 +258,17 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
 
       {/* Main content */}
       <div className="relative z-10 space-y-6">
-        {/* Header with injury type and status */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        {/* Hero Typography Section */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <Activity className="h-5 w-5 text-primary" />
-            Recovery Timeline: {data.injuryTypeLabel}
-          </h3>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h1 className="hero-title text-4xl font-bold text-white mb-2 flex items-center gap-3">
+            <Activity className="h-8 w-8 text-white/90" />
+            Recovery Dashboard
+          </h1>
+          <h2 className="text-xl font-semibold text-white/90 mb-1">
+            {data.injuryTypeLabel} Recovery Timeline
+          </h2>
+          <p className="text-sm text-white/70 mt-1">
             Injury Date: {formatDate(data.injuryDate)} | Duration: {data.weeksElapsed} weeks
           </p>
         </div>
