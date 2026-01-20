@@ -10,7 +10,7 @@ import type {
 } from "@shared/schema";
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
-import { RecoveryChart } from "./RecoveryChart";
+import { DynamicRecoveryTimeline } from "./DynamicRecoveryTimeline";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { TerminationPanel } from "./TerminationPanel";
@@ -1105,14 +1105,8 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
             </Card>
           )}
 
-          <div>
-            <h3 className="text-sm font-medium text-muted-foreground mb-3">Recovery Timeline</h3>
-            <RecoveryChart
-              injuryDate={workerCase.dateOfInjury}
-              expectedRecoveryDate={expectedRecoveryDate.toISOString()}
-              certificates={timeline}
-            />
-          </div>
+          {/* Phase 3-4 Recovery Timeline with dual-track visualization */}
+          <DynamicRecoveryTimeline caseId={workerCase.id} />
 
           <TerminationPanel workerCase={workerCase} />
 
