@@ -107,6 +107,17 @@ export const RecoveryChart: React.FC<RecoveryChartProps> = ({
       bg-gradient-to-br from-purple-900/20 via-blue-900/20 to-teal-900/20
       before:absolute before:inset-0 before:bg-gradient-mesh before:opacity-20
     ">
+      {/* Gradient mesh background */}
+      <div className="gradient-mesh-background absolute inset-0 opacity-30"
+           style={{
+             background: `
+               radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+               radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
+               radial-gradient(circle at 40% 80%, rgba(119, 198, 255, 0.3) 0%, transparent 50%)
+             `
+           }}>
+      </div>
+
       {/* Background particle effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl animate-pulse-slow"></div>
