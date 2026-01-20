@@ -17,6 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
+import { GlassPanel } from "@/components/ui/glass-panel";
 import { cn } from "@/lib/utils";
 import {
   AlertCircle,
@@ -396,7 +397,7 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
       {/* Glassmorphism Recovery Data Panels Grid */}
       <div className="glassmorphism-panels-grid grid grid-cols-12 gap-4 mt-6">
         {/* Recovery Phase Panel - Spans 4 columns */}
-        <div className="col-span-12 md:col-span-4 glass-panel p-4 rounded-lg">
+        <GlassPanel className="col-span-12 md:col-span-4 p-4" variant="gradient">
           <h4 className="text-sm font-semibold text-white/90 mb-2 flex items-center gap-2">
             <Activity className="h-4 w-4" />
             Recovery Phase
@@ -407,10 +408,10 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
           <div className="text-xs text-white/70">
             Current phase: {data.weeksOffWork > 8 ? 'Extended' : data.weeksOffWork > 4 ? 'Mid-term' : 'Early'}
           </div>
-        </div>
+        </GlassPanel>
 
         {/* Capacity Status Panel - Spans 4 columns */}
-        <div className="col-span-12 md:col-span-4 glass-panel p-4 rounded-lg">
+        <GlassPanel className="col-span-12 md:col-span-4 p-4" variant="gradient">
           <h4 className="text-sm font-semibold text-white/90 mb-2 flex items-center gap-2">
             <TrendingUp className="h-4 w-4" />
             Work Capacity
@@ -421,10 +422,10 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
           <div className="text-xs text-white/70">
             {data.currentCapacityPercentage >= 75 ? 'High capacity' : data.currentCapacityPercentage >= 25 ? 'Limited capacity' : 'Unfit for work'}
           </div>
-        </div>
+        </GlassPanel>
 
         {/* Risk Level Panel - Spans 4 columns */}
-        <div className="col-span-12 md:col-span-4 glass-panel p-4 rounded-lg">
+        <GlassPanel className="col-span-12 md:col-span-4 p-4" variant="gradient">
           <h4 className="text-sm font-semibold text-white/90 mb-2 flex items-center gap-2">
             <AlertTriangle className="h-4 w-4" />
             Risk Level
@@ -435,7 +436,7 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
           <div className="text-xs text-white/70">
             Based on injury type and duration
           </div>
-        </div>
+        </GlassPanel>
       </div>
 
       {/* Analysis Summary */}
