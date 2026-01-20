@@ -1235,6 +1235,74 @@ export interface RecoveryFrictionIndex {
   trend: "improving" | "stable" | "worsening" | "unknown";
 }
 
+// =====================================================
+// RECOVERY EVENT MARKERS - Phase 4: Cause-effect story
+// =====================================================
+
+export type RecoveryEventType =
+  | "rtw_attempt"      // Return to work attempt
+  | "duty_change"      // Change in job duties/hours
+  | "intervention"     // Medical intervention/milestone
+  | "risk_flag"        // Clinical risk flag raised
+  | "termination";     // Termination process milestone
+
+export type RecoveryEventSeverity = "positive" | "neutral" | "negative";
+
+export interface RecoveryEventMarker {
+  id: string;
+  week: number;                    // X-axis position on graph
+  type: RecoveryEventType;
+  label: string;                   // Short label for legend
+  description: string;             // Full description for tooltip
+  severity: RecoveryEventSeverity;
+  date: string;                    // ISO date string
+  sourceId?: string;               // Link back to source record (action ID, note ID, etc.)
+  sourceType?: "action" | "note" | "milestone" | "termination";
+}
+
+// Input types for event collection
+export interface CaseAction {
+  id: string;
+  type: string;
+  status: string;
+  dueDate?: Date | string | null;
+  completedAt?: Date | string | null;
+  notes?: string | null;
+  description?: string | null;
+  createdAt?: Date | string | null;
+}
+
+export interface DiscussionNote {
+  id: string;
+  timestamp?: Date | string | null;
+  summary: string;
+  riskFlags?: string[] | null;
+  updatesRecoveryTimeline?: boolean | null;
+}
+
+export interface TerminationData {
+  id: string;
+  status: string;
+  agentMeetingDate?: Date | string | null;
+  consultantAppointmentDate?: Date | string | null;
+  preTerminationMeetingDate?: Date | string | null;
+  terminationDecisionDate?: Date | string | null;
+}
+
+export interface TreatmentMilestoneData {
+  weekNumber: number;
+  description: string;
+  completed?: boolean;
+  completedDate?: string;
+}
+
+export interface EventSourceData {
+  actions?: CaseAction[];
+  discussionNotes?: DiscussionNote[];
+  termination?: TerminationData | null;
+  treatmentMilestones?: TreatmentMilestoneData[];
+}
+
 export interface RecoveryTimelineChartData {
   caseId: string;
   workerName: string;
@@ -1267,6 +1335,9 @@ export interface RecoveryTimelineChartData {
   trajectoryProjection: TrajectoryProjection;
   frictionIndex: RecoveryFrictionIndex;
   narrativeCaption: string; // AI-generated one-liner summary
+
+  // Phase 4: Event markers - cause-effect story
+  eventMarkers: RecoveryEventMarker[];
 
   // Injury model info
   riskFactors: string[];
@@ -2076,6 +2147,195 @@ function generateNarrativeCaption(
   return parts.join(" ").replace(/\s+/g, " ").trim();
 }
 
+// =====================================================
+// PHASE 4: COLLECT RECOVERY EVENTS
+// =====================================================
+
+/**
+ * Calculate week number from a date relative to injury date
+ */
+function dateToWeek(date: Date | string | null | undefined, injuryDate: Date): number | null {
+  if (!date) return null;
+  const eventDate = new Date(date);
+  if (isNaN(eventDate.getTime())) return null;
+
+  const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+  const weekNum = Math.round((eventDate.getTime() - injuryDate.getTime()) / msPerWeek);
+  return weekNum >= 0 ? weekNum : null;
+}
+
+/**
+ * Collect recovery events from various data sources
+ * Returns events sorted by week for display on the recovery graph
+ */
+export function collectRecoveryEvents(
+  injuryDate: Date,
+  eventSources: EventSourceData
+): RecoveryEventMarker[] {
+  const events: RecoveryEventMarker[] = [];
+  const { actions, discussionNotes, termination, treatmentMilestones } = eventSources;
+
+  // 1. RTW Attempts from completed review_case actions
+  if (actions) {
+    const rtwActions = actions.filter(
+      (a) => a.type === "review_case" && a.status === "done"
+    );
+    rtwActions.forEach((action, index) => {
+      const eventDate = action.completedAt || action.dueDate;
+      const week = dateToWeek(eventDate, injuryDate);
+      if (week !== null) {
+        events.push({
+          id: `rtw-${action.id}`,
+          week,
+          type: "rtw_attempt",
+          label: "RTW Review",
+          description: action.notes || action.description || "Return to work review completed",
+          severity: "positive",
+          date: new Date(eventDate!).toISOString(),
+          sourceId: action.id,
+          sourceType: "action",
+        });
+      }
+    });
+
+    // Follow-up actions that were completed (could indicate duty changes)
+    const followUpActions = actions.filter(
+      (a) => a.type === "follow_up" && a.status === "done"
+    );
+    followUpActions.forEach((action) => {
+      const eventDate = action.completedAt || action.dueDate;
+      const week = dateToWeek(eventDate, injuryDate);
+      if (week !== null && action.notes?.toLowerCase().includes("dut")) {
+        events.push({
+          id: `duty-${action.id}`,
+          week,
+          type: "duty_change",
+          label: "Duty Update",
+          description: action.notes || "Duties reviewed",
+          severity: "neutral",
+          date: new Date(eventDate!).toISOString(),
+          sourceId: action.id,
+          sourceType: "action",
+        });
+      }
+    });
+  }
+
+  // 2. Discussion notes that update recovery timeline or have risk flags
+  if (discussionNotes) {
+    discussionNotes.forEach((note) => {
+      const week = dateToWeek(note.timestamp, injuryDate);
+      if (week === null) return;
+
+      // Notes that update recovery timeline = duty changes
+      if (note.updatesRecoveryTimeline) {
+        events.push({
+          id: `note-timeline-${note.id}`,
+          week,
+          type: "duty_change",
+          label: "Recovery Update",
+          description: note.summary,
+          severity: "neutral",
+          date: new Date(note.timestamp!).toISOString(),
+          sourceId: note.id,
+          sourceType: "note",
+        });
+      }
+
+      // Notes with risk flags = risk flag events
+      if (note.riskFlags && note.riskFlags.length > 0) {
+        events.push({
+          id: `note-risk-${note.id}`,
+          week,
+          type: "risk_flag",
+          label: "Risk Flag",
+          description: `${note.summary} (Flags: ${note.riskFlags.join(", ")})`,
+          severity: "negative",
+          date: new Date(note.timestamp!).toISOString(),
+          sourceId: note.id,
+          sourceType: "note",
+        });
+      }
+    });
+  }
+
+  // 3. Treatment milestones that were completed
+  if (treatmentMilestones) {
+    treatmentMilestones
+      .filter((m) => m.completed && m.completedDate)
+      .forEach((milestone, index) => {
+        const week = dateToWeek(milestone.completedDate, injuryDate);
+        if (week !== null) {
+          events.push({
+            id: `milestone-${index}-${milestone.weekNumber}`,
+            week,
+            type: "intervention",
+            label: "Milestone",
+            description: `${milestone.description} completed`,
+            severity: "positive",
+            date: new Date(milestone.completedDate!).toISOString(),
+            sourceType: "milestone",
+          });
+        }
+      });
+  }
+
+  // 4. Termination process milestones
+  if (termination) {
+    const terminationMilestones: Array<{
+      date: Date | string | null | undefined;
+      label: string;
+      description: string;
+    }> = [
+      {
+        date: termination.agentMeetingDate,
+        label: "Agent Meeting",
+        description: "Agent meeting held as part of termination process",
+      },
+      {
+        date: termination.consultantAppointmentDate,
+        label: "Consultant Appt",
+        description: "Consultant appointment completed",
+      },
+      {
+        date: termination.preTerminationMeetingDate,
+        label: "Pre-Term Meeting",
+        description: "Pre-termination meeting held",
+      },
+      {
+        date: termination.terminationDecisionDate,
+        label: "Decision Made",
+        description: "Termination decision finalized",
+      },
+    ];
+
+    terminationMilestones.forEach((tm, index) => {
+      const week = dateToWeek(tm.date, injuryDate);
+      if (week !== null) {
+        events.push({
+          id: `term-${termination.id}-${index}`,
+          week,
+          type: "termination",
+          label: tm.label,
+          description: tm.description,
+          severity: "negative",
+          date: new Date(tm.date!).toISOString(),
+          sourceId: termination.id,
+          sourceType: "termination",
+        });
+      }
+    });
+  }
+
+  // Sort by week, then by date within each week
+  events.sort((a, b) => {
+    if (a.week !== b.week) return a.week - b.week;
+    return new Date(a.date).getTime() - new Date(b.date).getTime();
+  });
+
+  return events;
+}
+
 /**
  * Generate complete recovery timeline chart data for a case
  */
@@ -2086,7 +2346,8 @@ export function generateRecoveryTimelineChartData(
   summary: string,
   riskLevel: RiskLevel,
   clinicalFlags: ClinicalEvidenceFlag[],
-  certificates: MedicalCertificate[]
+  certificates: MedicalCertificate[],
+  eventSources?: EventSourceData
 ): RecoveryTimelineChartData {
   const injuryDate = new Date(dateOfInjury);
   const currentDate = new Date();
@@ -2162,6 +2423,9 @@ export function generateRecoveryTimelineChartData(
     injuryTypeLabel
   );
 
+  // Phase 4: Collect recovery events
+  const eventMarkers = collectRecoveryEvents(injuryDate, eventSources ?? {});
+
   return {
     caseId,
     workerName,
@@ -2184,6 +2448,7 @@ export function generateRecoveryTimelineChartData(
     trajectoryProjection,
     frictionIndex,
     narrativeCaption,
+    eventMarkers,
     riskFactors: model.riskFactors,
     suggestedDiagnosticTests: model.diagnosticTests,
     potentialSpecialistReferrals: model.specialistReferrals,

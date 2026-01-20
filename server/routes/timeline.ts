@@ -1,13 +1,14 @@
 import type { Express, Request, Response } from "express";
 import { db } from "../db";
-import { workerCases, medicalCertificates } from "../../shared/schema";
-import { eq, desc } from "drizzle-orm";
+import { workerCases, medicalCertificates, caseActions, caseDiscussionNotes, terminationProcesses } from "../../shared/schema";
+import { eq, desc, asc } from "drizzle-orm";
 import {
   calculateRecoveryTimeline,
   generateRecoveryTimelineChartData,
   extractInjuryType,
   getInjuryModel,
   getAvailableInjuryTypes,
+  type EventSourceData,
 } from "../services/recoveryEstimator";
 import { evaluateClinicalEvidence } from "../services/clinicalEvidence";
 import { logger } from "../lib/logger";
@@ -103,6 +104,46 @@ export function registerTimelineRoutes(app: Express) {
       // Evaluate clinical evidence to get flags
       const clinicalEvidence = evaluateClinicalEvidence(workerCase);
 
+      // Phase 4: Fetch event sources for event markers
+      const [actionsRows, notesRows, terminationRows] = await Promise.all([
+        db.select().from(caseActions).where(eq(caseActions.caseId, id)).orderBy(asc(caseActions.createdAt)),
+        db.select().from(caseDiscussionNotes).where(eq(caseDiscussionNotes.caseId, id)).orderBy(asc(caseDiscussionNotes.timestamp)),
+        db.select().from(terminationProcesses).where(eq(terminationProcesses.workerCaseId, id)).limit(1),
+      ]);
+
+      // Extract treatment milestones from clinical status JSON if available
+      const clinicalStatus = workerCase.clinicalStatusJson as any;
+      const treatmentMilestones = clinicalStatus?.treatmentPlan?.milestones || [];
+
+      // Build event sources
+      const eventSources: EventSourceData = {
+        actions: actionsRows.map((a) => ({
+          id: a.id,
+          type: a.type,
+          status: a.status,
+          dueDate: a.dueDate,
+          notes: a.notes,
+          description: a.notes, // Use notes as description fallback
+          createdAt: a.createdAt,
+        })),
+        discussionNotes: notesRows.map((n) => ({
+          id: n.id,
+          timestamp: n.timestamp,
+          summary: n.summary,
+          riskFlags: n.riskFlags as string[] | null,
+          updatesRecoveryTimeline: n.updatesRecoveryTimeline,
+        })),
+        termination: terminationRows.length > 0 ? {
+          id: terminationRows[0].id,
+          status: terminationRows[0].status,
+          agentMeetingDate: terminationRows[0].agentMeetingDate,
+          consultantAppointmentDate: terminationRows[0].consultantAppointmentDate,
+          preTerminationMeetingDate: terminationRows[0].preTerminationMeetingDate,
+          terminationDecisionDate: terminationRows[0].decisionDate, // Schema uses decisionDate
+        } : null,
+        treatmentMilestones,
+      };
+
       // Generate comprehensive chart data
       const chartData = generateRecoveryTimelineChartData(
         id,
@@ -111,7 +152,8 @@ export function registerTimelineRoutes(app: Express) {
         workerCase.summary || "",
         workerCase.riskLevel as "High" | "Medium" | "Low",
         clinicalEvidence.flags || [],
-        certificates
+        certificates,
+        eventSources
       );
 
       return res.json(chartData);

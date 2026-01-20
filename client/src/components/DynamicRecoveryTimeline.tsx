@@ -43,6 +43,12 @@ import {
   ArrowDownRight,
   Gauge,
   Sparkles,
+  // Phase 4: Event marker icons
+  Briefcase,
+  Clock,
+  HeartPulse,
+  Flag,
+  XCircle,
 } from "lucide-react";
 
 // Types matching the server-side RecoveryTimelineChartData
@@ -125,6 +131,28 @@ interface RecoveryFrictionIndex {
   trend: "improving" | "stable" | "worsening" | "unknown";
 }
 
+// Phase 4: Recovery Event Markers
+type RecoveryEventType =
+  | "rtw_attempt"
+  | "duty_change"
+  | "intervention"
+  | "risk_flag"
+  | "termination";
+
+type RecoveryEventSeverity = "positive" | "neutral" | "negative";
+
+interface RecoveryEventMarker {
+  id: string;
+  week: number;
+  type: RecoveryEventType;
+  label: string;
+  description: string;
+  severity: RecoveryEventSeverity;
+  date: string;
+  sourceId?: string;
+  sourceType?: "action" | "note" | "milestone" | "termination";
+}
+
 interface RecoveryTimelineChartData {
   caseId: string;
   workerName: string;
@@ -148,6 +176,8 @@ interface RecoveryTimelineChartData {
   trajectoryProjection: TrajectoryProjection;
   frictionIndex: RecoveryFrictionIndex;
   narrativeCaption: string;
+  // Phase 4: Event markers
+  eventMarkers: RecoveryEventMarker[];
   riskFactors: string[];
   suggestedDiagnosticTests: string[];
   potentialSpecialistReferrals: string[];
@@ -255,6 +285,8 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
 
   // State for certificate details modal
   const [selectedCert, setSelectedCert] = useState<CertificateMarker | null>(null);
+  // State for event details modal (Phase 4)
+  const [selectedEvent, setSelectedEvent] = useState<RecoveryEventMarker | null>(null);
 
   if (isLoading) {
     return (
@@ -765,6 +797,38 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
                     }}
                   />
                 ))}
+
+                {/* Phase 4: Event markers */}
+                {data.eventMarkers?.map((event) => {
+                  // Color and style based on event type
+                  const eventConfig: Record<RecoveryEventType, { color: string; icon: string }> = {
+                    rtw_attempt: { color: "#22c55e", icon: "RTW" },
+                    duty_change: { color: "#3b82f6", icon: "DC" },
+                    intervention: { color: "#f59e0b", icon: "MI" },
+                    risk_flag: { color: "#ef4444", icon: "RF" },
+                    termination: { color: "#6b7280", icon: "TM" },
+                  };
+                  const config = eventConfig[event.type];
+
+                  return (
+                    <ReferenceLine
+                      key={event.id}
+                      x={event.week}
+                      stroke={config.color}
+                      strokeWidth={2}
+                      strokeDasharray="3 3"
+                      style={{ cursor: "pointer" }}
+                      onClick={() => setSelectedEvent(event)}
+                      label={{
+                        value: config.icon,
+                        position: "insideTopRight",
+                        fill: config.color,
+                        fontSize: 9,
+                        fontWeight: "bold",
+                      }}
+                    />
+                  );
+                })}
               </ComposedChart>
             </ResponsiveContainer>
           </div>
@@ -812,6 +876,37 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
                     </span>
                   </button>
                 ))}
+              </div>
+            )}
+
+            {/* Phase 4: Event markers legend */}
+            {data.eventMarkers && data.eventMarkers.length > 0 && (
+              <div className="flex flex-wrap gap-3 pt-2 border-t">
+                <span className="text-xs text-muted-foreground font-medium">Events:</span>
+                {data.eventMarkers.map((event) => {
+                  const eventConfig: Record<RecoveryEventType, { color: string; label: string; Icon: typeof Briefcase }> = {
+                    rtw_attempt: { color: "#22c55e", label: "RTW Attempt", Icon: Briefcase },
+                    duty_change: { color: "#3b82f6", label: "Duty Change", Icon: Clock },
+                    intervention: { color: "#f59e0b", label: "Intervention", Icon: HeartPulse },
+                    risk_flag: { color: "#ef4444", label: "Risk Flag", Icon: Flag },
+                    termination: { color: "#6b7280", label: "Termination", Icon: XCircle },
+                  };
+                  const config = eventConfig[event.type];
+                  const IconComponent = config.Icon;
+
+                  return (
+                    <button
+                      key={event.id}
+                      onClick={() => setSelectedEvent(event)}
+                      className="flex items-center gap-2 text-xs hover:bg-slate-100 hover:scale-105 rounded px-2 py-1 transition-all duration-200 ease-out"
+                    >
+                      <IconComponent className="h-3 w-3" style={{ color: config.color }} />
+                      <span style={{ color: config.color }}>
+                        W{event.week}: {event.label}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
