@@ -28,6 +28,7 @@ const SessionsPage = lazy(() => import("./pages/SessionsPage"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const CompanyList = lazy(() => import("./pages/admin/CompanyList"));
 const CompanyForm = lazy(() => import("./pages/admin/CompanyForm"));
+
 const CompanySettings = lazy(() => import("./pages/CompanySettings"));
 const CasesPage = lazy(() => import("./pages/CasesPage"));
 const CaseSummaryPage = lazy(() => import("./pages/CaseSummaryPage"));
@@ -60,6 +61,7 @@ export default function App() {
                   <Route path="/login" element={<LoginPage />} />
                   <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                   <Route path="/reset-password" element={<ResetPasswordPage />} />
+
 
                   {/* Main dashboard - immediate load */}
                   <Route

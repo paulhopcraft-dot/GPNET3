@@ -116,9 +116,11 @@
           "story": "As a user, I can see a full-height hero container when I visit the Treatment tab so that the layout takes up the proper viewport space",
           "acceptanceCriteria": [
             "browser_verify: navigate http://localhost:5173",
-            "browser_verify: click [data-value='treatment']",
+            "browser_verify: click text=Selemani Mwomba",
+            "browser_verify: click button[text=Treatment]",
             "browser_verify: exists .immersive-hero-container",
-            "browser_verify: css .immersive-hero-container min-height contains 80vh"
+            "browser_verify: css .immersive-hero-container min-height contains 80vh",
+            "browser_verify: css .immersive-hero-container background contains gradient"
           ],
           "prerequisites": [
             "Treatment tab exists and is clickable",
@@ -133,9 +135,11 @@
           "story": "As a user, I can see vibrant gradient backgrounds in the hero section so that the dashboard has modern visual appeal",
           "acceptanceCriteria": [
             "browser_verify: navigate http://localhost:5173",
-            "browser_verify: click [data-value='treatment']",
+            "browser_verify: click text=Selemani Mwomba",
+            "browser_verify: click button[text=Treatment]",
             "browser_verify: exists .immersive-hero-container",
-            "browser_verify: css .immersive-hero-container background contains gradient"
+            "browser_verify: css .immersive-hero-container background contains gradient",
+            "browser_verify: css .immersive-hero-container background contains linear-gradient"
           ],
           "prerequisites": [
             "Hero container structure is implemented",
@@ -178,6 +182,9 @@
           "id": "panels-grid-layout",
           "story": "As a user, I can see a 12-column grid layout for recovery data so that information is properly structured",
           "acceptanceCriteria": [
+            "browser_verify: navigate http://localhost:5173",
+            "browser_verify: click text=Selemani Mwomba",
+            "browser_verify: click button[text=Treatment]",
             "browser_verify: exists .glassmorphism-panels-grid",
             "browser_verify: class .glassmorphism-panels-grid contains grid-cols-12"
           ],
@@ -193,8 +200,12 @@
           "id": "panels-glassmorphism-application",
           "story": "As a user, I can see glassmorphism effects on recovery panels so that information has modern visual depth",
           "acceptanceCriteria": [
+            "browser_verify: navigate http://localhost:5173",
+            "browser_verify: click text=Selemani Mwomba",
+            "browser_verify: click button[text=Treatment]",
             "browser_verify: exists .glass-panel:first-child",
-            "browser_verify: css .glass-panel backdrop-filter contains blur"
+            "browser_verify: css .glass-panel backdrop-filter contains blur",
+            "browser_verify: css .glass-panel background contains rgba"
           ],
           "prerequisites": [
             "Panels grid layout exists",
@@ -274,6 +285,9 @@
           "id": "progress-ring-structure",
           "story": "As a user, I can see basic circular progress ring structure so that the foundation for progress visualization is established",
           "acceptanceCriteria": [
+            "browser_verify: navigate http://localhost:5173",
+            "browser_verify: click text=Selemani Mwomba",
+            "browser_verify: click button[text=Treatment]",
             "browser_verify: exists .progress-rings-container",
             "browser_verify: exists .progress-ring svg circle"
           ],
@@ -319,6 +333,9 @@
           "id": "particle-dot-creation",
           "story": "As a user, I can see particle dots in the chart area so that the foundation for curve animations is established",
           "acceptanceCriteria": [
+            "browser_verify: navigate http://localhost:5173",
+            "browser_verify: click text=Selemani Mwomba",
+            "browser_verify: click button[text=Treatment]",
             "browser_verify: exists .particle-container",
             "browser_verify: exists .particle-dot",
             "browser_verify: css .particle-dot position contains absolute"
