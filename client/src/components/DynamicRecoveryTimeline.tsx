@@ -242,7 +242,7 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
       "immersive-hero-container space-y-6",
       "min-h-[80vh] relative overflow-hidden",
       "bg-gradient-to-br from-purple-900/20 via-blue-900/20 to-teal-900/20",
-      "before:absolute before:inset-0 before:bg-gradient-mesh before:opacity-20",
+      "before:absolute before:inset-0 before:bg-gradient-mesh before:opacity-20 before:animate-gradient",
       className
     )}>
       {/* Background particle effects */}
@@ -250,6 +250,9 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
         <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl animate-pulse-slow"></div>
         <div className="absolute bottom-1/3 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-float"></div>
         <div className="absolute top-1/2 left-1/2 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl animate-gradient"></div>
+        {/* Gradient overlays for enhanced animation effects */}
+        <div className="gradient-overlay absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-blue-500/5 animate-gradient"></div>
+        <div className="gradient-overlay absolute inset-0 bg-gradient-to-tl from-teal-500/5 via-transparent to-purple-500/5 animate-pulse-slow"></div>
       </div>
 
       {/* Main content */}
