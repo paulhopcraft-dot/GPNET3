@@ -238,9 +238,24 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
   };
 
   return (
-    <div className={cn("space-y-6", className)}>
-      {/* Header with injury type and status */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className={cn(
+      "immersive-hero-container space-y-6",
+      "min-h-[80vh] relative overflow-hidden",
+      "bg-gradient-to-br from-purple-900/20 via-blue-900/20 to-teal-900/20",
+      "before:absolute before:inset-0 before:bg-gradient-mesh before:opacity-20",
+      className
+    )}>
+      {/* Background particle effects */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl animate-pulse-slow"></div>
+        <div className="absolute bottom-1/3 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-float"></div>
+        <div className="absolute top-1/2 left-1/2 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl animate-gradient"></div>
+      </div>
+
+      {/* Main content */}
+      <div className="relative z-10 space-y-6">
+        {/* Header with injury type and status */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h3 className="text-lg font-semibold flex items-center gap-2">
             <Activity className="h-5 w-5 text-primary" />
@@ -582,16 +597,17 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
         </Card>
       </div>
 
-      {/* Estimated RTW */}
-      <div className="text-center text-sm text-muted-foreground border-t pt-4">
-        <p>
-          Estimated Return to Work: <strong>{formatDate(data.estimatedRTWDate)}</strong>
-          {" "}({data.estimatedWeeks} weeks from injury)
-        </p>
-        <p className="text-xs mt-1">
-          This timeline is advisory only and based on typical recovery patterns for{" "}
-          {data.injuryTypeLabel.toLowerCase()}. Individual recovery may vary.
-        </p>
+        {/* Estimated RTW */}
+        <div className="text-center text-sm text-muted-foreground border-t pt-4">
+          <p>
+            Estimated Return to Work: <strong>{formatDate(data.estimatedRTWDate)}</strong>
+            {" "}({data.estimatedWeeks} weeks from injury)
+          </p>
+          <p className="text-xs mt-1">
+            This timeline is advisory only and based on typical recovery patterns for{" "}
+            {data.injuryTypeLabel.toLowerCase()}. Individual recovery may vary.
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -102,7 +102,20 @@ export const RecoveryChart: React.FC<RecoveryChartProps> = ({
   });
 
   return (
-    <div className="w-full h-64 mt-4">
+    <div className="
+      immersive-hero-container w-full min-h-[80vh] relative overflow-hidden mt-4
+      bg-gradient-to-br from-purple-900/20 via-blue-900/20 to-teal-900/20
+      before:absolute before:inset-0 before:bg-gradient-mesh before:opacity-20
+    ">
+      {/* Background particle effects */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl animate-pulse-slow"></div>
+        <div className="absolute bottom-1/3 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-float"></div>
+        <div className="absolute top-1/2 left-1/2 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl animate-gradient"></div>
+      </div>
+
+      {/* Main chart content */}
+      <div className="relative z-10 w-full h-64 p-4">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={chartData} margin={{ top: 5, right: 20, bottom: 20, left: 0 }}>
           <CartesianGrid strokeDasharray="3 3" />
@@ -160,7 +173,8 @@ export const RecoveryChart: React.FC<RecoveryChartProps> = ({
       </ResponsiveContainer>
 
       <div className="text-xs text-gray-500 mt-2 text-center">
-        Current week: {currentWeek} of {totalWeeks} – based on injury date
+        Current week: {currentWeek} of {totalWeeks} ï¿½ based on injury date
+      </div>
       </div>
     </div>
   );
