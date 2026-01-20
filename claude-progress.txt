@@ -880,18 +880,58 @@ for (let week = 0; week <= lastCertWeek; week++) {
 
 ---
 
-  ## Session [N] - 2026-01-16
+## Session 2026-01-20 - Andres Nieto Summary Generation Issue Investigation
 
-  ### Completed
-  - Company filtering bug FIXED (queryClient.ts URL parameter handling)
-  - Action queue navigation IMPLEMENTED (clickable worker names → case details)
-  - Both fixes committed and pushed to main branch by GPT-5 nano
+### Context Window & Issue Status
+- **Context Usage:** ~65-70% - Moderate usage, safe to complete current task
+- **Issue:** User reports Andres Nieto (FD-43714) summary is "still incorrect" and "worse, no real summary just very basic"
+- **Expected Content:** Detailed IKON Services employment info, January 7 welfare contact, wage top-up query, physiotherapy appointments
+- **Current Status:** Summary generating with Sonnet 4 but not producing expected detailed content
 
-  ### Next Steps
-  - Manual testing of company filtering and action queue navigation
-  - Clean up investigation script files (check-users.ts, investigate-andres-certificates.ts, simple-investigate.ts)
+### Investigation Findings
+- **Backend Server:** Running successfully on port 5000 - confirmed via logs
+- **Summary Generation:** Working with Sonnet 4 (lines 148-153, 172-177, 187-192, 194-209 in logs)
+- **API Calls:** Successful summary generation for FD-43714 with 1-3 second response times
+- **Contact API:** Returns 400 error (line 179) - contacts extraction from Freshdesk failing
 
-  ### Notes
-  - OpenCode.ai (GPT-5 nano) successfully implemented both admin dashboard fixes
-  - Both features ready for testing at CloudFlare tunnel URL
-  - All major admin dashboard issues now resolved
+### Root Cause Analysis (Plan Mode Investigation)
+From comprehensive plan file investigation:
+1. **Hardcoded Mock Data:** `server/services/summary.ts` contains hardcoded mock content (lines 32-189) that matches user expectations exactly
+2. **Prompt Engineering Issue:** Case-specific instructions hardcoded (line 612) instead of data-driven prompts
+3. **Cache Persistence:** Once generated, summaries cached indefinitely unless ticket updated
+4. **Data Source Issues:** Freshdesk conversation sync may fail silently, leaving discussion notes empty
+
+### Completed
+- ✅ Context usage analysis (65-70% - moderate)
+- ✅ Server log investigation - backend running fine, summary generation successful
+- ✅ Plan mode investigation identified root causes
+- ✅ User clarification: wants quick fix for Andres first, comprehensive system fix later
+
+### Next Steps (Immediate)
+- **Quick Fix:** Clear cached summary for FD-43714 and force regeneration with proper data
+- **Investigation:** Check why expected content (IKON Services, welfare contact) not appearing despite AI generation
+- **System Fix:** Remove hardcoded mock data and prompt injection issues
+
+### Notes
+- Backend server healthy - logs show successful Sonnet 4 summary generation
+- User provided detailed expectation: "Latest Update (8 January 2026) Status: Claim FINALISED | Worker in full-time employment..."
+- Issue appears to be content quality/detail rather than generation failure
+- **Critical:** Need `/fresh` soon due to context usage approaching 70%
+
+---
+
+## Previous Session 2026-01-16
+
+### Completed
+- Company filtering bug FIXED (queryClient.ts URL parameter handling)
+- Action queue navigation IMPLEMENTED (clickable worker names → case details)
+- Both fixes committed and pushed to main branch by GPT-5 nano
+
+### Next Steps
+- Manual testing of company filtering and action queue navigation
+- Clean up investigation script files (check-users.ts, investigate-andres-certificates.ts, simple-investigate.ts)
+
+### Notes
+- OpenCode.ai (GPT-5 nano) successfully implemented both admin dashboard fixes
+- Both features ready for testing at CloudFlare tunnel URL
+- All major admin dashboard issues now resolved
