@@ -357,4 +357,46 @@
     background-attachment: fixed;
     background-size: 100% 100%;
   }
+
+  /* Glassmorphism Effects */
+  .glass-panel {
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    border-radius: 12px;
+  }
+
+  .dark .glass-panel {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  }
+
+  /* Glassmorphism fallback for unsupported browsers */
+  @supports not (backdrop-filter: blur(1px)) {
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .dark .glass-panel {
+      background: rgba(0, 0, 0, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  /* Performance fallback for reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    .glass-panel {
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      background: rgba(255, 255, 255, 0.95);
+    }
+
+    .dark .glass-panel {
+      background: rgba(0, 0, 0, 0.95);
+    }
+  }
 }
