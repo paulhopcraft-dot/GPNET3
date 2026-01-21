@@ -1,9 +1,75 @@
 # Preventli Progress Snapshot - Session Handoff
 
 **Date:** 2026-01-21
-**Branch:** fix/andres-nieto-case-improvements
-**Latest Commit:** 96d73be feat: medical certificate worker alert system complete
-**Status:** 🔧 Authentication System Fix PARTIAL + Needs Final Cookie Path Fix
+**Branch:** feature/rtw-plan-expiry-alerts
+**Latest Commit:** 83dd208 docs: update TODO with RTW plan expiry alerts session progress
+**Status:** 📋 RTW Plan Expiry Screen Alerts - PRD Design Complete + Implementation Plan Ready
+
+---
+
+## Session 14 - 2026-01-21 - RTW Plan Expiry Screen Alerts - PRD Analysis & Implementation Planning
+
+### Completed
+- **✅ PRD-Compliant Design Analysis**: Comprehensive design phase using `/design-prd` skill
+  - ✅ **PRD Constraint Analysis**: Reviewed PRD-3.10 (Notifications), PRD-3.4 (Task Engine), PRD-8 (User Journeys), RTW Intelligence Engine spec
+  - ✅ **Design Options Evaluation**: Analyzed 3 approaches (Dashboard Widget, Email+Task, Hybrid), selected Hybrid approach
+  - ✅ **PRD Compliance Verification**: Confirmed no violations, advisory-only approach, full audit logging
+- **✅ Comprehensive Codebase Exploration**: Deep analysis of existing RTW plan system architecture
+  - ✅ **RTW Data Model**: Analyzed `RTWPlanStatus` lifecycle, clinical status JSON structure, missing expiry fields
+  - ✅ **Notification System**: Mapped certificate expiry patterns, deduplication strategy, worker alert flows
+  - ✅ **Compliance Engine**: Understood rule evaluation, action creation, RTW_PLAN_10WK rule implementation
+  - ✅ **Dashboard Components**: Analyzed existing UI patterns, RTW planner page, action queue integration
+  - ✅ **Task Generation**: Mapped `caseActions` table structure, creation patterns, completion workflows
+- **✅ Implementation Plan Creation**: Detailed 7-phase implementation strategy in plan file
+  - ✅ **Architecture Integration**: Leverages existing notification/compliance/task infrastructure
+  - ✅ **Data Model Extensions**: RTW plan timeline fields, clinical status JSON updates
+  - ✅ **PRD Traceability**: Links all components to specific PRD sections and requirements
+- **✅ Branch Isolation**: Created `feature/rtw-plan-expiry-alerts` branch for clean separation from other work
+
+### Technical Implementation Plan Summary
+**Phase 1**: Data Model Extension (RTW plan timeline fields)
+**Phase 2**: RTW Plan Expiry Detection (compliance engine rules)
+**Phase 3**: Notification System Extension (RTW alert types)
+**Phase 4**: Task Generation Integration (review_case actions)
+**Phase 5**: Dashboard Alert Components (RTW expiry widgets)
+**Phase 6**: API Endpoints (expiry overview, plan extension)
+**Phase 7**: Email Templates (case manager & worker alerts)
+
+### Architecture Insights
+- **Integration Strategy**: Extend existing certificate expiry patterns for RTW plans
+- **Missing Infrastructure**: No RTW plan expiry dates currently tracked - needs schema extension
+- **Leverage Points**: Notification deduplication, compliance rule framework, task generation system
+- **PRD Compliance**: Advisory only, full audit trails, RBAC enforcement, tenant isolation
+
+### Next Steps (Ready for Next Session)
+1. **Execute Implementation Plan**: Use `/build-prd` to implement the 7-phase plan
+2. **Start with Phase 1**: Data model extensions in `shared/schema.ts`
+3. **Follow PRD Constraints**: Ensure all changes align with PRD-3.10, PRD-3.4, PRD-8
+4. **Test Integration**: Verify dashboard alerts, email notifications, task generation
+5. **Update Features Tracking**: Add RTW expiry alerts to features.json with PRD traceability
+
+### Technical Context for Next Session
+- **Plan File**: `C:\Users\Paul\.claude\plans\async-stargazing-flame.md` contains complete implementation strategy
+- **Architecture Mapped**: Full understanding of RTW system, notification patterns, compliance engine
+- **PRD Validated**: Design approved, no scope violations, advisory-only approach confirmed
+- **Branch Ready**: `feature/rtw-plan-expiry-alerts` isolated from other work
+- **Infrastructure Identified**: Clear integration points with existing notification/task/compliance systems
+
+### Critical Files for Implementation
+**Backend**: `shared/schema.ts`, `server/services/complianceEngine.ts`, `server/services/notificationService.ts`, `server/routes/rtw.ts`
+**Frontend**: `client/src/components/dashboard/RTWExpiryAlerts.tsx`, `client/src/pages/GPNet2Dashboard.tsx`
+**Testing**: Unit tests for expiry detection, integration tests for dashboard alerts
+
+### Notes for Next Session
+- **Context Optimization**: Used exploration agent to gather comprehensive system understanding
+- **PRD Discipline**: Followed design-first approach with full constraint analysis
+- **Clean Isolation**: Feature branch prevents conflicts with authentication fixes and ultra-modern dashboard
+- **Implementation Ready**: Plan provides step-by-step roadmap with file-level detail
+
+### Command to Resume Next Session
+```bash
+/status  # Review plan and begin implementation with /build-prd
+```
 
 ---
 
