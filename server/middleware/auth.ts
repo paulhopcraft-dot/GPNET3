@@ -38,7 +38,7 @@ export interface JWTPayload {
 const COOKIE_NAME = "gpnet_auth";
 
 export function authorize(allowedRoles?: UserRole[]) {
-  return (req: AuthRequest, res: Response, next: NextFunction) => {
+  return async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       // Try to get token from httpOnly cookie first (primary method)
       // Fall back to Authorization header for backwards compatibility

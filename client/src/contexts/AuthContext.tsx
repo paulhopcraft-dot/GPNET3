@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchWithCsrf } from "../lib/queryClient";
 
@@ -24,6 +24,7 @@ interface AuthState {
 interface AuthContextValue extends AuthState {
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  refreshAuth: () => Promise<boolean>;
   clearError: () => void;
 }
 
@@ -150,6 +151,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     navigate("/login");
   }
 
+  const refreshAuth = useCallback(async (): Promise<boolean> => {
+    try {
+      const response = await fetch('/api/auth/refresh', {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        // Refresh successful, get updated user data
+        const meResponse = await fetch("/api/auth/me", {
+          credentials: "include",
+        });
+
+        if (meResponse.ok) {
+          const result = await meResponse.json();
+          setState(prev => ({
+            ...prev,
+            user: result.data.user,
+            isAuthenticated: true,
+            error: null,
+          }));
+          return true;
+        }
+      }
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+    }
+
+    // Refresh failed, logout
+    await logout();
+    return false;
+  }, [logout]);
+
   function clearError() {
     setState(prev => ({ ...prev, error: null }));
   }
@@ -158,6 +192,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     ...state,
     login,
     logout,
+    refreshAuth,
     clearError,
   };
 
