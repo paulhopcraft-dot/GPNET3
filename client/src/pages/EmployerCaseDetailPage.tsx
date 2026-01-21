@@ -2,6 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { GlassPanel } from "@/components/ui/glass-panel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -452,37 +453,37 @@ export default function EmployerCaseDetailPage() {
 
               {/* Diagnosis Section */}
               <div className="treatment-right-column">
-                <Card className="diagnosis-section h-full">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <span className="material-symbols-outlined text-primary">diagnosis</span>
-                      Medical Diagnosis
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
+                <GlassPanel className="diagnosis-glass-card h-full" variant="gradient">
+                  <div className="p-6">
+                    <div className="border-b border-white/20 pb-4 mb-6">
+                      <h3 className="flex items-center gap-2 text-base font-semibold text-white">
+                        <span className="material-symbols-outlined text-white/90">diagnosis</span>
+                        Medical Diagnosis
+                      </h3>
+                    </div>
                     <div className="space-y-4">
                       <div>
-                        <h4 className="text-sm font-semibold text-primary mb-2">Primary Diagnosis</h4>
-                        <p className="text-sm">{workerCase.summary || "Diagnosis details pending"}</p>
-                        <p className="text-sm text-muted-foreground">Injury Date: {workerCase.dateOfInjury}</p>
+                        <h4 className="text-sm font-semibold text-white/90 mb-2">Primary Diagnosis</h4>
+                        <p className="text-sm text-white/80">{workerCase.summary || "Diagnosis details pending"}</p>
+                        <p className="text-sm text-white/60">Injury Date: {workerCase.dateOfInjury}</p>
                       </div>
                       <div>
-                        <h4 className="text-sm font-semibold text-primary mb-2">Work Status</h4>
-                        <p className="text-sm">{workerCase.workStatus}</p>
+                        <h4 className="text-sm font-semibold text-white/90 mb-2">Work Status</h4>
+                        <p className="text-sm text-white/80">{workerCase.workStatus}</p>
                       </div>
                       <div>
-                        <h4 className="text-sm font-semibold text-primary mb-2">Risk Level</h4>
+                        <h4 className="text-sm font-semibold text-white/90 mb-2">Risk Level</h4>
                         <Badge className={cn(
-                          workerCase.riskLevel === "High" ? "bg-red-100 text-red-800" :
-                          workerCase.riskLevel === "Medium" ? "bg-amber-100 text-amber-800" :
-                          "bg-emerald-100 text-emerald-800"
+                          workerCase.riskLevel === "High" ? "bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-lg shadow-red-500/25" :
+                          workerCase.riskLevel === "Medium" ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/25" :
+                          "bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-lg shadow-emerald-500/25"
                         )}>
                           {workerCase.riskLevel}
                         </Badge>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </GlassPanel>
               </div>
             </div>
           </div>

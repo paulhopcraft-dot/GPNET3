@@ -108,17 +108,44 @@ interface DynamicRecoveryTimelineProps {
   className?: string;
 }
 
-// Custom tooltip for the chart
+// Enhanced custom tooltip for the chart with modern styling
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white p-3 border rounded-lg shadow-lg">
-        <p className="font-semibold text-sm mb-2">Week {label}</p>
-        {payload.map((entry: any, index: number) => (
-          <p key={index} className="text-sm" style={{ color: entry.color }}>
-            {entry.name}: {entry.value}%
-          </p>
-        ))}
+      <div className="custom-tooltip bg-white/95 backdrop-blur-md p-4 border border-white/20 rounded-xl shadow-2xl backdrop-saturate-150">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-2 h-2 bg-gradient-to-r from-purple-400 to-blue-400 rounded-full"></div>
+          <p className="font-bold text-sm text-gray-900">Week {label}</p>
+        </div>
+        <div className="space-y-2">
+          {payload.map((entry: any, index: number) => (
+            <div key={index} className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: entry.color }}
+                ></div>
+                <span className="text-sm font-medium text-gray-700">
+                  {entry.name}
+                </span>
+              </div>
+              <span
+                className="text-sm font-bold min-w-[3rem] text-right"
+                style={{ color: entry.color }}
+              >
+                {entry.value !== null ? `${Math.round(entry.value)}%` : 'N/A'}
+              </span>
+            </div>
+          ))}
+        </div>
+        {payload.some((entry: any) => entry.payload?.isMissingCertificate) && (
+          <div className="mt-3 pt-2 border-t border-gray-200">
+            <div className="flex items-center gap-2 text-xs text-red-600">
+              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+              <span>Estimated data (missing certificate)</span>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -180,23 +207,70 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
     );
   }
 
-  // Prepare chart data by merging estimated and actual curves
-  const chartData = data.estimatedCurve.map((point) => {
+  // Prepare chart data with missing certificate detection and assumptions - ONLY show up to current week
+  const chartData = data.estimatedCurve
+    .filter(point => point.week <= (data.weeksElapsed || 0))  // Only show up to current week
+    .map((point) => {
     const actualPoint = data.actualCurve.find((a) => a.week === point.week);
+    const certificateExists = data.certificateMarkers.some(cert =>
+      Math.abs(cert.week - point.week) <= 0.5 // Allow for slight week variations
+    );
+
+    // If no actual data but we're past week 1, make assumption based on trend
+    let actualValue = actualPoint?.actualCapacity ?? null;
+    let isMissingCertificate = false;
+
+    if (!actualPoint && point.week <= data.weeksElapsed) {
+      // We should have data for this week but don't - missing certificate
+      isMissingCertificate = true;
+
+      // Make assumption: interpolate between known points or use estimated value
+      const previousActual = data.actualCurve
+        .filter(p => p.week < point.week)
+        .sort((a, b) => b.week - a.week)[0];
+
+      if (previousActual) {
+        // Linear interpolation assumption
+        const weekDiff = point.week - previousActual.week;
+        const estimatedProgress = point.estimatedCapacity - previousActual.actualCapacity;
+        actualValue = Math.max(0, previousActual.actualCapacity + (estimatedProgress * 0.7)); // Conservative 70% of estimated progress
+      } else {
+        // No previous data, assume starting at low capacity
+        actualValue = point.week === 1 ? 0 : point.estimatedCapacity * 0.5;
+      }
+    }
+
     return {
       week: point.week,
       estimated: point.estimatedCapacity,
-      actual: actualPoint?.actualCapacity ?? null,
+      actual: actualValue,
+      isMissingCertificate,
+      certificateExists,
     };
   });
 
-  // Add any actual points that might be beyond the estimated curve
-  data.actualCurve.forEach((actualPoint) => {
+  // Ensure week 1 always has actual value (even if assumed)
+  const week1Point = chartData.find(p => p.week === 1);
+  if (week1Point && week1Point.actual === null) {
+    week1Point.actual = 0; // Start at 0% capacity
+    week1Point.isMissingCertificate = !week1Point.certificateExists;
+  }
+
+  // Add any actual points that might be beyond the estimated curve - ONLY up to current week
+  data.actualCurve
+    .filter(actualPoint => actualPoint.week <= (data.weeksElapsed || 0))  // Only show up to current week
+    .forEach((actualPoint) => {
     if (!chartData.find((c) => c.week === actualPoint.week)) {
+      const certificateExists = data.certificateMarkers.some(cert =>
+        Math.abs(cert.week - actualPoint.week) <= 0.5
+      );
+
       chartData.push({
         week: actualPoint.week,
         estimated: null as any,
         actual: actualPoint.actualCapacity,
+        isMissingCertificate: false,
+        certificateExists,
       });
     }
   });
@@ -297,9 +371,96 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-64">
+          <div className="h-64 relative">
+            {/* Particle Container for Chart Animations */}
+            <div className="particle-container absolute inset-0 pointer-events-none z-10">
+              {/* Generate particle dots along the recovery curve with path animation */}
+              {chartData.slice(0, Math.min(chartData.length, data.weeksElapsed || 0)).map((point, index) => {
+                if (point.actual === null || point.actual === undefined) return null;
+
+                // Calculate position based on chart dimensions and data
+                const xPercent = (point.week / Math.max(...chartData.map(d => d.week))) * 100;
+                const yPercent = 100 - (point.actual / 100) * 100;
+
+                // Calculate path animation for dynamic movement
+                const animationDuration = 3 + (index * 0.5); // Staggered durations
+                const translateXRange = 20; // Pixel range for horizontal movement
+
+                return (
+                  <div
+                    key={`particle-${point.week}`}
+                    className="particle-dot animate-pulse absolute w-2 h-2 bg-green-400/60 rounded-full"
+                    style={{
+                      left: `${Math.max(5, Math.min(95, xPercent))}%`,
+                      top: `${Math.max(10, Math.min(80, yPercent))}%`,
+                      transform: `translate(-50%, -50%) translateX(${Math.sin(index * 0.5) * 10}px)`,
+                      animationDelay: `${index * 0.2}s`,
+                      animationDuration: `${animationDuration}s`,
+                      animationName: 'particlePathMove, particlePulse',
+                      animationIterationCount: 'infinite',
+                      animationDirection: 'alternate',
+                      animationTimingFunction: 'ease-in-out',
+                      opacity: 0.8
+                    }}
+                  />
+                );
+              })}
+
+              {/* Additional floating particles with path animation and pulse */}
+              <div className="particle-dot animate-pulse absolute w-1.5 h-1.5 bg-purple-400/40 rounded-full"
+                   style={{
+                     left: '20%',
+                     top: '30%',
+                     transform: 'translate(-50%, -50%) translateX(0px)',
+                     animationDuration: '4s',
+                     animationName: 'particleFloatPath, particlePulse',
+                     animationIterationCount: 'infinite',
+                     animationDirection: 'alternate',
+                     animationTimingFunction: 'ease-in-out',
+                     opacity: 0.6
+                   }} />
+              <div className="particle-dot animate-pulse absolute w-1.5 h-1.5 bg-blue-400/40 rounded-full"
+                   style={{
+                     left: '50%',
+                     top: '45%',
+                     transform: 'translate(-50%, -50%) translateX(0px)',
+                     animationDuration: '3.5s',
+                     animationName: 'particleFloatPath, particlePulse',
+                     animationIterationCount: 'infinite',
+                     animationDirection: 'alternate',
+                     animationTimingFunction: 'ease-in-out',
+                     animationDelay: '1s',
+                     opacity: 0.6
+                   }} />
+              <div className="particle-dot animate-pulse absolute w-1.5 h-1.5 bg-teal-400/40 rounded-full"
+                   style={{
+                     left: '75%',
+                     top: '25%',
+                     transform: 'translate(-50%, -50%) translateX(0px)',
+                     animationDuration: '4.5s',
+                     animationName: 'particleFloatPath, particlePulse',
+                     animationIterationCount: 'infinite',
+                     animationDirection: 'alternate',
+                     animationTimingFunction: 'ease-in-out',
+                     animationDelay: '2s',
+                     opacity: 0.6
+                   }} />
+            </div>
+
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
+                <defs>
+                  <linearGradient id="estimatedGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.8} />
+                    <stop offset="50%" stopColor="#3b82f6" stopOpacity={0.5} />
+                    <stop offset="100%" stopColor="#06b6d4" stopOpacity={0.2} />
+                  </linearGradient>
+                  <linearGradient id="actualGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#10b981" stopOpacity={0.9} />
+                    <stop offset="50%" stopColor="#059669" stopOpacity={0.6} />
+                    <stop offset="100%" stopColor="#047857" stopOpacity={0.3} />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                 <XAxis
                   dataKey="week"
@@ -323,28 +484,42 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
                 <Tooltip content={<CustomTooltip />} />
                 <Legend />
 
-                {/* Estimated recovery area (dashed outline) */}
+                {/* Estimated recovery area (dashed outline with gradient) */}
                 <Area
                   type="monotone"
                   dataKey="estimated"
-                  stroke="#3b82f6"
+                  stroke="#8b5cf6"
                   strokeWidth={2}
                   strokeDasharray="8 4"
-                  fill="transparent"
+                  fill="url(#estimatedGradient)"
                   name="Estimated Recovery"
                   dot={false}
                 />
 
-                {/* Actual recovery area (solid) */}
+                {/* Actual recovery area (solid with gradient) */}
                 <Area
                   type="monotone"
                   dataKey="actual"
                   stroke="#10b981"
                   strokeWidth={3}
-                  fill="#10b981"
-                  fillOpacity={0.3}
+                  fill="url(#actualGradient)"
                   name="Actual Recovery"
-                  dot={{ r: 4, fill: "#10b981" }}
+                  dot={(props: any) => {
+                    const { cx, cy, payload } = props;
+                    if (payload?.actual === null || payload?.actual === undefined) return null;
+
+                    const isMissing = payload?.isMissingCertificate;
+                    return (
+                      <circle
+                        cx={cx}
+                        cy={cy}
+                        r={isMissing ? 5 : 4}
+                        fill={isMissing ? "#ef4444" : "#10b981"}
+                        stroke={isMissing ? "#dc2626" : "#059669"}
+                        strokeWidth={2}
+                      />
+                    );
+                  }}
                   connectNulls
                 />
 
@@ -445,6 +620,193 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
           </div>
         </GlassPanel>
       </div>
+
+      {/* Progress Rings Container */}
+      <div className="progress-rings-container animate-float mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Recovery Progress Ring */}
+        <div className="progress-ring flex flex-col items-center p-6">
+          <div className="relative w-24 h-24 mb-4">
+            <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+              <circle
+                className="text-white/20"
+                strokeWidth="3"
+                stroke="currentColor"
+                fill="transparent"
+                r="15.915"
+                cx="18"
+                cy="18"
+              />
+              <circle
+                className="text-green-400 transition-all duration-1000 ease-out"
+                strokeWidth="3"
+                strokeDasharray="100"
+                strokeDashoffset={100 - (data.currentCapacityPercentage || 0)}
+                strokeLinecap="round"
+                stroke="currentColor"
+                fill="transparent"
+                r="15.915"
+                cx="18"
+                cy="18"
+                style={{
+                  animation: 'progress-fill 1.5s ease-out forwards'
+                }}
+              />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-lg font-bold text-white">
+                {data.currentCapacityPercentage || 0}%
+              </span>
+            </div>
+          </div>
+          <h5 className="text-sm font-semibold text-white/90 text-center">
+            Work Capacity
+          </h5>
+        </div>
+
+        {/* Time Progress Ring */}
+        <div className="progress-ring flex flex-col items-center p-6">
+          <div className="relative w-24 h-24 mb-4">
+            <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+              <circle
+                className="text-white/20"
+                strokeWidth="3"
+                stroke="currentColor"
+                fill="transparent"
+                r="15.915"
+                cx="18"
+                cy="18"
+              />
+              <circle
+                className="text-blue-400 transition-all duration-1000 ease-out"
+                strokeWidth="3"
+                strokeDasharray="100"
+                strokeDashoffset={100 - Math.min(((data.weeksOffWork || 0) / (data.estimatedWeeks || 12)) * 100, 100)}
+                strokeLinecap="round"
+                stroke="currentColor"
+                fill="transparent"
+                r="15.915"
+                cx="18"
+                cy="18"
+                style={{
+                  animation: 'progress-fill 1.5s ease-out 0.3s forwards'
+                }}
+              />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-lg font-bold text-white">
+                {Math.floor(data.weeksOffWork || 0)}w
+              </span>
+            </div>
+          </div>
+          <h5 className="text-sm font-semibold text-white/90 text-center">
+            Recovery Time
+          </h5>
+        </div>
+
+        {/* Risk Assessment Ring */}
+        <div className="progress-ring flex flex-col items-center p-6">
+          <div className="relative w-24 h-24 mb-4">
+            <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+              <circle
+                className="text-white/20"
+                strokeWidth="3"
+                stroke="currentColor"
+                fill="transparent"
+                r="15.915"
+                cx="18"
+                cy="18"
+              />
+              <circle
+                className={`transition-all duration-1000 ease-out ${
+                  data.riskCategory === 'High' ? 'text-red-400' :
+                  data.riskCategory === 'Medium' ? 'text-yellow-400' :
+                  'text-green-400'
+                }`}
+                strokeWidth="3"
+                strokeDasharray="100"
+                strokeDashoffset={100 - (
+                  data.riskCategory === 'High' ? 85 :
+                  data.riskCategory === 'Medium' ? 60 :
+                  30
+                )}
+                strokeLinecap="round"
+                stroke="currentColor"
+                fill="transparent"
+                r="15.915"
+                cx="18"
+                cy="18"
+                style={{
+                  animation: 'progress-fill 1.5s ease-out 0.6s forwards'
+                }}
+              />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-lg font-bold text-white">
+                {data.riskCategory === 'High' ? 'H' : data.riskCategory === 'Medium' ? 'M' : 'L'}
+              </span>
+            </div>
+          </div>
+          <h5 className="text-sm font-semibold text-white/90 text-center">
+            Risk Level
+          </h5>
+        </div>
+      </div>
+
+      <style jsx>{`
+        @keyframes progress-fill {
+          0% {
+            stroke-dashoffset: 100;
+          }
+          100% {
+            stroke-dashoffset: var(--final-offset);
+          }
+        }
+
+        @keyframes particlePathMove {
+          0% {
+            transform: translate(-50%, -50%) translateX(-15px) translateY(0px);
+            opacity: 0.6;
+          }
+          50% {
+            transform: translate(-50%, -50%) translateX(0px) translateY(-5px);
+            opacity: 1;
+          }
+          100% {
+            transform: translate(-50%, -50%) translateX(15px) translateY(0px);
+            opacity: 0.6;
+          }
+        }
+
+        @keyframes particleFloatPath {
+          0% {
+            transform: translate(-50%, -50%) translateX(-10px) translateY(-3px);
+            opacity: 0.4;
+          }
+          50% {
+            transform: translate(-50%, -50%) translateX(0px) translateY(3px);
+            opacity: 0.7;
+          }
+          100% {
+            transform: translate(-50%, -50%) translateX(10px) translateY(-3px);
+            opacity: 0.4;
+          }
+        }
+
+        @keyframes particlePulse {
+          0% {
+            opacity: 0.4;
+            transform: scale(0.8);
+          }
+          50% {
+            opacity: 0.9;
+            transform: scale(1.2);
+          }
+          100% {
+            opacity: 0.4;
+            transform: scale(0.8);
+          }
+        }
+      `}</style>
 
       {/* Analysis Summary */}
       <Card>

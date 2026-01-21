@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { GlassPanel } from "./ui/glass-panel";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import {
@@ -93,13 +94,13 @@ export function TreatmentPlanCard({ caseId }: TreatmentPlanCardProps) {
   const priorityBadgeClass = (priority?: TreatmentPriority) => {
     switch (priority) {
       case "critical":
-        return "bg-red-100 text-red-800 border-red-200";
+        return "bg-gradient-to-r from-red-500 to-pink-500 text-white border-red-300 shadow-lg shadow-red-500/25";
       case "recommended":
-        return "bg-amber-100 text-amber-800 border-amber-200";
+        return "bg-gradient-to-r from-amber-500 to-orange-500 text-white border-amber-300 shadow-lg shadow-amber-500/25";
       case "optional":
-        return "bg-slate-100 text-slate-800 border-slate-200";
+        return "bg-gradient-to-r from-slate-400 to-slate-500 text-white border-slate-300 shadow-lg shadow-slate-500/25";
       default:
-        return "bg-slate-100 text-slate-800 border-slate-200";
+        return "bg-gradient-to-r from-slate-400 to-slate-500 text-white border-slate-300 shadow-lg shadow-slate-500/25";
     }
   };
 
@@ -142,14 +143,19 @@ export function TreatmentPlanCard({ caseId }: TreatmentPlanCardProps) {
   };
 
   return (
-    <Card data-testid="card-treatment-plan">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <span className="material-symbols-outlined text-primary">fact_check</span>
-          Treatment Plan
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+    <GlassPanel
+      className="treatment-plan-glass-card"
+      variant="gradient"
+      data-testid="card-treatment-plan"
+    >
+      <div className="p-6">
+        <div className="border-b border-white/20 pb-4 mb-6">
+          <h3 className="flex items-center gap-2 text-base font-semibold text-white">
+            <span className="material-symbols-outlined text-white/90">fact_check</span>
+            Treatment Plan
+          </h3>
+        </div>
+        <div>
         {loading && (
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
             <span className="material-symbols-outlined animate-spin text-primary">progress_activity</span>
@@ -260,7 +266,7 @@ export function TreatmentPlanCard({ caseId }: TreatmentPlanCardProps) {
                             {intervention.priority && (
                               <Badge
                                 variant="outline"
-                                className={`text-[10px] font-semibold ${priorityBadgeClass(intervention.priority)}`}
+                                className={`intervention-badge ${intervention.priority} text-[10px] font-semibold ${priorityBadgeClass(intervention.priority)}`}
                               >
                                 {priorityLabel(intervention.priority)}
                               </Badge>
@@ -472,7 +478,8 @@ export function TreatmentPlanCard({ caseId }: TreatmentPlanCardProps) {
             </div>
           </div>
         )}
-      </CardContent>
-    </Card>
+        </div>
+      </div>
+    </GlassPanel>
   );
 }
