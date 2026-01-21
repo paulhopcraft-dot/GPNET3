@@ -13,6 +13,7 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { logger } from "../lib/logger";
 import { validateInjuryDate, type DateValidationResult } from "../lib/dateValidation";
+import { InjuryDateExtractionService, type InjuryDateExtractionResult } from "./injuryDateExtraction";
 
 export interface FreshdeskAttachment {
   id: number;
@@ -926,77 +927,64 @@ export class FreshdeskService {
         .map(word => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ');
 
-      // Validate and parse date of injury with intelligent fallback
+      // Enhanced injury date extraction with AI support
       const ticketCreatedDate = new Date(primaryTicket.created_at);
-      let dateOfInjury: Date = ticketCreatedDate; // Default to ticket creation date
-      let dateSource: "verified" | "extracted" | "fallback" | "unknown" = "fallback";
-      let dateConfidence: "high" | "medium" | "low" = "low";
 
-      // Try 1: Custom field cf_injury_date
-      if (primaryTicket.custom_fields?.cf_injury_date) {
-        const parsedDate = new Date(primaryTicket.custom_fields.cf_injury_date);
-        if (!isNaN(parsedDate.getTime())) {
-          const validation = this.validateInjuryDate(parsedDate, ticketCreatedDate);
-          if (validation.isValid) {
-            dateOfInjury = parsedDate;
-            dateSource = "verified";
-            dateConfidence = "high";
-            logger.freshdesk.debug(`Date from custom field validated`, {
-              ticketId: `FD-${primaryTicket.id}`,
-              worker: workerName,
-              date: dateOfInjury.toISOString().split('T')[0],
-            });
-          } else {
-            logger.freshdesk.warn(`Custom field date validation failed`, {
-              ticketId: `FD-${primaryTicket.id}`,
-              worker: workerName,
-              date: parsedDate.toISOString().split('T')[0],
-              reason: validation.reason,
-            });
-          }
-        }
-      }
-
-      // Try 2: Extract from subject or description
-      if (!dateOfInjury) {
-        const dateFromText = this.extractDateFromText(
-          `${primaryTicket.subject} ${primaryTicket.description_text || ''}`
-        );
-        if (dateFromText) {
-          const validation = this.validateInjuryDate(dateFromText, ticketCreatedDate);
-          if (validation.isValid) {
-            dateOfInjury = dateFromText;
-            dateSource = "extracted";
-            dateConfidence = "medium";
-            logger.freshdesk.debug(`Date extracted from text and validated`, {
-              ticketId: `FD-${primaryTicket.id}`,
-              worker: workerName,
-              date: dateOfInjury.toISOString().split('T')[0],
-            });
-          } else {
-            logger.freshdesk.warn(`Extracted date validation failed`, {
-              ticketId: `FD-${primaryTicket.id}`,
-              worker: workerName,
-              date: dateFromText.toISOString().split('T')[0],
-              reason: validation.reason,
-            });
-          }
-        }
-      }
-
-      // Try 3: Use ticket created date as last resort (but mark it as fallback)
-      if (!dateOfInjury) {
-        dateOfInjury = ticketCreatedDate;
-        dateSource = "fallback";
-        dateConfidence = "low";
-
-        // Log warning for cases where we had to fall back
-        logger.freshdesk.warn(`No valid injury date found, using ticket creation date`, {
+      // Fetch conversations for enhanced context
+      let conversationTexts: string[] = [];
+      try {
+        const conversations = await this.fetchTicketConversations(primaryTicket.id);
+        conversationTexts = conversations
+          .map(conv => conv.body_text || '')
+          .filter(text => text.length > 10); // Filter out very short conversations
+      } catch (error) {
+        logger.freshdesk.warn('Failed to fetch conversations for extraction', {
           ticketId: `FD-${primaryTicket.id}`,
-          worker: workerName,
-          fallbackDate: dateOfInjury.toISOString().split('T')[0],
+          error: error instanceof Error ? error.message : 'Unknown error'
         });
       }
+
+      // TODO: Extract attachment texts (placeholder for future enhancement)
+      const attachmentTexts: string[] = [];
+
+      // Create ticket context for enhanced extraction
+      const ticketContext = {
+        id: primaryTicket.id,
+        subject: primaryTicket.subject,
+        description_text: primaryTicket.description_text,
+        custom_fields: primaryTicket.custom_fields,
+        created_at: primaryTicket.created_at,
+        workerName: displayName,
+        company: companyName
+      };
+
+      // Use enhanced extraction service
+      const extractionService = new InjuryDateExtractionService();
+      const extractionResult: InjuryDateExtractionResult = await extractionService.extractInjuryDate(
+        ticketContext,
+        conversationTexts,
+        attachmentTexts
+      );
+
+      // Map extraction result to case data
+      const dateOfInjury = extractionResult.date || ticketCreatedDate;
+      const dateSource = extractionResult.source;
+      const dateConfidence = extractionResult.confidence;
+      const dateOfInjuryRequiresReview = extractionResult.requiresReview;
+      const dateOfInjuryExtractionMethod = extractionResult.extractionMethod;
+      const dateOfInjurySourceText = extractionResult.sourceText;
+      const dateOfInjuryAiReasoning = extractionResult.aiReasoning;
+
+      logger.freshdesk.info(`Enhanced injury date extraction completed`, {
+        ticketId: `FD-${primaryTicket.id}`,
+        worker: displayName,
+        date: dateOfInjury.toISOString().split('T')[0],
+        source: dateSource,
+        confidence: dateConfidence,
+        method: dateOfInjuryExtractionMethod,
+        requiresReview: dateOfInjuryRequiresReview,
+        hasConversations: conversationTexts.length > 0
+      });
 
       // Validate due date
       let dueDate = "TBD";
@@ -1042,6 +1030,10 @@ export class FreshdeskService {
         dateOfInjury: dateOfInjury.toISOString().split('T')[0],
         dateOfInjurySource: dateSource,
         dateOfInjuryConfidence: dateConfidence,
+        dateOfInjuryRequiresReview: dateOfInjuryRequiresReview,
+        dateOfInjuryExtractionMethod: dateOfInjuryExtractionMethod,
+        dateOfInjurySourceText: dateOfInjurySourceText,
+        dateOfInjuryAiReasoning: dateOfInjuryAiReasoning,
         riskLevel: this.mapPriorityToRiskLevel(primaryTicket.priority),
         workStatus,
         hasCertificate: hasCertificateFlag,

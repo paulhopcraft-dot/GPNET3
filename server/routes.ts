@@ -1111,4 +1111,291 @@ Example next steps based on case status:
     }
   });
 
+  // ===== INJURY DATE REVIEW ENDPOINTS =====
+
+  // Get injury dates requiring review (admin only)
+  app.get("/api/injury-dates/review-queue", authorize(["admin"]), async (req: AuthRequest, res) => {
+    try {
+      const organizationId = req.user!.organizationId;
+
+      // Query cases that require review
+      const reviewCases = await storage.query(`
+        SELECT
+          id,
+          worker_name,
+          company,
+          date_of_injury,
+          date_of_injury_confidence,
+          date_of_injury_source,
+          date_of_injury_extraction_method,
+          date_of_injury_source_text,
+          date_of_injury_ai_reasoning,
+          ticket_ids,
+          created_at
+        FROM worker_cases
+        WHERE organization_id = $1
+          AND date_of_injury_requires_review = true
+        ORDER BY created_at DESC
+        LIMIT 100
+      `, [organizationId]);
+
+      const reviewItems = reviewCases.map(row => ({
+        id: row.id,
+        caseId: row.id,
+        workerName: row.worker_name,
+        company: row.company,
+        currentDate: row.date_of_injury,
+        confidence: row.date_of_injury_confidence || "low",
+        source: row.date_of_injury_source || "unknown",
+        extractionMethod: row.date_of_injury_extraction_method || "fallback",
+        sourceText: row.date_of_injury_source_text,
+        aiReasoning: row.date_of_injury_ai_reasoning,
+        ticketUrl: row.ticket_ids?.[0] ? `https://your-domain.freshdesk.com/a/tickets/${row.ticket_ids[0].replace('FD-', '')}` : undefined,
+        createdAt: row.created_at
+      }));
+
+      logger.audit.info("Injury date review queue accessed", {
+        userId: req.user!.id,
+        organizationId,
+        pendingCount: reviewItems.length
+      });
+
+      res.json({
+        success: true,
+        data: reviewItems
+      });
+    } catch (error) {
+      logger.audit.error("Error fetching injury date review queue", {
+        userId: req.user!.id,
+        organizationId: req.user!.organizationId
+      }, error);
+      res.status(500).json({
+        error: "Failed to fetch review queue",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Accept AI suggestion for injury date (admin only)
+  app.post("/api/injury-dates/:caseId/accept", authorize(["admin"]), async (req: AuthRequest, res) => {
+    try {
+      const { caseId } = req.params;
+      const userId = req.user!.id;
+      const organizationId = req.user!.organizationId;
+
+      // Update the case to mark as reviewed and approved
+      const updateResult = await storage.query(`
+        UPDATE worker_cases
+        SET
+          date_of_injury_requires_review = false,
+          date_of_injury_reviewed_by = $1,
+          date_of_injury_reviewed_at = NOW(),
+          updated_at = NOW()
+        WHERE id = $2 AND organization_id = $3
+        RETURNING worker_name, date_of_injury, date_of_injury_confidence
+      `, [userId, caseId, organizationId]);
+
+      if (updateResult.length === 0) {
+        return res.status(404).json({
+          error: "Case not found",
+          details: "The specified case could not be found or you don't have permission to access it"
+        });
+      }
+
+      const caseInfo = updateResult[0];
+
+      // Log audit event
+      await logAuditEvent({
+        userId,
+        organizationId,
+        eventType: "INJURY_DATE_ACCEPTED" as any,
+        resourceType: "worker_case",
+        resourceId: caseId,
+        metadata: {
+          workerName: caseInfo.worker_name,
+          dateOfInjury: caseInfo.date_of_injury,
+          confidence: caseInfo.date_of_injury_confidence,
+          action: "accept"
+        },
+        ...getRequestMetadata(req),
+      });
+
+      logger.audit.info("Injury date accepted", {
+        userId,
+        organizationId,
+        caseId,
+        workerName: caseInfo.worker_name,
+        dateOfInjury: caseInfo.date_of_injury
+      });
+
+      res.json({
+        success: true,
+        message: "Injury date accepted and marked as reviewed"
+      });
+    } catch (error) {
+      logger.audit.error("Error accepting injury date", {
+        userId: req.user!.id,
+        organizationId: req.user!.organizationId,
+        caseId: req.params.caseId
+      }, error);
+      res.status(500).json({
+        error: "Failed to accept injury date",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Correct injury date with manual input (admin only)
+  app.post("/api/injury-dates/:caseId/correct", authorize(["admin"]), async (req: AuthRequest, res) => {
+    try {
+      const { caseId } = req.params;
+      const { newDate, reason } = req.body;
+      const userId = req.user!.id;
+      const organizationId = req.user!.organizationId;
+
+      // Validate input
+      if (!newDate) {
+        return res.status(400).json({
+          error: "Validation failed",
+          details: "New date is required"
+        });
+      }
+
+      if (!reason || reason.trim().length === 0) {
+        return res.status(400).json({
+          error: "Validation failed",
+          details: "Reason for correction is required"
+        });
+      }
+
+      const correctionDate = new Date(newDate);
+      if (isNaN(correctionDate.getTime())) {
+        return res.status(400).json({
+          error: "Validation failed",
+          details: "Invalid date format"
+        });
+      }
+
+      // Update the case with corrected date and review status
+      const updateResult = await storage.query(`
+        UPDATE worker_cases
+        SET
+          date_of_injury = $1,
+          date_of_injury_source = 'verified',
+          date_of_injury_confidence = 'high',
+          date_of_injury_extraction_method = 'manual_correction',
+          date_of_injury_requires_review = false,
+          date_of_injury_reviewed_by = $2,
+          date_of_injury_reviewed_at = NOW(),
+          date_of_injury_ai_reasoning = $3,
+          updated_at = NOW()
+        WHERE id = $4 AND organization_id = $5
+        RETURNING worker_name, date_of_injury
+      `, [correctionDate, userId, `Manual correction: ${reason.trim()}`, caseId, organizationId]);
+
+      if (updateResult.length === 0) {
+        return res.status(404).json({
+          error: "Case not found",
+          details: "The specified case could not be found or you don't have permission to access it"
+        });
+      }
+
+      const caseInfo = updateResult[0];
+
+      // Log audit event
+      await logAuditEvent({
+        userId,
+        organizationId,
+        eventType: "INJURY_DATE_CORRECTED" as any,
+        resourceType: "worker_case",
+        resourceId: caseId,
+        metadata: {
+          workerName: caseInfo.worker_name,
+          oldDate: req.body.oldDate, // Could be passed in request
+          newDate: correctionDate.toISOString().split('T')[0],
+          reason: reason.trim(),
+          action: "correct"
+        },
+        ...getRequestMetadata(req),
+      });
+
+      logger.audit.info("Injury date corrected", {
+        userId,
+        organizationId,
+        caseId,
+        workerName: caseInfo.worker_name,
+        newDate: correctionDate.toISOString().split('T')[0],
+        reason: reason.trim()
+      });
+
+      res.json({
+        success: true,
+        message: "Injury date corrected successfully"
+      });
+    } catch (error) {
+      logger.audit.error("Error correcting injury date", {
+        userId: req.user!.id,
+        organizationId: req.user!.organizationId,
+        caseId: req.params.caseId
+      }, error);
+      res.status(500).json({
+        error: "Failed to correct injury date",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Get injury date review statistics (admin only)
+  app.get("/api/injury-dates/stats", authorize(["admin"]), async (req: AuthRequest, res) => {
+    try {
+      const organizationId = req.user!.organizationId;
+
+      // Query review statistics
+      const stats = await storage.query(`
+        SELECT
+          COUNT(*) as total_cases,
+          COUNT(CASE WHEN date_of_injury_requires_review = true THEN 1 END) as pending_reviews,
+          COUNT(CASE WHEN date_of_injury_confidence = 'high' THEN 1 END) as high_confidence,
+          COUNT(CASE WHEN date_of_injury_confidence = 'medium' THEN 1 END) as medium_confidence,
+          COUNT(CASE WHEN date_of_injury_confidence = 'low' THEN 1 END) as low_confidence,
+          COUNT(CASE WHEN date_of_injury_extraction_method = 'ai_nlp' THEN 1 END) as ai_extractions,
+          COUNT(CASE WHEN date_of_injury_reviewed_by IS NOT NULL THEN 1 END) as reviewed_cases
+        FROM worker_cases
+        WHERE organization_id = $1
+      `, [organizationId]);
+
+      const result = stats[0] || {
+        total_cases: 0,
+        pending_reviews: 0,
+        high_confidence: 0,
+        medium_confidence: 0,
+        low_confidence: 0,
+        ai_extractions: 0,
+        reviewed_cases: 0
+      };
+
+      res.json({
+        success: true,
+        data: {
+          totalCases: parseInt(result.total_cases),
+          pendingReviews: parseInt(result.pending_reviews),
+          highConfidence: parseInt(result.high_confidence),
+          mediumConfidence: parseInt(result.medium_confidence),
+          lowConfidence: parseInt(result.low_confidence),
+          aiExtractions: parseInt(result.ai_extractions),
+          reviewedCases: parseInt(result.reviewed_cases)
+        }
+      });
+    } catch (error) {
+      logger.audit.error("Error fetching injury date stats", {
+        userId: req.user!.id,
+        organizationId: req.user!.organizationId
+      }, error);
+      res.status(500).json({
+        error: "Failed to fetch statistics",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
 }

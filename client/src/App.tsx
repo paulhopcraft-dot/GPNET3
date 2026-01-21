@@ -40,6 +40,7 @@ const PredictionsPage = lazy(() => import("./pages/PredictionsPage"));
 const RiskDashboardPage = lazy(() => import("./pages/RiskDashboardPage"));
 const AuditLogPage = lazy(() => import("./pages/AuditLogPage"));
 const CertificateReviewPage = lazy(() => import("./pages/CertificateReviewPage"));
+const InjuryDateReviewPage = lazy(() => import("./pages/InjuryDateReviewPage"));
 const ReportsPage = lazy(() => import("./pages/ReportsPage"));
 const EmployerCaseDetailPage = lazy(() => import("./pages/EmployerCaseDetailPage"));
 
@@ -200,6 +201,16 @@ export default function App() {
                       <ProtectedRoute>
                         <Suspense fallback={<PageLoader />}>
                           <CertificateReviewPage />
+                        </Suspense>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/injury-dates/review"
+                    element={
+                      <ProtectedRoute>
+                        <Suspense fallback={<PageLoader />}>
+                          <InjuryDateReviewPage />
                         </Suspense>
                       </ProtectedRoute>
                     }
