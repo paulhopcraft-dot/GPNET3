@@ -1,0 +1,27 @@
+REMOTE ACCESS DETAILS FOR NATALIE
+===================================
+
+URL: [Copy from ngrok terminal] https://xxxxx.ngrok.io
+
+LOGIN CREDENTIALS:
+Email: admin@gpnet.local
+Password: ChangeMe123!
+
+NAVIGATION STEPS:
+1. Open the ngrok URL above
+2. Login with the credentials
+3. Click on "Selemani Mwomba" in the cases list
+4. Look for Treatment/Recovery tabs to see ultra-modern features
+
+ULTRA-MODERN FEATURES TO SHOW:
+✨ Glassmorphism effects (frosted glass panels)
+🌈 Gradient backgrounds
+💓 Pulse animations on confidence indicators
+🎯 Progress rings and particle animations (in Treatment tab)
+
+TROUBLESHOOTING:
+- If "offline" error: restart ngrok
+- If login fails: double-check credentials
+- If no features visible: navigate to Treatment tab
+
+Generated: 2026-01-21
