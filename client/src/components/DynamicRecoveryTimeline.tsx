@@ -1,4 +1,5 @@
 import React from "react";
+import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import {
   LineChart,
@@ -314,14 +315,14 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
   };
 
   return (
-    <div className={cn(
-      "immersive-hero-container space-y-6",
-      "min-h-[80vh] relative overflow-hidden",
-      "bg-gradient-to-br from-purple-900/20 via-blue-900/20 to-teal-900/20",
-      "before:absolute before:inset-0 before:bg-gradient-mesh before:opacity-20 before:animate-gradient",
-      className
-    )}>
-
+    <motion.div
+      className={cn(
+        "hero-motion-container immersive-hero-container space-y-6",
+        "min-h-[80vh] relative overflow-hidden",
+        "bg-gradient-to-br from-purple-900/20 via-blue-900/20 to-teal-900/20",
+        "before:absolute before:inset-0 before:bg-gradient-mesh before:opacity-20 before:animate-gradient",
+        className
+      )}>
 
       {/* Background particle effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -1029,6 +1030,6 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
           </p>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
