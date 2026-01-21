@@ -20,12 +20,12 @@ interface RecoveryChartProps {
   certificates?: MedicalCertificate[];
 }
 
-// Enhanced capacity mapping with more realistic values
+// Official WorkSafe Victoria capacity percentages - CRITICAL COMPLIANCE
 const CAPACITY_TO_PERCENT: Record<WorkCapacity, number> = {
   fit: 100,        // Fully fit for work
-  partial: 65,     // Partial capacity (was 60, now more realistic)
-  unfit: 5,        // Not completely 0 - minimal capacity for measurement
-  unknown: 35,     // Unknown - conservative estimate (was 40, now lower)
+  partial: 50,     // Partial work capacity - WorkSafe Victoria standard
+  unfit: 0,        // Completely unfit for work - WorkSafe Victoria standard
+  unknown: 50,     // Default assumption - WorkSafe Victoria standard
 };
 
 // Color scheme for professional healthcare theming
@@ -127,7 +127,7 @@ export const RecoveryChart: React.FC<RecoveryChartProps> = ({
     const projectionStart =
       certificatePoints.length > 0
         ? certificatePoints[certificatePoints.length - 1]!.actual
-        : 5; // Start with minimal capacity instead of 0
+        : 0; // Start with unfit capacity (WorkSafe Victoria standard)
 
     // Smart projection based on trend
     let projectedEnd = projectionStart;
@@ -144,7 +144,7 @@ export const RecoveryChart: React.FC<RecoveryChartProps> = ({
 
     // Build actual recovery line with interpolation
     const actualLine = [
-      { week: 0, actual: 5 }, // Start with minimal capacity
+      { week: 0, actual: 0 }, // Start with unfit capacity (WorkSafe Victoria standard)
       ...certificatePoints,
       { week: totalWeeks, actual: Math.round(projectedEnd) },
     ].sort((a, b) => a!.week - b!.week);
@@ -167,7 +167,7 @@ export const RecoveryChart: React.FC<RecoveryChartProps> = ({
     });
 
     // Interpolate between known points
-    let runningActual = 5;
+    let runningActual = 0;
     const data = expectedLine.map((point) => {
       if (actualByWeek.has(point.week)) {
         runningActual = actualByWeek.get(point.week)!;
@@ -239,9 +239,9 @@ export const RecoveryChart: React.FC<RecoveryChartProps> = ({
                   'bg-gray-100 text-gray-700'
                 }`}>
                   {selectedCertificate.capacity === 'fit' && 'Fit for Work (100%)'}
-                  {selectedCertificate.capacity === 'partial' && 'Partial Capacity (65%)'}
-                  {selectedCertificate.capacity === 'unfit' && 'Unfit for Work (5%)'}
-                  {selectedCertificate.capacity === 'unknown' && 'Unknown (35%)'}
+                  {selectedCertificate.capacity === 'partial' && 'Partial Capacity (50%)'}
+                  {selectedCertificate.capacity === 'unfit' && 'Unfit for Work (0%)'}
+                  {selectedCertificate.capacity === 'unknown' && 'Unknown (50%)'}
                 </div>
               </div>
               <div>
