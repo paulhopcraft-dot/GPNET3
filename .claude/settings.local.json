@@ -1,4 +1,11 @@
 {
-  "permissions": {},
-  "env": {}
+  "env": {},
+  "permissions": {
+    "allow": [
+      "Bash(git checkout:*)",
+      "Bash(findstr:*)",
+      "Bash(start http://localhost:5000)",
+      "Bash(npx playwright test:*)"
+    ]
+  }
 }
