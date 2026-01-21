@@ -1,11 +1,93 @@
 # Preventli Progress Snapshot - Session Handoff
 
 **Date:** 2026-01-21
-**Branch:** feature/rtw-plan-expiry-alerts
-**Latest Commit:** [to be updated after commit]
-**Status:** ✅ RTW Plan Expiry Screen Alerts - FULLY IMPLEMENTED & READY FOR TESTING
+**Branch:** treatment
+**Latest Commit:** e324412 - Major RecoveryChart improvements with business rules warning
+**Status:** 🎨 RecoveryChart Visual Improvements Complete - ⚠️  Business Rules Need Fixing
 
 ---
+
+## Session 17 - 2026-01-21 - RecoveryChart Professional Redesign
+
+### ✅ COMPLETED - Visual & Interaction Improvements
+- **Professional Healthcare Design:** Clean white card layout replacing busy gradient backgrounds
+- **Interactive Controls:** Toggle buttons for Expected/Actual/Current line visibility
+- **Enhanced Tooltips:** Custom tooltip with variance calculations and current week indicators
+- **Summary Statistics:** Grid showing current vs expected capacity with color-coded variance
+- **Certificate Dots:** Implementation started (click handler structure in place)
+- **Color Scheme:** Healthcare-appropriate emerald/blue/amber professional palette
+- **Typography & Spacing:** Proper medical application styling with clear headers
+
+### ⚠️  CRITICAL ISSUE DISCOVERED - Business Rules Violation
+
+**Problem:** Chart uses incorrect WorkSafe Victoria capacity percentages:
+```typescript
+// ❌ CURRENT (INCORRECT):
+partial: 65%  // Should be 50%
+unfit: 5%     // Should be 0%
+unknown: 35%  // Should be 50%
+
+// ✅ OFFICIAL (from recoveryEstimator.ts):
+partial: 50%  // Partial work capacity
+unfit: 0%     // Completely unfit for work
+unknown: 50%  // Default assumption
+```
+
+**Impact:** Medical/legal compliance risk - recovery charts show wrong capacity calculations
+
+**Root Cause:** Found comprehensive `server/services/recoveryEstimator.ts` (1732 lines) containing:
+- 20+ injury-specific recovery models (trigger finger, carpal tunnel, back strain, etc.)
+- WorkSafe Victoria medical literature-based timelines
+- Phase-based recovery curves (not S-curves)
+- Risk adjustment factors (+2 weeks medium, +4 weeks high risk)
+- Specialist referral guidelines
+
+### 🚧 IN PROGRESS - Certificate Interaction
+- Custom dot component for certificate points only
+- Certificate modal with full medical details
+- Click handlers to view specific certificate data
+- Hover effects and visual feedback
+
+### 📋 NEXT SESSION PRIORITIES
+
+1. **🚨 URGENT - Fix Business Rules:**
+   - Revert capacity percentages to official values (partial=50%, unfit=0%, unknown=50%)
+   - Replace S-curve with phase-based recovery from injury models
+   - Remove custom trend projection (use official medical guidelines)
+   - Test with real certificate data
+
+2. **Complete Certificate Interaction:**
+   - Finish certificate modal implementation
+   - Test click-to-view-certificate functionality
+   - Ensure dots only appear at actual certificate points
+
+3. **Performance Optimization:**
+   - Verify memoization is working properly
+   - Test chart responsiveness with large datasets
+   - Profile rendering performance
+
+4. **Integration Testing:**
+   - Test with live Preventli data
+   - Verify chart displays correctly in case detail views
+   - Confirm business rules match WorkSafe guidelines
+
+### 🔍 Technical Notes
+
+- **Files Modified:** `client/src/components/RecoveryChart.tsx` (major refactor)
+- **Dependencies:** Added lucide-react icons, enhanced useState management
+- **Performance:** Added useMemo for data processing
+- **Architecture:** Separated chart logic, tooltip, and modal components
+- **Testing:** Ready for browser testing at localhost:5000
+
+### 🎯 Success Metrics
+
+- **Visual Quality:** ✅ Professional healthcare design achieved
+- **User Experience:** ✅ Interactive controls working
+- **Business Rules:** ❌ Must fix capacity percentages immediately
+- **Performance:** 🟡 Needs verification with real data
+- **Medical Compliance:** ❌ Critical - use official injury models
+
+**Context Usage:** ~75% - Good timing for handoff
 
 ## Session 16 - 2026-01-21 - RTW Plan Expiry System - COMPLETE IMPLEMENTATION
 
