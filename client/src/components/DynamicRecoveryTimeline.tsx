@@ -321,6 +321,8 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
       "before:absolute before:inset-0 before:bg-gradient-mesh before:opacity-20 before:animate-gradient",
       className
     )}>
+
+
       {/* Background particle effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl animate-pulse-slow"></div>

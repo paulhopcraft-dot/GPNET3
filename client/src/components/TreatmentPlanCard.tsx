@@ -225,7 +225,7 @@ export function TreatmentPlanCard({ caseId }: TreatmentPlanCardProps) {
                 <span className="material-symbols-outlined text-sm">event</span>
                 <span>Generated {formatDate(plan.generatedAt)}</span>
               </div>
-              <div className={`flex items-center gap-1 font-semibold ${confidenceColor(plan.confidence)}`}>
+              <div className={`confidence-indicator animate-pulse-slow flex items-center gap-1 font-semibold ${confidenceColor(plan.confidence)}`}>
                 <span className="material-symbols-outlined text-sm">insights</span>
                 <span>{plan.confidence}% confidence</span>
               </div>

@@ -162,6 +162,7 @@ export default function GPNet2Dashboard() {
 
   return (
     <div className="flex h-screen">
+
       <aside className="hidden lg:block w-64 flex-shrink-0 bg-sidebar p-4 border-r border-sidebar-border">
         <div className="mb-8">
           <div className="flex items-center gap-3">
