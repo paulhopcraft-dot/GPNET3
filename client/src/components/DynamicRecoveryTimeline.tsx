@@ -21,6 +21,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { GlassPanel } from "@/components/ui/glass-panel";
 import { cn } from "@/lib/utils";
+import { formatWeekAsMonthYear } from "@/lib/dateUtils";
 import {
   AlertCircle,
   AlertTriangle,
@@ -110,13 +111,13 @@ interface DynamicRecoveryTimelineProps {
 }
 
 // Enhanced custom tooltip for the chart with modern styling
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label, injuryDate }: any) => {
   if (active && payload && payload.length) {
     return (
       <div className="custom-tooltip bg-white/95 backdrop-blur-md p-4 border border-white/20 rounded-xl shadow-2xl backdrop-saturate-150">
         <div className="flex items-center gap-2 mb-3">
           <div className="w-2 h-2 bg-gradient-to-r from-purple-400 to-blue-400 rounded-full"></div>
-          <p className="font-bold text-sm text-gray-900">Week {label}</p>
+          <p className="font-bold text-sm text-gray-900">{formatWeekAsMonthYear(label, injuryDate || new Date())}</p>
         </div>
         <div className="space-y-2">
           {payload.map((entry: any, index: number) => (
@@ -467,9 +468,9 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
                 <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                 <XAxis
                   dataKey="week"
-                  tickFormatter={(w) => `W${w}`}
+                  tickFormatter={(w) => formatWeekAsMonthYear(w, data.injuryDate)}
                   label={{
-                    value: "Weeks Since Injury",
+                    value: "Timeline (Month/Year)",
                     position: "insideBottom",
                     offset: -10,
                     style: { fontSize: 12 },
@@ -484,7 +485,7 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
                     style: { fontSize: 12 },
                   }}
                 />
-                <Tooltip content={<CustomTooltip />} />
+                <Tooltip content={(props) => <CustomTooltip {...props} injuryDate={data.injuryDate} />} />
                 <Legend />
 
                 {/* Estimated recovery area (dashed outline with gradient) */}
@@ -570,7 +571,7 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
                     style={{ backgroundColor: marker.color }}
                   />
                   <span>
-                    Cert #{marker.certificateNumber} (W{marker.week}): {marker.capacity}%
+                    Cert #{marker.certificateNumber} ({formatWeekAsMonthYear(marker.week, data.injuryDate)}): {marker.capacity}%
                   </span>
                 </div>
               ))}
@@ -911,7 +912,7 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
                               : "border-gray-300 text-gray-500"
                           )}
                         >
-                          W{phase.weekStart}-{phase.weekEnd}
+                          {formatWeekAsMonthYear(phase.weekStart, data.injuryDate)}-{formatWeekAsMonthYear(phase.weekEnd, data.injuryDate)}
                         </Badge>
                       </div>
                       <div className="space-y-1">

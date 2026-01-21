@@ -64,6 +64,31 @@ export default function GPNet2Dashboard() {
     },
   });
 
+  const sendCertificateAlertsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetchWithCsrf("/api/notifications/send-certificate-alerts", {
+        method: "POST",
+      });
+      if (!response.ok) {
+        throw new Error("Failed to send certificate alerts");
+      }
+      return await response.json();
+    },
+    onSuccess: (data: { sent: number; failed: number }) => {
+      toast({
+        title: "Certificate Alerts Sent",
+        description: `Sent ${data.sent} worker email alerts${data.failed > 0 ? `, ${data.failed} failed` : ''}`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Alert Failed",
+        description: error.message || "Failed to send certificate alerts",
+        variant: "destructive",
+      });
+    },
+  });
+
   useEffect(() => {
     syncMutation.mutate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -230,6 +255,20 @@ export default function GPNet2Dashboard() {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
             <SearchBar value={searchQuery} onChange={setSearchQuery} />
             <div className="flex items-center gap-2">
+              <Button
+                onClick={() => sendCertificateAlertsMutation.mutate()}
+                disabled={sendCertificateAlertsMutation.isPending}
+                data-testid="button-send-certificate-alerts"
+                size="sm"
+                variant="outline"
+              >
+                <span className="material-symbols-outlined text-base">
+                  {sendCertificateAlertsMutation.isPending ? "sync" : "notification_important"}
+                </span>
+                <span className="font-bold hidden sm:inline">
+                  {sendCertificateAlertsMutation.isPending ? "Sending..." : "Send Cert Alerts"}
+                </span>
+              </Button>
               <Button
                 onClick={() => syncMutation.mutate()}
                 disabled={syncMutation.isPending}

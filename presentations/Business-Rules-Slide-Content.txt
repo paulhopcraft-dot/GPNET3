@@ -1,0 +1,22 @@
+SLIDE 4: Business Rules & Automation
+
+Medical Certificate Automation
+• Automatic expiry tracking - monitors all certificates with real-time status
+• Proactive chase workflows - triggers actions 3 days before expiry
+• Auto-email workers - sends reminders when certificates expire
+• Smart validation - ensures certificates align with work capacity
+
+Return-to-Work Plan Management
+• Auto-scheduling - triggers plan updates when treatment plans become stale (90+ days)
+• Progress tracking - monitors 7-stage RTW process with failure detection
+• Plan validation - ensures meaningful rehabilitation plans exist
+
+WorkSafe Victoria Compliance
+• 42-day certificate threshold - ensures always-current medical evidence
+• Complete audit trails - logs all medical data access and modifications
+• Multi-tenant security - organization data isolation with access controls
+
+---
+
+KEY MESSAGE:
+Preventli ensures you always have valid medical certificates and current return-to-work plans through intelligent automation that maintains WorkSafe Victoria compliance without manual intervention.

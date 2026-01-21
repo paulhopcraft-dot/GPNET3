@@ -202,7 +202,7 @@ IMPORTANT: Focus on clinical insights, compliance risks, and actionable next ste
     if (workerCase.latestDiscussionNotes && workerCase.latestDiscussionNotes.length > 0) {
       sections.push(`**Recent Discussion:**`);
       workerCase.latestDiscussionNotes.slice(0, 3).forEach((note, idx) => {
-        sections.push(`${idx + 1}. ${note.createdAt}: ${note.content}`);
+        sections.push(`${idx + 1}. ${note.timestamp}: ${note.rawText}`);
       });
     }
 
@@ -217,10 +217,13 @@ IMPORTANT: Focus on clinical insights, compliance risks, and actionable next ste
    */
   async isAvailable(): Promise<boolean> {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
       const response = await fetch(`${this.ollamaUrl}/api/tags`, {
         method: 'GET',
-        timeout: 5000
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
       return response.ok;
     } catch {
       return false;
@@ -235,7 +238,7 @@ IMPORTANT: Focus on clinical insights, compliance risks, and actionable next ste
       // Check if model exists
       const tagsResponse = await fetch(`${this.ollamaUrl}/api/tags`);
       const tags = await tagsResponse.json();
-      const hasModel = tags.models?.some((m: any) => m.name.includes('llama3.1'));
+      const hasModel = tags?.models?.some((m: any) => m.name.includes('llama3.1'));
 
       if (!hasModel) {
         // Pull the model (this will take a while on first run)

@@ -11,6 +11,7 @@ import {
   ReferenceLine,
 } from "recharts";
 import type { MedicalCertificate, WorkCapacity } from "@shared/schema";
+import { formatWeekAsMonthYear } from "@/lib/dateUtils";
 
 interface RecoveryChartProps {
   injuryDate: string;
@@ -132,9 +133,9 @@ export const RecoveryChart: React.FC<RecoveryChartProps> = ({
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis
             dataKey="week"
-            tickFormatter={(w) => `W${w}`}
+            tickFormatter={(w) => formatWeekAsMonthYear(w, injuryDate)}
             label={{
-              value: "Weeks Since Injury",
+              value: "Timeline (Month/Year)",
               position: "insideBottom",
               offset: -2,
             }}
@@ -149,7 +150,7 @@ export const RecoveryChart: React.FC<RecoveryChartProps> = ({
           />
           <Tooltip
             formatter={(value: number, name: string) => `${value}% (${name})`}
-            labelFormatter={(label: number) => `Week ${label}`}
+            labelFormatter={(label: number) => `${formatWeekAsMonthYear(label, injuryDate)}`}
           />
           <Legend />
           <Line
@@ -174,7 +175,7 @@ export const RecoveryChart: React.FC<RecoveryChartProps> = ({
             strokeWidth={2}
             strokeDasharray="4 2"
             label={{
-              value: `Now (W${currentWeek})`,
+              value: `Now (${formatWeekAsMonthYear(currentWeek, injuryDate)})`,
               position: "top",
               fill: "#FF9800",
               fontSize: 10,
@@ -184,7 +185,7 @@ export const RecoveryChart: React.FC<RecoveryChartProps> = ({
       </ResponsiveContainer>
 
       <div className="text-xs text-gray-500 mt-2 text-center">
-        Current week: {currentWeek} of {totalWeeks} � based on injury date
+        Current: {formatWeekAsMonthYear(currentWeek, injuryDate)} of {formatWeekAsMonthYear(totalWeeks, injuryDate)} – based on injury date
       </div>
       </div>
     </div>

@@ -199,4 +199,48 @@ router.post("/send", requireAdmin, async (_req: Request, res: Response) => {
   }
 });
 
+/**
+ * POST /api/notifications/send-certificate-alerts
+ * Manually send certificate expiry alerts directly to workers
+ * Admin only - sends 3-day worker email alerts
+ * SECURITY: requireAdmin enforces admin role check
+ */
+router.post("/send-certificate-alerts", requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    // Import function to send certificate alerts to workers
+    const { sendWorkerCertificateAlerts } = await import("../services/notificationService");
+
+    const organizationId = req.user!.organizationId;
+    const result = await sendWorkerCertificateAlerts(storage, organizationId);
+
+    logger.notification.info("Manual worker certificate alerts triggered", {
+      userId: req.user!.id,
+      organizationId,
+      sent: result.sent,
+      failed: result.failed,
+      errors: result.errors
+    });
+
+    res.json({
+      success: true,
+      message: result.sent > 0
+        ? `Sent ${result.sent} certificate alerts to workers${result.failed > 0 ? `, ${result.failed} failed` : ''}`
+        : "No certificate alerts needed at this time",
+      sent: result.sent,
+      failed: result.failed,
+      errors: result.errors
+    });
+  } catch (error) {
+    logger.notification.error("Error sending worker certificate alerts", {
+      userId: req.user?.id,
+      organizationId: req.user?.organizationId
+    }, error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to send certificate alerts",
+      details: error instanceof Error ? error.message : "Unknown error"
+    });
+  }
+});
+
 export default router;

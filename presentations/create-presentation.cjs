@@ -21,13 +21,16 @@ async function createPresentation() {
   console.log('Creating slide 3: The Solution...');
   await html2pptx(path.join(workspace, 'slide3-solution.html'), pptx);
 
-  console.log('Creating slide 4: Go Vertical Integration...');
+  console.log('Creating slide 4: Business Rules & Automation...');
+  await html2pptx(path.join(workspace, 'slide7-business-rules.html'), pptx);
+
+  console.log('Creating slide 5: Go Vertical Integration...');
   await html2pptx(path.join(workspace, 'slide4-govertical.html'), pptx);
 
-  console.log('Creating slide 5: Market Opportunity...');
+  console.log('Creating slide 6: Market Opportunity...');
   await html2pptx(path.join(workspace, 'slide5-market.html'), pptx);
 
-  console.log('Creating slide 6: Call to Action...');
+  console.log('Creating slide 7: Call to Action...');
   await html2pptx(path.join(workspace, 'slide6-cta.html'), pptx);
 
   const outputPath = path.join(workspace, 'Preventli_Investment_Pitch.pptx');
