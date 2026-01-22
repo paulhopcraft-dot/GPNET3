@@ -317,6 +317,9 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
 
   return (
     <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
       className={cn(
         "hero-motion-container immersive-hero-container space-y-6",
         "min-h-[80vh] relative overflow-hidden",
@@ -368,6 +371,12 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
       </div>
 
       {/* Enhanced Recovery Chart */}
+      <motion.div
+        className="animated-chart-container"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.6, delay: 0.4, ease: "easeOut" }}
+      >
       <Card className="enhanced-recovery-chart">
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
@@ -579,50 +588,75 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
           )}
         </CardContent>
       </Card>
+      </motion.div>
 
       {/* Glassmorphism Recovery Data Panels Grid */}
       <div className="glassmorphism-panels-grid grid grid-cols-12 gap-4 mt-6">
         {/* Recovery Phase Panel - Spans 4 columns */}
-        <GlassPanel className="col-span-12 md:col-span-4 p-4" variant="gradient">
-          <h4 className="text-sm font-semibold text-white/90 mb-2 flex items-center gap-2">
-            <Activity className="h-4 w-4" />
-            Recovery Phase
-          </h4>
-          <div className="text-2xl font-bold text-white mb-1">
-            Week {Math.floor(data.weeksOffWork || 0)}
-          </div>
-          <div className="text-xs text-white/70">
-            Current phase: {data.weeksOffWork > 8 ? 'Extended' : data.weeksOffWork > 4 ? 'Mid-term' : 'Early'}
-          </div>
-        </GlassPanel>
+        <motion.div
+          className="motion-panel col-span-12 md:col-span-4"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1, ease: "easeOut" }}
+          whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
+        >
+          <GlassPanel className="p-4 h-full" variant="gradient">
+            <h4 className="text-sm font-semibold text-white/90 mb-2 flex items-center gap-2">
+              <Activity className="h-4 w-4" />
+              Recovery Phase
+            </h4>
+            <div className="text-2xl font-bold text-white mb-1">
+              Week {Math.floor(data.weeksOffWork || 0)}
+            </div>
+            <div className="text-xs text-white/70">
+              Current phase: {data.weeksOffWork > 8 ? 'Extended' : data.weeksOffWork > 4 ? 'Mid-term' : 'Early'}
+            </div>
+          </GlassPanel>
+        </motion.div>
 
         {/* Capacity Status Panel - Spans 4 columns */}
-        <GlassPanel className="col-span-12 md:col-span-4 p-4" variant="gradient">
-          <h4 className="text-sm font-semibold text-white/90 mb-2 flex items-center gap-2">
-            <TrendingUp className="h-4 w-4" />
-            Work Capacity
-          </h4>
-          <div className="text-2xl font-bold text-white mb-1">
-            {data.currentCapacityPercentage || 0}%
-          </div>
-          <div className="text-xs text-white/70">
-            {data.currentCapacityPercentage >= 75 ? 'High capacity' : data.currentCapacityPercentage >= 25 ? 'Limited capacity' : 'Unfit for work'}
-          </div>
-        </GlassPanel>
+        <motion.div
+          className="motion-panel col-span-12 md:col-span-4"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2, ease: "easeOut" }}
+          whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
+        >
+          <GlassPanel className="p-4 h-full" variant="gradient">
+            <h4 className="text-sm font-semibold text-white/90 mb-2 flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" />
+              Work Capacity
+            </h4>
+            <div className="text-2xl font-bold text-white mb-1">
+              {data.currentCapacityPercentage || 0}%
+            </div>
+            <div className="text-xs text-white/70">
+              {data.currentCapacityPercentage >= 75 ? 'High capacity' : data.currentCapacityPercentage >= 25 ? 'Limited capacity' : 'Unfit for work'}
+            </div>
+          </GlassPanel>
+        </motion.div>
 
         {/* Risk Level Panel - Spans 4 columns */}
-        <GlassPanel className="col-span-12 md:col-span-4 p-4" variant="gradient">
-          <h4 className="text-sm font-semibold text-white/90 mb-2 flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4" />
-            Risk Level
-          </h4>
-          <div className="text-2xl font-bold text-white mb-1">
-            {data.riskCategory || 'Unknown'}
-          </div>
-          <div className="text-xs text-white/70">
-            Based on injury type and duration
-          </div>
-        </GlassPanel>
+        <motion.div
+          className="motion-panel col-span-12 md:col-span-4"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3, ease: "easeOut" }}
+          whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
+        >
+          <GlassPanel className="p-4 h-full" variant="gradient">
+            <h4 className="text-sm font-semibold text-white/90 mb-2 flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" />
+              Risk Level
+            </h4>
+            <div className="text-2xl font-bold text-white mb-1">
+              {data.riskCategory || 'Unknown'}
+            </div>
+            <div className="text-xs text-white/70">
+              Based on injury type and duration
+            </div>
+          </GlassPanel>
+        </motion.div>
       </div>
 
       {/* Progress Rings Container */}
