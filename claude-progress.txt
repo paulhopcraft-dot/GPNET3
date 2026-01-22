@@ -2,8 +2,88 @@
 
 **Date:** 2026-01-22
 **Branch:** treatment
-**Latest Commit:** f21bb26 - Improve employer case detail page layout and responsiveness
-**Status:** 🎨 Employer Case Detail Page UI/UX Improvements Complete
+**Latest Commit:** 6555bb0 - feat: parse injury details from AI summary markdown
+**Status:** Employer Case Detail UI Improvements
+
+---
+
+## Session 20 - 2026-01-22 - Employer Case Detail Page Fixes
+
+### Completed
+1. **Summary Tab Whitespace Fix:**
+   - Changed "Monday 19 January 2026" to "Status as at Monday 19 January 2026"
+   - Removed nested prose wrapper causing excessive whitespace
+   - Reduced padding between status card and AI summary content
+
+2. **Injury & Diagnosis Tab Improvements:**
+   - No longer shows case summary text in "Injury" field
+   - Added function to parse injury details from AI summary markdown tables
+   - Shows Injury Type, Date of Onset, Mechanism, Treating GP, Physiotherapist, ORP, Case Manager
+   - Falls back to structured clinical data when available
+
+3. **Treatment & Recovery Tab:**
+   - Certificate dots now only show for actual certificates (not every week)
+
+### Commits on treatment branch:
+- 54b0982 - fix: change date card to "Status as at" and reduce whitespace
+- ca96da2 - fix: remove whitespace between status card and summary content
+- ff4ee82 - fix: show actual injury data instead of case summary in Injury tab
+- 6555bb0 - feat: parse injury details from AI summary markdown
+
+### In Progress / Not Completed
+- **AI Summary Regeneration:** Attempted to regenerate AI summary for Andres Nieto to extract detailed injury data (trigger finger, Dr. Caesar Tan, etc.) from Freshdesk
+- The injury details exist in Freshdesk but current AI summary has "Insufficient data" for most injury fields
+- Need to improve AI extraction prompt OR manually trigger regeneration
+
+### Next Steps
+1. Fix the regenerate-summary.mjs script (storage function issue)
+2. Regenerate AI summary for FD-43714 to extract real injury details
+3. OR improve AI summary prompt to better extract injury info from Freshdesk tickets
+
+### Files Modified
+- `client/src/pages/EmployerCaseDetailPage.tsx` - Major UI improvements
+
+---
+
+## Session 19 - 2026-01-22 - Employer Portal PRD Planning
+
+### ✅ COMPLETED - PRD Analysis & Planning
+- **Employer Portal PRD Created:** Comprehensive requirements gathering through 10 detailed Q&A
+- **Employer Permissions Defined:**
+  - CAN access: Cases, New Claim, Medical Certificates, RTW Planner, Check-ins, Financials, Predictions, Risk
+  - CANNOT access: Audit Log, Admin Settings, Other employers' data
+- **Left Sidebar Navigation:** Confirmed employer should see PageLayout-style sidebar
+- **PRD Hardened:** Browser-verifiable acceptance criteria added
+
+### 🔍 KEY DISCOVERY
+- **Routing already works!** `RoleBasedDashboard.tsx` already routes employers to `EmployerSummaryDashboard`
+- **Issue:** Current `EmployerSummaryDashboard` is card-based WITHOUT left sidebar
+- **All pages with sidebar exist:** `/cases`, `/rtw-planner`, `/checkins`, etc. use `PageLayout`
+
+### 📋 SIMPLE FIX NEEDED
+Change one line in `RoleBasedDashboard.tsx`:
+```typescript
+// Current: returns <EmployerSummaryDashboard /> (no sidebar)
+// Change to: <Navigate to="/cases" /> (has sidebar via PageLayout)
+```
+
+### 📁 Files Identified
+- `client/src/components/RoleBasedDashboard.tsx` - Needs routing change
+- `client/src/components/PageLayout.tsx` - Already has left sidebar with nav items
+- `client/src/components/EmployerSummaryDashboard.tsx` - Current employer view (no sidebar)
+
+### 🎯 NEXT SESSION
+1. Decide which branch to work on: `feature/employer-portal` or stay on `treatment`
+2. Make the simple routing change to give employers the left sidebar
+3. Optionally hide Audit Log from employer nav items
+
+### 📝 Plan File
+PRD saved to: `C:\Users\Paul\.claude\plans\joyful-booping-stonebraker.md`
+
+### 🎯 Next Session Command
+```bash
+/status  # Review and implement employer portal routing fix
+```
 
 ---
 
