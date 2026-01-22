@@ -57,11 +57,9 @@ export default function EmployerCaseDetailPage() {
   }, [workerCase, id, summaryLoaded, loadingSummary]);
 
   const renderMarkdown = (content: string) => (
-    <div className="prose prose-sm max-w-none dark:prose-invert">
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-        {content}
-      </ReactMarkdown>
-    </div>
+    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+      {content}
+    </ReactMarkdown>
   );
 
   if (isLoading) {
@@ -144,7 +142,7 @@ export default function EmployerCaseDetailPage() {
         {/* Tab Content */}
         <TabsContent value="summary" className="flex-1 p-3 overflow-hidden">
           <div className="grid grid-cols-[1fr_minmax(350px,450px)] gap-4 h-full w-full max-w-full">
-            <div className="space-y-3 min-w-0 overflow-hidden">
+            <div className="space-y-2 min-w-0 overflow-hidden">
               {/* Latest Update - Prominent at top */}
               {workerCase.ticketLastUpdatedAt && (
                 <Card className="border-l-4 border-l-primary bg-primary/5">
@@ -173,26 +171,28 @@ export default function EmployerCaseDetailPage() {
                 </Card>
               )}
 
-              <Card>
-                <CardContent className="pt-2">
+              <Card className="overflow-hidden">
+                <CardContent className="p-0">
                   {loadingSummary && !aiSummary ? (
-                    <div className="flex items-center justify-center py-12">
+                    <div className="flex items-center justify-center py-8">
                       <div className="text-center">
                         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
                         <p className="text-sm text-muted-foreground">Generating case summary...</p>
                       </div>
                     </div>
                   ) : aiSummary ? (
-                    <div className="prose prose-sm max-w-none dark:prose-invert [&_table]:text-xs [&_th]:py-1 [&_td]:py-1 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-primary [&_h2]:mt-4 [&_h2]:mb-2 [&_h2:first-child]:mt-0 [&_ul]:space-y-1 [&_li]:text-sm">
+                    <div className="p-3 text-sm [&_strong]:font-semibold [&_table]:text-xs [&_th]:py-1 [&_td]:py-1 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-primary [&_h2]:mt-3 [&_h2]:mb-2 [&_h2:first-child]:mt-0 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:space-y-1 [&_p]:my-2 [&_p:first-of-type]:mt-0">
                       {renderMarkdown(
                         aiSummary
-                          .replace(/Case Summary\s*[-–—:]\s*[A-Za-z\s]+\n*/gi, '') // Remove "Case Summary - Name" header
-                          .replace(/\*\*Case Summary\s*[-–—:]\s*[A-Za-z\s]+\*\*\n*/gi, '') // Remove bold version
-                          .replace(/^#+\s*Case Summary.*\n*/gim, '') // Remove markdown header version
-                          .replace(/^#+\s*Latest Update.*\n*/gim, '') // Remove "## Latest Update" headers
-                          .replace(/\*\*Latest Update.*?\*\*\n*/gi, '') // Remove "**Latest Update**" bold headers
-                          .replace(/Latest Update\s*\(\d{4}-\d{2}-\d{2}\)\s*\n*/gi, '') // Remove "Latest Update (date)" lines
-                          .replace(/^Latest Update\s*\n/gim, '') // Remove standalone "Latest Update" lines
+                          .replace(/Case Summary\s*[-–—:]\s*[A-Za-z\s]+\n*/gi, '')
+                          .replace(/\*\*Case Summary\s*[-–—:]\s*[A-Za-z\s]+\*\*\n*/gi, '')
+                          .replace(/^#+\s*Case Summary.*\n*/gim, '')
+                          .replace(/^#+\s*Latest Update.*\n*/gim, '')
+                          .replace(/\*\*Latest Update.*?\*\*\n*/gi, '')
+                          .replace(/Latest Update\s*\(\d{4}-\d{2}-\d{2}\)\s*\n*/gi, '')
+                          .replace(/^Latest Update\s*\n/gim, '')
+                          .replace(/^\s*\n+/g, '') // Remove leading empty lines
+                          .trim()
                       )}
                     </div>
                   ) : (
