@@ -1165,6 +1165,9 @@ export interface CertificateMarker {
   certificateNumber: number;
   capacityLabel: string;
   color: string;
+  certificateId: string;
+  documentUrl: string | null;
+  source: string;
 }
 
 export interface RecoveryPhaseDisplay {
@@ -1370,6 +1373,9 @@ function generateActualCurve(
       certificateNumber: index + 1,
       capacityLabel: `${capacity}% Capacity`,
       color: getCapacityColor(capacity),
+      certificateId: cert.id,
+      documentUrl: cert.documentUrl ?? null,
+      source: cert.source ?? 'unknown',
     });
   });
 

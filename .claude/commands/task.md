@@ -7,9 +7,9 @@ aliases: [new-task, start, agi]
 
 # Enhanced Task Workflow v3.0
 
-**AGI-powered task workflow with production safety governance.**
+**Enhanced AGI task workflow with production safety governance.**
 
-Intelligently routes tasks through complexity analysis and safety domain checking to prevent premature execution while preserving developer velocity.
+Features concrete classification criteria, multi-session coordination, and file-based execution mode for complex tasks. Prevents scope creep and premature execution while preserving developer velocity.
 
 ---
 

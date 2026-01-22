@@ -34,6 +34,8 @@ interface FreshdeskConversation {
   user_id: number;
   created_at: string;
   updated_at: string;
+  from_email?: string;
+  attachments?: FreshdeskAttachment[];
 }
 
 interface FreshdeskTicket {
@@ -525,49 +527,47 @@ export class FreshdeskService {
       return null;
     }
 
-    const issue = dayjs(issueDateRaw);
+    let issue = dayjs(issueDateRaw);
     if (!issue.isValid()) {
       return null;
     }
 
     const startRaw = ticket.custom_fields?.cf_full_medical_report_date || issueDateRaw;
     const endRaw = ticket.custom_fields?.cf_valid_until || startRaw;
-    const start = dayjs(startRaw);
-    const end = dayjs(endRaw);
+    let start = dayjs(startRaw);
+    let end = dayjs(endRaw);
 
     if (!start.isValid() || !end.isValid()) {
       return null;
     }
 
-    // 🔧 FIX: Prevent future certificate dates (max 30 days from now)
+    // Prevent future certificate dates (max 30 days from now)
     const now = dayjs();
     const maxFutureDate = now.add(30, 'day');
 
-    if (start.isAfter(maxFutureDate) || end.isAfter(maxFutureDate)) {
+    if (issue.isAfter(maxFutureDate) || start.isAfter(maxFutureDate) || end.isAfter(maxFutureDate)) {
       logger.freshdesk.warn(`Certificate date validation failed - future date detected`, {
         ticketId: ticket.id,
+        issueDate: issue.format('YYYY-MM-DD'),
         startDate: start.format('YYYY-MM-DD'),
         endDate: end.format('YYYY-MM-DD'),
         maxAllowed: maxFutureDate.format('YYYY-MM-DD')
       });
 
       // Use ticket creation date as fallback for invalid future dates
-      const fallbackStart = dayjs(ticket.created_at);
-      const fallbackEnd = fallbackStart.add(30, 'day');
+      const fallbackDate = dayjs(ticket.created_at);
+      const fallbackEnd = fallbackDate.add(30, 'day');
 
       logger.freshdesk.info(`Using fallback dates based on ticket creation`, {
         ticketId: ticket.id,
-        fallbackStart: fallbackStart.format('YYYY-MM-DD'),
+        fallbackDate: fallbackDate.format('YYYY-MM-DD'),
         fallbackEnd: fallbackEnd.format('YYYY-MM-DD')
       });
 
-      start.set('year', fallbackStart.year())
-           .set('month', fallbackStart.month())
-           .set('date', fallbackStart.date());
-
-      end.set('year', fallbackEnd.year())
-         .set('month', fallbackEnd.month())
-         .set('date', fallbackEnd.date());
+      // Reassign all dates (dayjs is immutable)
+      issue = fallbackDate;
+      start = fallbackDate;
+      end = fallbackEnd;
     }
 
     const capacity = this.deriveCapacityFromTicket(ticket, fallbackWorkStatus);
