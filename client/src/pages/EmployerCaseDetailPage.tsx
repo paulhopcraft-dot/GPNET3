@@ -92,23 +92,21 @@ export default function EmployerCaseDetailPage() {
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <div className="border-b bg-card sticky top-0 z-10">
-        <div className="px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
+        <div className="px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="shrink-0">
+              <ArrowLeft className="h-4 w-4" />
             </Button>
-            <div className="h-8 w-px bg-border" />
-            <div>
-              <h1 className="text-2xl font-bold">{workerCase.workerName}</h1>
-              <p className="text-sm text-muted-foreground">
-                {workerCase.company} • Injury Date: {workerCase.dateOfInjury}
+            <div className="min-w-0">
+              <h1 className="text-lg font-bold truncate">{workerCase.workerName}</h1>
+              <p className="text-xs text-muted-foreground truncate">
+                {workerCase.company} • {workerCase.dateOfInjury}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 shrink-0">
             <Badge className={cn(
-              "font-medium",
+              "text-xs",
               workerCase.workStatus === "At work"
                 ? "bg-emerald-100 text-emerald-800"
                 : "bg-orange-100 text-orange-800"
@@ -116,14 +114,14 @@ export default function EmployerCaseDetailPage() {
               {workerCase.workStatus}
             </Badge>
             <Badge variant="outline" className={cn(
-              "border-2",
+              "text-xs border",
               workerCase.complianceIndicator === "Very High" || workerCase.complianceIndicator === "High"
                 ? "border-emerald-300 text-emerald-700"
                 : workerCase.complianceIndicator === "Medium"
                 ? "border-yellow-300 text-yellow-700"
                 : "border-red-300 text-red-700"
             )}>
-              Compliance: {workerCase.complianceIndicator}
+              {workerCase.complianceIndicator}
             </Badge>
           </div>
         </div>
@@ -131,41 +129,52 @@ export default function EmployerCaseDetailPage() {
 
       {/* Tabs at the top */}
       <Tabs defaultValue="summary" className="flex-1 flex flex-col">
-        <div className="border-b bg-card px-6 py-2">
-          <TabsList className="grid grid-cols-7 h-12">
-            <TabsTrigger value="summary">Summary</TabsTrigger>
-            <TabsTrigger value="injury">Injury</TabsTrigger>
-            <TabsTrigger value="timeline">Timeline</TabsTrigger>
-            <TabsTrigger value="financial">Financial</TabsTrigger>
-            <TabsTrigger value="risk">Risk</TabsTrigger>
-            <TabsTrigger value="contacts">Contacts</TabsTrigger>
-            <TabsTrigger value="treatment">Treatment</TabsTrigger>
+        <div className="border-b bg-card px-4 py-2 overflow-x-auto">
+          <TabsList className="inline-flex h-10 w-max gap-1">
+            <TabsTrigger value="summary" className="px-3 text-sm">Summary</TabsTrigger>
+            <TabsTrigger value="injury" className="px-3 text-sm">Injury & Diagnosis</TabsTrigger>
+            <TabsTrigger value="treatment" className="px-3 text-sm">Treatment & Recovery</TabsTrigger>
+            <TabsTrigger value="timeline" className="px-3 text-sm">Timeline</TabsTrigger>
+            <TabsTrigger value="financial" className="px-3 text-sm">Financial</TabsTrigger>
+            <TabsTrigger value="risk" className="px-3 text-sm">Risk</TabsTrigger>
+            <TabsTrigger value="contacts" className="px-3 text-sm">Contacts</TabsTrigger>
           </TabsList>
         </div>
 
         {/* Tab Content */}
-        <TabsContent value="summary" className="flex-1 p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
-            <div className="lg:col-span-2">
+        <TabsContent value="summary" className="flex-1 p-3 overflow-hidden">
+          <div className="grid grid-cols-[1fr_minmax(350px,450px)] gap-4 h-full w-full max-w-full">
+            <div className="space-y-3 min-w-0 overflow-hidden">
+              {/* Latest Update - Prominent at top */}
+              {workerCase.ticketLastUpdatedAt && (
+                <Card className="border-l-4 border-l-primary bg-primary/5">
+                  <CardContent className="py-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-2xl font-bold text-primary">
+                          {new Date(workerCase.ticketLastUpdatedAt).toLocaleDateString('en-AU', {
+                            weekday: 'long',
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric'
+                          })}
+                        </p>
+                      </div>
+                      <Badge className={cn(
+                        "text-sm",
+                        workerCase.workStatus === "At work"
+                          ? "bg-emerald-100 text-emerald-800"
+                          : "bg-amber-100 text-amber-800"
+                      )}>
+                        {workerCase.workStatus}
+                      </Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <Sparkles className="h-5 w-5 text-primary" />
-                      Case Summary
-                    </CardTitle>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={generateSummary}
-                      disabled={loadingSummary}
-                    >
-                      <RefreshCw className={cn("h-4 w-4 mr-2", loadingSummary && "animate-spin")} />
-                      Refresh
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
+                <CardContent className="pt-2">
                   {loadingSummary && !aiSummary ? (
                     <div className="flex items-center justify-center py-12">
                       <div className="text-center">
@@ -174,8 +183,14 @@ export default function EmployerCaseDetailPage() {
                       </div>
                     </div>
                   ) : aiSummary ? (
-                    <div className="prose prose-sm max-w-none dark:prose-invert [&_table]:text-xs [&_th]:py-1 [&_td]:py-1 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-primary [&_h2]:mt-6 [&_h2]:mb-3 [&_h2:first-child]:mt-0 [&_ul]:space-y-1 [&_li]:text-sm">
-                      {renderMarkdown(aiSummary)}
+                    <div className="prose prose-sm max-w-none dark:prose-invert [&_table]:text-xs [&_th]:py-1 [&_td]:py-1 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-primary [&_h2]:mt-4 [&_h2]:mb-2 [&_h2:first-child]:mt-0 [&_ul]:space-y-1 [&_li]:text-sm">
+                      {renderMarkdown(
+                        aiSummary
+                          .replace(/Case Summary\s*[-–—:]\s*[A-Za-z\s]+\n*/gi, '') // Remove "Case Summary - Name" header
+                          .replace(/\*\*Case Summary\s*[-–—:]\s*[A-Za-z\s]+\*\*\n*/gi, '') // Remove bold version
+                          .replace(/^#+\s*Case Summary.*\n*/gim, '') // Remove markdown header version
+                          .replace(/Latest Update\s*\(\d{4}-\d{2}-\d{2}\)/gi, 'Latest Update') // Remove date from Latest Update
+                      )}
                     </div>
                   ) : (
                     <div className="text-center py-12">
@@ -197,16 +212,16 @@ export default function EmployerCaseDetailPage() {
               </Card>
             </div>
 
-            <div>
+            <div className="min-w-0 overflow-hidden">
               <Card>
-                <CardHeader>
-                  <CardTitle>Action Plan</CardTitle>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Action Plan</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     <div className="space-y-3">
                       <h3 className="text-sm font-semibold text-primary">Immediate Actions (This Week)</h3>
-                      <ul className="text-sm space-y-2 ml-3">
+                      <ul className="text-xs space-y-1.5 ml-2">
                         <li className="flex items-start gap-2">
                           <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
                           <span>Follow up with {workerCase.workerName} after physio appointment re: clearance certificate</span>
@@ -228,7 +243,7 @@ export default function EmployerCaseDetailPage() {
 
                     <div className="space-y-3">
                       <h3 className="text-sm font-semibold text-primary">Short-Term Actions (Next 2 Weeks)</h3>
-                      <ul className="text-sm space-y-2 ml-3">
+                      <ul className="text-xs space-y-1.5 ml-2">
                         <li className="flex items-start gap-2">
                           <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
                           <span>Conduct welfare check-in with {workerCase.workerName} (week commencing 13 Jan)</span>
@@ -254,7 +269,7 @@ export default function EmployerCaseDetailPage() {
 
                     <div className="space-y-3">
                       <h3 className="text-sm font-semibold text-primary">Medium-Term Actions (Jan-Feb 2026)</h3>
-                      <ul className="text-sm space-y-2 ml-3">
+                      <ul className="text-xs space-y-1.5 ml-2">
                         <li className="flex items-start gap-2">
                           <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
                           <span>Continue fortnightly welfare monitoring until 3-month stability period reached</span>
@@ -280,7 +295,7 @@ export default function EmployerCaseDetailPage() {
 
                     <div className="space-y-3">
                       <h3 className="text-sm font-semibold text-primary">Milestone: 3-Month Stability Review (Target: 8 March 2026)</h3>
-                      <ul className="text-sm space-y-2 ml-3">
+                      <ul className="text-xs space-y-1.5 ml-2">
                         <li className="flex items-start gap-2">
                           <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
                           <span>Confirm {workerCase.workerName} has sustained employment for 3 months</span>
@@ -311,43 +326,96 @@ export default function EmployerCaseDetailPage() {
         </TabsContent>
 
         <TabsContent value="injury" className="flex-1 p-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Injury Details</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex border-b pb-2">
-                  <div className="w-40 text-sm font-medium">Injury</div>
-                  <div className="text-sm flex-1">Soft tissue injury - palmar tenosynovitis/trigger finger (3rd & 4th digits, right hand)</div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Injury Details Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Injury Details</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex border-b pb-2">
+                    <div className="w-40 text-sm font-medium">Injury</div>
+                    <div className="text-sm flex-1">{workerCase.summary || "Soft tissue injury - palmar tenosynovitis/trigger finger (3rd & 4th digits, right hand)"}</div>
+                  </div>
+                  <div className="flex border-b pb-2">
+                    <div className="w-40 text-sm font-medium">Date of Onset</div>
+                    <div className="text-sm flex-1">{workerCase.dateOfInjury || "~December 2024"}</div>
+                  </div>
+                  <div className="flex border-b pb-2">
+                    <div className="w-40 text-sm font-medium">Mechanism</div>
+                    <div className="text-sm flex-1">Repetitive use of vibration cutting machine</div>
+                  </div>
+                  <div className="flex border-b pb-2">
+                    <div className="w-40 text-sm font-medium">Treating GP</div>
+                    <div className="text-sm flex-1">{workerCase.treatingGp || "Dr. Caesar Tan"}</div>
+                  </div>
+                  <div className="flex border-b pb-2">
+                    <div className="w-40 text-sm font-medium">Physiotherapist</div>
+                    <div className="text-sm flex-1">{workerCase.physiotherapist || "Andrew Coulter (Hobsons Bay Medical)"}</div>
+                  </div>
+                  <div className="flex border-b pb-2">
+                    <div className="w-40 text-sm font-medium">ORP</div>
+                    <div className="text-sm flex-1">{workerCase.orp || "Jordan Pankiw (AMS Consulting)"}</div>
+                  </div>
+                  <div className="flex pb-2">
+                    <div className="w-40 text-sm font-medium">Case Manager</div>
+                    <div className="text-sm flex-1">{workerCase.caseManager || "Niko Datuin (DXC)"}</div>
+                  </div>
                 </div>
-                <div className="flex border-b pb-2">
-                  <div className="w-40 text-sm font-medium">Date of Onset</div>
-                  <div className="text-sm flex-1">~December 2024 (reported 17 March 2025)</div>
+              </CardContent>
+            </Card>
+
+            {/* Diagnosis Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Diagnosis</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {/* Medical Diagnosis */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-primary mb-2">Medical Diagnosis</h4>
+                    <p className="text-sm">{workerCase.summary || "Diagnosis details pending"}</p>
+                  </div>
+
+                  {/* Scans & Imaging */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-primary mb-2">Scans & Imaging</h4>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between p-2 bg-muted rounded text-sm">
+                        <span>X-Ray Results</span>
+                        <Button variant="ghost" size="sm" className="h-7 text-xs">View</Button>
+                      </div>
+                      <div className="flex items-center justify-between p-2 bg-muted rounded text-sm">
+                        <span>MRI Report</span>
+                        <Button variant="ghost" size="sm" className="h-7 text-xs">View</Button>
+                      </div>
+                      <div className="flex items-center justify-between p-2 bg-muted rounded text-sm">
+                        <span>Ultrasound</span>
+                        <Button variant="ghost" size="sm" className="h-7 text-xs">View</Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Test Results */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-primary mb-2">Test Results</h4>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between p-2 bg-muted rounded text-sm">
+                        <span>Blood Work</span>
+                        <Button variant="ghost" size="sm" className="h-7 text-xs">View</Button>
+                      </div>
+                      <div className="flex items-center justify-between p-2 bg-muted rounded text-sm">
+                        <span>Nerve Conduction Study</span>
+                        <Button variant="ghost" size="sm" className="h-7 text-xs">View</Button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex border-b pb-2">
-                  <div className="w-40 text-sm font-medium">Mechanism</div>
-                  <div className="text-sm flex-1">Repetitive use of vibration cutting machine</div>
-                </div>
-                <div className="flex border-b pb-2">
-                  <div className="w-40 text-sm font-medium">Treating GP</div>
-                  <div className="text-sm flex-1">{workerCase.treatingGp || "Dr. Caesar Tan"}</div>
-                </div>
-                <div className="flex border-b pb-2">
-                  <div className="w-40 text-sm font-medium">Physiotherapist</div>
-                  <div className="text-sm flex-1">{workerCase.physiotherapist || "Andrew Coulter (Hobsons Bay Medical)"}</div>
-                </div>
-                <div className="flex border-b pb-2">
-                  <div className="w-40 text-sm font-medium">ORP</div>
-                  <div className="text-sm flex-1">{workerCase.orp || "Jordan Pankiw (AMS Consulting)"}</div>
-                </div>
-                <div className="flex pb-2">
-                  <div className="w-40 text-sm font-medium">Case Manager</div>
-                  <div className="text-sm flex-1">{workerCase.caseManager || "Niko Datuin (DXC)"}</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="timeline" className="flex-1 p-6">
