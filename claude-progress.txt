@@ -1,9 +1,50 @@
 # Preventli Progress Snapshot - Session Handoff
 
-**Date:** 2026-01-21
+**Date:** 2026-01-22
 **Branch:** treatment
-**Latest Commit:** e324412 - Major RecoveryChart improvements with business rules warning
-**Status:** 🎨 RecoveryChart Visual Improvements Complete - ⚠️  Business Rules Need Fixing
+**Latest Commit:** f21bb26 - Improve employer case detail page layout and responsiveness
+**Status:** 🎨 Employer Case Detail Page UI/UX Improvements Complete
+
+---
+
+## Session 18 - 2026-01-22 - Employer Case Detail Page Improvements
+
+### ✅ COMPLETED - Layout and Responsiveness Fixes
+- **Tab Renaming & Reordering:** Summary, Injury & Diagnosis, Treatment & Recovery, Timeline, Financial, Risk, Contacts
+- **Responsive Layout:** Action Plan column fixed to 350-450px width, stays on right side for laptop screens
+- **Header Compacted:** Smaller fonts, tighter spacing to maximize content area
+- **Latest Update Card:** Prominent display showing actual ticketLastUpdatedAt date (not hardcoded)
+- **AI Summary Filtering:** Removed redundant headers ("Case Summary - Andres Nieto") and incorrect dates
+- **Removed Clutter:** "Check completed" status text, "Latest Update" label removed
+- **Scrollable Tabs:** Tabs now scroll horizontally on smaller screens
+
+### 🎨 Visual Changes
+- **Dark Mode:** Set as default theme
+- **Action Plan Column:** Fixed width constraint (minmax 350px-450px) to prevent overflow
+- **Latest Update:** Just shows the date (e.g., "Monday, 19 January 2026") without labels
+- **Compact Header:** Worker name and company in smaller, truncated format
+
+### 🚧 PENDING TASKS (For Next Session)
+
+1. **Injury & Diagnosis Tab:**
+   - Only show actual scans/tests available (not placeholders)
+   - Alert missing scans based on injury type
+   - Add missing items as action items
+
+2. **Treatment & Recovery Tab (Certificate Dots):**
+   - Show dots only for actual certificates received
+   - Remove weekly placeholder dots
+   - Currently shows dots for every week regardless of certificate
+
+### 📋 Technical Details
+- **File Modified:** `client/src/pages/EmployerCaseDetailPage.tsx`
+- **Grid Layout:** `grid-cols-[1fr_minmax(350px,450px)]` for Summary tab
+- **Date Formatting:** Australian locale (`en-AU`) with weekday, day, month, year
+
+### 🎯 Next Session Command
+```bash
+/status  # Review pending tasks and continue with Injury & Diagnosis tab
+```
 
 ---
 
