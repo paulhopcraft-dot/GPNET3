@@ -1,9 +1,36 @@
 # Preventli Progress Snapshot - Session Handoff
 
 **Date:** 2026-01-22
-**Branch:** treatment
-**Latest Commit:** 6555bb0 - feat: parse injury details from AI summary markdown
-**Status:** Employer Case Detail UI Improvements
+**Branch:** presentation
+**Latest Commit:** 03bd63b - feat: route employer users to /cases for left sidebar navigation
+**Status:** ✅ Employer Portal Login Routing COMPLETE
+
+---
+
+## Session 21 - 2026-01-22 - Employer Portal Routing Fix COMPLETE
+
+### ✅ COMPLETED
+- **Employer login routing implemented** - employers now see left sidebar
+- **Change made in `RoleBasedDashboard.tsx`:**
+  ```typescript
+  // Before: return <EmployerSummaryDashboard />;  (no sidebar)
+  // After:  return <Navigate to="/cases" replace />;  (has sidebar)
+  ```
+- **Build verified** - TypeScript compilation passed
+- **Committed:** `03bd63b feat: route employer users to /cases for left sidebar navigation`
+
+### What This Achieves
+- Employers now land on `/cases` page after login
+- `/cases` uses `PageLayout` component with left sidebar navigation
+- Sidebar includes: Dashboard, Cases, New Claim, RTW Planner, Check-ins, Financials, Predictions, Risk
+
+### Branch Note
+Currently on `presentation` branch (branched from employer-portal work)
+
+### Optional Next Steps
+1. Hide Audit Log from employer sidebar (employers shouldn't see it per PRD)
+2. Test with actual employer user login
+3. Merge to main when ready
 
 ---
 
