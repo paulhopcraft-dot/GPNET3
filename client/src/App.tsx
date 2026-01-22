@@ -28,6 +28,7 @@ const SessionsPage = lazy(() => import("./pages/SessionsPage"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const CompanyList = lazy(() => import("./pages/admin/CompanyList"));
 const CompanyForm = lazy(() => import("./pages/admin/CompanyForm"));
+
 const CompanySettings = lazy(() => import("./pages/CompanySettings"));
 const CasesPage = lazy(() => import("./pages/CasesPage"));
 const CaseSummaryPage = lazy(() => import("./pages/CaseSummaryPage"));
@@ -39,6 +40,7 @@ const PredictionsPage = lazy(() => import("./pages/PredictionsPage"));
 const RiskDashboardPage = lazy(() => import("./pages/RiskDashboardPage"));
 const AuditLogPage = lazy(() => import("./pages/AuditLogPage"));
 const CertificateReviewPage = lazy(() => import("./pages/CertificateReviewPage"));
+const InjuryDateReviewPage = lazy(() => import("./pages/InjuryDateReviewPage"));
 const ReportsPage = lazy(() => import("./pages/ReportsPage"));
 const EmployerCaseDetailPage = lazy(() => import("./pages/EmployerCaseDetailPage"));
 
@@ -60,6 +62,7 @@ export default function App() {
                   <Route path="/login" element={<LoginPage />} />
                   <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                   <Route path="/reset-password" element={<ResetPasswordPage />} />
+
 
                   {/* Main dashboard - immediate load */}
                   <Route
@@ -198,6 +201,16 @@ export default function App() {
                       <ProtectedRoute>
                         <Suspense fallback={<PageLoader />}>
                           <CertificateReviewPage />
+                        </Suspense>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/injury-dates/review"
+                    element={
+                      <ProtectedRoute>
+                        <Suspense fallback={<PageLoader />}>
+                          <InjuryDateReviewPage />
                         </Suspense>
                       </ProtectedRoute>
                     }

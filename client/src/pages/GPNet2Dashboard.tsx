@@ -64,6 +64,31 @@ export default function GPNet2Dashboard() {
     },
   });
 
+  const sendCertificateAlertsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetchWithCsrf("/api/notifications/send-certificate-alerts", {
+        method: "POST",
+      });
+      if (!response.ok) {
+        throw new Error("Failed to send certificate alerts");
+      }
+      return await response.json();
+    },
+    onSuccess: (data: { sent: number; failed: number }) => {
+      toast({
+        title: "Certificate Alerts Sent",
+        description: `Sent ${data.sent} worker email alerts${data.failed > 0 ? `, ${data.failed} failed` : ''}`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Alert Failed",
+        description: error.message || "Failed to send certificate alerts",
+        variant: "destructive",
+      });
+    },
+  });
+
   useEffect(() => {
     syncMutation.mutate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -89,6 +114,25 @@ export default function GPNet2Dashboard() {
         matchesStatFilter = c.workStatus === 'At work';
       } else if (statFilter === 'high-risk') {
         matchesStatFilter = c.complianceIndicator === 'High';
+      } else if (statFilter === 'rtw-expiring') {
+        // RTW expiring filter - check if case has active RTW plan that might be expiring
+        const hasActivePlan = c.rtwPlanStatus === 'in_progress' || c.rtwPlanStatus === 'working_well';
+        if (!hasActivePlan) {
+          matchesStatFilter = false;
+        } else {
+          // Simplified check - in full implementation would use RTW compliance service
+          const treatmentPlan = c.clinical_status_json?.treatmentPlan;
+          if (treatmentPlan?.expectedDurationWeeks) {
+            const planGeneratedAt = new Date(treatmentPlan.generatedAt);
+            const planDurationMs = treatmentPlan.expectedDurationWeeks * 7 * 24 * 60 * 60 * 1000;
+            const planEndDate = new Date(planGeneratedAt.getTime() + planDurationMs);
+            const now = new Date();
+            const daysUntilEnd = Math.ceil((planEndDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
+            matchesStatFilter = daysUntilEnd >= 0 && daysUntilEnd <= 14;
+          } else {
+            matchesStatFilter = false;
+          }
+        }
       }
 
       return matchesCompany && matchesSearch && matchesStatFilter;
@@ -162,6 +206,7 @@ export default function GPNet2Dashboard() {
 
   return (
     <div className="flex h-screen">
+
       <aside className="hidden lg:block w-64 flex-shrink-0 bg-sidebar p-4 border-r border-sidebar-border">
         <div className="mb-8">
           <div className="flex items-center gap-3">
@@ -229,6 +274,20 @@ export default function GPNet2Dashboard() {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
             <SearchBar value={searchQuery} onChange={setSearchQuery} />
             <div className="flex items-center gap-2">
+              <Button
+                onClick={() => sendCertificateAlertsMutation.mutate()}
+                disabled={sendCertificateAlertsMutation.isPending}
+                data-testid="button-send-certificate-alerts"
+                size="sm"
+                variant="outline"
+              >
+                <span className="material-symbols-outlined text-base">
+                  {sendCertificateAlertsMutation.isPending ? "sync" : "notification_important"}
+                </span>
+                <span className="font-bold hidden sm:inline">
+                  {sendCertificateAlertsMutation.isPending ? "Sending..." : "Send Cert Alerts"}
+                </span>
+              </Button>
               <Button
                 onClick={() => syncMutation.mutate()}
                 disabled={syncMutation.isPending}

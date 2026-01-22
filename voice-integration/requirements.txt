@@ -1,0 +1,19 @@
+# Voice V10 - Natural Language Coding Interface
+# Install with: pip install -r requirements.txt
+
+# Audio processing
+sounddevice>=0.4.6
+numpy>=1.24.0
+
+# Speech-to-text (Whisper)
+openai-whisper>=20231117
+
+# Text-to-speech (pick one)
+edge-tts>=6.1.9        # Free, high-quality Microsoft voices
+# pyttsx3>=2.90        # Offline fallback
+
+# Audio playback
+pygame>=2.5.0
+
+# For MP3 conversion (optional, for edge-tts playback without pygame)
+# scipy>=1.11.0

@@ -5,6 +5,7 @@ import { requireCaseOwnership } from "../middleware/caseOwnership";
 import { storage } from "../storage";
 import { logAuditEvent, AuditEventTypes, getRequestMetadata } from "../services/auditLogger";
 import type { RTWPlanStatus } from "@shared/schema";
+import { getCaseRTWCompliance } from "../services/rtwCompliance";
 import { logger } from "../lib/logger";
 
 const router = Router();
@@ -218,6 +219,183 @@ router.get("/overview", authorize(), async (req: AuthRequest, res: Response) => 
     logger.api.error("Failed to fetch RTW overview", {}, err);
     res.status(500).json({
       error: "Failed to fetch RTW overview",
+      details: err instanceof Error ? err.message : "Unknown error",
+    });
+  }
+});
+
+/**
+ * GET /api/rtw/expiry-overview/:organizationId
+ * Get RTW plan expiry overview for an organization
+ */
+router.get("/expiry-overview/:organizationId", authorize, async (req: AuthRequest, res: Response) => {
+  try {
+    const organizationId = req.params.organizationId;
+
+    // Ensure user can access this organization
+    if (req.user!.organizationId !== organizationId && req.user!.role !== "admin") {
+      return res.status(403).json({ error: "Access denied to organization" });
+    }
+
+    logger.api.info("Fetching RTW expiry overview", { organizationId });
+
+    const cases = await storage.getGPNet2Cases(organizationId);
+
+    // Process all cases to get RTW compliance status
+    const expiringCases = [];
+    const expiredCases = [];
+
+    for (const workerCase of cases) {
+      try {
+        const compliance = await getCaseRTWCompliance(storage, workerCase.id, organizationId);
+
+        if (compliance.status === "plan_expiring_soon") {
+          expiringCases.push({
+            id: workerCase.id,
+            workerName: workerCase.workerName,
+            company: workerCase.company,
+            rtwPlanStatus: workerCase.rtwPlanStatus,
+            daysUntilExpiry: compliance.daysUntilExpiry,
+            planDuration: compliance.activePlan?.expectedDurationWeeks,
+          });
+        } else if (compliance.status === "plan_expired") {
+          expiredCases.push({
+            id: workerCase.id,
+            workerName: workerCase.workerName,
+            company: workerCase.company,
+            rtwPlanStatus: workerCase.rtwPlanStatus,
+            daysSinceExpiry: compliance.daysSinceExpiry,
+            planDuration: compliance.activePlan?.expectedDurationWeeks,
+          });
+        }
+      } catch (error) {
+        logger.api.warn("Failed to get RTW compliance for case", { caseId: workerCase.id }, error);
+        // Continue processing other cases
+      }
+    }
+
+    res.json({
+      expiring: expiringCases,
+      expired: expiredCases,
+      totalAffected: expiringCases.length + expiredCases.length,
+    });
+  } catch (err) {
+    logger.api.error("Failed to fetch RTW expiry overview", {}, err);
+    res.status(500).json({
+      error: "Failed to fetch RTW expiry overview",
+      details: err instanceof Error ? err.message : "Unknown error",
+    });
+  }
+});
+
+/**
+ * GET /api/cases/:id/rtw-compliance
+ * Get RTW compliance status for a specific case
+ */
+router.get("/cases/:id/rtw-compliance", authorize, requireCaseOwnership, async (req: AuthRequest, res: Response) => {
+  try {
+    const caseId = req.params.id;
+    const organizationId = req.user!.organizationId;
+
+    logger.api.info("Fetching RTW compliance", { caseId, organizationId });
+
+    const compliance = await getCaseRTWCompliance(storage, caseId, organizationId);
+
+    res.json(compliance);
+  } catch (err) {
+    logger.api.error("Failed to fetch RTW compliance", { caseId: req.params.id }, err);
+    res.status(500).json({
+      error: "Failed to fetch RTW compliance",
+      details: err instanceof Error ? err.message : "Unknown error",
+    });
+  }
+});
+
+/**
+ * PUT /api/cases/:id/rtw-plan/extend
+ * Extend RTW plan duration with audit logging
+ */
+const extendRtwPlanSchema = z.object({
+  additionalWeeks: z.number().min(1).max(52),
+  reason: z.string().optional(),
+});
+
+router.put("/cases/:id/rtw-plan/extend", authorize, requireCaseOwnership, async (req: AuthRequest, res: Response) => {
+  try {
+    const caseId = req.params.id;
+    const organizationId = req.user!.organizationId;
+    const { additionalWeeks, reason } = extendRtwPlanSchema.parse(req.body);
+
+    logger.api.info("Extending RTW plan", { caseId, additionalWeeks, reason });
+
+    // Get current case with clinical status
+    const cases = await storage.getGPNet2Cases(organizationId);
+    const workerCase = cases.find(c => c.id === caseId);
+    if (!workerCase) {
+      return res.status(404).json({ error: "Case not found" });
+    }
+    const clinicalStatus = workerCase.clinical_status_json;
+
+    if (!clinicalStatus?.treatmentPlan) {
+      return res.status(400).json({ error: "No treatment plan found to extend" });
+    }
+
+    // Update treatment plan duration
+    const updatedTreatmentPlan = {
+      ...clinicalStatus.treatmentPlan,
+      expectedDurationWeeks: clinicalStatus.treatmentPlan.expectedDurationWeeks + additionalWeeks,
+      // Update target end date if it exists
+      rtwPlanTargetEndDate: clinicalStatus.treatmentPlan.rtwPlanTargetEndDate
+        ? (() => {
+            const currentEnd = new Date(clinicalStatus.treatmentPlan.rtwPlanTargetEndDate!);
+            currentEnd.setDate(currentEnd.getDate() + (additionalWeeks * 7));
+            return currentEnd.toISOString();
+          })()
+        : undefined,
+      rtwPlanLastReviewDate: new Date().toISOString(),
+    };
+
+    // Update case with extended plan
+    const updatedClinicalStatus = {
+      ...clinicalStatus,
+      treatmentPlan: updatedTreatmentPlan,
+    };
+
+    await storage.updateClinicalStatus(caseId, organizationId, updatedClinicalStatus);
+
+    // Log audit event
+    await logAuditEvent({
+      eventType: AuditEventTypes.CASE_UPDATE,
+      userId: req.user!.email,
+      organizationId,
+      caseId,
+      metadata: getRequestMetadata(req),
+      details: {
+        field: "rtwPlanDuration",
+        oldValue: clinicalStatus.treatmentPlan.expectedDurationWeeks,
+        newValue: updatedTreatmentPlan.expectedDurationWeeks,
+        additionalWeeks,
+        reason: reason || "RTW plan extension",
+      },
+    });
+
+    res.json({
+      success: true,
+      newDurationWeeks: updatedTreatmentPlan.expectedDurationWeeks,
+      newTargetEndDate: updatedTreatmentPlan.rtwPlanTargetEndDate,
+      message: `RTW plan extended by ${additionalWeeks} weeks`,
+    });
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({
+        error: "Invalid request data",
+        details: err.errors,
+      });
+    }
+
+    logger.api.error("Failed to extend RTW plan", { caseId: req.params.id }, err);
+    res.status(500).json({
+      error: "Failed to extend RTW plan",
       details: err instanceof Error ? err.message : "Unknown error",
     });
   }

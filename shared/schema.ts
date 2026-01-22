@@ -127,6 +127,12 @@ export interface TreatmentPlan {
   supersededAt?: string;
   supersededBy?: string;
   notes?: string;
+
+  // RTW Plan Timeline Fields (added for RTW plan expiry tracking)
+  rtwPlanStartDate?: string;        // When RTW plan became active (ISO date string)
+  rtwPlanTargetEndDate?: string;    // Calculated: startDate + expectedDurationWeeks
+  rtwPlanActualEndDate?: string;    // When plan actually completed
+  rtwPlanLastReviewDate?: string;   // Last plan review/update
 }
 
 export interface CaseClinicalStatus {
@@ -630,8 +636,14 @@ export const workerCases = pgTable("worker_cases", {
   workerName: text("worker_name").notNull(),
   company: text("company").notNull(),
   dateOfInjury: timestamp("date_of_injury").notNull(),
-  dateOfInjurySource: varchar("date_of_injury_source").default("unknown"), // "verified" | "extracted" | "fallback" | "unknown"
+  dateOfInjurySource: varchar("date_of_injury_source").default("unknown"), // "verified" | "extracted" | "ai_extracted" | "fallback" | "unknown"
   dateOfInjuryConfidence: varchar("date_of_injury_confidence").default("low"), // "high" | "medium" | "low"
+  dateOfInjuryRequiresReview: boolean("date_of_injury_requires_review").default(false),
+  dateOfInjuryExtractionMethod: varchar("date_of_injury_extraction_method").default("fallback"), // "custom_field" | "regex" | "ai_nlp" | "fallback"
+  dateOfInjurySourceText: text("date_of_injury_source_text"), // Fragment where date was found
+  dateOfInjuryAiReasoning: text("date_of_injury_ai_reasoning"), // AI explanation when used
+  dateOfInjuryReviewedBy: varchar("date_of_injury_reviewed_by"), // User ID who reviewed
+  dateOfInjuryReviewedAt: timestamp("date_of_injury_reviewed_at"), // When review was completed
   riskLevel: text("risk_level").notNull(),
   workStatus: text("work_status").notNull(),
   hasCertificate: boolean("has_certificate").notNull().default(false),
@@ -1203,6 +1215,25 @@ export interface CertificateCompliance {
 }
 
 // =====================================================
+// RTW Plan Compliance Types (mirroring certificate compliance)
+// =====================================================
+
+export type RTWComplianceStatus =
+  | "no_plan"
+  | "plan_expiring_soon"    // 1-7 days until expiry
+  | "plan_expired"          // Past target end date
+  | "plan_compliant";       // Active plan within timeline
+
+export interface RTWCompliance {
+  status: RTWComplianceStatus;
+  activePlan?: TreatmentPlan;
+  daysUntilExpiry?: number;
+  daysSinceExpiry?: number;
+  requiresReview: boolean;
+  message: string;
+}
+
+// =====================================================
 // Smart Summary Engine v1 - Structured Case Analysis
 // =====================================================
 
@@ -1342,7 +1373,9 @@ export type NotificationType =
   | "action_overdue"
   | "case_attention_needed"
   | "weekly_digest"
-  | "check_in_follow_up";
+  | "check_in_follow_up"
+  | "rtw_plan_expiring"     // RTW plan expires in 7/3/1 days
+  | "rtw_plan_expired";     // RTW plan has expired
 
 export type NotificationPriority = "low" | "medium" | "high" | "critical";
 export type NotificationStatus = "pending" | "sent" | "failed" | "skipped";

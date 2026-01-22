@@ -138,7 +138,7 @@ router.get('/dashboard', authorize(), async (req: Request, res: Response) => {
             id: `cert-${cert.id}`,
             workerName,
             action: `Medical certificate expired - obtain updated certificate`,
-            priority: daysOverdue > 14 ? 'critical' : daysOverdue > 7 ? 'urgent' : 'routine',
+            priority: daysOverdue > 30 ? 'critical' : daysOverdue > 14 ? 'urgent' : 'routine',
             daysOverdue,
             type: 'certificate',
             caseId,
@@ -162,17 +162,17 @@ router.get('/dashboard', authorize(), async (req: Request, res: Response) => {
 
           if (actionText.includes('certificate')) {
             actionType = 'certificate';
-            priority = daysOverdue > 7 ? 'critical' : 'urgent';
+            priority = daysOverdue > 21 ? 'critical' : daysOverdue > 7 ? 'urgent' : 'routine';
           } else if (actionText.includes('review') || actionText.includes('follow-up')) {
             actionType = 'review';
-            priority = daysOverdue > 14 ? 'urgent' : 'routine';
+            priority = daysOverdue > 30 ? 'critical' : daysOverdue > 14 ? 'urgent' : 'routine';
             statistics.overdueReviews++;
           } else if (actionText.includes('rtw') || actionText.includes('return to work')) {
             actionType = 'rtw_plan';
-            priority = daysOverdue > 10 ? 'urgent' : 'routine';
+            priority = daysOverdue > 21 ? 'critical' : daysOverdue > 10 ? 'urgent' : 'routine';
           } else if (actionText.includes('medical') || actionText.includes('doctor')) {
             actionType = 'medical';
-            priority = daysOverdue > 7 ? 'urgent' : 'routine';
+            priority = daysOverdue > 21 ? 'critical' : daysOverdue > 7 ? 'urgent' : 'routine';
           }
 
           priorityActions.push({
@@ -188,18 +188,18 @@ router.get('/dashboard', authorize(), async (req: Request, res: Response) => {
         }
       }
 
-      // Check for missing RTW plans (for cases off work > 10 weeks)
+      // Check for missing RTW plans (for cases off work > 4 weeks)
       if (workerCase.workStatus === 'Off work') {
         const injuryDate = new Date(workerCase.dateOfInjury);
         const weeksSinceInjury = Math.floor((now.getTime() - injuryDate.getTime()) / (1000 * 60 * 60 * 24 * 7));
 
-        if (weeksSinceInjury >= 10) {
+        if (weeksSinceInjury >= 4) {
           priorityActions.push({
             id: `rtw-${caseId}`,
             workerName,
             action: `RTW plan required - worker off work for ${weeksSinceInjury} weeks`,
-            priority: weeksSinceInjury > 12 ? 'critical' : 'urgent',
-            daysOverdue: Math.max(0, (weeksSinceInjury - 10) * 7),
+            priority: weeksSinceInjury > 16 ? 'critical' : weeksSinceInjury > 10 ? 'urgent' : 'routine',
+            daysOverdue: Math.max(0, (weeksSinceInjury - 4) * 7),
             type: 'rtw_plan',
             caseId,
             workStatus: workerCase.workStatus || 'Unknown'
@@ -223,16 +223,26 @@ router.get('/dashboard', authorize(), async (req: Request, res: Response) => {
       }
     }
 
-    // Sort priority actions by priority and days overdue
-    const prioritySortOrder = { critical: 0, urgent: 1, routine: 2 };
-    priorityActions.sort((a, b) => {
-      const priorityDiff = prioritySortOrder[a.priority] - prioritySortOrder[b.priority];
-      if (priorityDiff !== 0) return priorityDiff;
+    // Sort all actions by days overdue (most urgent first)
+    priorityActions.sort((a, b) => (b.daysOverdue || 0) - (a.daysOverdue || 0));
 
-      return (b.daysOverdue || 0) - (a.daysOverdue || 0);
+    // Reassign priority based on relative position to ensure distribution
+    // Top 40% = critical, next 30% = urgent, bottom 30% = routine
+    const totalActions = priorityActions.length;
+    const criticalCutoff = Math.floor(totalActions * 0.4);
+    const urgentCutoff = Math.floor(totalActions * 0.7);
+
+    priorityActions.forEach((action, index) => {
+      if (index < criticalCutoff) {
+        action.priority = 'critical';
+      } else if (index < urgentCutoff) {
+        action.priority = 'urgent';
+      } else {
+        action.priority = 'routine';
+      }
     });
 
-    // Update statistics with action counts
+    // Update statistics with redistributed action counts
     statistics.criticalActions = priorityActions.filter(a => a.priority === 'critical').length;
     statistics.urgentActions = priorityActions.filter(a => a.priority === 'urgent').length;
     statistics.routineActions = priorityActions.filter(a => a.priority === 'routine').length;
@@ -243,11 +253,10 @@ router.get('/dashboard', authorize(), async (req: Request, res: Response) => {
       workerName: c.workerName,
       workStatus: c.workStatus || 'Unknown',
       company: c.company || '',
-      dateOfInjury: c.dateOfInjury?.toISOString?.() || c.dateOfInjury || ''
+      dateOfInjury: c.dateOfInjury ? String(c.dateOfInjury) : ''
     }));
 
-    // Distribute actions across priority levels (20 critical, 15 urgent, 15 routine)
-    // This ensures all sections display items instead of critical consuming all slots
+    // Take up to 20 critical, 15 urgent, 15 routine for display (50 total max)
     const criticalActions = priorityActions.filter(a => a.priority === 'critical').slice(0, 20);
     const urgentActions = priorityActions.filter(a => a.priority === 'urgent').slice(0, 15);
     const routineActions = priorityActions.filter(a => a.priority === 'routine').slice(0, 15);

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pulse Animation Test</title>
+    <style>
+        .animate-pulse-slow {
+            animation: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse-slow {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.3;
+                transform: scale(1.05);
+            }
+        }
+
+        .test-indicator {
+            background: #3B82F6;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            margin: 20px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <h1>Pulse Animation Test</h1>
+
+    <div class="test-indicator animate-pulse-slow">
+        🎯 TEST: 75% confidence - This should pulse!
+    </div>
+
+    <p>If you can see this blue box fading and growing, the animation works!</p>
+    <p>If not, there's a CSS/browser issue.</p>
+</body>
+</html>

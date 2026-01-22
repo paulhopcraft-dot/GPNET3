@@ -91,6 +91,32 @@
   --tracking-normal: 0em;
   --spacing: 0.25rem;
 
+  /* Ultra-Modern Gradients for Dashboard Transformation */
+  --gradient-hero: radial-gradient(ellipse at top,
+    rgba(147, 51, 234, 0.3) 0%,
+    rgba(168, 85, 247, 0.2) 25%,
+    rgba(217, 70, 239, 0.15) 50%,
+    transparent 80%);
+  --gradient-recovery: linear-gradient(135deg,
+    rgba(34, 197, 94, 0.25) 0%,
+    rgba(16, 185, 129, 0.2) 35%,
+    rgba(6, 182, 212, 0.15) 70%,
+    transparent 100%);
+  --gradient-treatment: linear-gradient(125deg,
+    rgba(59, 130, 246, 0.3) 0%,
+    rgba(99, 102, 241, 0.25) 40%,
+    rgba(139, 92, 246, 0.2) 80%,
+    transparent 100%);
+  --gradient-mesh: radial-gradient(circle at 20% 50%,
+    rgba(120, 119, 198, 0.3) 0%,
+    transparent 50%),
+    radial-gradient(circle at 80% 20%,
+    rgba(255, 119, 198, 0.3) 0%,
+    transparent 50%),
+    radial-gradient(circle at 40% 80%,
+    rgba(55, 173, 155, 0.25) 0%,
+    transparent 50%);
+
   /* Automatically computed borders - intensity can be controlled by the user by the --opaque-button-border-intensity setting */
 
   /* Fallback for older browsers */
@@ -323,5 +349,122 @@
   .border.active-elevate-2:not(.no-active-interaction-elevate)::after,
   .border.hover-elevate:not(.no-hover-interaction-elevate)::after {
     inset: -1px;
+  }
+
+  /* Ultra-Modern Gradient Mesh Background */
+  .gradient-mesh {
+    background: var(--gradient-mesh);
+    background-attachment: fixed;
+    background-size: 100% 100%;
+  }
+
+  /* Glassmorphism Effects */
+  .glass-panel {
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    border-radius: 12px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .glass-panel:hover {
+    transform: scale(1.01);
+    box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.45);
+  }
+
+  /* Intervention Badge Hover Effects */
+  .intervention-badge {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .intervention-badge:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .dark .glass-panel {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  }
+
+  /* Glassmorphism fallback for unsupported browsers */
+  @supports not (backdrop-filter: blur(1px)) {
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .dark .glass-panel {
+      background: rgba(0, 0, 0, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  /* Performance fallback for reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    .glass-panel {
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      background: rgba(255, 255, 255, 0.95);
+    }
+
+    .dark .glass-panel {
+      background: rgba(0, 0, 0, 0.95);
+    }
+  }
+
+  /* Ultra-Modern Animation Utilities */
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-6px);
+    }
+  }
+
+  @keyframes gradient {
+    0%, 100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
+  @keyframes pulse-slow {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.3;
+      transform: scale(1.05);
+    }
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  .animate-gradient {
+    animation: gradient 15s ease infinite;
+    background-size: 400% 400%;
+  }
+
+  .animate-pulse-slow {
+    animation: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  /* Reduced motion fallbacks */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-float,
+    .animate-gradient,
+    .animate-pulse-slow {
+      animation: none;
+    }
   }
 }

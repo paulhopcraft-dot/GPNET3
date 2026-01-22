@@ -43,6 +43,13 @@
       "when": 1768267841361,
       "tag": "0005_aberrant_gorilla_man",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1768971681358,
+      "tag": "0006_icy_naoko",
+      "breakpoints": true
     }
   ]
 }

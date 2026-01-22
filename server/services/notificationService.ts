@@ -17,11 +17,93 @@ import type {
 } from "@shared/schema";
 import { sendEmail } from "./emailService";
 import { getCaseCompliance } from "./certificateCompliance";
+import { getCaseRTWCompliance } from "./rtwCompliance";
 import { logger } from "../lib/logger";
 
 // =====================================================
 // Configuration
 // =====================================================
+
+/**
+ * Check if an overdue action is now obsolete and should be auto-completed
+ * @param storage - Storage interface
+ * @param action - The action to validate
+ * @returns true if the action should be auto-completed as obsolete
+ */
+async function isActionObsolete(storage: IStorage, action: CaseAction): Promise<boolean> {
+  // Only validate certificate-related actions for now
+  if (action.type !== "chase_certificate" && action.type !== "obtain_certificate") {
+    logger.notification.debug(`Skipping non-certificate action`, { actionId: action.id, type: action.type });
+    return false;
+  }
+
+  logger.notification.info(`🔍 Checking if certificate action is obsolete`, {
+    actionId: action.id,
+    type: action.type,
+    caseId: action.caseId,
+    workerName: action.workerName,
+    dueDate: action.dueDate
+  });
+
+  try {
+    // Get current certificate compliance for the case
+    const compliance = await getCaseCompliance(storage, action.caseId, action.organizationId);
+
+    logger.notification.info(`📋 Compliance status`, {
+      actionId: action.id,
+      complianceStatus: compliance.status,
+      activeCertificate: !!compliance.activeCertificate,
+      newestCertificate: !!compliance.newestCertificate
+    });
+
+    // If compliance is good (has valid certificate), the action is obsolete
+    if (compliance.status === "compliant" || compliance.activeCertificate) {
+      logger.notification.info(`✅ Certificate action is obsolete - valid certificate exists`, {
+        actionId: action.id,
+        type: action.type,
+        caseId: action.caseId,
+        complianceStatus: compliance.status
+      });
+      return true;
+    }
+
+    // Additional check: if there are recent certificates (within 30 days of action due date)
+    if (compliance.newestCertificate) {
+      const actionDueDate = new Date(action.dueDate);
+      const certCreatedDate = new Date(compliance.newestCertificate.createdAt);
+      const daysDiff = (certCreatedDate.getTime() - actionDueDate.getTime()) / (1000 * 60 * 60 * 24);
+
+      logger.notification.info(`📅 Certificate timing analysis`, {
+        actionId: action.id,
+        actionDue: action.dueDate,
+        certCreated: compliance.newestCertificate.createdAt,
+        daysDiff: Math.round(daysDiff)
+      });
+
+      // If certificate was added within 30 days after the action was due, consider action resolved
+      if (daysDiff >= 0 && daysDiff <= 30) {
+        logger.notification.info(`✅ Certificate action resolved - recent certificate found`, {
+          actionId: action.id,
+          actionDue: action.dueDate,
+          certCreated: compliance.newestCertificate.createdAt,
+          daysDiff: Math.round(daysDiff)
+        });
+        return true;
+      }
+    }
+
+    logger.notification.info(`❌ Certificate action still valid - no obsolescence detected`, {
+      actionId: action.id
+    });
+
+  } catch (error) {
+    logger.notification.error(`💥 Error checking action obsolescence for ${action.id}`, {}, error);
+    // On error, don't auto-complete to be safe
+    return false;
+  }
+
+  return false;
+}
 
 const APP_URL = process.env.APP_URL || "http://localhost:5173";
 
@@ -128,6 +210,36 @@ Overdue actions: {{overdueActions}}
 View dashboard: {{dashboardUrl}}
 `,
   },
+
+  rtw_plan_expiring: {
+    subject: "RTW plan review needed: {{workerName}} ({{company}})",
+    body: `The RTW plan for {{workerName}} at {{company}} requires review.
+
+Days until plan expires: {{daysUntil}}
+Plan duration: {{planDuration}} weeks
+Current RTW status: {{rtwStatus}}
+Plan start date: {{planStartDate}}
+
+Please review and extend the RTW plan if appropriate.
+
+View case: {{caseUrl}}
+`,
+  },
+
+  rtw_plan_expired: {
+    subject: "URGENT: RTW plan expired for {{workerName}} ({{company}})",
+    body: `The RTW plan for {{workerName}} at {{company}} has expired.
+
+Days since expiry: {{daysSince}}
+Plan duration: {{planDuration}} weeks
+Current RTW status: {{rtwStatus}}
+Plan end date: {{expiryDate}}
+
+Immediate action required to review and update the RTW plan.
+
+View case: {{caseUrl}}
+`,
+  },
 };
 
 // =====================================================
@@ -195,6 +307,32 @@ function getCheckInDedupeKey(caseId: string, daysSinceFollowUp: number): string 
 // =====================================================
 
 function getCertificatePriority(daysUntilExpiry: number): NotificationPriority {
+  if (daysUntilExpiry <= 0) return "critical";
+  if (daysUntilExpiry <= 1) return "critical";
+  if (daysUntilExpiry <= 3) return "high";
+  return "medium";
+}
+
+/**
+ * RTW Plan Notification Helper Functions
+ */
+function getRTWPlanDedupeKey(caseId: string, daysUntilExpiry: number): string {
+  // Same bucketing logic as certificates: 7, 3, 1, 0, -1 (expired)
+  let bucket: number;
+  if (daysUntilExpiry < 0) {
+    bucket = -1; // expired
+  } else if (daysUntilExpiry <= 1) {
+    bucket = 1;
+  } else if (daysUntilExpiry <= 3) {
+    bucket = 3;
+  } else {
+    bucket = 7;
+  }
+  return `rtw_plan:${caseId}:${bucket}`;
+}
+
+function getRTWPlanPriority(daysUntilExpiry: number): NotificationPriority {
+  // Same priority logic as certificates
   if (daysUntilExpiry <= 0) return "critical";
   if (daysUntilExpiry <= 1) return "critical";
   if (daysUntilExpiry <= 3) return "high";
@@ -304,6 +442,94 @@ async function generateCertificateNotifications(
 }
 
 /**
+ * Generate RTW plan expiry notifications following the certificate pattern
+ */
+async function generateRTWPlanNotifications(
+  storage: IStorage,
+  recipientEmail: string,
+  organizationId: string
+): Promise<number> {
+  let created = 0;
+
+  // Get all cases for the organization
+  const cases = await storage.getGPNet2Cases(organizationId);
+
+  for (const workerCase of cases) {
+    try {
+      const compliance = await getCaseRTWCompliance(storage, workerCase.id, workerCase.organizationId);
+
+      // Skip compliant or no-plan cases
+      if (compliance.status === "plan_compliant" || compliance.status === "no_plan") {
+        continue;
+      }
+
+      const isExpired = compliance.status === "plan_expired";
+      const daysValue = isExpired
+        ? -(compliance.daysSinceExpiry || 0)
+        : (compliance.daysUntilExpiry || 0);
+
+      const dedupeKey = getRTWPlanDedupeKey(workerCase.id, daysValue);
+
+      // Check if notification already exists
+      const exists = await storage.notificationExistsByDedupeKey(dedupeKey);
+      if (exists) {
+        continue;
+      }
+
+      // Get RTW plan info
+      const plan = compliance.activePlan;
+      const planStartDate = plan?.rtwPlanStartDate ? new Date(plan.rtwPlanStartDate).toLocaleDateString("en-AU") : "Unknown";
+      const expiryDate = plan?.rtwPlanTargetEndDate ? new Date(plan.rtwPlanTargetEndDate).toLocaleDateString("en-AU") : "Unknown";
+      const planDuration = plan?.expectedDurationWeeks || 0;
+      const rtwStatus = workerCase.rtwPlanStatus || "not_planned";
+
+      // Build notification content
+      const type: NotificationType = isExpired ? "rtw_plan_expired" : "rtw_plan_expiring";
+      const { subject, body } = buildNotificationContent(type, {
+        workerName: workerCase.workerName,
+        company: workerCase.company,
+        daysUntil: compliance.daysUntilExpiry || 0,
+        daysSince: compliance.daysSinceExpiry || 0,
+        expiryDate,
+        planStartDate,
+        planDuration: planDuration.toString(),
+        rtwStatus,
+        caseUrl: `${APP_URL}/cases/${workerCase.id}`,
+      });
+
+      // Create notification
+      const notification: InsertNotification = {
+        organizationId: workerCase.organizationId,
+        type,
+        priority: getRTWPlanPriority(daysValue),
+        caseId: workerCase.id,
+        recipientEmail,
+        recipientName: null,
+        subject,
+        body,
+        status: "pending",
+        dedupeKey,
+        metadata: {
+          workerName: workerCase.workerName,
+          company: workerCase.company,
+          daysUntilExpiry: compliance.daysUntilExpiry,
+          daysSinceExpiry: compliance.daysSinceExpiry,
+          planDuration: planDuration,
+          rtwStatus: rtwStatus,
+        },
+      };
+
+      await storage.createNotification(notification);
+      created++;
+    } catch (error) {
+      logger.notification.error(`Error processing RTW plan for case ${workerCase.id}`, {}, error);
+    }
+  }
+
+  return created;
+}
+
+/**
  * Generate overdue action notifications
  * Note: organizationId is required for tenant isolation. The notification
  * service should be called per-organization in production.
@@ -326,6 +552,22 @@ async function generateActionNotifications(
       const daysOverdue = Math.floor((now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
 
       if (daysOverdue < 1) continue; // Not yet overdue
+
+      // ✅ FIX: Check if certificate-related actions are still relevant
+      if (await isActionObsolete(storage, action)) {
+        // Auto-complete the obsolete action
+        try {
+          await storage.markActionDone(action.id);
+          logger.notification.info(`Auto-completed obsolete action`, {
+            actionId: action.id,
+            type: action.type,
+            workerName: action.workerName
+          });
+        } catch (error) {
+          logger.notification.error(`Failed to auto-complete obsolete action ${action.id}`, {}, error);
+        }
+        continue; // Skip notification for this obsolete action
+      }
 
       const dedupeKey = getActionDedupeKey(action.id, daysOverdue);
 
@@ -493,6 +735,11 @@ export async function generatePendingNotifications(storage: IStorage, organizati
     logger.notification.info(`Generated certificate notifications`, { count: certCount });
     total += certCount;
 
+    // Generate RTW plan notifications
+    const rtwCount = await generateRTWPlanNotifications(storage, recipientEmail, organizationId);
+    logger.notification.info(`Generated RTW plan notifications`, { count: rtwCount });
+    total += rtwCount;
+
     // Generate action notifications
     const actionCount = await generateActionNotifications(storage, recipientEmail, organizationId);
     logger.notification.info(`Generated action notifications`, { count: actionCount });
@@ -606,4 +853,174 @@ export async function getNotificationsByCase(
   organizationId: string
 ): Promise<NotificationDB[]> {
   return storage.getNotificationsByCase(caseId, organizationId);
+}
+
+// =====================================================
+// Worker Certificate Alert Functions
+// =====================================================
+
+/**
+ * Get worker email address for a specific case
+ */
+async function getWorkerEmail(storage: IStorage, caseId: string, organizationId: string): Promise<string | null> {
+  try {
+    const contacts = await storage.query(`
+      SELECT email, name
+      FROM case_contacts
+      WHERE case_id = $1 AND organization_id = $2 AND role = 'worker'
+      ORDER BY created_at DESC
+      LIMIT 1
+    `, [caseId, organizationId]);
+
+    if (contacts.length === 0) {
+      return null;
+    }
+
+    const contact = contacts[0];
+    const email = contact.email?.trim();
+
+    // Basic email validation
+    if (email && email.includes('@') && email.includes('.')) {
+      return email;
+    }
+
+    return null;
+  } catch (error) {
+    logger.notification.error(`Failed to get worker email for case ${caseId}`, {}, error);
+    return null;
+  }
+}
+
+/**
+ * Send certificate expiry alerts directly to workers (3-day threshold)
+ */
+export async function sendWorkerCertificateAlerts(
+  storage: IStorage,
+  organizationId: string
+): Promise<{ sent: number; failed: number; errors: string[] }> {
+  logger.notification.info(`Sending worker certificate alerts`, { organizationId });
+
+  let sent = 0;
+  let failed = 0;
+  const errors: string[] = [];
+
+  try {
+    // Get all cases for the organization
+    const cases = await storage.getGPNet2Cases(organizationId);
+
+    for (const workerCase of cases) {
+      try {
+        const compliance = await getCaseCompliance(storage, workerCase.id, workerCase.organizationId);
+
+        // Only process cases with certificates expiring in 3-7 days
+        if (compliance.status !== "certificate_expiring_soon" || !compliance.daysUntilExpiry) {
+          continue;
+        }
+
+        // Focus on 3-day threshold for worker alerts (vs 7-day for admin alerts)
+        const daysUntilExpiry = compliance.daysUntilExpiry;
+        if (daysUntilExpiry > 7 || daysUntilExpiry < 1) {
+          continue; // Outside worker alert window
+        }
+
+        // Get worker email
+        const workerEmail = await getWorkerEmail(storage, workerCase.id, workerCase.organizationId);
+        if (!workerEmail) {
+          logger.notification.warn(`No worker email found for case`, {
+            caseId: workerCase.id,
+            workerName: workerCase.workerName
+          });
+          continue;
+        }
+
+        // Check for recent duplicate notifications to this worker
+        const dedupeKey = `worker_cert:${workerCase.id}:${Math.floor(daysUntilExpiry / 3) * 3}`;
+        const exists = await storage.notificationExistsByDedupeKey(dedupeKey);
+        if (exists) {
+          logger.notification.debug(`Worker alert already sent recently`, {
+            caseId: workerCase.id,
+            workerEmail,
+            dedupeKey
+          });
+          continue;
+        }
+
+        // Get certificate info
+        const cert = compliance.activeCertificate;
+        const expiryDate = cert ? new Date(cert.endDate).toLocaleDateString("en-AU") : "Unknown";
+        const capacity = cert?.capacity || "Unknown";
+
+        // Build worker-friendly notification content
+        const { subject, body } = buildNotificationContent("certificate_expiring", {
+          workerName: workerCase.workerName,
+          company: workerCase.company,
+          daysUntil: daysUntilExpiry,
+          expiryDate,
+          capacity,
+          caseUrl: `${APP_URL}/cases/${workerCase.id}`,
+        });
+
+        // Create notification record
+        const notification: InsertNotification = {
+          organizationId: workerCase.organizationId,
+          type: "certificate_expiring",
+          priority: getCertificatePriority(daysUntilExpiry),
+          caseId: workerCase.id,
+          recipientEmail: workerEmail,
+          recipientName: workerCase.workerName,
+          subject,
+          body,
+          status: "pending",
+          dedupeKey,
+          metadata: {
+            workerName: workerCase.workerName,
+            company: workerCase.company,
+            daysUntilExpiry,
+            targetType: "worker", // Mark as worker-targeted alert
+          },
+        };
+
+        await storage.createNotification(notification);
+
+        // Send email directly
+        const result = await sendEmail({
+          to: workerEmail,
+          subject,
+          body,
+        });
+
+        if (result.success) {
+          await storage.markNotificationSent(notification.id!);
+          sent++;
+          logger.notification.info(`Worker certificate alert sent`, {
+            caseId: workerCase.id,
+            workerName: workerCase.workerName,
+            workerEmail,
+            daysUntilExpiry
+          });
+        } else {
+          await storage.updateNotificationStatus(notification.id!, "failed", result.error);
+          failed++;
+          errors.push(`Failed to send to ${workerEmail}: ${result.error}`);
+        }
+      } catch (error) {
+        failed++;
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        errors.push(`Case ${workerCase.id} (${workerCase.workerName}): ${errorMessage}`);
+        logger.notification.error(`Error processing worker alert for case ${workerCase.id}`, {}, error);
+      }
+    }
+
+    logger.notification.info(`Worker certificate alerts complete`, {
+      organizationId,
+      sent,
+      failed,
+      totalErrors: errors.length
+    });
+
+    return { sent, failed, errors };
+  } catch (error) {
+    logger.notification.error("Error in sendWorkerCertificateAlerts", {}, error);
+    throw error;
+  }
 }
