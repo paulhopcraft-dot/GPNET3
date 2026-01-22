@@ -1,13 +1,13 @@
 import { useAuth } from "@/hooks/useAuth";
 import GPNet2Dashboard from "@/pages/GPNet2Dashboard";
-import { EmployerSummaryDashboard } from "@/components/EmployerSummaryDashboard";
+import { Navigate } from "react-router-dom";
 
 export function RoleBasedDashboard() {
   const { user } = useAuth();
 
-  // Show new employer summary dashboard for employer role
+  // Redirect employers to /cases page (has left sidebar via PageLayout)
   if (user?.role === "employer") {
-    return <EmployerSummaryDashboard />;
+    return <Navigate to="/cases" replace />;
   }
 
   // Default: show admin/clinician dashboard
