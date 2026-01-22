@@ -148,11 +148,11 @@ export default function EmployerCaseDetailPage() {
               {/* Latest Update - Prominent at top */}
               {workerCase.ticketLastUpdatedAt && (
                 <Card className="border-l-4 border-l-primary bg-primary/5">
-                  <CardContent className="py-4">
+                  <CardContent className="py-2">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-2xl font-bold text-primary">
-                          {new Date(workerCase.ticketLastUpdatedAt).toLocaleDateString('en-AU', {
+                        <p className="text-lg font-semibold text-primary">
+                          Status as at {new Date(workerCase.ticketLastUpdatedAt).toLocaleDateString('en-AU', {
                             weekday: 'long',
                             day: 'numeric',
                             month: 'long',
@@ -189,7 +189,10 @@ export default function EmployerCaseDetailPage() {
                           .replace(/Case Summary\s*[-–—:]\s*[A-Za-z\s]+\n*/gi, '') // Remove "Case Summary - Name" header
                           .replace(/\*\*Case Summary\s*[-–—:]\s*[A-Za-z\s]+\*\*\n*/gi, '') // Remove bold version
                           .replace(/^#+\s*Case Summary.*\n*/gim, '') // Remove markdown header version
-                          .replace(/Latest Update\s*\(\d{4}-\d{2}-\d{2}\)/gi, 'Latest Update') // Remove date from Latest Update
+                          .replace(/^#+\s*Latest Update.*\n*/gim, '') // Remove "## Latest Update" headers
+                          .replace(/\*\*Latest Update.*?\*\*\n*/gi, '') // Remove "**Latest Update**" bold headers
+                          .replace(/Latest Update\s*\(\d{4}-\d{2}-\d{2}\)\s*\n*/gi, '') // Remove "Latest Update (date)" lines
+                          .replace(/^Latest Update\s*\n/gim, '') // Remove standalone "Latest Update" lines
                       )}
                     </div>
                   ) : (
