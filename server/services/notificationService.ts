@@ -17,6 +17,7 @@ import type {
 } from "@shared/schema";
 import { sendEmail } from "./emailService";
 import { getCaseCompliance } from "./certificateCompliance";
+import { getCaseRTWCompliance } from "./rtwCompliance";
 import { logger } from "../lib/logger";
 
 // =====================================================
@@ -209,6 +210,36 @@ Overdue actions: {{overdueActions}}
 View dashboard: {{dashboardUrl}}
 `,
   },
+
+  rtw_plan_expiring: {
+    subject: "RTW plan review needed: {{workerName}} ({{company}})",
+    body: `The RTW plan for {{workerName}} at {{company}} requires review.
+
+Days until plan expires: {{daysUntil}}
+Plan duration: {{planDuration}} weeks
+Current RTW status: {{rtwStatus}}
+Plan start date: {{planStartDate}}
+
+Please review and extend the RTW plan if appropriate.
+
+View case: {{caseUrl}}
+`,
+  },
+
+  rtw_plan_expired: {
+    subject: "URGENT: RTW plan expired for {{workerName}} ({{company}})",
+    body: `The RTW plan for {{workerName}} at {{company}} has expired.
+
+Days since expiry: {{daysSince}}
+Plan duration: {{planDuration}} weeks
+Current RTW status: {{rtwStatus}}
+Plan end date: {{expiryDate}}
+
+Immediate action required to review and update the RTW plan.
+
+View case: {{caseUrl}}
+`,
+  },
 };
 
 // =====================================================
@@ -276,6 +307,32 @@ function getCheckInDedupeKey(caseId: string, daysSinceFollowUp: number): string 
 // =====================================================
 
 function getCertificatePriority(daysUntilExpiry: number): NotificationPriority {
+  if (daysUntilExpiry <= 0) return "critical";
+  if (daysUntilExpiry <= 1) return "critical";
+  if (daysUntilExpiry <= 3) return "high";
+  return "medium";
+}
+
+/**
+ * RTW Plan Notification Helper Functions
+ */
+function getRTWPlanDedupeKey(caseId: string, daysUntilExpiry: number): string {
+  // Same bucketing logic as certificates: 7, 3, 1, 0, -1 (expired)
+  let bucket: number;
+  if (daysUntilExpiry < 0) {
+    bucket = -1; // expired
+  } else if (daysUntilExpiry <= 1) {
+    bucket = 1;
+  } else if (daysUntilExpiry <= 3) {
+    bucket = 3;
+  } else {
+    bucket = 7;
+  }
+  return `rtw_plan:${caseId}:${bucket}`;
+}
+
+function getRTWPlanPriority(daysUntilExpiry: number): NotificationPriority {
+  // Same priority logic as certificates
   if (daysUntilExpiry <= 0) return "critical";
   if (daysUntilExpiry <= 1) return "critical";
   if (daysUntilExpiry <= 3) return "high";
@@ -378,6 +435,94 @@ async function generateCertificateNotifications(
       created++;
     } catch (error) {
       logger.notification.error(`Error processing case ${workerCase.id}`, {}, error);
+    }
+  }
+
+  return created;
+}
+
+/**
+ * Generate RTW plan expiry notifications following the certificate pattern
+ */
+async function generateRTWPlanNotifications(
+  storage: IStorage,
+  recipientEmail: string,
+  organizationId: string
+): Promise<number> {
+  let created = 0;
+
+  // Get all cases for the organization
+  const cases = await storage.getGPNet2Cases(organizationId);
+
+  for (const workerCase of cases) {
+    try {
+      const compliance = await getCaseRTWCompliance(storage, workerCase.id, workerCase.organizationId);
+
+      // Skip compliant or no-plan cases
+      if (compliance.status === "plan_compliant" || compliance.status === "no_plan") {
+        continue;
+      }
+
+      const isExpired = compliance.status === "plan_expired";
+      const daysValue = isExpired
+        ? -(compliance.daysSinceExpiry || 0)
+        : (compliance.daysUntilExpiry || 0);
+
+      const dedupeKey = getRTWPlanDedupeKey(workerCase.id, daysValue);
+
+      // Check if notification already exists
+      const exists = await storage.notificationExistsByDedupeKey(dedupeKey);
+      if (exists) {
+        continue;
+      }
+
+      // Get RTW plan info
+      const plan = compliance.activePlan;
+      const planStartDate = plan?.rtwPlanStartDate ? new Date(plan.rtwPlanStartDate).toLocaleDateString("en-AU") : "Unknown";
+      const expiryDate = plan?.rtwPlanTargetEndDate ? new Date(plan.rtwPlanTargetEndDate).toLocaleDateString("en-AU") : "Unknown";
+      const planDuration = plan?.expectedDurationWeeks || 0;
+      const rtwStatus = workerCase.rtwPlanStatus || "not_planned";
+
+      // Build notification content
+      const type: NotificationType = isExpired ? "rtw_plan_expired" : "rtw_plan_expiring";
+      const { subject, body } = buildNotificationContent(type, {
+        workerName: workerCase.workerName,
+        company: workerCase.company,
+        daysUntil: compliance.daysUntilExpiry || 0,
+        daysSince: compliance.daysSinceExpiry || 0,
+        expiryDate,
+        planStartDate,
+        planDuration: planDuration.toString(),
+        rtwStatus,
+        caseUrl: `${APP_URL}/cases/${workerCase.id}`,
+      });
+
+      // Create notification
+      const notification: InsertNotification = {
+        organizationId: workerCase.organizationId,
+        type,
+        priority: getRTWPlanPriority(daysValue),
+        caseId: workerCase.id,
+        recipientEmail,
+        recipientName: null,
+        subject,
+        body,
+        status: "pending",
+        dedupeKey,
+        metadata: {
+          workerName: workerCase.workerName,
+          company: workerCase.company,
+          daysUntilExpiry: compliance.daysUntilExpiry,
+          daysSinceExpiry: compliance.daysSinceExpiry,
+          planDuration: planDuration,
+          rtwStatus: rtwStatus,
+        },
+      };
+
+      await storage.createNotification(notification);
+      created++;
+    } catch (error) {
+      logger.notification.error(`Error processing RTW plan for case ${workerCase.id}`, {}, error);
     }
   }
 
@@ -589,6 +734,11 @@ export async function generatePendingNotifications(storage: IStorage, organizati
     const certCount = await generateCertificateNotifications(storage, recipientEmail, organizationId);
     logger.notification.info(`Generated certificate notifications`, { count: certCount });
     total += certCount;
+
+    // Generate RTW plan notifications
+    const rtwCount = await generateRTWPlanNotifications(storage, recipientEmail, organizationId);
+    logger.notification.info(`Generated RTW plan notifications`, { count: rtwCount });
+    total += rtwCount;
 
     // Generate action notifications
     const actionCount = await generateActionNotifications(storage, recipientEmail, organizationId);

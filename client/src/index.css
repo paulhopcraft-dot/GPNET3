@@ -366,6 +366,22 @@
     border: 1px solid rgba(255, 255, 255, 0.18);
     box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
     border-radius: 12px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .glass-panel:hover {
+    transform: scale(1.01);
+    box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.45);
+  }
+
+  /* Intervention Badge Hover Effects */
+  .intervention-badge {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .intervention-badge:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   }
 
   .dark .glass-panel {

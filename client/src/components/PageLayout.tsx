@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import { ThemeToggle } from "./theme-toggle";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +24,18 @@ const navItems = [
 
 export function PageLayout({ children, title, subtitle }: PageLayoutProps) {
   const location = useLocation();
+  const { user } = useAuth();
+
+  // Filter navigation items based on user role
+  const getNavItems = () => {
+    if (user?.role === "employer") {
+      // Hide Audit Log for employers
+      return navItems.filter(item => item.path !== "/audit");
+    }
+    return navItems;
+  };
+
+  const filteredNavItems = getNavItems();
 
   return (
     <div className="flex h-screen">
@@ -39,7 +52,7 @@ export function PageLayout({ children, title, subtitle }: PageLayoutProps) {
           </div>
         </div>
         <nav className="space-y-1">
-          {navItems.map((item) => (
+          {filteredNavItems.map((item) => (
             <Link
               key={item.path}
               to={item.path}

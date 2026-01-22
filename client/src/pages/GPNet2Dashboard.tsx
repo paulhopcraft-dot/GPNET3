@@ -114,6 +114,25 @@ export default function GPNet2Dashboard() {
         matchesStatFilter = c.workStatus === 'At work';
       } else if (statFilter === 'high-risk') {
         matchesStatFilter = c.complianceIndicator === 'High';
+      } else if (statFilter === 'rtw-expiring') {
+        // RTW expiring filter - check if case has active RTW plan that might be expiring
+        const hasActivePlan = c.rtwPlanStatus === 'in_progress' || c.rtwPlanStatus === 'working_well';
+        if (!hasActivePlan) {
+          matchesStatFilter = false;
+        } else {
+          // Simplified check - in full implementation would use RTW compliance service
+          const treatmentPlan = c.clinical_status_json?.treatmentPlan;
+          if (treatmentPlan?.expectedDurationWeeks) {
+            const planGeneratedAt = new Date(treatmentPlan.generatedAt);
+            const planDurationMs = treatmentPlan.expectedDurationWeeks * 7 * 24 * 60 * 60 * 1000;
+            const planEndDate = new Date(planGeneratedAt.getTime() + planDurationMs);
+            const now = new Date();
+            const daysUntilEnd = Math.ceil((planEndDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
+            matchesStatFilter = daysUntilEnd >= 0 && daysUntilEnd <= 14;
+          } else {
+            matchesStatFilter = false;
+          }
+        }
       }
 
       return matchesCompany && matchesSearch && matchesStatFilter;

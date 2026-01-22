@@ -57,12 +57,42 @@ export default function EmployerCaseDetailPage() {
   }, [workerCase, id, summaryLoaded, loadingSummary]);
 
   const renderMarkdown = (content: string) => (
-    <div className="prose prose-sm max-w-none dark:prose-invert">
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-        {content}
-      </ReactMarkdown>
-    </div>
+    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+      {content}
+    </ReactMarkdown>
   );
+
+  // Parse injury details from AI summary markdown tables
+  const parseInjuryFromSummary = (summary: string | null | undefined) => {
+    if (!summary) return {};
+
+    const result: Record<string, string> = {};
+
+    // Find the Injury Details section
+    const injurySection = summary.match(/## Injury Details[\s\S]*?(?=\n---|\n##|$)/i);
+    if (!injurySection) return {};
+
+    // Parse table rows: | Field | Value |
+    const tableRows = injurySection[0].match(/\|\s*([^|]+)\s*\|\s*([^|]+)\s*\|/g);
+    if (!tableRows) return {};
+
+    for (const row of tableRows) {
+      const match = row.match(/\|\s*([^|]+)\s*\|\s*([^|]+)\s*\|/);
+      if (match) {
+        const field = match[1].trim().toLowerCase();
+        const value = match[2].trim();
+        // Skip header rows and insufficient data
+        if (field !== 'field' && field !== '-------' && value !== 'Value' &&
+            value.toLowerCase() !== 'insufficient data' && value !== '-------') {
+          result[field] = value;
+        }
+      }
+    }
+
+    return result;
+  };
+
+  const injuryFromSummary = parseInjuryFromSummary(aiSummary || workerCase?.aiSummary);
 
   if (isLoading) {
     return (
@@ -92,23 +122,21 @@ export default function EmployerCaseDetailPage() {
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <div className="border-b bg-card sticky top-0 z-10">
-        <div className="px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
+        <div className="px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="shrink-0">
+              <ArrowLeft className="h-4 w-4" />
             </Button>
-            <div className="h-8 w-px bg-border" />
-            <div>
-              <h1 className="text-2xl font-bold">{workerCase.workerName}</h1>
-              <p className="text-sm text-muted-foreground">
-                {workerCase.company} • Injury Date: {workerCase.dateOfInjury}
+            <div className="min-w-0">
+              <h1 className="text-lg font-bold truncate">{workerCase.workerName}</h1>
+              <p className="text-xs text-muted-foreground truncate">
+                {workerCase.company} • {workerCase.dateOfInjury}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 shrink-0">
             <Badge className={cn(
-              "font-medium",
+              "text-xs",
               workerCase.workStatus === "At work"
                 ? "bg-emerald-100 text-emerald-800"
                 : "bg-orange-100 text-orange-800"
@@ -116,14 +144,14 @@ export default function EmployerCaseDetailPage() {
               {workerCase.workStatus}
             </Badge>
             <Badge variant="outline" className={cn(
-              "border-2",
+              "text-xs border",
               workerCase.complianceIndicator === "Very High" || workerCase.complianceIndicator === "High"
                 ? "border-emerald-300 text-emerald-700"
                 : workerCase.complianceIndicator === "Medium"
                 ? "border-yellow-300 text-yellow-700"
                 : "border-red-300 text-red-700"
             )}>
-              Compliance: {workerCase.complianceIndicator}
+              {workerCase.complianceIndicator}
             </Badge>
           </div>
         </div>
@@ -131,51 +159,73 @@ export default function EmployerCaseDetailPage() {
 
       {/* Tabs at the top */}
       <Tabs defaultValue="summary" className="flex-1 flex flex-col">
-        <div className="border-b bg-card px-6 py-2">
-          <TabsList className="grid grid-cols-7 h-12">
-            <TabsTrigger value="summary">Summary</TabsTrigger>
-            <TabsTrigger value="injury">Injury</TabsTrigger>
-            <TabsTrigger value="timeline">Timeline</TabsTrigger>
-            <TabsTrigger value="financial">Financial</TabsTrigger>
-            <TabsTrigger value="risk">Risk</TabsTrigger>
-            <TabsTrigger value="contacts">Contacts</TabsTrigger>
-            <TabsTrigger value="treatment">Treatment</TabsTrigger>
+        <div className="border-b bg-card px-4 py-2 overflow-x-auto">
+          <TabsList className="inline-flex h-10 w-max gap-1">
+            <TabsTrigger value="summary" className="px-3 text-sm">Summary</TabsTrigger>
+            <TabsTrigger value="injury" className="px-3 text-sm">Injury & Diagnosis</TabsTrigger>
+            <TabsTrigger value="treatment" className="px-3 text-sm">Treatment & Recovery</TabsTrigger>
+            <TabsTrigger value="timeline" className="px-3 text-sm">Timeline</TabsTrigger>
+            <TabsTrigger value="financial" className="px-3 text-sm">Financial</TabsTrigger>
+            <TabsTrigger value="risk" className="px-3 text-sm">Risk</TabsTrigger>
+            <TabsTrigger value="contacts" className="px-3 text-sm">Contacts</TabsTrigger>
           </TabsList>
         </div>
 
         {/* Tab Content */}
-        <TabsContent value="summary" className="flex-1 p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
-            <div className="lg:col-span-2">
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <Sparkles className="h-5 w-5 text-primary" />
-                      Case Summary
-                    </CardTitle>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={generateSummary}
-                      disabled={loadingSummary}
-                    >
-                      <RefreshCw className={cn("h-4 w-4 mr-2", loadingSummary && "animate-spin")} />
-                      Refresh
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
+        <TabsContent value="summary" className="flex-1 p-3 overflow-hidden">
+          <div className="grid grid-cols-[1fr_minmax(350px,450px)] gap-4 h-full w-full max-w-full">
+            <div className="space-y-2 min-w-0 overflow-hidden">
+              {/* Latest Update - Prominent at top */}
+              {workerCase.ticketLastUpdatedAt && (
+                <Card className="border-l-4 border-l-primary bg-primary/5">
+                  <CardContent className="py-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-lg font-semibold text-primary">
+                          Status as at {new Date(workerCase.ticketLastUpdatedAt).toLocaleDateString('en-AU', {
+                            weekday: 'long',
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric'
+                          })}
+                        </p>
+                      </div>
+                      <Badge className={cn(
+                        "text-sm",
+                        workerCase.workStatus === "At work"
+                          ? "bg-emerald-100 text-emerald-800"
+                          : "bg-amber-100 text-amber-800"
+                      )}>
+                        {workerCase.workStatus}
+                      </Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              <Card className="overflow-hidden">
+                <CardContent className="p-0">
                   {loadingSummary && !aiSummary ? (
-                    <div className="flex items-center justify-center py-12">
+                    <div className="flex items-center justify-center py-8">
                       <div className="text-center">
                         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
                         <p className="text-sm text-muted-foreground">Generating case summary...</p>
                       </div>
                     </div>
                   ) : aiSummary ? (
-                    <div className="prose prose-sm max-w-none dark:prose-invert [&_table]:text-xs [&_th]:py-1 [&_td]:py-1 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-primary [&_h2]:mt-6 [&_h2]:mb-3 [&_h2:first-child]:mt-0 [&_ul]:space-y-1 [&_li]:text-sm">
-                      {renderMarkdown(aiSummary)}
+                    <div className="p-3 text-sm [&_strong]:font-semibold [&_table]:text-xs [&_th]:py-1 [&_td]:py-1 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-primary [&_h2]:mt-3 [&_h2]:mb-2 [&_h2:first-child]:mt-0 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:space-y-1 [&_p]:my-2 [&_p:first-of-type]:mt-0">
+                      {renderMarkdown(
+                        aiSummary
+                          .replace(/Case Summary\s*[-–—:]\s*[A-Za-z\s]+\n*/gi, '')
+                          .replace(/\*\*Case Summary\s*[-–—:]\s*[A-Za-z\s]+\*\*\n*/gi, '')
+                          .replace(/^#+\s*Case Summary.*\n*/gim, '')
+                          .replace(/^#+\s*Latest Update.*\n*/gim, '')
+                          .replace(/\*\*Latest Update.*?\*\*\n*/gi, '')
+                          .replace(/Latest Update\s*\(\d{4}-\d{2}-\d{2}\)\s*\n*/gi, '')
+                          .replace(/^Latest Update\s*\n/gim, '')
+                          .replace(/^\s*\n+/g, '') // Remove leading empty lines
+                          .trim()
+                      )}
                     </div>
                   ) : (
                     <div className="text-center py-12">
@@ -197,16 +247,16 @@ export default function EmployerCaseDetailPage() {
               </Card>
             </div>
 
-            <div>
+            <div className="min-w-0 overflow-hidden">
               <Card>
-                <CardHeader>
-                  <CardTitle>Action Plan</CardTitle>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Action Plan</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     <div className="space-y-3">
                       <h3 className="text-sm font-semibold text-primary">Immediate Actions (This Week)</h3>
-                      <ul className="text-sm space-y-2 ml-3">
+                      <ul className="text-xs space-y-1.5 ml-2">
                         <li className="flex items-start gap-2">
                           <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
                           <span>Follow up with {workerCase.workerName} after physio appointment re: clearance certificate</span>
@@ -228,7 +278,7 @@ export default function EmployerCaseDetailPage() {
 
                     <div className="space-y-3">
                       <h3 className="text-sm font-semibold text-primary">Short-Term Actions (Next 2 Weeks)</h3>
-                      <ul className="text-sm space-y-2 ml-3">
+                      <ul className="text-xs space-y-1.5 ml-2">
                         <li className="flex items-start gap-2">
                           <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
                           <span>Conduct welfare check-in with {workerCase.workerName} (week commencing 13 Jan)</span>
@@ -254,7 +304,7 @@ export default function EmployerCaseDetailPage() {
 
                     <div className="space-y-3">
                       <h3 className="text-sm font-semibold text-primary">Medium-Term Actions (Jan-Feb 2026)</h3>
-                      <ul className="text-sm space-y-2 ml-3">
+                      <ul className="text-xs space-y-1.5 ml-2">
                         <li className="flex items-start gap-2">
                           <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
                           <span>Continue fortnightly welfare monitoring until 3-month stability period reached</span>
@@ -280,7 +330,7 @@ export default function EmployerCaseDetailPage() {
 
                     <div className="space-y-3">
                       <h3 className="text-sm font-semibold text-primary">Milestone: 3-Month Stability Review (Target: 8 March 2026)</h3>
-                      <ul className="text-sm space-y-2 ml-3">
+                      <ul className="text-xs space-y-1.5 ml-2">
                         <li className="flex items-start gap-2">
                           <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
                           <span>Confirm {workerCase.workerName} has sustained employment for 3 months</span>
@@ -311,43 +361,224 @@ export default function EmployerCaseDetailPage() {
         </TabsContent>
 
         <TabsContent value="injury" className="flex-1 p-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Injury Details</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex border-b pb-2">
-                  <div className="w-40 text-sm font-medium">Injury</div>
-                  <div className="text-sm flex-1">Soft tissue injury - palmar tenosynovitis/trigger finger (3rd & 4th digits, right hand)</div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Injury Details Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Injury Details</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex border-b pb-2">
+                    <div className="w-40 text-sm font-medium">Injury</div>
+                    <div className="text-sm flex-1">
+                      {workerCase.clinical_status_json?.treatmentPlan?.injuryType ||
+                       injuryFromSummary['injury'] ||
+                       "Not specified"}
+                    </div>
+                  </div>
+                  <div className="flex border-b pb-2">
+                    <div className="w-40 text-sm font-medium">Date of Onset</div>
+                    <div className="text-sm flex-1">
+                      {injuryFromSummary['date of onset'] || workerCase.dateOfInjury || "Not recorded"}
+                    </div>
+                  </div>
+                  {(workerCase.medicalConstraints?.mechanism || injuryFromSummary['mechanism']) && (
+                    <div className="flex border-b pb-2">
+                      <div className="w-40 text-sm font-medium">Mechanism</div>
+                      <div className="text-sm flex-1">
+                        {workerCase.medicalConstraints?.mechanism || injuryFromSummary['mechanism']}
+                      </div>
+                    </div>
+                  )}
+                  {(workerCase.medicalConstraints?.treatingGp || injuryFromSummary['treating gp']) && (
+                    <div className="flex border-b pb-2">
+                      <div className="w-40 text-sm font-medium">Treating GP</div>
+                      <div className="text-sm flex-1">
+                        {workerCase.medicalConstraints?.treatingGp || injuryFromSummary['treating gp']}
+                      </div>
+                    </div>
+                  )}
+                  {(workerCase.medicalConstraints?.physiotherapist || injuryFromSummary['physiotherapist']) && (
+                    <div className="flex border-b pb-2">
+                      <div className="w-40 text-sm font-medium">Physiotherapist</div>
+                      <div className="text-sm flex-1">
+                        {workerCase.medicalConstraints?.physiotherapist || injuryFromSummary['physiotherapist']}
+                      </div>
+                    </div>
+                  )}
+                  {(injuryFromSummary['orp'] || injuryFromSummary['specialists']) && (
+                    <div className="flex border-b pb-2">
+                      <div className="w-40 text-sm font-medium">ORP/Specialist</div>
+                      <div className="text-sm flex-1">
+                        {injuryFromSummary['orp'] || injuryFromSummary['specialists']}
+                      </div>
+                    </div>
+                  )}
+                  {(injuryFromSummary['case manager'] || workerCase.owner) && (
+                    <div className="flex border-b pb-2">
+                      <div className="w-40 text-sm font-medium">Case Manager</div>
+                      <div className="text-sm flex-1">
+                        {injuryFromSummary['case manager'] || workerCase.owner}
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex pb-2">
+                    <div className="w-40 text-sm font-medium">Work Status</div>
+                    <div className="text-sm flex-1">{workerCase.workStatus}</div>
+                  </div>
                 </div>
-                <div className="flex border-b pb-2">
-                  <div className="w-40 text-sm font-medium">Date of Onset</div>
-                  <div className="text-sm flex-1">~December 2024 (reported 17 March 2025)</div>
+              </CardContent>
+            </Card>
+
+            {/* Diagnosis Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Diagnosis</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {/* Medical Diagnosis */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-primary mb-2">Medical Diagnosis</h4>
+                    <p className="text-sm">
+                      {workerCase.clinical_status_json?.treatmentPlan?.diagnosisSummary ||
+                       workerCase.clinical_status_json?.treatmentPlan?.injuryType ||
+                       "Diagnosis details not yet recorded"}
+                    </p>
+                  </div>
+
+                  {/* Scans & Imaging - Only show actual attachments */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-primary mb-2">Scans & Imaging</h4>
+                    {(() => {
+                      const imagingAttachments = workerCase.attachments?.filter(att =>
+                        ['x-ray', 'xray', 'mri', 'ct', 'ultrasound', 'scan', 'imaging'].some(term =>
+                          att.name.toLowerCase().includes(term) || att.type.toLowerCase().includes(term)
+                        )
+                      ) || [];
+
+                      if (imagingAttachments.length > 0) {
+                        return (
+                          <div className="space-y-2">
+                            {imagingAttachments.map(att => (
+                              <div key={att.id} className="flex items-center justify-between p-2 bg-muted rounded text-sm">
+                                <span>{att.name}</span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 text-xs"
+                                  onClick={() => window.open(att.url, '_blank')}
+                                >
+                                  View
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded text-sm">
+                          <p className="text-amber-800 dark:text-amber-200">No imaging results on file</p>
+                          <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                            Consider requesting X-ray or ultrasound if clinically indicated
+                          </p>
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Test Results - Only show actual attachments */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-primary mb-2">Test Results</h4>
+                    {(() => {
+                      const testAttachments = workerCase.attachments?.filter(att =>
+                        ['blood', 'pathology', 'lab', 'test', 'nerve', 'conduction', 'emg', 'ecg'].some(term =>
+                          att.name.toLowerCase().includes(term) || att.type.toLowerCase().includes(term)
+                        )
+                      ) || [];
+
+                      if (testAttachments.length > 0) {
+                        return (
+                          <div className="space-y-2">
+                            {testAttachments.map(att => (
+                              <div key={att.id} className="flex items-center justify-between p-2 bg-muted rounded text-sm">
+                                <span>{att.name}</span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 text-xs"
+                                  onClick={() => window.open(att.url, '_blank')}
+                                >
+                                  View
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="p-3 bg-muted rounded text-sm text-muted-foreground">
+                          No test results on file
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Medical Certificates */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-primary mb-2">Medical Certificates</h4>
+                    {(() => {
+                      const certAttachments = workerCase.attachments?.filter(att =>
+                        ['certificate', 'cert', 'medical cert', 'worksafe'].some(term =>
+                          att.name.toLowerCase().includes(term) || att.type.toLowerCase().includes(term)
+                        )
+                      ) || [];
+
+                      if (certAttachments.length > 0 || workerCase.latestCertificate) {
+                        return (
+                          <div className="space-y-2">
+                            {workerCase.latestCertificate && (
+                              <div className="flex items-center justify-between p-2 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded text-sm">
+                                <div>
+                                  <span className="font-medium">Current Certificate</span>
+                                  <p className="text-xs text-muted-foreground">
+                                    Valid: {workerCase.latestCertificate.startDate} to {workerCase.latestCertificate.endDate}
+                                  </p>
+                                </div>
+                                <Badge className="bg-emerald-100 text-emerald-800">Active</Badge>
+                              </div>
+                            )}
+                            {certAttachments.map(att => (
+                              <div key={att.id} className="flex items-center justify-between p-2 bg-muted rounded text-sm">
+                                <span>{att.name}</span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 text-xs"
+                                  onClick={() => window.open(att.url, '_blank')}
+                                >
+                                  View
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded text-sm">
+                          <p className="text-red-800 dark:text-red-200 font-medium">No medical certificate on file</p>
+                          <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                            Action required: Request current medical certificate
+                          </p>
+                        </div>
+                      );
+                    })()}
+                  </div>
                 </div>
-                <div className="flex border-b pb-2">
-                  <div className="w-40 text-sm font-medium">Mechanism</div>
-                  <div className="text-sm flex-1">Repetitive use of vibration cutting machine</div>
-                </div>
-                <div className="flex border-b pb-2">
-                  <div className="w-40 text-sm font-medium">Treating GP</div>
-                  <div className="text-sm flex-1">{workerCase.treatingGp || "Dr. Caesar Tan"}</div>
-                </div>
-                <div className="flex border-b pb-2">
-                  <div className="w-40 text-sm font-medium">Physiotherapist</div>
-                  <div className="text-sm flex-1">{workerCase.physiotherapist || "Andrew Coulter (Hobsons Bay Medical)"}</div>
-                </div>
-                <div className="flex border-b pb-2">
-                  <div className="w-40 text-sm font-medium">ORP</div>
-                  <div className="text-sm flex-1">{workerCase.orp || "Jordan Pankiw (AMS Consulting)"}</div>
-                </div>
-                <div className="flex pb-2">
-                  <div className="w-40 text-sm font-medium">Case Manager</div>
-                  <div className="text-sm flex-1">{workerCase.caseManager || "Niko Datuin (DXC)"}</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="timeline" className="flex-1 p-6">

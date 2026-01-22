@@ -127,6 +127,12 @@ export interface TreatmentPlan {
   supersededAt?: string;
   supersededBy?: string;
   notes?: string;
+
+  // RTW Plan Timeline Fields (added for RTW plan expiry tracking)
+  rtwPlanStartDate?: string;        // When RTW plan became active (ISO date string)
+  rtwPlanTargetEndDate?: string;    // Calculated: startDate + expectedDurationWeeks
+  rtwPlanActualEndDate?: string;    // When plan actually completed
+  rtwPlanLastReviewDate?: string;   // Last plan review/update
 }
 
 export interface CaseClinicalStatus {
@@ -1209,6 +1215,25 @@ export interface CertificateCompliance {
 }
 
 // =====================================================
+// RTW Plan Compliance Types (mirroring certificate compliance)
+// =====================================================
+
+export type RTWComplianceStatus =
+  | "no_plan"
+  | "plan_expiring_soon"    // 1-7 days until expiry
+  | "plan_expired"          // Past target end date
+  | "plan_compliant";       // Active plan within timeline
+
+export interface RTWCompliance {
+  status: RTWComplianceStatus;
+  activePlan?: TreatmentPlan;
+  daysUntilExpiry?: number;
+  daysSinceExpiry?: number;
+  requiresReview: boolean;
+  message: string;
+}
+
+// =====================================================
 // Smart Summary Engine v1 - Structured Case Analysis
 // =====================================================
 
@@ -1348,7 +1373,9 @@ export type NotificationType =
   | "action_overdue"
   | "case_attention_needed"
   | "weekly_digest"
-  | "check_in_follow_up";
+  | "check_in_follow_up"
+  | "rtw_plan_expiring"     // RTW plan expires in 7/3/1 days
+  | "rtw_plan_expired";     // RTW plan has expired
 
 export type NotificationPriority = "low" | "medium" | "high" | "critical";
 export type NotificationStatus = "pending" | "sent" | "failed" | "skipped";

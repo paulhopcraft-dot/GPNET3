@@ -317,6 +317,9 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
 
   return (
     <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
       className={cn(
         "hero-motion-container immersive-hero-container space-y-6",
         "min-h-[80vh] relative overflow-hidden",
@@ -368,6 +371,12 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
       </div>
 
       {/* Enhanced Recovery Chart */}
+      <motion.div
+        className="animated-chart-container"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.6, delay: 0.4, ease: "easeOut" }}
+      >
       <Card className="enhanced-recovery-chart">
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
@@ -378,22 +387,23 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
           <div className="h-64 relative">
             {/* Particle Container for Chart Animations */}
             <div className="particle-container absolute inset-0 pointer-events-none z-10">
-              {/* Generate particle dots along the recovery curve with path animation */}
-              {chartData.slice(0, Math.min(chartData.length, data.weeksElapsed || 0)).map((point, index) => {
-                if (point.actual === null || point.actual === undefined) return null;
+              {/* Generate particle dots ONLY for actual certificate markers, not every week */}
+              {data.certificateMarkers.map((marker, index) => {
+                // Only show markers up to current week
+                if (marker.week > (data.weeksElapsed || 0)) return null;
 
                 // Calculate position based on chart dimensions and data
-                const xPercent = (point.week / Math.max(...chartData.map(d => d.week))) * 100;
-                const yPercent = 100 - (point.actual / 100) * 100;
+                const maxWeek = Math.max(...chartData.map(d => d.week));
+                const xPercent = (marker.week / maxWeek) * 100;
+                const yPercent = 100 - (marker.capacity / 100) * 100;
 
                 // Calculate path animation for dynamic movement
                 const animationDuration = 3 + (index * 0.5); // Staggered durations
-                const translateXRange = 20; // Pixel range for horizontal movement
 
                 return (
                   <div
-                    key={`particle-${point.week}`}
-                    className="particle-dot animate-pulse absolute w-2 h-2 bg-green-400/60 rounded-full"
+                    key={`particle-cert-${marker.certificateNumber}`}
+                    className="particle-dot animate-pulse absolute w-3 h-3 bg-emerald-400/80 rounded-full border-2 border-emerald-500"
                     style={{
                       left: `${Math.max(5, Math.min(95, xPercent))}%`,
                       top: `${Math.max(10, Math.min(80, yPercent))}%`,
@@ -404,8 +414,9 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
                       animationIterationCount: 'infinite',
                       animationDirection: 'alternate',
                       animationTimingFunction: 'ease-in-out',
-                      opacity: 0.8
+                      opacity: 0.9
                     }}
+                    title={`Certificate #${marker.certificateNumber}: ${marker.capacity}%`}
                   />
                 );
               })}
@@ -512,14 +523,17 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
                     const { cx, cy, payload } = props;
                     if (payload?.actual === null || payload?.actual === undefined) return null;
 
-                    const isMissing = payload?.isMissingCertificate;
+                    // Only show dots where there's an actual certificate (certificateExists flag)
+                    // Skip interpolated/assumed data points
+                    if (!payload?.certificateExists) return null;
+
                     return (
                       <circle
                         cx={cx}
                         cy={cy}
-                        r={isMissing ? 5 : 4}
-                        fill={isMissing ? "#ef4444" : "#10b981"}
-                        stroke={isMissing ? "#dc2626" : "#059669"}
+                        r={5}
+                        fill="#10b981"
+                        stroke="#059669"
                         strokeWidth={2}
                       />
                     );
@@ -579,50 +593,75 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
           )}
         </CardContent>
       </Card>
+      </motion.div>
 
       {/* Glassmorphism Recovery Data Panels Grid */}
       <div className="glassmorphism-panels-grid grid grid-cols-12 gap-4 mt-6">
         {/* Recovery Phase Panel - Spans 4 columns */}
-        <GlassPanel className="col-span-12 md:col-span-4 p-4" variant="gradient">
-          <h4 className="text-sm font-semibold text-white/90 mb-2 flex items-center gap-2">
-            <Activity className="h-4 w-4" />
-            Recovery Phase
-          </h4>
-          <div className="text-2xl font-bold text-white mb-1">
-            Week {Math.floor(data.weeksOffWork || 0)}
-          </div>
-          <div className="text-xs text-white/70">
-            Current phase: {data.weeksOffWork > 8 ? 'Extended' : data.weeksOffWork > 4 ? 'Mid-term' : 'Early'}
-          </div>
-        </GlassPanel>
+        <motion.div
+          className="motion-panel col-span-12 md:col-span-4"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1, ease: "easeOut" }}
+          whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
+        >
+          <GlassPanel className="p-4 h-full" variant="gradient">
+            <h4 className="text-sm font-semibold text-white/90 mb-2 flex items-center gap-2">
+              <Activity className="h-4 w-4" />
+              Recovery Phase
+            </h4>
+            <div className="text-2xl font-bold text-white mb-1">
+              Week {Math.floor(data.weeksOffWork || 0)}
+            </div>
+            <div className="text-xs text-white/70">
+              Current phase: {data.weeksOffWork > 8 ? 'Extended' : data.weeksOffWork > 4 ? 'Mid-term' : 'Early'}
+            </div>
+          </GlassPanel>
+        </motion.div>
 
         {/* Capacity Status Panel - Spans 4 columns */}
-        <GlassPanel className="col-span-12 md:col-span-4 p-4" variant="gradient">
-          <h4 className="text-sm font-semibold text-white/90 mb-2 flex items-center gap-2">
-            <TrendingUp className="h-4 w-4" />
-            Work Capacity
-          </h4>
-          <div className="text-2xl font-bold text-white mb-1">
-            {data.currentCapacityPercentage || 0}%
-          </div>
-          <div className="text-xs text-white/70">
-            {data.currentCapacityPercentage >= 75 ? 'High capacity' : data.currentCapacityPercentage >= 25 ? 'Limited capacity' : 'Unfit for work'}
-          </div>
-        </GlassPanel>
+        <motion.div
+          className="motion-panel col-span-12 md:col-span-4"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2, ease: "easeOut" }}
+          whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
+        >
+          <GlassPanel className="p-4 h-full" variant="gradient">
+            <h4 className="text-sm font-semibold text-white/90 mb-2 flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" />
+              Work Capacity
+            </h4>
+            <div className="text-2xl font-bold text-white mb-1">
+              {data.currentCapacityPercentage || 0}%
+            </div>
+            <div className="text-xs text-white/70">
+              {data.currentCapacityPercentage >= 75 ? 'High capacity' : data.currentCapacityPercentage >= 25 ? 'Limited capacity' : 'Unfit for work'}
+            </div>
+          </GlassPanel>
+        </motion.div>
 
         {/* Risk Level Panel - Spans 4 columns */}
-        <GlassPanel className="col-span-12 md:col-span-4 p-4" variant="gradient">
-          <h4 className="text-sm font-semibold text-white/90 mb-2 flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4" />
-            Risk Level
-          </h4>
-          <div className="text-2xl font-bold text-white mb-1">
-            {data.riskCategory || 'Unknown'}
-          </div>
-          <div className="text-xs text-white/70">
-            Based on injury type and duration
-          </div>
-        </GlassPanel>
+        <motion.div
+          className="motion-panel col-span-12 md:col-span-4"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3, ease: "easeOut" }}
+          whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
+        >
+          <GlassPanel className="p-4 h-full" variant="gradient">
+            <h4 className="text-sm font-semibold text-white/90 mb-2 flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" />
+              Risk Level
+            </h4>
+            <div className="text-2xl font-bold text-white mb-1">
+              {data.riskCategory || 'Unknown'}
+            </div>
+            <div className="text-xs text-white/70">
+              Based on injury type and duration
+            </div>
+          </GlassPanel>
+        </motion.div>
       </div>
 
       {/* Progress Rings Container */}
