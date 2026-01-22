@@ -338,9 +338,17 @@ export default function EmployerCaseDetailPage() {
               <CardContent>
                 <div className="space-y-3">
                   <div className="flex border-b pb-2">
-                    <div className="w-40 text-sm font-medium">Injury</div>
-                    <div className="text-sm flex-1">{workerCase.summary || "Details pending"}</div>
+                    <div className="w-40 text-sm font-medium">Injury Type</div>
+                    <div className="text-sm flex-1">
+                      {workerCase.clinical_status_json?.treatmentPlan?.injuryType || "Not specified"}
+                    </div>
                   </div>
+                  {workerCase.clinical_status_json?.treatmentPlan?.diagnosisSummary && (
+                    <div className="flex border-b pb-2">
+                      <div className="w-40 text-sm font-medium">Diagnosis</div>
+                      <div className="text-sm flex-1">{workerCase.clinical_status_json.treatmentPlan.diagnosisSummary}</div>
+                    </div>
+                  )}
                   <div className="flex border-b pb-2">
                     <div className="w-40 text-sm font-medium">Date of Onset</div>
                     <div className="text-sm flex-1">{workerCase.dateOfInjury || "Not recorded"}</div>
@@ -387,7 +395,11 @@ export default function EmployerCaseDetailPage() {
                   {/* Medical Diagnosis */}
                   <div>
                     <h4 className="text-sm font-semibold text-primary mb-2">Medical Diagnosis</h4>
-                    <p className="text-sm">{workerCase.summary || "Diagnosis details pending"}</p>
+                    <p className="text-sm">
+                      {workerCase.clinical_status_json?.treatmentPlan?.diagnosisSummary ||
+                       workerCase.clinical_status_json?.treatmentPlan?.injuryType ||
+                       "Diagnosis details not yet recorded"}
+                    </p>
                   </div>
 
                   {/* Scans & Imaging - Only show actual attachments */}
