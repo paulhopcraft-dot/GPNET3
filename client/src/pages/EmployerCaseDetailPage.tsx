@@ -62,6 +62,38 @@ export default function EmployerCaseDetailPage() {
     </ReactMarkdown>
   );
 
+  // Parse injury details from AI summary markdown tables
+  const parseInjuryFromSummary = (summary: string | null | undefined) => {
+    if (!summary) return {};
+
+    const result: Record<string, string> = {};
+
+    // Find the Injury Details section
+    const injurySection = summary.match(/## Injury Details[\s\S]*?(?=\n---|\n##|$)/i);
+    if (!injurySection) return {};
+
+    // Parse table rows: | Field | Value |
+    const tableRows = injurySection[0].match(/\|\s*([^|]+)\s*\|\s*([^|]+)\s*\|/g);
+    if (!tableRows) return {};
+
+    for (const row of tableRows) {
+      const match = row.match(/\|\s*([^|]+)\s*\|\s*([^|]+)\s*\|/);
+      if (match) {
+        const field = match[1].trim().toLowerCase();
+        const value = match[2].trim();
+        // Skip header rows and insufficient data
+        if (field !== 'field' && field !== '-------' && value !== 'Value' &&
+            value.toLowerCase() !== 'insufficient data' && value !== '-------') {
+          result[field] = value;
+        }
+      }
+    }
+
+    return result;
+  };
+
+  const injuryFromSummary = parseInjuryFromSummary(aiSummary || workerCase?.aiSummary);
+
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -338,43 +370,57 @@ export default function EmployerCaseDetailPage() {
               <CardContent>
                 <div className="space-y-3">
                   <div className="flex border-b pb-2">
-                    <div className="w-40 text-sm font-medium">Injury Type</div>
+                    <div className="w-40 text-sm font-medium">Injury</div>
                     <div className="text-sm flex-1">
-                      {workerCase.clinical_status_json?.treatmentPlan?.injuryType || "Not specified"}
+                      {workerCase.clinical_status_json?.treatmentPlan?.injuryType ||
+                       injuryFromSummary['injury'] ||
+                       "Not specified"}
                     </div>
                   </div>
-                  {workerCase.clinical_status_json?.treatmentPlan?.diagnosisSummary && (
-                    <div className="flex border-b pb-2">
-                      <div className="w-40 text-sm font-medium">Diagnosis</div>
-                      <div className="text-sm flex-1">{workerCase.clinical_status_json.treatmentPlan.diagnosisSummary}</div>
-                    </div>
-                  )}
                   <div className="flex border-b pb-2">
                     <div className="w-40 text-sm font-medium">Date of Onset</div>
-                    <div className="text-sm flex-1">{workerCase.dateOfInjury || "Not recorded"}</div>
+                    <div className="text-sm flex-1">
+                      {injuryFromSummary['date of onset'] || workerCase.dateOfInjury || "Not recorded"}
+                    </div>
                   </div>
-                  {workerCase.medicalConstraints?.mechanism && (
+                  {(workerCase.medicalConstraints?.mechanism || injuryFromSummary['mechanism']) && (
                     <div className="flex border-b pb-2">
                       <div className="w-40 text-sm font-medium">Mechanism</div>
-                      <div className="text-sm flex-1">{workerCase.medicalConstraints.mechanism}</div>
+                      <div className="text-sm flex-1">
+                        {workerCase.medicalConstraints?.mechanism || injuryFromSummary['mechanism']}
+                      </div>
                     </div>
                   )}
-                  {workerCase.medicalConstraints?.treatingGp && (
+                  {(workerCase.medicalConstraints?.treatingGp || injuryFromSummary['treating gp']) && (
                     <div className="flex border-b pb-2">
                       <div className="w-40 text-sm font-medium">Treating GP</div>
-                      <div className="text-sm flex-1">{workerCase.medicalConstraints.treatingGp}</div>
+                      <div className="text-sm flex-1">
+                        {workerCase.medicalConstraints?.treatingGp || injuryFromSummary['treating gp']}
+                      </div>
                     </div>
                   )}
-                  {workerCase.medicalConstraints?.physiotherapist && (
+                  {(workerCase.medicalConstraints?.physiotherapist || injuryFromSummary['physiotherapist']) && (
                     <div className="flex border-b pb-2">
                       <div className="w-40 text-sm font-medium">Physiotherapist</div>
-                      <div className="text-sm flex-1">{workerCase.medicalConstraints.physiotherapist}</div>
+                      <div className="text-sm flex-1">
+                        {workerCase.medicalConstraints?.physiotherapist || injuryFromSummary['physiotherapist']}
+                      </div>
                     </div>
                   )}
-                  {workerCase.specialistStatus?.specialist && (
+                  {(injuryFromSummary['orp'] || injuryFromSummary['specialists']) && (
                     <div className="flex border-b pb-2">
-                      <div className="w-40 text-sm font-medium">Specialist</div>
-                      <div className="text-sm flex-1">{workerCase.specialistStatus.specialist}</div>
+                      <div className="w-40 text-sm font-medium">ORP/Specialist</div>
+                      <div className="text-sm flex-1">
+                        {injuryFromSummary['orp'] || injuryFromSummary['specialists']}
+                      </div>
+                    </div>
+                  )}
+                  {(injuryFromSummary['case manager'] || workerCase.owner) && (
+                    <div className="flex border-b pb-2">
+                      <div className="w-40 text-sm font-medium">Case Manager</div>
+                      <div className="text-sm flex-1">
+                        {injuryFromSummary['case manager'] || workerCase.owner}
+                      </div>
                     </div>
                   )}
                   <div className="flex pb-2">
