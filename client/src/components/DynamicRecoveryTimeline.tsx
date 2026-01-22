@@ -1,5 +1,5 @@
 import React from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import {
   LineChart,
@@ -51,6 +51,9 @@ interface CertificateMarker {
   certificateNumber: number;
   capacityLabel: string;
   color: string;
+  certificateId: string;
+  documentUrl: string | null;
+  source: string;
 }
 
 interface RecoveryPhaseDisplay {
@@ -175,6 +178,28 @@ const TrendIcon = ({ trend }: { trend: string }) => {
       return <TrendingDown className="h-4 w-4 text-red-500" />;
     default:
       return <Minus className="h-4 w-4 text-gray-400" />;
+  }
+};
+
+// Handle certificate click to open document
+const handleCertificateClick = (marker: CertificateMarker) => {
+  if (marker.documentUrl) {
+    // For Google Drive files, open in new tab
+    if (marker.source === 'google_drive' || marker.documentUrl.startsWith('file:///')) {
+      // For local files, show a notification since browsers can't open local files directly
+      const filePath = marker.documentUrl.replace('file:///', '');
+      // Copy path to clipboard and show alert
+      navigator.clipboard.writeText(filePath).then(() => {
+        alert(`Certificate path copied to clipboard:\n\n${filePath}\n\nOpen this path in your file explorer to view the certificate.`);
+      }).catch(() => {
+        alert(`Certificate location:\n\n${filePath}`);
+      });
+    } else {
+      // For web URLs, open in new tab
+      window.open(marker.documentUrl, '_blank');
+    }
+  } else {
+    alert(`No document URL available for Certificate #${marker.certificateNumber}`);
   }
 };
 
@@ -403,7 +428,7 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
                 return (
                   <div
                     key={`particle-cert-${marker.certificateNumber}`}
-                    className="particle-dot animate-pulse absolute w-3 h-3 bg-emerald-400/80 rounded-full border-2 border-emerald-500"
+                    className="particle-dot animate-pulse absolute w-3 h-3 bg-emerald-400/80 rounded-full border-2 border-emerald-500 cursor-pointer hover:scale-150 hover:bg-emerald-300 transition-transform pointer-events-auto"
                     style={{
                       left: `${Math.max(5, Math.min(95, xPercent))}%`,
                       top: `${Math.max(10, Math.min(80, yPercent))}%`,
@@ -416,7 +441,8 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
                       animationTimingFunction: 'ease-in-out',
                       opacity: 0.9
                     }}
-                    title={`Certificate #${marker.certificateNumber}: ${marker.capacity}%`}
+                    title={`Click to view Certificate #${marker.certificateNumber}: ${marker.capacity}%`}
+                    onClick={() => handleCertificateClick(marker)}
                   />
                 );
               })}
@@ -462,8 +488,17 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
                    }} />
             </div>
 
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={chartData.length}
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+                layout
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
                 <defs>
                   <linearGradient id="estimatedGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.8} />
@@ -568,17 +603,21 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
                     fontSize: 10,
                   }}
                 />
-              </AreaChart>
-            </ResponsiveContainer>
+                  </AreaChart>
+                </ResponsiveContainer>
+              </motion.div>
+            </AnimatePresence>
           </div>
 
-          {/* Certificate markers legend */}
+          {/* Certificate markers legend - clickable to view documents */}
           {data.certificateMarkers.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-3">
               {data.certificateMarkers.map((marker) => (
-                <div
+                <button
                   key={marker.certificateNumber}
-                  className="flex items-center gap-2 text-xs"
+                  className="flex items-center gap-2 text-xs px-2 py-1 rounded-md hover:bg-gray-100 transition-colors cursor-pointer border border-transparent hover:border-gray-200"
+                  onClick={() => handleCertificateClick(marker)}
+                  title={marker.documentUrl ? "Click to view certificate" : "No document available"}
                 >
                   <div
                     className="w-3 h-3 rounded-full"
@@ -587,7 +626,10 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
                   <span>
                     Cert #{marker.certificateNumber} ({formatWeekAsMonthYear(marker.week, data.injuryDate)}): {marker.capacity}%
                   </span>
-                </div>
+                  {marker.documentUrl && (
+                    <FileText className="h-3 w-3 text-gray-400" />
+                  )}
+                </button>
               ))}
             </div>
           )}

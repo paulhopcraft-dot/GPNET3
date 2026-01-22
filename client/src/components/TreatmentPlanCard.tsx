@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { GlassPanel } from "./ui/glass-panel";
 import { Badge } from "./ui/badge";
@@ -264,12 +265,21 @@ export function TreatmentPlanCard({ caseId }: TreatmentPlanCardProps) {
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             {intervention.priority && (
-                              <Badge
-                                variant="outline"
-                                className={`intervention-badge ${intervention.priority} text-[10px] font-semibold ${priorityBadgeClass(intervention.priority)}`}
+                              <motion.div
+                                whileHover={{
+                                  scale: 1.05,
+                                  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+                                  transition: { duration: 0.2 }
+                                }}
+                                whileTap={{ scale: 0.95 }}
                               >
-                                {priorityLabel(intervention.priority)}
-                              </Badge>
+                                <Badge
+                                  variant="outline"
+                                  className={`intervention-badge ${intervention.priority} text-[10px] font-semibold ${priorityBadgeClass(intervention.priority)} transition-all duration-200 hover:shadow-md`}
+                                >
+                                  {priorityLabel(intervention.priority)}
+                                </Badge>
+                              </motion.div>
                             )}
                             <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
                               {intervention.type.replace("_", " ")}
