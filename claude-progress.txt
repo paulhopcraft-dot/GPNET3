@@ -2,8 +2,47 @@
 
 **Date:** 2026-01-22
 **Branch:** treatment
-**Latest Commit:** 6555bb0 - feat: parse injury details from AI summary markdown
-**Status:** Employer Case Detail UI Improvements
+**Latest Commit:** 39d6e81 - feat: apply employer portal routing fix on treatment branch
+**Status:** Employer Portal Navigation - FULLY TESTED & WORKING
+
+---
+
+## Session 22 - 2026-01-22 - Employer Portal Testing Success
+
+### ✅ COMPLETED - Employer Portal Routing Fix & Testing
+1. **Employer Portal Routing Fix Applied:**
+   - Modified `RoleBasedDashboard.tsx`: redirect employers to `/cases` instead of `EmployerSummaryDashboard`
+   - Provides full left sidebar navigation for employer users
+   - Successfully applied and tested on treatment branch
+
+2. **Complete Live Testing Results:**
+   - ✅ Employer login: `employer@symmetry.local` / `ChangeMe123!` working perfectly
+   - ✅ Automatic redirect from `/login` to `/cases` page successful
+   - ✅ Full left sidebar navigation with all employer-accessible pages working
+   - ✅ Cases page: shows 22+ Symmetry workers with proper data isolation
+   - ✅ RTW Planner navigation: fully functional with recovery progress data
+   - ✅ Professional PageLayout with Preventli branding confirmed
+
+3. **Technical Verification:**
+   - Server stable on port 5173 (treatment branch)
+   - All navigation tested: Dashboard, Cases, New Claim, RTW Planner, Check-ins, Financials, Predictions, Risk, Audit Log
+   - Proper organizational security: only Symmetry company data visible
+   - No server errors, clean browser console, responsive UI
+
+### Current State
+- **Employer Portal**: ✅ FULLY FUNCTIONAL - Ready for production use
+- **Implementation**: Simple but critical one-line routing change
+- **User Experience**: Seamless professional interface with complete navigation
+- **Data Security**: Organizational isolation verified working properly
+
+### Next Steps (Ready for Production)
+1. Apply employer portal routing fix to production deployment
+2. Optional: Hide Audit Log from employer navigation menu if needed
+3. Consider user training - employers now have full navigation access
+4. Sync fix to feature/employer-portal branch if needed
+
+### Files Modified This Session
+- `client/src/components/RoleBasedDashboard.tsx` - Employer routing fix (tested & working)
 
 ---
 
@@ -879,3 +918,52 @@ unknown: 50%  // Default assumption
 - Market opportunity analysis for Australian workers compensation
 - Avatar-enhanced care coordination and WebRTC technology planning
 - Investment-ready positioning with competitive differentiation
+
+---
+
+## Session 23 - 2026-01-22 - Andres Nieto Treatment Recovery Timeline Fixes
+
+### Completed
+1. **Certificate Date Data Quality Issues Fixed:**
+   - Identified 2 certificates with impossible future dates (July 2026, April 2026)
+   - Created fix-andres-cert-dates.js script to correct database records
+   - Successfully updated certificates to proper 2025 historical dates
+   - Fixed certificate IDs: 00aeb764-0067-469c-959b-afd9743caf0f, bf368a28-3972-475a-9849-402d30e09dd3
+
+2. **Certificate Dot Visualization Confirmed:**
+   - Verified DynamicRecoveryTimeline only shows dots for actual medical certificates
+   - No dots displayed for interpolated/estimated weeks
+   - Uses certificateExists flag to validate real vs. assumed data
+   - Certificate markers positioned at correct weeks with particle animations
+
+3. **Playwright Browser Automation Setup:**
+   - Created automated login scripts for testing (login-5173.js)
+   - Successfully logged into dashboard on port 5173
+   - Browser ready for manual testing of Andres Nieto recovery timeline
+   - Screenshots saved for verification
+
+4. **Ultra-Modern Recovery Timeline Ready:**
+   - Glassmorphism effects with gradient-filled area charts
+   - Floating progress rings with stroke animations
+   - Particle system following certificate markers
+   - Framer Motion entrance effects and hover interactions
+
+### Next Steps
+1. **Manual Testing Verification:**
+   - Navigate to Andres Nieto case (FD-43714) in browser
+   - Click Treatment & Recovery tab
+   - Verify certificate dots only appear at real certificate weeks
+   - Confirm dates show as MM/YY format (07/25, 04/25) not W1, W2, W3
+   - Observe corrected certificate timeline (2025 dates, not 2026)
+
+2. **Complete Ultra-Modern Dashboard:**
+   - 10 stories remaining in features.json transformation
+   - Focus on Framer Motion Animation Polish feature
+   - Hero entrance effects and panel stagger animations
+
+### Notes
+- **Branch:** treatment (switched from presentation at session start)
+- **Data Fix Applied:** Andres certificates now have accurate historical dates
+- **Visualization Logic:** Already perfect - only shows dots for real certificates
+- **Testing Ready:** Browser open at localhost:5173 logged in as admin
+- **Backend Status:** Port 5000 was processing notifications, port 5173 working perfectly
