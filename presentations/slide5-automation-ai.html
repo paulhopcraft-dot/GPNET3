@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+html { background: #ffffff; }
+body {
+  width: 720pt; height: 405pt; margin: 0; padding: 0;
+  background: #F4F6F7; font-family: Arial, sans-serif;
+  display: flex;
+}
+.container { margin: 32pt; flex: 1; }
+.header-bar {
+  background: #1C3D5A;
+  padding: 18pt 25pt;
+  margin: -32pt -32pt 18pt -32pt;
+}
+h1 {
+  color: #ffffff;
+  font-size: 36pt;
+  margin: 0;
+  font-weight: bold;
+}
+.content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15pt;
+}
+.ai-item {
+  background: #ffffff;
+  padding: 15pt;
+  border-radius: 8pt;
+  border-left: 4pt solid #8B5CF6;
+}
+.ai-title {
+  font-size: 14pt;
+  font-weight: bold;
+  color: #1C3D5A;
+  margin: 0 0 6pt 0;
+}
+p {
+  font-size: 12pt;
+  color: #4A5568;
+  margin: 0;
+  line-height: 1.3;
+}
+.highlight {
+  background: #8B5CF6;
+  color: white;
+  border-left: none;
+}
+.highlight .ai-title {
+  color: white;
+}
+.highlight p {
+  color: rgba(255,255,255,0.9);
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header-bar">
+    <h1>Automation & AI Features</h1>
+  </div>
+  <div class="content">
+    <div class="ai-item highlight">
+      <p class="ai-title">AI-Powered Case Summaries</p>
+      <p>Claude AI generates intelligent case summaries with work status classification and key insights.</p>
+    </div>
+    <div class="ai-item">
+      <p class="ai-title">Automatic Worker Notifications</p>
+      <p>Auto-email workers when certificates expire - no manual follow-up needed.</p>
+    </div>
+    <div class="ai-item">
+      <p class="ai-title">Proactive Chase Workflows</p>
+      <p>Triggers actions 3 days before certificate expiry to prevent compliance gaps.</p>
+    </div>
+    <div class="ai-item">
+      <p class="ai-title">Smart Validation</p>
+      <p>Ensures medical certificates align with stated work capacity - catches inconsistencies.</p>
+    </div>
+    <div class="ai-item">
+      <p class="ai-title">Real-Time Compliance Alerts</p>
+      <p>Escalating priority levels (Medium → High → Critical) ensure nothing is missed.</p>
+    </div>
+    <div class="ai-item">
+      <p class="ai-title">AI Email Drafting</p>
+      <p>Generate professional emails for any case situation with one click.</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

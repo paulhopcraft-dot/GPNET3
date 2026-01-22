@@ -8,49 +8,45 @@ body {
   background: #F4F6F7; font-family: Arial, sans-serif;
   display: flex;
 }
-.container { margin: 35pt; flex: 1; }
+.container { margin: 30pt; flex: 1; }
 .header-bar {
   background: #52B788;
-  padding: 18pt 25pt;
-  margin: -35pt -35pt 22pt -35pt;
+  padding: 12pt 25pt;
+  margin: -30pt -30pt 12pt -30pt;
 }
 h1 {
   color: #ffffff;
-  font-size: 36pt;
+  font-size: 26pt;
   margin: 0;
   font-weight: bold;
 }
-.content { background: #ffffff; padding: 25pt; border-radius: 8pt; }
-.feature {
-  margin-bottom: 16pt;
+.content {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 10pt;
 }
-.feature:last-child {
-  margin-bottom: 0;
+.feature {
+  background: #ffffff;
+  padding: 10pt;
+  border-radius: 6pt;
+  border-top: 3pt solid #52B788;
 }
 .feature-title {
-  font-size: 18pt;
+  font-size: 11pt;
   font-weight: bold;
   color: #1C3D5A;
   margin: 0 0 6pt 0;
 }
-p {
-  font-size: 14pt;
-  color: #4A5568;
-  margin: 0;
-  line-height: 1.4;
-}
 ul {
-  margin: 8pt 0 0 0;
-  padding-left: 18pt;
+  margin: 0;
+  padding-left: 12pt;
 }
 li {
-  font-size: 13pt;
+  font-size: 9pt;
   color: #4A5568;
   margin-bottom: 3pt;
-  line-height: 1.3;
-}
-li:last-child {
-  margin-bottom: 0;
+  line-height: 1.2;
 }
 .highlight {
   color: #52B788;
@@ -65,28 +61,51 @@ li:last-child {
   </div>
   <div class="content">
     <div class="feature">
-      <p class="feature-title">Medical Certificate Automation</p>
+      <p class="feature-title">Certificate Automation</p>
       <ul>
-        <li><span class="highlight">Automatic expiry tracking</span> - monitors all certificates with real-time status</li>
-        <li><span class="highlight">Proactive chase workflows</span> - triggers actions 3 days before expiry</li>
-        <li><span class="highlight">Auto-email workers</span> - sends reminders when certificates expire</li>
-        <li><span class="highlight">Smart validation</span> - ensures certificates align with work capacity</li>
+        <li><span class="highlight">Expiry tracking</span> - real-time</li>
+        <li><span class="highlight">Chase workflows</span> - 3 days before</li>
+        <li><span class="highlight">Auto-email</span> - worker reminders</li>
       </ul>
     </div>
     <div class="feature">
-      <p class="feature-title">Return-to-Work Plan Management</p>
+      <p class="feature-title">RTW Plan Rules</p>
       <ul>
-        <li><span class="highlight">Auto-scheduling</span> - triggers plan updates when treatment plans become stale (90+ days)</li>
-        <li><span class="highlight">Progress tracking</span> - monitors 7-stage RTW process with failure detection</li>
-        <li><span class="highlight">Plan validation</span> - ensures meaningful rehabilitation plans exist</li>
+        <li><span class="highlight">7-stage process</span> tracking</li>
+        <li><span class="highlight">Milestone alerts</span> - stale plans</li>
+        <li><span class="highlight">Plan validation</span> - meaningful rehab</li>
       </ul>
     </div>
     <div class="feature">
-      <p class="feature-title">WorkSafe Victoria Compliance</p>
+      <p class="feature-title">Action Queue</p>
       <ul>
-        <li><span class="highlight">42-day certificate threshold</span> - ensures always-current medical evidence</li>
-        <li><span class="highlight">Complete audit trails</span> - logs all medical data access and modifications</li>
-        <li><span class="highlight">Multi-tenant security</span> - organization data isolation with access controls</li>
+        <li><span class="highlight">Auto-creation</span> - from compliance</li>
+        <li><span class="highlight">Priority escalation</span> - if overdue</li>
+        <li><span class="highlight">Auto-complete</span> - when resolved</li>
+      </ul>
+    </div>
+    <div class="feature">
+      <p class="feature-title">Compliance Engine</p>
+      <ul>
+        <li><span class="highlight">42-day threshold</span> enforcement</li>
+        <li><span class="highlight">Rule evaluation</span> - automatic</li>
+        <li><span class="highlight">Compliance scoring</span> - 0-100%</li>
+      </ul>
+    </div>
+    <div class="feature">
+      <p class="feature-title">Notifications</p>
+      <ul>
+        <li><span class="highlight">Expiry alerts</span> - cert/plan</li>
+        <li><span class="highlight">Action overdue</span> - escalation</li>
+        <li><span class="highlight">Weekly digest</span> - summary</li>
+      </ul>
+    </div>
+    <div class="feature">
+      <p class="feature-title">Audit & Security</p>
+      <ul>
+        <li><span class="highlight">Full audit trail</span> - all actions</li>
+        <li><span class="highlight">Multi-tenant</span> - data isolation</li>
+        <li><span class="highlight">Role-based access</span> - RBAC</li>
       </ul>
     </div>
   </div>
