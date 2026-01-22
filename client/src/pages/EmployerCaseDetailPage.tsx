@@ -336,31 +336,39 @@ export default function EmployerCaseDetailPage() {
                 <div className="space-y-3">
                   <div className="flex border-b pb-2">
                     <div className="w-40 text-sm font-medium">Injury</div>
-                    <div className="text-sm flex-1">{workerCase.summary || "Soft tissue injury - palmar tenosynovitis/trigger finger (3rd & 4th digits, right hand)"}</div>
+                    <div className="text-sm flex-1">{workerCase.summary || "Details pending"}</div>
                   </div>
                   <div className="flex border-b pb-2">
                     <div className="w-40 text-sm font-medium">Date of Onset</div>
-                    <div className="text-sm flex-1">{workerCase.dateOfInjury || "~December 2024"}</div>
+                    <div className="text-sm flex-1">{workerCase.dateOfInjury || "Not recorded"}</div>
                   </div>
-                  <div className="flex border-b pb-2">
-                    <div className="w-40 text-sm font-medium">Mechanism</div>
-                    <div className="text-sm flex-1">Repetitive use of vibration cutting machine</div>
-                  </div>
-                  <div className="flex border-b pb-2">
-                    <div className="w-40 text-sm font-medium">Treating GP</div>
-                    <div className="text-sm flex-1">{workerCase.treatingGp || "Dr. Caesar Tan"}</div>
-                  </div>
-                  <div className="flex border-b pb-2">
-                    <div className="w-40 text-sm font-medium">Physiotherapist</div>
-                    <div className="text-sm flex-1">{workerCase.physiotherapist || "Andrew Coulter (Hobsons Bay Medical)"}</div>
-                  </div>
-                  <div className="flex border-b pb-2">
-                    <div className="w-40 text-sm font-medium">ORP</div>
-                    <div className="text-sm flex-1">{workerCase.orp || "Jordan Pankiw (AMS Consulting)"}</div>
-                  </div>
+                  {workerCase.medicalConstraints?.mechanism && (
+                    <div className="flex border-b pb-2">
+                      <div className="w-40 text-sm font-medium">Mechanism</div>
+                      <div className="text-sm flex-1">{workerCase.medicalConstraints.mechanism}</div>
+                    </div>
+                  )}
+                  {workerCase.medicalConstraints?.treatingGp && (
+                    <div className="flex border-b pb-2">
+                      <div className="w-40 text-sm font-medium">Treating GP</div>
+                      <div className="text-sm flex-1">{workerCase.medicalConstraints.treatingGp}</div>
+                    </div>
+                  )}
+                  {workerCase.medicalConstraints?.physiotherapist && (
+                    <div className="flex border-b pb-2">
+                      <div className="w-40 text-sm font-medium">Physiotherapist</div>
+                      <div className="text-sm flex-1">{workerCase.medicalConstraints.physiotherapist}</div>
+                    </div>
+                  )}
+                  {workerCase.specialistStatus?.specialist && (
+                    <div className="flex border-b pb-2">
+                      <div className="w-40 text-sm font-medium">Specialist</div>
+                      <div className="text-sm flex-1">{workerCase.specialistStatus.specialist}</div>
+                    </div>
+                  )}
                   <div className="flex pb-2">
-                    <div className="w-40 text-sm font-medium">Case Manager</div>
-                    <div className="text-sm flex-1">{workerCase.caseManager || "Niko Datuin (DXC)"}</div>
+                    <div className="w-40 text-sm font-medium">Work Status</div>
+                    <div className="text-sm flex-1">{workerCase.workStatus}</div>
                   </div>
                 </div>
               </CardContent>
@@ -379,38 +387,132 @@ export default function EmployerCaseDetailPage() {
                     <p className="text-sm">{workerCase.summary || "Diagnosis details pending"}</p>
                   </div>
 
-                  {/* Scans & Imaging */}
+                  {/* Scans & Imaging - Only show actual attachments */}
                   <div>
                     <h4 className="text-sm font-semibold text-primary mb-2">Scans & Imaging</h4>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between p-2 bg-muted rounded text-sm">
-                        <span>X-Ray Results</span>
-                        <Button variant="ghost" size="sm" className="h-7 text-xs">View</Button>
-                      </div>
-                      <div className="flex items-center justify-between p-2 bg-muted rounded text-sm">
-                        <span>MRI Report</span>
-                        <Button variant="ghost" size="sm" className="h-7 text-xs">View</Button>
-                      </div>
-                      <div className="flex items-center justify-between p-2 bg-muted rounded text-sm">
-                        <span>Ultrasound</span>
-                        <Button variant="ghost" size="sm" className="h-7 text-xs">View</Button>
-                      </div>
-                    </div>
+                    {(() => {
+                      const imagingAttachments = workerCase.attachments?.filter(att =>
+                        ['x-ray', 'xray', 'mri', 'ct', 'ultrasound', 'scan', 'imaging'].some(term =>
+                          att.name.toLowerCase().includes(term) || att.type.toLowerCase().includes(term)
+                        )
+                      ) || [];
+
+                      if (imagingAttachments.length > 0) {
+                        return (
+                          <div className="space-y-2">
+                            {imagingAttachments.map(att => (
+                              <div key={att.id} className="flex items-center justify-between p-2 bg-muted rounded text-sm">
+                                <span>{att.name}</span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 text-xs"
+                                  onClick={() => window.open(att.url, '_blank')}
+                                >
+                                  View
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded text-sm">
+                          <p className="text-amber-800 dark:text-amber-200">No imaging results on file</p>
+                          <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                            Consider requesting X-ray or ultrasound if clinically indicated
+                          </p>
+                        </div>
+                      );
+                    })()}
                   </div>
 
-                  {/* Test Results */}
+                  {/* Test Results - Only show actual attachments */}
                   <div>
                     <h4 className="text-sm font-semibold text-primary mb-2">Test Results</h4>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between p-2 bg-muted rounded text-sm">
-                        <span>Blood Work</span>
-                        <Button variant="ghost" size="sm" className="h-7 text-xs">View</Button>
-                      </div>
-                      <div className="flex items-center justify-between p-2 bg-muted rounded text-sm">
-                        <span>Nerve Conduction Study</span>
-                        <Button variant="ghost" size="sm" className="h-7 text-xs">View</Button>
-                      </div>
-                    </div>
+                    {(() => {
+                      const testAttachments = workerCase.attachments?.filter(att =>
+                        ['blood', 'pathology', 'lab', 'test', 'nerve', 'conduction', 'emg', 'ecg'].some(term =>
+                          att.name.toLowerCase().includes(term) || att.type.toLowerCase().includes(term)
+                        )
+                      ) || [];
+
+                      if (testAttachments.length > 0) {
+                        return (
+                          <div className="space-y-2">
+                            {testAttachments.map(att => (
+                              <div key={att.id} className="flex items-center justify-between p-2 bg-muted rounded text-sm">
+                                <span>{att.name}</span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 text-xs"
+                                  onClick={() => window.open(att.url, '_blank')}
+                                >
+                                  View
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="p-3 bg-muted rounded text-sm text-muted-foreground">
+                          No test results on file
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Medical Certificates */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-primary mb-2">Medical Certificates</h4>
+                    {(() => {
+                      const certAttachments = workerCase.attachments?.filter(att =>
+                        ['certificate', 'cert', 'medical cert', 'worksafe'].some(term =>
+                          att.name.toLowerCase().includes(term) || att.type.toLowerCase().includes(term)
+                        )
+                      ) || [];
+
+                      if (certAttachments.length > 0 || workerCase.latestCertificate) {
+                        return (
+                          <div className="space-y-2">
+                            {workerCase.latestCertificate && (
+                              <div className="flex items-center justify-between p-2 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded text-sm">
+                                <div>
+                                  <span className="font-medium">Current Certificate</span>
+                                  <p className="text-xs text-muted-foreground">
+                                    Valid: {workerCase.latestCertificate.startDate} to {workerCase.latestCertificate.endDate}
+                                  </p>
+                                </div>
+                                <Badge className="bg-emerald-100 text-emerald-800">Active</Badge>
+                              </div>
+                            )}
+                            {certAttachments.map(att => (
+                              <div key={att.id} className="flex items-center justify-between p-2 bg-muted rounded text-sm">
+                                <span>{att.name}</span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 text-xs"
+                                  onClick={() => window.open(att.url, '_blank')}
+                                >
+                                  View
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded text-sm">
+                          <p className="text-red-800 dark:text-red-200 font-medium">No medical certificate on file</p>
+                          <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                            Action required: Request current medical certificate
+                          </p>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               </CardContent>

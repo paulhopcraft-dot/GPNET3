@@ -387,22 +387,23 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
           <div className="h-64 relative">
             {/* Particle Container for Chart Animations */}
             <div className="particle-container absolute inset-0 pointer-events-none z-10">
-              {/* Generate particle dots along the recovery curve with path animation */}
-              {chartData.slice(0, Math.min(chartData.length, data.weeksElapsed || 0)).map((point, index) => {
-                if (point.actual === null || point.actual === undefined) return null;
+              {/* Generate particle dots ONLY for actual certificate markers, not every week */}
+              {data.certificateMarkers.map((marker, index) => {
+                // Only show markers up to current week
+                if (marker.week > (data.weeksElapsed || 0)) return null;
 
                 // Calculate position based on chart dimensions and data
-                const xPercent = (point.week / Math.max(...chartData.map(d => d.week))) * 100;
-                const yPercent = 100 - (point.actual / 100) * 100;
+                const maxWeek = Math.max(...chartData.map(d => d.week));
+                const xPercent = (marker.week / maxWeek) * 100;
+                const yPercent = 100 - (marker.capacity / 100) * 100;
 
                 // Calculate path animation for dynamic movement
                 const animationDuration = 3 + (index * 0.5); // Staggered durations
-                const translateXRange = 20; // Pixel range for horizontal movement
 
                 return (
                   <div
-                    key={`particle-${point.week}`}
-                    className="particle-dot animate-pulse absolute w-2 h-2 bg-green-400/60 rounded-full"
+                    key={`particle-cert-${marker.certificateNumber}`}
+                    className="particle-dot animate-pulse absolute w-3 h-3 bg-emerald-400/80 rounded-full border-2 border-emerald-500"
                     style={{
                       left: `${Math.max(5, Math.min(95, xPercent))}%`,
                       top: `${Math.max(10, Math.min(80, yPercent))}%`,
@@ -413,8 +414,9 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
                       animationIterationCount: 'infinite',
                       animationDirection: 'alternate',
                       animationTimingFunction: 'ease-in-out',
-                      opacity: 0.8
+                      opacity: 0.9
                     }}
+                    title={`Certificate #${marker.certificateNumber}: ${marker.capacity}%`}
                   />
                 );
               })}
@@ -521,14 +523,17 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
                     const { cx, cy, payload } = props;
                     if (payload?.actual === null || payload?.actual === undefined) return null;
 
-                    const isMissing = payload?.isMissingCertificate;
+                    // Only show dots where there's an actual certificate (certificateExists flag)
+                    // Skip interpolated/assumed data points
+                    if (!payload?.certificateExists) return null;
+
                     return (
                       <circle
                         cx={cx}
                         cy={cy}
-                        r={isMissing ? 5 : 4}
-                        fill={isMissing ? "#ef4444" : "#10b981"}
-                        stroke={isMissing ? "#dc2626" : "#059669"}
+                        r={5}
+                        fill="#10b981"
+                        stroke="#059669"
                         strokeWidth={2}
                       />
                     );
