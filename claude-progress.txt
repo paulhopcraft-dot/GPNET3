@@ -2,12 +2,57 @@
 
 **Date:** 2026-01-23
 **Branch:** treatment
-**Latest Commit:** b801ba8 - feat: update backend services and task command documentation
-**Status:** Ultra-Modern Dashboard Transformation - 100% COMPLETE
+**Latest Commit:** 6320096 - feat: add left sidebar navigation for employer users
+**Status:** Employer Portal Routing Fix - DEPLOYED TO PRODUCTION
 
 ---
 
-## Session 24 - 2026-01-23 - Ultra-Modern Dashboard Transformation Complete
+## Session 24 - 2026-01-23 - Employer Portal Routing Fix - PRODUCTION DEPLOYMENT
+
+### ✅ COMPLETED - Employer Left Sidebar Navigation Implementation
+1. **Employer Portal Routing Fix:**
+   - Created `EmployerDashboardPage.tsx`: Combines PageLayout (sidebar) with existing dashboard content
+   - Updated `RoleBasedDashboard.tsx`: Routes employers to new page with sidebar navigation
+   - Enhanced `PageLayout.tsx`: Added role-based filtering to hide "Audit Log" for employers
+   - Employers now see: Dashboard, Cases, New Claim, RTW Planner, Check-ins, Financials, Predictions, Risk
+
+2. **User Experience Improvements:**
+   - ✅ Left sidebar navigation visible immediately upon employer login
+   - ✅ "Dashboard" selected by default when employers log in
+   - ✅ All existing dashboard content preserved (Critical Actions, statistics cards, action grids)
+   - ✅ Persistent sidebar across all pages (Dashboard ↔ Cases ↔ RTW Planner)
+   - ✅ Role-based navigation filtering (Audit Log hidden for employers)
+
+3. **Production Deployment:**
+   - ✅ Successfully merged employer portal fix to main branch
+   - ✅ Force pushed to production repository
+   - ✅ Employer login experience now live: `employer@symmetry.local` / `ChangeMe123!`
+   - ✅ No impact on admin/clinician users (still see GPNet2Dashboard)
+
+### Technical Implementation Details
+- **Files Created**: `client/src/pages/EmployerDashboardPage.tsx`
+- **Files Modified**: `client/src/components/RoleBasedDashboard.tsx`, `client/src/components/PageLayout.tsx`
+- **Architecture**: PageLayout wrapper + existing EmployerSummaryDashboard content
+- **Navigation Items**: 8 items for employers (excludes Audit Log), 9 items for admins
+- **Routing**: Employers land on `/` with sidebar, not redirected to `/cases`
+
+### Current State
+- **Production (main branch)**: ✅ EMPLOYER PORTAL ROUTING FIX DEPLOYED
+- **Development (treatment branch)**: Ultra-modern dashboard work in progress + employer portal fix
+- **Server**: Running on port 5173 with all employer portal functionality working
+- **Testing**: Complete browser verification successful
+
+### Next Steps (Treatment Branch Development)
+1. **Complete Ultra-Modern Dashboard**: 6 remaining Framer Motion animation polish stories
+2. **Alternative Priorities**: Medical certificate/RTW plan expiry management system
+3. **Optional**: Deploy ultra-modern dashboard features to production when complete
+
+### Files Modified This Session
+- `client/src/pages/EmployerDashboardPage.tsx` - NEW: Employer dashboard with sidebar
+- `client/src/components/RoleBasedDashboard.tsx` - Updated employer routing logic
+- `client/src/components/PageLayout.tsx` - Added role-based navigation filtering
+
+---
 
 ### ✅ COMPLETED - Ultra-Modern Dashboard Transformation (100% Feature Complete)
 
