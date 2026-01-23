@@ -103,7 +103,7 @@ export class LlamaSummaryService {
     const data = await response.json();
 
     return {
-      summary: data.response.trim(),
+      summary: (data as any).response.trim(),
       workStatusClassification: workerCase.workStatus
     };
   }
@@ -175,8 +175,8 @@ IMPORTANT: Focus on clinical insights, compliance risks, and actionable next ste
     if (workerCase.hasCertificate && workerCase.latestCertificate) {
       const cert = workerCase.latestCertificate;
       sections.push(`**Certificate:** Valid from ${cert.startDate} to ${cert.endDate}`);
-      if (cert.workCapacity) {
-        sections.push(`**Work Capacity:** ${cert.workCapacity}`);
+      if (cert.capacity) {
+        sections.push(`**Work Capacity:** ${cert.capacity}`);
       }
       if (cert.restrictions) {
         sections.push(`**Restrictions:** ${cert.restrictions.join(', ')}`);
@@ -238,7 +238,7 @@ IMPORTANT: Focus on clinical insights, compliance risks, and actionable next ste
       // Check if model exists
       const tagsResponse = await fetch(`${this.ollamaUrl}/api/tags`);
       const tags = await tagsResponse.json();
-      const hasModel = tags?.models?.some((m: any) => m.name.includes('llama3.1'));
+      const hasModel = tags && typeof tags === 'object' && 'models' in tags && Array.isArray(tags.models) && tags.models.some((m: any) => m.name.includes('llama3.1'));
 
       if (!hasModel) {
         // Pull the model (this will take a while on first run)

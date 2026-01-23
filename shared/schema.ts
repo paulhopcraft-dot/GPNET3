@@ -274,6 +274,7 @@ export interface MedicalCertificate {
   sourceReference?: string;
   createdAt?: string;
   updatedAt?: string;
+  restrictions?: RestrictionItem[];
 }
 
 export interface MedicalCertificateInput {

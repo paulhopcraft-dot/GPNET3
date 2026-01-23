@@ -8,7 +8,7 @@
     "dev:server": "cross-env NODE_ENV=development tsx server/index.ts",
     "dev:client": "vite",
     "build": "vite build && tsc -p tsconfig.server.json",
-    "start": "cross-env NODE_ENV=production node --experimental-loader tsx/esm server/index.ts",
+    "start": "cross-env NODE_ENV=production node --import tsx/esm server/index.ts",
     "db:push": "drizzle-kit push",
     "drizzle:generate": "drizzle-kit generate --config=./drizzle.config.ts",
     "drizzle:migrate": "drizzle-kit push --config=./drizzle.config.ts",

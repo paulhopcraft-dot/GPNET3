@@ -1261,7 +1261,7 @@ function getCertificateCapacity(cert: MedicalCertificate): number {
     return cert.workCapacityPercentage;
   }
   // Fall back to enum conversion
-  return getCertificateCapacity(cert);
+  return capacityToPercentage(cert.capacity);
 }
 
 /**
