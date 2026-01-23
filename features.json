@@ -8,7 +8,8 @@
       "name": "Ultra-Modern Design Foundation",
       "description": "Establish CSS foundation for glassmorphism, gradients, and modern animations",
       "priority": "high",
-      "status": "pending",
+      "status": "completed",
+      "verified_at": "2026-01-23T13:25:00Z",
       "estimatedTotalMinutes": 120,
       "prerequisites": [
         "Tailwind CSS is configured and working",
@@ -20,7 +21,7 @@
           "id": "gradient-css-foundation",
           "story": "As a developer, I can see ultra-modern gradient utilities in CSS so that components can use vibrant gradient backgrounds",
           "acceptanceCriteria": [
-            "browser_verify: navigate http://localhost:5173",
+            "browser_verify: navigate http://localhost:5000",
             "browser_verify: inspect-css :root --gradient-hero exists",
             "browser_verify: inspect-css :root --gradient-recovery exists",
             "browser_verify: inspect-css :root --gradient-treatment exists",
@@ -115,7 +116,7 @@
           "id": "hero-container-structure",
           "story": "As a user, I can see a full-height hero container when I visit the Treatment tab so that the layout takes up the proper viewport space",
           "acceptanceCriteria": [
-            "browser_verify: navigate http://localhost:5173",
+            "browser_verify: navigate http://localhost:5000",
             "browser_verify: click text=Selemani Mwomba",
             "browser_verify: click button[text=Treatment]",
             "browser_verify: exists .immersive-hero-container",
@@ -134,7 +135,7 @@
           "id": "hero-gradient-backgrounds",
           "story": "As a user, I can see vibrant gradient backgrounds in the hero section so that the dashboard has modern visual appeal",
           "acceptanceCriteria": [
-            "browser_verify: navigate http://localhost:5173",
+            "browser_verify: navigate http://localhost:5000",
             "browser_verify: click text=Selemani Mwomba",
             "browser_verify: click button[text=Treatment]",
             "browser_verify: exists .immersive-hero-container",
@@ -182,7 +183,7 @@
           "id": "panels-grid-layout",
           "story": "As a user, I can see a 12-column grid layout for recovery data so that information is properly structured",
           "acceptanceCriteria": [
-            "browser_verify: navigate http://localhost:5173",
+            "browser_verify: navigate http://localhost:5000",
             "browser_verify: click text=Selemani Mwomba",
             "browser_verify: click button[text=Treatment]",
             "browser_verify: exists .glassmorphism-panels-grid",
@@ -200,7 +201,7 @@
           "id": "panels-glassmorphism-application",
           "story": "As a user, I can see glassmorphism effects on recovery panels so that information has modern visual depth",
           "acceptanceCriteria": [
-            "browser_verify: navigate http://localhost:5173",
+            "browser_verify: navigate http://localhost:5000",
             "browser_verify: click text=Selemani Mwomba",
             "browser_verify: click button[text=Treatment]",
             "browser_verify: exists .glass-panel:first-child",
@@ -285,7 +286,7 @@
           "id": "progress-ring-structure",
           "story": "As a user, I can see basic circular progress ring structure so that the foundation for progress visualization is established",
           "acceptanceCriteria": [
-            "browser_verify: navigate http://localhost:5173",
+            "browser_verify: navigate http://localhost:5000",
             "browser_verify: click text=Selemani Mwomba",
             "browser_verify: click button[text=Treatment]",
             "browser_verify: exists .progress-rings-container",
@@ -333,7 +334,7 @@
           "id": "particle-dot-creation",
           "story": "As a user, I can see particle dots in the chart area so that the foundation for curve animations is established",
           "acceptanceCriteria": [
-            "browser_verify: navigate http://localhost:5173",
+            "browser_verify: navigate http://localhost:5000",
             "browser_verify: click text=Selemani Mwomba",
             "browser_verify: click button[text=Treatment]",
             "browser_verify: exists .particle-container",
@@ -678,7 +679,7 @@
   ],
   "ralphConfig": {
     "maxIterations": 20,
-    "serverUrl": "http://localhost:5173",
+    "serverUrl": "http://localhost:5000",
     "browserTimeout": 45000,
     "rollbackOnFailure": true,
     "commitEachStory": true,
@@ -687,7 +688,7 @@
       "networkTimeoutMs": 30000,
       "retryAttempts": 3,
       "retryDelayMs": 2000,
-      "serverHealthCheck": "curl -f http://localhost:5173 || npm run dev &",
+      "serverHealthCheck": "curl -f http://localhost:5000 || npm run dev &",
       "fallbackStrategies": [
         "If server not responding: restart dev server",
         "If API data missing: show loading states with skeleton UI",
@@ -711,7 +712,7 @@
   "integrationTests": [
     "npm run build",
     "npm test",
-    "curl http://localhost:5173"
+    "curl http://localhost:5000"
   ],
   "acceptance": {
     "endToEndTest": "User can navigate to Treatment tab and see immersive glassmorphism dashboard with gradient-filled charts, floating progress rings, and smooth animations",
