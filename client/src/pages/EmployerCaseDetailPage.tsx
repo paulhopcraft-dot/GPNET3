@@ -159,15 +159,73 @@ export default function EmployerCaseDetailPage() {
 
       {/* Tabs at the top */}
       <Tabs defaultValue="summary" className="flex-1 flex flex-col">
-        <div className="border-b bg-card px-4 py-2 overflow-x-auto">
-          <TabsList className="inline-flex h-10 w-max gap-1">
-            <TabsTrigger value="summary" className="px-3 text-sm">Summary</TabsTrigger>
-            <TabsTrigger value="injury" className="px-3 text-sm">Injury & Diagnosis</TabsTrigger>
-            <TabsTrigger value="treatment" className="px-3 text-sm">Treatment & Recovery</TabsTrigger>
-            <TabsTrigger value="timeline" className="px-3 text-sm">Timeline</TabsTrigger>
-            <TabsTrigger value="financial" className="px-3 text-sm">Financial</TabsTrigger>
-            <TabsTrigger value="risk" className="px-3 text-sm">Risk</TabsTrigger>
-            <TabsTrigger value="contacts" className="px-3 text-sm">Contacts</TabsTrigger>
+        {/* Ultra-Modern Tabs with Glassmorphism */}
+        <div className="relative border-b bg-gradient-to-r from-slate-50 via-white to-slate-50 px-4 py-3 overflow-x-auto backdrop-blur-xl">
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-blue-500/5 to-teal-500/5 pointer-events-none"></div>
+          <TabsList className="relative inline-flex h-12 w-max gap-2 bg-white/40 backdrop-blur-md p-1 rounded-xl border border-white/20 shadow-2xl">
+            <TabsTrigger
+              value="summary"
+              className="relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300
+                         data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-blue-500
+                         data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/25
+                         hover:bg-white/60 hover:shadow-md text-slate-700"
+            >
+              Summary
+            </TabsTrigger>
+            <TabsTrigger
+              value="injury"
+              className="relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300
+                         data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-500
+                         data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-emerald-500/25
+                         hover:bg-white/60 hover:shadow-md text-slate-700"
+            >
+              Injury & Diagnosis
+            </TabsTrigger>
+            <TabsTrigger
+              value="treatment"
+              className="relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300
+                         data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-500 data-[state=active]:to-rose-500
+                         data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-pink-500/25
+                         hover:bg-white/60 hover:shadow-md text-slate-700"
+            >
+              Treatment & Recovery
+            </TabsTrigger>
+            <TabsTrigger
+              value="timeline"
+              className="relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300
+                         data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500
+                         data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-indigo-500/25
+                         hover:bg-white/60 hover:shadow-md text-slate-700"
+            >
+              Timeline
+            </TabsTrigger>
+            <TabsTrigger
+              value="financial"
+              className="relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300
+                         data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-500
+                         data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-amber-500/25
+                         hover:bg-white/60 hover:shadow-md text-slate-700"
+            >
+              Financial
+            </TabsTrigger>
+            <TabsTrigger
+              value="risk"
+              className="relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300
+                         data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-pink-500
+                         data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-red-500/25
+                         hover:bg-white/60 hover:shadow-md text-slate-700"
+            >
+              Risk
+            </TabsTrigger>
+            <TabsTrigger
+              value="contacts"
+              className="relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300
+                         data-[state=active]:bg-gradient-to-r data-[state=active]:from-slate-500 data-[state=active]:to-gray-500
+                         data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-slate-500/25
+                         hover:bg-white/60 hover:shadow-md text-slate-700"
+            >
+              Contacts
+            </TabsTrigger>
           </TabsList>
         </div>
 
