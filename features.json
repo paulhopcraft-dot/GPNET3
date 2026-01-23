@@ -14,7 +14,7 @@
       "prerequisites": [
         "Tailwind CSS is configured and working",
         "index.css file exists for custom CSS",
-        "Development server is running on port 5173"
+        "Development server is running on port 5000"
       ],
       "userStories": [
         {
