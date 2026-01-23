@@ -34,6 +34,12 @@
 - Auto-start branch display in console title
 - Auto-start context monitoring: & 'C:\dev\claude-code-toolkit\start-context-monitor.ps1'
 
+**CRITICAL: Exact Context Display Rule:**
+- NEVER use approximations (~XX%) for context usage
+- ALWAYS use exact tracking: `powershell -Command "& 'C:\dev\claude-code-toolkit\context-tracker.ps1' -Action status"`
+- End every response with: "Branch: [branch] | Context: [exact tokens]/188000 = [exact %]"
+- This prevents regression to estimation system
+
 **Auto-Command Recommendations (ENABLED):**
 - After completing ANY task, automatically suggest next slash command
 - Use smart-command-recommender.ps1 to analyze context and suggest optimal next step
