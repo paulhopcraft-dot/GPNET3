@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import { PageLayout } from "@/components/PageLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,6 +19,7 @@ import type { WorkerCase, PaginatedCasesResponse } from "@shared/schema";
 import { isLegitimateCase } from "@shared/schema";
 
 export default function CasesPage() {
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
@@ -199,7 +201,7 @@ export default function CasesPage() {
                         {workerCase.nextStep}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Link to={`/summary/${workerCase.id}`}>
+                        <Link to={user?.role === "employer" ? `/employer/case/${workerCase.id}` : `/summary/${workerCase.id}`}>
                           <Button variant="ghost" size="sm">
                             <span className="material-symbols-outlined text-sm">visibility</span>
                           </Button>
