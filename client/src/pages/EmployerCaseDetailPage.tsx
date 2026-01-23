@@ -24,11 +24,12 @@ export default function EmployerCaseDetailPage() {
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [summaryLoaded, setSummaryLoaded] = useState(false);
 
-  // Fetch case data
-  const { data: workerCase, isLoading, error } = useQuery<WorkerCase>({
-    queryKey: [`/api/cases/${id}`],
-    enabled: !!id, // Only run query if id is available
+  // Fetch case data - use same approach as CaseSummaryPage
+  const { data: paginatedData, isLoading, error } = useQuery<PaginatedCasesResponse>({
+    queryKey: ["/api/gpnet2/cases"],
   });
+  const cases = paginatedData?.cases ?? [];
+  const workerCase = cases.find((c) => c.id === id);
 
   const generateSummary = async () => {
     if (!id) return;
