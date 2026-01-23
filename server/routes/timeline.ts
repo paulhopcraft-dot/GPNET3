@@ -92,6 +92,7 @@ export function registerTimelineRoutes(app: Express) {
         startDate: row.startDate.toISOString(),
         endDate: row.endDate.toISOString(),
         capacity: row.capacity as WorkCapacity,
+        workCapacityPercentage: row.workCapacityPercentage ?? undefined,
         notes: row.notes ?? undefined,
         source: (row.source as "freshdesk" | "manual") ?? "freshdesk",
         documentUrl: row.documentUrl ?? undefined,

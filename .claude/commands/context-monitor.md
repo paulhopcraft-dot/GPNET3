@@ -16,9 +16,13 @@ Uses Task tool to spawn lightweight Haiku agent for context analysis:
 ### Context Size Estimation
 ```javascript
 function estimateTokens(messages) {
-  // Rough token estimation: ~4 chars per token
+  // FIXED: Use accurate token estimation (was wrong 4 chars/token)
+  // Conversation text: ~4 chars per token
+  // Tool outputs: ~2-3 chars per token (denser)
   const totalChars = messages.join('').length;
-  return Math.ceil(totalChars / 4);
+
+  // Use 3 chars/token average for mixed content
+  return Math.ceil(totalChars / 3);
 }
 ```
 
@@ -52,7 +56,7 @@ analyze_opportunities:
 📊 Context Usage Analysis
 
 Current Status:
-├── Estimated tokens: 67,500 / 100,000 (67.5%)
+├── Estimated tokens: 67,500 / 188,000 (35.9%)
 ├── Status: Healthy (refresh in ~8 commands)
 ├── Model: Sonnet (consider Haiku for simple tasks)
 └── Session cost: ~$3.25

@@ -267,6 +267,7 @@ export interface MedicalCertificate {
   startDate: string;
   endDate: string;
   capacity: WorkCapacity;
+  workCapacityPercentage?: number; // Actual percentage 0-100
   notes?: string;
   source: "freshdesk" | "manual";
   documentUrl?: string;
@@ -747,6 +748,7 @@ export const medicalCertificates = pgTable("medical_certificates", {
   startDate: timestamp("start_date").notNull(),
   endDate: timestamp("end_date").notNull(),
   capacity: text("capacity").notNull(),
+  workCapacityPercentage: integer("work_capacity_percentage"), // Actual percentage 0-100
   notes: text("notes"),
   source: text("source").notNull().default("freshdesk"),
   documentUrl: text("document_url"),

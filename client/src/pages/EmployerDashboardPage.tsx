@@ -343,8 +343,14 @@ function EmployerDashboardContent() {
 }
 
 export function EmployerDashboardPage() {
+  // Use hardcoded Symmetry for now since employer users are from Symmetry org
+  const organizationName = 'Symmetry Human Resources';
+
   return (
-    <PageLayout title="WorkSafe Dashboard" subtitle="Your Organization">
+    <PageLayout
+      title={`${organizationName} Dashboard`}
+      subtitle="Case Management Portal"
+    >
       <EmployerDashboardContent />
     </PageLayout>
   );

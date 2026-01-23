@@ -43,6 +43,8 @@ const CertificateReviewPage = lazy(() => import("./pages/CertificateReviewPage")
 const InjuryDateReviewPage = lazy(() => import("./pages/InjuryDateReviewPage"));
 const ReportsPage = lazy(() => import("./pages/ReportsPage"));
 const EmployerCaseDetailPage = lazy(() => import("./pages/EmployerCaseDetailPage"));
+const EmployerNewCasePage = lazy(() => import("./pages/EmployerNewCasePage"));
+const EmployerCaseSuccessPage = lazy(() => import("./pages/EmployerCaseSuccessPage"));
 
 export default function App() {
   // Initialize CSRF token on app mount
@@ -121,6 +123,26 @@ export default function App() {
                       <ProtectedRoute>
                         <Suspense fallback={<PageLoader />}>
                           <EmployerCaseDetailPage />
+                        </Suspense>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/employer/new-case"
+                    element={
+                      <ProtectedRoute>
+                        <Suspense fallback={<PageLoader />}>
+                          <EmployerNewCasePage />
+                        </Suspense>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/employer/case/:id/success"
+                    element={
+                      <ProtectedRoute>
+                        <Suspense fallback={<PageLoader />}>
+                          <EmployerCaseSuccessPage />
                         </Suspense>
                       </ProtectedRoute>
                     }

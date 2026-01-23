@@ -1,0 +1,1 @@
+ALTER TABLE "medical_certificates" ADD COLUMN "work_capacity_percentage" integer;
