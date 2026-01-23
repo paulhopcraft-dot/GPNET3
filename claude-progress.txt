@@ -1,5 +1,54 @@
 # Preventli Progress Snapshot - Session Handoff
 
+## Session 28 - 2026-01-23 - Recovery Dashboard Enhancements
+
+### Completed
+- ✅ **Page Width Overflow Fix**
+  - Removed legacy `max-width: 1280px` constraint in App.css
+  - Dashboard no longer runs off to second monitor
+
+- ✅ **Clickable Certificate Markers**
+  - Certificate dots on recovery chart now clickable
+  - Opens modal with certificate details (number, date, capacity, status)
+  - Certificate legend also clickable to view details
+  - Legend now scrollable to see all certificates (was showing only some)
+
+- ✅ **Dashboard Panels Data Fix**
+  - Added `currentCapacityPercentage` to API response (from latest certificate)
+  - Added `weeksOffWork` to API response
+  - Added `riskCategory` to API response
+  - Worker Capacity, Recovery Time, and Risk Level panels now show real data
+
+- ✅ **Work Capacity Percentage Schema**
+  - Added `workCapacityPercentage` integer field to medical_certificates table
+  - Updated recoveryEstimator to use actual percentage when available
+  - Fallback to enum conversion (fit=100%, partial=50%, unfit=0%) for legacy data
+  - Database migration applied (0007_nice_vision.sql)
+
+### In Progress
+- Certificate data needs actual percentages populated in database
+- Current certificates only have enum values (fit/partial/unfit)
+
+### Next Steps
+1. Populate `work_capacity_percentage` for existing certificates (SQL or UI)
+2. Add percentage input field to certificate forms
+3. Consider PDF extraction for auto-populating percentage
+
+### Technical Files Changed
+- `client/src/App.css` - Width fix
+- `client/src/components/DynamicRecoveryTimeline.tsx` - Modal, legend, types
+- `server/services/recoveryEstimator.ts` - getCertificateCapacity, new fields
+- `server/routes/timeline.ts` - Include workCapacityPercentage in mapping
+- `shared/schema.ts` - Added workCapacityPercentage field
+- `migrations/0007_nice_vision.sql` - Database migration
+
+### Branch & Commit
+- **Branch**: feature/new-claim
+- **Status**: Changes already in HEAD
+- **Context**: ~60% used
+
+---
+
 ## Session 27 - 2026-01-23 - Employer "New Case" Feature
 
 ### Completed
