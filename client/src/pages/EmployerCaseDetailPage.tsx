@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense, lazy } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GlassPanel } from "@/components/ui/glass-panel";
 import { Button } from "@/components/ui/button";
@@ -10,12 +10,43 @@ import { ArrowLeft, RefreshCw, Sparkles } from "lucide-react";
 import { fetchWithCsrf } from "@/lib/queryClient";
 import type { WorkerCase, PaginatedCasesResponse } from "@shared/schema";
 import { cn } from "@/lib/utils";
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import { TimelineCard } from "@/components/TimelineCard";
-import { DynamicRecoveryTimeline } from "@/components/DynamicRecoveryTimeline";
 import { CaseContactsPanel } from "@/components/CaseContactsPanel";
 import { TreatmentPlanCard } from "@/components/TreatmentPlanCard";
+
+// Heavy components - lazy load to reduce initial bundle size
+const DynamicRecoveryTimeline = lazy(() => import("@/components/DynamicRecoveryTimeline").then(m => ({ default: m.DynamicRecoveryTimeline })));
+
+// Lazy loaded markdown component with remark-gfm
+const LazyMarkdownRenderer = lazy(async () => {
+  const [ReactMarkdown, remarkGfm] = await Promise.all([
+    import('react-markdown'),
+    import('remark-gfm')
+  ]);
+
+  return {
+    default: ({ children }: { children: string }) => (
+      <ReactMarkdown.default remarkPlugins={[remarkGfm.default]}>
+        {children}
+      </ReactMarkdown.default>
+    )
+  };
+});
+
+// Chart loading component for better UX
+const ChartLoader = () => (
+  <div className="animate-pulse space-y-4 p-6 bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg border border-purple-200/50">
+    <div className="h-8 bg-gradient-to-r from-purple-200 to-blue-200 rounded w-1/3 mb-6"></div>
+    <div className="space-y-3">
+      <div className="h-64 bg-gradient-to-r from-purple-100 to-blue-100 rounded"></div>
+      <div className="flex space-x-4">
+        <div className="h-24 w-24 bg-gradient-to-r from-purple-100 to-blue-100 rounded-full"></div>
+        <div className="h-24 w-24 bg-gradient-to-r from-blue-100 to-teal-100 rounded-full"></div>
+        <div className="h-24 w-24 bg-gradient-to-r from-teal-100 to-emerald-100 rounded-full"></div>
+      </div>
+    </div>
+  </div>
+);
 
 export default function EmployerCaseDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -58,9 +89,11 @@ export default function EmployerCaseDetailPage() {
   }, [workerCase, id, summaryLoaded, loadingSummary]);
 
   const renderMarkdown = (content: string) => (
-    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-      {content}
-    </ReactMarkdown>
+    <Suspense fallback={<div className="animate-pulse h-32 bg-gray-100 rounded"></div>}>
+      <LazyMarkdownRenderer>
+        {content}
+      </LazyMarkdownRenderer>
+    </Suspense>
   );
 
   // Parse injury details from AI summary markdown tables
@@ -731,7 +764,11 @@ export default function EmployerCaseDetailPage() {
           <div className="treatment-tab-container space-y-6">
             {/* Hero Section - Full-Width Recovery Dashboard */}
             <div className="recovery-hero-section">
-              {id && <DynamicRecoveryTimeline caseId={id} />}
+              {id && (
+                <Suspense fallback={<ChartLoader />}>
+                  <DynamicRecoveryTimeline caseId={id} />
+                </Suspense>
+              )}
             </div>
 
             {/* Supporting Information - Treatment Plan & Diagnosis Grid */}
