@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -33,6 +33,7 @@ import {
   Activity,
   Stethoscope,
   FileText,
+  X,
 } from "lucide-react";
 
 // Types matching the server-side RecoveryTimelineChartData
@@ -103,6 +104,10 @@ interface RecoveryTimelineChartData {
   riskFactors: string[];
   suggestedDiagnosticTests: string[];
   potentialSpecialistReferrals: string[];
+  // Dashboard display fields
+  currentCapacityPercentage: number;
+  weeksOffWork: number;
+  riskCategory: "High" | "Medium" | "Low";
 }
 
 interface DynamicRecoveryTimelineProps {
@@ -186,6 +191,8 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
     queryKey: [`/api/cases/${caseId}/recovery-chart`],
     enabled: !!caseId,
   });
+
+  const [selectedCertificate, setSelectedCertificate] = useState<CertificateMarker | null>(null);
 
   if (isLoading) {
     return (
@@ -403,7 +410,7 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
                 return (
                   <div
                     key={`particle-cert-${marker.certificateNumber}`}
-                    className="particle-dot animate-pulse absolute w-3 h-3 bg-emerald-400/80 rounded-full border-2 border-emerald-500"
+                    className="particle-dot animate-pulse absolute w-4 h-4 bg-emerald-400/90 rounded-full border-2 border-emerald-500 cursor-pointer hover:scale-150 hover:bg-emerald-300 transition-all duration-200 z-20 pointer-events-auto"
                     style={{
                       left: `${Math.max(5, Math.min(95, xPercent))}%`,
                       top: `${Math.max(10, Math.min(80, yPercent))}%`,
@@ -416,7 +423,8 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
                       animationTimingFunction: 'ease-in-out',
                       opacity: 0.9
                     }}
-                    title={`Certificate #${marker.certificateNumber}: ${marker.capacity}%`}
+                    title={`Click to view Certificate #${marker.certificateNumber}`}
+                    onClick={() => setSelectedCertificate(marker)}
                   />
                 );
               })}
@@ -574,21 +582,27 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
 
           {/* Certificate markers legend */}
           {data.certificateMarkers.length > 0 && (
-            <div className="mt-4 flex flex-wrap gap-3">
-              {data.certificateMarkers.map((marker) => (
-                <div
-                  key={marker.certificateNumber}
-                  className="flex items-center gap-2 text-xs"
-                >
+            <div className="mt-4">
+              <div className="text-xs font-medium text-gray-600 mb-2">
+                Medical Certificates ({data.certificateMarkers.length})
+              </div>
+              <div className="max-h-32 overflow-y-auto flex flex-wrap gap-2 p-2 bg-gray-50 rounded-lg">
+                {data.certificateMarkers.map((marker) => (
                   <div
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: marker.color }}
-                  />
-                  <span>
-                    Cert #{marker.certificateNumber} ({formatWeekAsMonthYear(marker.week, data.injuryDate)}): {marker.capacity}%
-                  </span>
-                </div>
-              ))}
+                    key={marker.certificateNumber}
+                    className="flex items-center gap-2 text-xs bg-white px-2 py-1 rounded border cursor-pointer hover:bg-gray-100 transition-colors"
+                    onClick={() => setSelectedCertificate(marker)}
+                  >
+                    <div
+                      className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: marker.color }}
+                    />
+                    <span className="whitespace-nowrap">
+                      #{marker.certificateNumber} - {marker.capacity}%
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </CardContent>
@@ -1070,6 +1084,115 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
           </p>
         </div>
       </div>
+
+      {/* Certificate Details Modal */}
+      {selectedCertificate && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
+          onClick={() => setSelectedCertificate(null)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <FileText className="h-6 w-6 text-white" />
+                <h3 className="text-lg font-semibold text-white">
+                  Medical Certificate #{selectedCertificate.certificateNumber}
+                </h3>
+              </div>
+              <button
+                onClick={() => setSelectedCertificate(null)}
+                className="text-white/80 hover:text-white transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-4">
+              {/* Capacity Badge */}
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-600">Work Capacity</span>
+                <Badge
+                  style={{ backgroundColor: selectedCertificate.color }}
+                  className="text-white px-3 py-1"
+                >
+                  {selectedCertificate.capacity}% Capacity
+                </Badge>
+              </div>
+
+              {/* Details Grid */}
+              <div className="grid grid-cols-2 gap-4 pt-2">
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
+                    <Calendar className="h-3 w-3" />
+                    Date
+                  </div>
+                  <p className="font-medium text-gray-900">
+                    {new Date(selectedCertificate.date).toLocaleDateString('en-AU', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric'
+                    })}
+                  </p>
+                </div>
+
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
+                    <Activity className="h-3 w-3" />
+                    Week
+                  </div>
+                  <p className="font-medium text-gray-900">
+                    Week {selectedCertificate.week}
+                  </p>
+                </div>
+              </div>
+
+              {/* Capacity Label */}
+              <div className="bg-gray-50 rounded-lg p-3">
+                <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
+                  <Stethoscope className="h-3 w-3" />
+                  Capacity Status
+                </div>
+                <p className="font-medium text-gray-900">
+                  {selectedCertificate.capacityLabel}
+                </p>
+              </div>
+
+              {/* Capacity Visual Bar */}
+              <div className="pt-2">
+                <div className="flex justify-between text-xs text-gray-500 mb-1">
+                  <span>0%</span>
+                  <span>50%</span>
+                  <span>100%</span>
+                </div>
+                <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: `${selectedCertificate.capacity}%`,
+                      backgroundColor: selectedCertificate.color
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 bg-gray-50 border-t">
+              <button
+                onClick={() => setSelectedCertificate(null)}
+                className="w-full bg-gray-900 hover:bg-gray-800 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 };

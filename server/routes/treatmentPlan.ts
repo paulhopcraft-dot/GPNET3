@@ -14,6 +14,7 @@ import { z } from "zod";
 import type { GenerateTreatmentPlanRequest, UpdateTreatmentPlanRequest } from "../services/treatmentPlanService";
 import { generateTreatmentPlan, getTreatmentPlan, updateTreatmentPlan } from "../services/treatmentPlanService";
 import type { IStorage } from "../storage";
+import { authorize } from "../middleware/auth";
 import { requireCaseOwnership } from "../middleware/caseOwnership";
 import { csrfProtection, aiRateLimiter } from "../middleware/security";
 import { logger } from "../lib/logger";
@@ -41,6 +42,7 @@ export function registerTreatmentPlanRoutes(app: Express, storage: IStorage) {
     "/api/cases/:id/treatment-plan/generate",
     aiRateLimiter,
     csrfProtection,
+    authorize(),
     requireCaseOwnership(),
     async (req: Request, res: Response) => {
       try {
@@ -83,6 +85,7 @@ export function registerTreatmentPlanRoutes(app: Express, storage: IStorage) {
    */
   app.get(
     "/api/cases/:id/treatment-plan",
+    authorize(),
     requireCaseOwnership(),
     async (req: Request, res: Response) => {
       try {
@@ -115,6 +118,7 @@ export function registerTreatmentPlanRoutes(app: Express, storage: IStorage) {
   app.put(
     "/api/cases/:id/treatment-plan/:planId",
     csrfProtection,
+    authorize(),
     requireCaseOwnership(),
     async (req: Request, res: Response) => {
       try {
@@ -151,6 +155,7 @@ export function registerTreatmentPlanRoutes(app: Express, storage: IStorage) {
    */
   app.get(
     "/api/cases/:id/treatment-plan/history",
+    authorize(),
     requireCaseOwnership(),
     async (req: Request, res: Response) => {
       try {

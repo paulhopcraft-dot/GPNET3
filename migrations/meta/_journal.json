@@ -50,6 +50,13 @@
       "when": 1768971681358,
       "tag": "0006_icy_naoko",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1769138914793,
+      "tag": "0007_nice_vision",
+      "breakpoints": true
     }
   ]
 }

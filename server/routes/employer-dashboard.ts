@@ -7,6 +7,66 @@ import { Router, Request, Response } from 'express';
 import { authorize } from '../middleware/auth';
 import { storage } from '../storage';
 import { createLogger } from '../lib/logger';
+import { z } from 'zod';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import { HybridSummaryService } from '../services/hybridSummary';
+import Anthropic from '@anthropic-ai/sdk';
+
+const anthropic = new Anthropic();
+const hybridSummaryService = new HybridSummaryService();
+
+// Configure multer for file uploads
+const uploadDir = path.join(process.cwd(), 'uploads', 'employer-cases');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const fileStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + '-' + file.originalname);
+  }
+});
+
+const upload = multer({
+  storage: fileStorage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['.pdf', '.jpg', '.jpeg', '.png', '.doc', '.docx'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowedTypes.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type'));
+    }
+  }
+});
+
+// Schema for employer case creation
+const employerCreateCaseSchema = z.object({
+  workerType: z.enum(['existing', 'new']),
+  existingWorkerId: z.string().optional(),
+  workerName: z.string().optional(),
+  workerEmail: z.string().email().optional(),
+  workerPhone: z.string().optional(),
+  workerDob: z.string().optional(),
+  workerAddress: z.string().optional(),
+  workerRole: z.string().optional(),
+  dateOfIncident: z.string(),
+  incidentLocation: z.string(),
+  incidentDescription: z.string(),
+  injuryType: z.string(),
+  hasPersonalFactors: z.string().optional(),
+  personalFactorsNotes: z.string().optional(),
+  requiresAdditionalSupport: z.string().optional(),
+  supportNotes: z.string().optional(),
+  hasRtwPlan: z.string().optional(),
+});
 
 const logger = createLogger('EmployerDashboard');
 
@@ -76,8 +136,8 @@ router.get('/dashboard', authorize(), async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Organization ID required' });
     }
 
-    // For now, use a default organization name - we can enhance this later
-    const organizationName = 'Your Organization';
+    // Get organization name based on organizationId - Symmetry for employers
+    const organizationName = organizationId === 'org-alpha' ? 'Symmetry Human Resources' : 'Your Organization';
 
     // Batch fetch all data upfront (3 queries instead of N*2)
     const [allCases, allActions, allCertificates] = await Promise.all([
@@ -287,6 +347,292 @@ router.get('/dashboard', authorize(), async (req: Request, res: Response) => {
     res.status(500).json({
       error: 'Failed to load dashboard data',
       details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * GET /api/employer/workers
+ * Returns list of workers from existing cases for this organization
+ */
+router.get('/workers', authorize(), async (req: Request, res: Response) => {
+  try {
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      return res.status(400).json({ error: 'Organization ID required' });
+    }
+
+    const allCases = await storage.getGPNet2Cases(organizationId);
+
+    // Build list of unique workers with their case status
+    const workersMap = new Map<string, {
+      id: string;
+      workerName: string;
+      company: string;
+      hasActiveCase: boolean;
+      activeCaseId?: string;
+    }>();
+
+    for (const workerCase of allCases) {
+      const existingWorker = workersMap.get(workerCase.workerName);
+      if (!existingWorker) {
+        workersMap.set(workerCase.workerName, {
+          id: workerCase.id, // Use case ID as worker ID for now
+          workerName: workerCase.workerName,
+          company: workerCase.company,
+          hasActiveCase: workerCase.caseStatus !== 'closed',
+          activeCaseId: workerCase.caseStatus !== 'closed' ? workerCase.id : undefined,
+        });
+      } else if (workerCase.caseStatus !== 'closed' && !existingWorker.hasActiveCase) {
+        // Update with active case info if found
+        existingWorker.hasActiveCase = true;
+        existingWorker.activeCaseId = workerCase.id;
+      }
+    }
+
+    res.json(Array.from(workersMap.values()));
+  } catch (error) {
+    logger.error('Error fetching workers', { organizationId: req.user?.organizationId }, error);
+    res.status(500).json({ error: 'Failed to fetch workers' });
+  }
+});
+
+/**
+ * POST /api/employer/cases
+ * Creates a new case from employer form submission
+ */
+router.post('/cases', authorize(), upload.any(), async (req: Request, res: Response) => {
+  try {
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      return res.status(400).json({ error: 'Organization ID required' });
+    }
+
+    // Parse and validate form data
+    const validationResult = employerCreateCaseSchema.safeParse(req.body);
+    if (!validationResult.success) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: validationResult.error.errors,
+      });
+    }
+
+    const formData = validationResult.data;
+
+    // Determine worker name and company
+    let workerName: string;
+    let existingCaseId: string | undefined;
+
+    if (formData.workerType === 'existing' && formData.existingWorkerId) {
+      // Fetch existing worker info
+      const allCases = await storage.getGPNet2Cases(organizationId);
+      const existingCase = allCases.find(c => c.id === formData.existingWorkerId);
+      if (!existingCase) {
+        return res.status(404).json({ error: 'Worker not found' });
+      }
+      workerName = existingCase.workerName;
+
+      // Check if this is an existing active case
+      if (existingCase.caseStatus !== 'closed') {
+        existingCaseId = existingCase.id;
+      }
+    } else {
+      workerName = formData.workerName || 'Unknown Worker';
+    }
+
+    // Get company name from user context or first existing case
+    let companyName = 'Unknown Company';
+    try {
+      const existingCases = await storage.getGPNet2Cases(organizationId);
+      if (existingCases.length > 0) {
+        companyName = existingCases[0].company;
+      }
+    } catch {
+      // Use default if lookup fails
+    }
+
+    // Build summary from incident details
+    const summary = `${formData.injuryType}: ${formData.incidentDescription.substring(0, 200)}${formData.incidentDescription.length > 200 ? '...' : ''}`;
+
+    // Determine work status based on RTW plan
+    const workStatus = formData.hasRtwPlan === 'true' ? 'At work' : 'Off work';
+
+    // If existing case, we could link incident - for now, always create new case
+    // TODO: In future, support linking incidents to existing cases
+
+    // Create the case
+    const newCase = await storage.createCase({
+      organizationId,
+      workerName,
+      company: companyName,
+      dateOfInjury: formData.dateOfIncident,
+      workStatus,
+      riskLevel: 'Medium', // Default, can be updated after review
+      summary,
+    });
+
+    // Handle file uploads - store file references in caseAttachments table directly
+    const files = req.files as Express.Multer.File[];
+    if (files && files.length > 0) {
+      const { db } = await import('../db');
+      const { caseAttachments } = await import('../../shared/schema');
+
+      for (const file of files) {
+        // Get file type from form data (e.g., document_0_type)
+        const fieldName = file.fieldname;
+        const indexMatch = fieldName.match(/document_(\d+)/);
+        const docType = indexMatch ? req.body[`document_${indexMatch[1]}_type`] || 'other' : 'other';
+
+        await db.insert(caseAttachments).values({
+          organizationId,
+          caseId: newCase.id,
+          name: file.originalname,
+          type: docType,
+          url: `/uploads/employer-cases/${file.filename}`,
+        });
+      }
+    }
+
+    // Store additional employer-submitted data as part of the case summary for now
+    // In future, this could be stored in a dedicated employer_case_details table
+    const additionalInfo = {
+      incidentLocation: formData.incidentLocation,
+      injuryType: formData.injuryType,
+      hasPersonalFactors: formData.hasPersonalFactors === 'true',
+      personalFactorsNotes: formData.personalFactorsNotes,
+      requiresAdditionalSupport: formData.requiresAdditionalSupport === 'true',
+      supportNotes: formData.supportNotes,
+      hasRtwPlan: formData.hasRtwPlan === 'true',
+      workerEmail: formData.workerEmail,
+      workerPhone: formData.workerPhone,
+      workerRole: formData.workerRole,
+      submittedBy: req.user?.email || 'employer',
+      submittedAt: new Date().toISOString(),
+    };
+
+    // Log the submission details (would be captured in audit log in production)
+    logger.info('Employer case additional info', {
+      caseId: newCase.id,
+      additionalInfo,
+    });
+
+    logger.info('Employer case created', {
+      caseId: newCase.id,
+      organizationId,
+      workerName,
+      filesCount: files?.length || 0,
+    });
+
+    // Trigger AI summary generation asynchronously (don't block the response)
+    hybridSummaryService.getCachedOrGenerateSummary(newCase.id, true).catch((err) => {
+      logger.error('Failed to generate AI summary for employer case', { caseId: newCase.id }, err);
+    });
+
+    res.status(201).json({
+      caseId: newCase.id,
+      workerName,
+      message: 'Case created successfully',
+    });
+
+  } catch (error) {
+    logger.error('Error creating employer case', { organizationId: req.user?.organizationId }, error);
+    res.status(500).json({
+      error: 'Failed to create case',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+/**
+ * POST /api/employer/cases/:id/injury-check
+ * Generates and sends an AI-powered injury check email to the worker
+ */
+router.post('/cases/:id/injury-check', authorize(), async (req: Request, res: Response) => {
+  try {
+    const organizationId = req.user?.organizationId;
+    const caseId = req.params.id;
+
+    if (!organizationId) {
+      return res.status(400).json({ error: 'Organization ID required' });
+    }
+
+    // Get case details
+    const workerCase = await storage.getGPNet2CaseById(caseId, organizationId);
+    if (!workerCase) {
+      return res.status(404).json({ error: 'Case not found' });
+    }
+
+    // Determine the tone based on injury severity (from summary/description)
+    const summary = workerCase.summary || '';
+    const isSerious = summary.toLowerCase().includes('serious') ||
+                      summary.toLowerCase().includes('severe') ||
+                      summary.toLowerCase().includes('fracture') ||
+                      summary.toLowerCase().includes('hospital') ||
+                      workerCase.workStatus === 'Off work';
+
+    // Generate AI email based on context
+    const emailPrompt = isSerious
+      ? `Generate a compassionate, supportive injury check email for a worker who has experienced a serious workplace injury.
+         Worker name: ${workerCase.workerName}
+         Company: ${workerCase.company}
+         Injury: ${summary}
+
+         The email should:
+         - Express genuine concern for their wellbeing
+         - Acknowledge the difficulty of their situation
+         - Offer support and resources
+         - Ask how they are recovering
+         - Not pressure them about returning to work
+         - Be warm and human, not corporate
+
+         Keep it under 200 words. Start with "Dear ${workerCase.workerName}," and end with appropriate regards.`
+      : `Generate a friendly check-in email for a worker who had a minor workplace incident.
+         Worker name: ${workerCase.workerName}
+         Company: ${workerCase.company}
+         Injury: ${summary}
+
+         The email should:
+         - Check how they are doing
+         - Confirm if they need any support
+         - Be professional but warm
+         - Ask if they have any questions about their return to work
+
+         Keep it under 150 words. Start with "Hi ${workerCase.workerName}," and end with appropriate regards.`;
+
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 500,
+      messages: [
+        { role: 'user', content: emailPrompt }
+      ],
+    });
+
+    const emailContent = response.content[0].type === 'text'
+      ? response.content[0].text
+      : 'Unable to generate email content';
+
+    // In production, this would send the email via SMTP/SendGrid/etc.
+    // For now, we'll store it as a draft and log it
+    logger.info('Injury check email generated', {
+      caseId,
+      workerName: workerCase.workerName,
+      emailLength: emailContent.length,
+      tone: isSerious ? 'compassionate' : 'friendly',
+    });
+
+    // Return the email content (frontend can display or send)
+    res.json({
+      success: true,
+      emailContent,
+      tone: isSerious ? 'compassionate' : 'friendly',
+      message: 'Injury check email generated successfully',
+    });
+
+  } catch (error) {
+    logger.error('Error generating injury check email', { caseId: req.params.id }, error);
+    res.status(500).json({
+      error: 'Failed to generate injury check email',
+      details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 });

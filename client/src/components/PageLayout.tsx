@@ -13,7 +13,7 @@ interface PageLayoutProps {
 const navItems = [
   { path: "/", label: "Dashboard", icon: "dashboard" },
   { path: "/cases", label: "Cases", icon: "folder_open" },
-  { path: "/claims/new", label: "New Claim", icon: "add_circle" },
+  { path: "/claims/new", label: "New Claim", icon: "add_circle", employerPath: "/employer/new-case", employerLabel: "New Case" },
   { path: "/rtw-planner", label: "RTW Planner", icon: "event_available" },
   { path: "/checkins", label: "Check-ins", icon: "task_alt" },
   { path: "/financials", label: "Financials", icon: "payments" },
@@ -26,13 +26,22 @@ export function PageLayout({ children, title, subtitle }: PageLayoutProps) {
   const location = useLocation();
   const { user } = useAuth();
 
-  // Filter navigation items based on user role
+  // Filter navigation items based on user role and transform for employers
   const getNavItems = () => {
-    if (user?.role === "employer") {
-      // Hide Audit Log for employers
-      return navItems.filter(item => item.path !== "/audit");
+    const isEmployer = user?.role === "employer";
+    let items = navItems;
+
+    if (isEmployer) {
+      // Hide Audit Log for employers and transform paths/labels
+      items = navItems
+        .filter(item => item.path !== "/audit")
+        .map(item => ({
+          ...item,
+          path: item.employerPath || item.path,
+          label: item.employerLabel || item.label,
+        }));
     }
-    return navItems;
+    return items;
   };
 
   const filteredNavItems = getNavItems();

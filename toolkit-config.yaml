@@ -3,65 +3,42 @@
 # Run /config to view or modify settings
 
 # Model Settings
-model: opus                      # Default model: sonnet | opus | haiku
+model: sonnet                    # Default model: sonnet | opus | haiku
 thinking_mode: normal            # Thinking mode: normal | extended
-
-# Orchestrator Settings
-orchestrator_mode: standard      # Orchestrator mode: fast | standard | strict
-orchestrator_scope: code_changes # When to apply: always | code_changes | complex_only
-                                 # always = every single task (very verbose)
-                                 # code_changes = file edits, implementations, features
-                                 # complex_only = only tasks >15min or ambiguous
-
-                                 # Examples of code_changes scope:
-                                 # ✅ Apply: Write/edit code, create files, refactor, install deps
-                                 # ❌ Skip: git status, read files, grep, diagnostic commands
-
-# Guided Mode (Interactive Teacher for Non-Technical Users)
-guided_mode:
-  enabled: true                  # Enable interactive teaching mode
-  explain_why: true              # Explain WHY we do each step
-  suggest_tools: true            # Suggest which toolkit features to use
-  safety_prompts: true           # Ask before risky actions (deploy, delete, force push)
-  show_best_practices: true      # Show best practices as we work
-  verbose_verification: true     # Explain how we verify each step works
-
-# Video Transcription Settings
-transcription:
-  enabled: true
-  default_model: small           # Whisper model: tiny | base | small | medium | large
-                                 # tiny: Fastest, least accurate
-                                 # base: Fast, decent accuracy
-                                 # small: Balanced (recommended)
-                                 # medium: Better accuracy, slower
-                                 # large: Best accuracy, slowest
-  auto_cleanup: true             # Delete audio files after transcription
-  save_location: transcripts     # Where to save transcripts
 
 # Morning Brief Settings
 morning_brief:
   enabled: true
-  channels:                      # YouTube channels to summarize
-    - "@aiDotEngineer"
-    - "@NateBJones"
-    - "@ycombinator"
-    - "@EfficientNLP"
-    - "@anthropic-ai"
-    - "@RileyBrown"
-    - "@AICodeKing"
-    - "@AutomataLearningLab"
-    - "@indydevdan"
-    - "@aisoftwareengineer"
-    - "@GregIsenberg"
+  channels:                      # YouTube channels to summarize - VERIFIED WORKING HANDLES
+    # VERIFIED Claude/AI Focused Channels
+    - "@patloeber"                # Patrick Loeber - Google DeepMind, covers Claude alongside other LLMs
+    - "@twominutepapers"          # Two Minute Papers - AI research summaries, model comparisons
+    - "@freecodecamp"             # freeCodeCamp - Claude tutorials in AI API courses (verified)
+    - "@traversymedia"            # Traversy Media - web development, AI API series (verified)
+    # - "@labs_henry"               # Henry AI Labs - handle needs verification (404 error)
+    # WORKING CHANNELS (from previous system)
+    - "@aiDotEngineer"            # AI engineering content
+    - "@NateBJones"               # AI development workflows
+    - "@ycombinator"              # startup/AI content
+    - "@EfficientNLP"             # NLP and language models
+    # NEED TO VERIFY EXACT HANDLES
+    # - The AI Advantage (Igor Pogany) - handle needed
+    # - AI Explained - handle needs verification
+    # - Prompt Engineering School - handle needed
+    # NOTE: Several channels from original list don't exist or have access issues
   max_videos: 5                  # Max videos per channel to check
   lookback_hours: 24             # Only videos from last N hours
   summary_style: bullets         # Output style: bullets | prose | detailed
   topics:                        # Filter for these topics (empty = all)
-    - AI
-    - LLM
-    - agents
     - Claude
-    - GPT
+    - Anthropic
+    - AI agents
+    - prompt engineering
+    - API integration
+    - model context protocol
+    - MCP
+    - tool use
+    - LLM workflows
 
 # Project Registry
 projects:
