@@ -90,6 +90,47 @@ Find the right command for your task.
 | `/delegate` | Delegate to specialist | Need specific expertise |
 | `/expert` | Consult domain expert | Technical deep dive |
 
+### Automation & Optimization
+| Command | Purpose | When to Use |
+|---------|---------|-------------|
+| `/autonomous` | Autonomous workflow orchestrator | Long development sessions |
+| `/ralph-loop` | Autonomous overnight development | Implementing full features |
+| `/auto-model` | Intelligent model routing | Performance optimization |
+| `/fast-path` | Automatic Haiku routing | Simple tasks needing speed |
+| `/smart-commit` | Batched git operations | Efficient repository management |
+| `/smart-batch` | Workflow optimization | Complex multi-step processes |
+| `/auto-optimize` | Always-on token optimization | Context management |
+
+### Advanced Context Management
+| Command | Purpose | When to Use |
+|---------|---------|-------------|
+| `/context-optimizer` | Real-time token management | Heavy context usage |
+| `/context-monitor` | Token usage tracking | Monitoring context health |
+
+### Task Management
+| Command | Purpose | When to Use |
+|---------|---------|-------------|
+| `/add-todo` | Add and sync todos | Capturing new tasks |
+| `/complete-todo` | Mark complete and sync | Finishing tasks |
+| `/todos` | Show all todos | Task overview and planning |
+
+### Enhanced PRD Workflow
+| Command | Purpose | When to Use |
+|---------|---------|-------------|
+| `/prd-generator` | Create initial PRD | Starting new projects |
+| `/prd-harden` | Validate and harden PRD | Before development |
+| `/prd-converter` | Convert PRD formats | Legacy project migration |
+
+### Voice Interface
+| Command | Purpose | When to Use |
+|---------|---------|-------------|
+| `/voice` | Natural voice coding | Hands-free development |
+
+### Smart Discovery
+| Command | Purpose | When to Use |
+|---------|---------|-------------|
+| `/suggest` | AI tool recommendations | When unsure which command to use |
+
 ### Documentation
 | Command | Purpose | When to Use |
 |---------|---------|-------------|
@@ -100,9 +141,15 @@ Find the right command for your task.
 ```bash
 /help git          # Find git-related commands
 /help test         # Find testing commands
-/help prd          # Find PRD commands
+/help prd          # Find PRD commands (now shows all 4 PRD commands)
 /help branch       # Find branching commands
 /help recover      # Find recovery/fix commands
+/help auto         # Find automation commands
+/help context      # Find context management commands
+/help todo         # Find task management commands
+/help voice        # Find voice interface commands
+/help ralph        # Find autonomous development commands
+/suggest           # Get AI recommendations for current situation
 ```
 
 ## Quick Tips

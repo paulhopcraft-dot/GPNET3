@@ -368,15 +368,7 @@ router.put("/cases/:id/rtw-plan/extend", authorize, requireCaseOwnership, async 
       eventType: AuditEventTypes.CASE_UPDATE,
       userId: req.user!.email,
       organizationId,
-      caseId,
       metadata: getRequestMetadata(req),
-      details: {
-        field: "rtwPlanDuration",
-        oldValue: clinicalStatus.treatmentPlan.expectedDurationWeeks,
-        newValue: updatedTreatmentPlan.expectedDurationWeeks,
-        additionalWeeks,
-        reason: reason || "RTW plan extension",
-      },
     });
 
     res.json({

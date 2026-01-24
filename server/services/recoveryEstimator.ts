@@ -1227,10 +1227,15 @@ export interface RecoveryTimelineChartData {
   riskFactors: string[];
   suggestedDiagnosticTests: string[];
   potentialSpecialistReferrals: string[];
+
+  // Dashboard display fields
+  currentCapacityPercentage: number;
+  weeksOffWork: number;
+  riskCategory: "High" | "Medium" | "Low";
 }
 
 /**
- * Convert capacity string to percentage
+ * Convert capacity string to percentage (fallback when workCapacityPercentage not available)
  */
 function capacityToPercentage(capacity: WorkCapacity): number {
   switch (capacity) {
@@ -1244,6 +1249,19 @@ function capacityToPercentage(capacity: WorkCapacity): number {
     default:
       return 50; // Default assumption
   }
+}
+
+/**
+ * Get the actual capacity percentage from a certificate
+ * Uses workCapacityPercentage if available, otherwise falls back to enum conversion
+ */
+function getCertificateCapacity(cert: MedicalCertificate): number {
+  // Use actual percentage if available
+  if (cert.workCapacityPercentage !== undefined && cert.workCapacityPercentage !== null) {
+    return cert.workCapacityPercentage;
+  }
+  // Fall back to enum conversion
+  return capacityToPercentage(cert.capacity);
 }
 
 /**
@@ -1361,7 +1379,7 @@ function generateActualCurve(
     const weeksSinceInjury = Math.max(0, Math.round(
       (certDate.getTime() - injuryDate.getTime()) / (7 * 24 * 60 * 60 * 1000)
     ));
-    const capacity = capacityToPercentage(cert.capacity);
+    const capacity = getCertificateCapacity(cert);
 
     markers.push({
       date: cert.startDate,
@@ -1455,7 +1473,7 @@ function analyzeRecoveryProgress(
     (a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
   );
   const latestCert = sortedCerts[0];
-  const actualCapacity = capacityToPercentage(latestCert.capacity);
+  const actualCapacity = getCertificateCapacity(latestCert);
 
   // Find expected capacity at current week
   const expectedPoint = estimatedCurve.find((p) => p.week === weeksElapsed) ||
@@ -1470,7 +1488,7 @@ function analyzeRecoveryProgress(
   let trend: RecoveryAnalysis["trend"] = "unknown";
   if (certificates.length >= 2) {
     const previousCert = sortedCerts[1];
-    const previousCapacity = capacityToPercentage(previousCert.capacity);
+    const previousCapacity = getCertificateCapacity(previousCert);
     if (actualCapacity > previousCapacity) {
       trend = "improving";
     } else if (actualCapacity < previousCapacity) {
@@ -1543,7 +1561,7 @@ function generateDiagnosticRecommendations(
     const lastCert = certificates.sort(
       (a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
     )[0];
-    const capacity = lastCert ? capacityToPercentage(lastCert.capacity) : 0;
+    const capacity = lastCert ? getCertificateCapacity(lastCert) : 0;
     if (capacity < 80) {
       recommendations.push({
         severity: "warning",
@@ -1689,6 +1707,21 @@ export function generateRecoveryTimelineChartData(
     certificates
   );
 
+  // Calculate current capacity from most recent certificate
+  let currentCapacityPercentage = 0;
+  if (certificates.length > 0) {
+    const sortedCerts = [...certificates].sort(
+      (a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
+    );
+    currentCapacityPercentage = getCertificateCapacity(sortedCerts[0]);
+  }
+
+  // Calculate weeks off work (weeks where capacity < 100%)
+  const weeksOffWork = weeksElapsed;
+
+  // Map risk level to category
+  const riskCategory = riskLevel;
+
   return {
     caseId,
     workerName,
@@ -1710,6 +1743,9 @@ export function generateRecoveryTimelineChartData(
     riskFactors: model.riskFactors,
     suggestedDiagnosticTests: model.diagnosticTests,
     potentialSpecialistReferrals: model.specialistReferrals,
+    currentCapacityPercentage,
+    weeksOffWork,
+    riskCategory,
   };
 }
 

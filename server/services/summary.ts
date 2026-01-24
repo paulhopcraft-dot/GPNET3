@@ -570,7 +570,7 @@ Work Status Classification: [ONE OF: "At work full hours full duties" | "At work
           fullTicketData = "\n\n**COMPLETE FRESHDESK TICKET CONVERSATIONS:**\n";
           conversations.forEach((conv, index) => {
             fullTicketData += `\n--- Conversation ${index + 1} (${conv.created_at}) ---\n`;
-            fullTicketData += `From: ${conv.from_email || 'System'}\n`;
+            fullTicketData += `From: ${conv.incoming ? 'Customer' : 'Agent'}\n`;
             fullTicketData += `Body: ${conv.body_text || conv.body}\n`;
           });
         }

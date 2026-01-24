@@ -269,7 +269,7 @@ export class InjuryDateExtractionService {
     const dateFormats = [
       /(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/,  // DD/MM/YYYY, DD-MM-YYYY
       /(\d{4})-(\d{2})-(\d{2})/,                   // YYYY-MM-DD
-      /(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+(\d{2,4})/i
+      /(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+(\d{4})/i // 15 Jan 2025
     ];
 
     for (const format of dateFormats) {
@@ -358,7 +358,7 @@ export class InjuryDateExtractionService {
   private parseDate(dateString: string): Date | null {
     if (!dateString) return null;
 
-    // Try DD/MM/YYYY or DD-MM-YYYY
+    // Try DD/MM/YYYY or DD-MM-YYYY (Australian format)
     const ddmmMatch = dateString.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
     if (ddmmMatch) {
       const day = parseInt(ddmmMatch[1]);
@@ -366,28 +366,49 @@ export class InjuryDateExtractionService {
       let year = parseInt(ddmmMatch[3]);
       if (year < 100) year += 2000; // Handle 2-digit years
 
-      const date = new Date(year, month, day);
-      if (!isNaN(date.getTime())) {
+      // Validate ranges
+      if (day < 1 || day > 31 || month < 0 || month > 11 || year < 1900 || year > 2100) {
+        return null;
+      }
+
+      // Additional validation for days per month
+      const daysInMonth = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+      if (day > daysInMonth[month]) {
+        return null;
+      }
+
+      // Create date in UTC to avoid timezone issues
+      const date = new Date(Date.UTC(year, month, day));
+      if (!isNaN(date.getTime()) && date.getUTCDate() === day && date.getUTCMonth() === month) {
         return date;
       }
     }
 
-    // Try ISO format
+    // Try ISO format (YYYY-MM-DD)
     const isoMatch = dateString.match(/(\d{4})-(\d{2})-(\d{2})/);
     if (isoMatch) {
-      const date = new Date(dateString);
+      const year = parseInt(isoMatch[1]);
+      const month = parseInt(isoMatch[2]) - 1;
+      const day = parseInt(isoMatch[3]);
+
+      // Create date in UTC to avoid timezone issues
+      const date = new Date(Date.UTC(year, month, day));
       if (!isNaN(date.getTime())) {
         return date;
       }
     }
 
-    // Try month name format
-    const monthMatch = dateString.match(/(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+(\d{2,4})/i);
+    // Try month name format (15 Jan 2025)
+    const monthMatch = dateString.match(/(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+(\d{4})/i);
     if (monthMatch) {
       const day = parseInt(monthMatch[1]);
       const monthStr = monthMatch[2].toLowerCase();
-      let year = parseInt(monthMatch[3]);
-      if (year < 100) year += 2000;
+      const year = parseInt(monthMatch[3]);
+
+      // Validate day/month/year ranges
+      if (day < 1 || day > 31 || year < 1900 || year > 2100) {
+        return null;
+      }
 
       const monthMap: Record<string, number> = {
         'jan': 0, 'feb': 1, 'mar': 2, 'apr': 3, 'may': 4, 'jun': 5,
@@ -396,8 +417,49 @@ export class InjuryDateExtractionService {
 
       const month = monthMap[monthStr];
       if (month !== undefined) {
-        const date = new Date(year, month, day);
-        if (!isNaN(date.getTime())) {
+        // Additional validation for days per month
+        const daysInMonth = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+        if (day > daysInMonth[month]) {
+          return null;
+        }
+
+        // Create date in UTC to avoid timezone issues
+        const date = new Date(Date.UTC(year, month, day));
+        if (!isNaN(date.getTime()) && date.getUTCDate() === day) {
+          return date;
+        }
+      }
+    }
+
+    // Try month name format (January 15th, 2025)
+    const monthNameMatch = dateString.match(/(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s+(\d{2,4}))?/i);
+    if (monthNameMatch) {
+      const monthStr = monthNameMatch[1].toLowerCase();
+      const day = parseInt(monthNameMatch[2]);
+      let year = monthNameMatch[3] ? parseInt(monthNameMatch[3]) : new Date().getFullYear();
+      if (year < 100) year += 2000;
+
+      // Validate day/year ranges
+      if (day < 1 || day > 31 || year < 1900 || year > 2100) {
+        return null;
+      }
+
+      const monthMap: Record<string, number> = {
+        'jan': 0, 'feb': 1, 'mar': 2, 'apr': 3, 'may': 4, 'jun': 5,
+        'jul': 6, 'aug': 7, 'sep': 8, 'oct': 9, 'nov': 10, 'dec': 11
+      };
+
+      const month = monthMap[monthStr];
+      if (month !== undefined) {
+        // Additional validation for days per month
+        const daysInMonth = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+        if (day > daysInMonth[month]) {
+          return null;
+        }
+
+        // Create date in UTC to avoid timezone issues
+        const date = new Date(Date.UTC(year, month, day));
+        if (!isNaN(date.getTime()) && date.getUTCDate() === day) {
           return date;
         }
       }

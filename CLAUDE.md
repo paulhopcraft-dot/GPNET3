@@ -1,181 +1,78 @@
-# Engineering Mode v4.0
+# Engineering Mode v4.0 - Power User Configuration
 
-This project uses governance defined in .claude/skills/AI_ORCHESTRATOR_v1.1_LOCKED.md.
-Toolkit settings are in `toolkit-config.yaml`. Run `/config` to view or modify.
+## 🎯 Paul's Personal Preferences (Auto-Applied)
 
-## 🎓 Guided Mode (Interactive Teacher)
+**Technology Stack:**
+- Frontend: React 18 + TypeScript + Vite (NEVER vanilla HTML/JS)
+- Styling: Tailwind CSS + shadcn/ui components
+- Database: PostgreSQL + Drizzle ORM (NEVER MySQL/Sequelize)
+- Testing: Vitest for unit tests, Playwright for E2E
 
-**For non-technical users:** Guided mode transforms the toolkit into an interactive development teacher.
+**Code Quality Rules:**
+- Configuration: Read from JSON/YAML files (NO hardcoding)
+- Error Handling: Comprehensive try/catch with logging
+- TypeScript: Strict mode, explicit return types
+- Git: Conventional commits (feat/fix/docs/refactor)
 
-**Status:** See `guided_mode.enabled` in `toolkit-config.yaml` (currently: **ON**)
+**Skill Focus (Use These 5 ONLY):**
+- `/status` - Check project health and next actions
+- `/continue` - Pick up where we left off
+- `/review` - Code review before committing
+- `/commit` - Save progress with conventional commits
+- `/test` - Run test suite and verify quality
 
-**What it does:**
-- Explains WHY we do each step
-- Suggests which toolkit features to use when
-- Asks for approval before risky actions
-- Shows best practices as we work
-- Teaches you to recognize patterns
+**Skills to Ignore (Mental Filter):**
+- All 30+ other skills - focus only on the 5 above
+- When Claude suggests skills, mentally filter to these 5
+- Productivity = focus, not more options
 
-**Full guide:** See `GUIDED-WORKFLOW.md` for complete walkthrough of development lifecycle.
+**Session Management:**
+- Auto-handoff at 70% context usage
+- Always run `/status` after completing any task
+- Use `/handoff` before ending sessions
+- Load context from claude-progress.txt on session start
+- Auto-start branch display in console title
+- Auto-start context monitoring: & 'C:\dev\claude-code-toolkit\start-context-monitor.ps1'
 
-**Quick Start:** Just say "I want to add [feature]" and I'll guide you through planning, building, testing, reviewing, committing, and deploying with explanations at every step.
+**CRITICAL: Exact Context Display Rule:**
+- NEVER use approximations (~XX%) for context usage
+- ALWAYS use exact tracking: `powershell -Command "& 'C:\dev\claude-code-toolkit\context-tracker.ps1' -Action status"`
+- End every response with: "Branch: [branch] | Context: [exact tokens]/188000 = [exact %]"
+- This prevents regression to estimation system
 
-## Core Rules (5 total)
+**Auto-Command Recommendations (ENABLED):**
+- After completing ANY task, automatically suggest next slash command
+- Use smart-command-recommender.ps1 to analyze context and suggest optimal next step
+- Display recommendation with reasoning and priority level
+- Follow Power User workflow patterns for maximum efficiency
 
-### Rule 1: Project Context
-Every response starts with:
-```
-[PROJECT: {folder-name}]
-```
-No exceptions.
+## Workflow Pattern
 
-### Rule 2: Progress Tracking
-- Update `claude-progress.txt` after completing work
-- Track features in `features.json` if it exists
-- Before `/handoff`, summarize what was done
+**Standard Development Flow (WITH AUTO-RECOMMENDATIONS):**
+1. `/status` - What's the current state?
+2. `/continue` - Pick next logical task
+3. Work on task using above preferences
+4. `/test` - Verify it works → **[AUTO-SUGGEST: `/review` if pass, `/continue` if fail]**
+5. `/review` - Check quality → **[AUTO-SUGGEST: `/commit` if good, `/continue` if issues]**
+6. `/commit` - Save with conventional message → **[AUTO-SUGGEST: `/status` to check progress]**
+7. `/status` - Show progress, recommend next → **[AUTO-SUGGEST: `/continue` for next priority]**
 
-### Rule 3: Model Selection
-**Default: See `toolkit-config.yaml`** (typically sonnet)
+**Auto-Recommendation Behavior:**
+- ALWAYS run `.\auto-recommend-hook.ps1 -CompletedCommand "[command]" -Status "[status]"` after task completion
+- Display the suggestion prominently with reasoning
+- Include priority level (🔴 HIGH, 🟡 MEDIUM, ✅ SUGGESTED)
+- Respect user preferences but proactively guide workflow efficiency
 
-**MUST spawn Opus agent when:**
-- Choosing between libraries/frameworks
-- Database schema design
-- API architecture decisions
-- Authentication/authorization design
-- Complex debugging (>30 min stuck)
-- Ambiguous requirements needing interpretation
-- Performance optimization trade-offs
-- Any "should we use X or Y" moment
+**Never deviate from this workflow without explicit user request.**
 
-**How to spawn:** Use Task tool with `model: "opus"`
+## Power User Features Enabled
 
-**Stay on Sonnet for:**
-- Feature implementation (CRUD, services, controllers)
-- Tests, refactoring, UI work
-- API endpoints, routine coding
-
-### Rule 4: Verify Before Commit
-Before any git commit:
-1. Run tests
-2. Check for obvious issues
-3. If 100+ lines changed, do a quick review
-
-### Rule 5: Run /status After Every Task
-After completing ANY task, run `/status` to:
-- Show progress
-- Recommend next command
-- Display C/A/H menu
-
-**No exceptions. This is how the user knows what to do next.**
-
----
-
-## Auto-Triggers (5 total)
-
-| Trigger | When | Action |
-|---------|------|--------|
-| **Test** | Before commit | Run test suite |
-| **Review** | 100+ lines changed, security files touched | Quick code review |
-| **Security** | .env or auth code modified | Check for exposed secrets |
-| **Progress** | Task completed | Update claude-progress.txt |
-| **Recover** | Build/test failures | Diagnose and fix |
+✅ **Auto-handoff at 70%** - Never lose context or hit limits
+✅ **Personal preferences** - Stop repeating technology choices
+✅ **Skill focus** - Use only the effective 5 skills
+✅ **Smart recommendations** - Next command suggestions
+✅ **Guided mode** - Interactive teaching for complex tasks
 
 ---
 
-## Command Reference
-
-| Situation | Use |
-|-----------|-----|
-| Starting a session | `/status` |
-| What should I work on? | `/continue` |
-| Before committing | `/review` |
-| Check module quality | `/eval` |
-| Ending session | `/handoff` |
-| 3+ similar tasks | `/autonomous` |
-| New function/class | `/tdd` |
-| Feature complete | `/verify` |
-| New project | `/init-project` |
-| Library choice | `/decide` |
-| Risky change | `/anticipate` |
-| Complex problem | `/think` |
-| Security code | `/security-scan` |
-| Multi-file change | `/branch` |
-| Merge conflicts | `/resolve` |
-| Important context | `/remember` |
-| Forgot something | `/recall` |
-| View/edit settings | `/config` |
-| Daily AI news | `/morning-brief` |
-| Setup Context7 MCP | `/setup-context7` |
-
-Run `/help` for full list.
-
-**After completing a task, run `/status` to show progress and next actions.**
-
----
-
-## Guidelines (not rules)
-
-**Keep it simple:**
-- Don't over-engineer
-- One feature at a time
-- Minimal abstractions
-
-**Be explicit:**
-- If you can't verify something works, say so
-- If blocked, explain why
-- If unsure, ask
-
-**Git workflow:**
-- Conventional commits (feat/fix/docs/refactor)
-- Commit after each feature passes
-- Don't force push
-
----
-
-## Orchestrator Mode
-
-**Current Setting:** `orchestrator_scope: code_changes` (see `toolkit-config.yaml`)
-
-**Apply 4-Phase Process When:**
-- ✅ Writing/editing code
-- ✅ Creating/modifying files
-- ✅ Implementing features
-- ✅ Refactoring
-- ✅ Installing dependencies
-- ✅ Architecture changes
-
-**Skip Orchestrator For:**
-- ❌ git status/log/diff (diagnostic)
-- ❌ Reading files for context
-- ❌ Running tests to check status
-- ❌ Grep/search operations
-- ❌ Simple informational commands
-
-**4-Phase Process:**
-1. CONDITIONING - Restate objective, identify constraints
-2. AUTHORITY - Verification plan, confidence level
-3. WORKFLOW - Break down steps
-4. COMPOUNDING - Extract patterns, learnings
-
-For significant changes, show estimates:
-```
-TASK: {description}
-VERIFICATION: {how we'll know it worked}
-STEPS: {breakdown}
-EST: ~Xmin | COST: ~$0.XX
-```
-
----
-
-## Session Start
-
-On session start:
-1. Check git status
-2. Check for failing tests
-3. Propose next action
-
-Keep it quick. Don't run 5 commands before the user can speak.
-
----
-
-That's it. 80 lines instead of 440.
+*Generated by Power User Toolkit v1.0*

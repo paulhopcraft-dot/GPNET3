@@ -20,52 +20,91 @@ export default defineConfig({
   build: {
     outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,
+    chunkSizeWarningLimit: 800, // Increase warning limit to 800KB for vendor chunks
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Vendor libraries
-          'vendor-react': ['react', 'react-dom'],
-          'vendor-router': ['react-router-dom'],
-          'vendor-query': ['@tanstack/react-query'],
-          'vendor-ui': ['@radix-ui/react-tabs', '@radix-ui/react-select', '@radix-ui/react-dialog', '@radix-ui/react-tooltip'],
+        manualChunks: (id) => {
+          // Vendor libraries - split by size/importance
+          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
+            return 'vendor-react';
+          }
+          if (id.includes('node_modules/react-router-dom/')) {
+            return 'vendor-router';
+          }
+          if (id.includes('node_modules/@tanstack/react-query')) {
+            return 'vendor-query';
+          }
 
-          // Admin pages chunk
-          'admin-pages': [
-            './src/pages/admin/AdminDashboard',
-            './src/pages/admin/CompanyList',
-            './src/pages/admin/CompanyForm',
-            './src/components/admin/AdminLayout'
-          ],
+          // Heavy chart libraries - separate chunk
+          if (id.includes('node_modules/recharts/')) {
+            return 'vendor-recharts';
+          }
+          if (id.includes('node_modules/framer-motion/')) {
+            return 'vendor-framer-motion';
+          }
 
-          // Case management chunk
-          'case-pages': [
-            './src/pages/CasesPage',
-            './src/pages/CaseSummaryPage',
-            './src/pages/EmployerCaseDetailPage',
-            './src/pages/NewClaimPage'
-          ],
+          // UI libraries
+          if (id.includes('node_modules/@radix-ui/')) {
+            return 'vendor-radix';
+          }
+          if (id.includes('node_modules/lucide-react/')) {
+            return 'vendor-icons';
+          }
 
-          // Analytics and reporting chunk
-          'analytics-pages': [
-            './src/pages/PredictionsPage',
-            './src/pages/ReportsPage',
-            './src/pages/RiskDashboardPage',
-            './src/pages/AuditLogPage'
-          ],
+          // Markdown libraries
+          if (id.includes('node_modules/react-markdown/') || id.includes('node_modules/remark-gfm/') || id.includes('node_modules/micromark/') || id.includes('node_modules/mdast/')) {
+            return 'vendor-markdown';
+          }
 
-          // Workflow pages chunk
-          'workflow-pages': [
-            './src/pages/RTWPlannerPage',
-            './src/pages/CheckInsPage',
-            './src/pages/FinancialsPage',
-            './src/pages/CertificateReviewPage'
-          ],
+          // Form and validation libraries
+          if (id.includes('node_modules/react-hook-form/') || id.includes('node_modules/zod/')) {
+            return 'vendor-forms';
+          }
 
-          // Settings and utilities
-          'settings-pages': [
-            './src/pages/CompanySettings',
-            './src/pages/SessionsPage'
-          ]
+          // Date/time libraries
+          if (id.includes('node_modules/date-fns/') || id.includes('node_modules/dayjs/')) {
+            return 'vendor-date';
+          }
+
+          // Utility libraries
+          if (id.includes('node_modules/clsx/') || id.includes('node_modules/class-variance-authority/') || id.includes('node_modules/tailwind-merge/')) {
+            return 'vendor-utils';
+          }
+
+          // Other vendor libraries (fallback)
+          if (id.includes('node_modules/')) {
+            return 'vendor-misc';
+          }
+
+          // Admin pages
+          if (id.includes('/admin/') || id.includes('/pages/admin/')) {
+            return 'pages-admin';
+          }
+
+          // Heavy case detail page (separate chunk due to size)
+          if (id.includes('EmployerCaseDetailPage') || id.includes('DynamicRecoveryTimeline')) {
+            return 'pages-case-detail';
+          }
+
+          // Other case pages
+          if (id.includes('/pages/Cases') || id.includes('/pages/CaseSummary') || id.includes('/pages/NewClaim')) {
+            return 'pages-case';
+          }
+
+          // Analytics and reporting
+          if (id.includes('/pages/Predictions') || id.includes('/pages/Reports') || id.includes('/pages/Risk') || id.includes('/pages/Audit')) {
+            return 'pages-analytics';
+          }
+
+          // Workflow pages
+          if (id.includes('/pages/RTW') || id.includes('/pages/CheckIns') || id.includes('/pages/Financials') || id.includes('/pages/Certificate')) {
+            return 'pages-workflow';
+          }
+
+          // Settings and employer pages
+          if (id.includes('/pages/Company') || id.includes('/pages/Sessions') || id.includes('/pages/Employer')) {
+            return 'pages-settings';
+          }
         },
       },
     },

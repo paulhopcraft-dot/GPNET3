@@ -93,8 +93,8 @@ export class TemplateSummaryService {
       if (cert.startDate && cert.endDate) {
         sections.push(`**Period:** ${format(new Date(cert.startDate), 'dd MMM yyyy')} - ${format(new Date(cert.endDate), 'dd MMM yyyy')}`);
       }
-      if (cert.workCapacity) {
-        sections.push(`**Work Capacity:** ${cert.workCapacity}`);
+      if (cert.capacity) {
+        sections.push(`**Work Capacity:** ${cert.capacity}`);
       }
       if (cert.restrictions && cert.restrictions.length > 0) {
         sections.push(`**Restrictions:** ${cert.restrictions.join(', ')}`);
@@ -109,30 +109,26 @@ export class TemplateSummaryService {
     const complianceIcon = this.getComplianceIcon(workerCase.complianceIndicator);
     sections.push(`**Status:** ${complianceIcon} ${workerCase.complianceIndicator}`);
 
-    if (workerCase.compliance) {
-      const comp = workerCase.compliance;
-      if (comp.overdue > 0) {
-        sections.push(`⚠️ **${comp.overdue} overdue items**`);
-      }
-      if (comp.warning > 0) {
-        sections.push(`⚡ **${comp.warning} warnings**`);
-      }
-      if (comp.compliant > 0) {
-        sections.push(`✅ **${comp.compliant} compliant items**`);
-      }
-    }
+    // TODO: Fix compliance structure - these properties don't exist on CaseCompliance type
+    // if (workerCase.compliance) {
+    //   const comp = workerCase.compliance;
+    //   if (comp.overdue > 0) {
+    //     sections.push(`⚠️ **${comp.overdue} overdue items**`);
+    //   }
+    //   if (comp.warning > 0) {
+    //     sections.push(`⚡ **${comp.warning} warnings**`);
+    //   }
+    //   if (comp.compliant > 0) {
+    //     sections.push(`✅ **${comp.compliant} compliant items**`);
+    //   }
+    // }
     sections.push("");
 
     // Return to Work Planning
     if (workerCase.rtwPlanStatus) {
       sections.push("### Return to Work");
-      sections.push(`**Plan Status:** ${workerCase.rtwPlanStatus.status}`);
-      if (workerCase.rtwPlanStatus.targetDate) {
-        sections.push(`**Target Date:** ${format(new Date(workerCase.rtwPlanStatus.targetDate), 'dd MMM yyyy')}`);
-      }
-      if (workerCase.rtwPlanStatus.planType) {
-        sections.push(`**Plan Type:** ${workerCase.rtwPlanStatus.planType}`);
-      }
+      sections.push(`**Plan Status:** ${workerCase.rtwPlanStatus}`);
+      // TODO: Add targetDate and planType from separate fields if available
       sections.push("");
     }
 
@@ -156,8 +152,8 @@ export class TemplateSummaryService {
       sections.push("### Recent Discussion");
       const recentNotes = workerCase.latestDiscussionNotes.slice(0, 3);
       recentNotes.forEach(note => {
-        const noteDate = format(new Date(note.createdAt), 'dd MMM yyyy');
-        sections.push(`**${noteDate}:** ${note.content.substring(0, 150)}${note.content.length > 150 ? '...' : ''}`);
+        const noteDate = format(new Date(note.timestamp), 'dd MMM yyyy');
+        sections.push(`**${noteDate}:** ${note.rawText.substring(0, 150)}${note.rawText.length > 150 ? '...' : ''}`);
       });
     }
 
@@ -227,7 +223,7 @@ export class TemplateSummaryService {
     }
 
     // Compliance actions
-    if (workerCase.complianceIndicator === "Non-compliant" || workerCase.complianceIndicator === "red") {
+    if (workerCase.complianceIndicator === "Very Low" || workerCase.complianceIndicator === "Low") {
       actions.push("Address compliance issues");
     }
 
