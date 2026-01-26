@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-01-25)
 
 ## Current Position
 
-Phase: 1 of 10 (Database Schema)
-Plan: 1 of 1 - COMPLETE
-Status: Phase Complete
-Last activity: 2026-01-26 - Completed Phase 1 Database Schema
+Phase: 2 of 10 (Admin: Roles & Duties)
+Plan: 2 of 5 - COMPLETE
+Status: In progress
+Last activity: 2026-01-26 - Completed 02-02-PLAN.md (Duties API)
 
-Progress: [##........] 10%
+Progress: [###.......] 30%
 
 ## Current Status
 
@@ -30,7 +30,7 @@ Progress: [##........] 10%
 | Phase | Name | Status | Plans |
 |-------|------|--------|-------|
 | 1 | Database Schema | COMPLETE | 1/1 |
-| 2 | Admin: Roles & Duties | Pending | 0/0 |
+| 2 | Admin: Roles & Duties | IN PROGRESS | 2/5 |
 | 3 | Medical Integration | Pending | 0/0 |
 | 4 | Functional Ability Matrix | Pending | 0/0 |
 | 5 | Plan Generator | Pending | 0/0 |
@@ -48,6 +48,10 @@ Progress: [##........] 10%
 | Cascade deletes for RTW tables | Data integrity when parent records deleted | 1 |
 | RTW plan versions as separate table | Full version history with dataJson snapshots | 1 |
 | Weight limits as separate columns | Precise tracking of liftingMaxKg, carryingMaxKg | 1 |
+| Always create demands record for duties | Ensure consistent data structure | 2 |
+| Upsert pattern for demands on update | Handles missing demands gracefully | 2 |
+| Soft delete preserves demands | Audit trail for deleted duties | 2 |
+| Transaction wrapping for multi-table ops | Atomicity for duty+demands operations | 2 |
 
 ## Blockers/Concerns
 
@@ -55,9 +59,9 @@ None currently.
 
 ## Next Action
 
-**READY FOR PHASE 2:** Database foundation is complete. Next phase will build Admin UI for managing roles and duties.
+**Continue Phase 2:** Plans 01-02 (Roles/Duties APIs) complete. Continue with plans 03-05 or proceed to Phase 3 if APIs sufficient.
 
-Run `/gsd:plan-phase 2` to create the plan for Admin: Roles & Duties.
+Run `/gsd:execute-phase 2` to continue or `/gsd:plan-phase 3` for Medical Integration.
 
 ## Session Notes
 
@@ -71,11 +75,12 @@ Run `/gsd:plan-phase 2` to create the plan for Admin: Roles & Duties.
 - Medical constraints come from latest medical certificate
 - 2026-01-25: Phase 1 PLAN.md created - defines 8 new tables for RTW system
 - 2026-01-26: Phase 1 EXECUTED - 8 RTW tables created, all migrations successful
+- 2026-01-26: Phase 2 Wave 1 (02-01, 02-02) EXECUTED - Roles and Duties APIs complete
 
 ## Session Continuity
 
-Last session: 2026-01-26T00:43:00Z
-Stopped at: Completed Phase 1 Database Schema (01-01-PLAN.md)
+Last session: 2026-01-26T01:12:13Z
+Stopped at: Completed 02-02-PLAN.md (Duties API)
 Resume file: None
 
 ---
