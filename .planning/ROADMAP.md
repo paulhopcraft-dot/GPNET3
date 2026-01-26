@@ -6,18 +6,18 @@
 
 ## Phase Overview
 
-| Phase | Name | Goal | Requirements |
-|-------|------|------|--------------|
-| 1 | Database Schema | Data foundation for all modules | DB-01 to DB-10 |
-| 2 | Admin: Roles & Duties | Employers can define their job structure | ADMIN-01 to ADMIN-12 |
-| 3 | Medical Integration | Extract constraints from existing certs | MED-01 to MED-10 |
-| 4 | Functional Ability Matrix | Match restrictions to duties | FAM-01 to FAM-09 |
-| 5 | Plan Generator | Auto-create RTW plans | GEN-01 to GEN-10 |
-| 6 | Plan Output | Display and format plans | OUT-01 to OUT-10 |
-| 7 | Email Generation | Manager-ready communications | EMAIL-01 to EMAIL-10 |
-| 8 | Approval Workflow | Manager approve/reject flow | APPR-01 to APPR-11 |
-| 9 | Audit Trail | Immutable decision logging | AUDIT-01 to AUDIT-08 |
-| 10 | RTW Planner UI | Complete user interface | UI-01 to UI-10 |
+| Phase | Name | Goal | Requirements | Status |
+|-------|------|------|--------------|--------|
+| 1 | Database Schema | Data foundation for all modules | DB-01 to DB-10 | ✓ Complete |
+| 2 | Admin: Roles & Duties | Employers can define their job structure | ADMIN-01 to ADMIN-12 | Pending |
+| 3 | Medical Integration | Extract constraints from existing certs | MED-01 to MED-10 | Pending |
+| 4 | Functional Ability Matrix | Match restrictions to duties | FAM-01 to FAM-09 | Pending |
+| 5 | Plan Generator | Auto-create RTW plans | GEN-01 to GEN-10 | Pending |
+| 6 | Plan Output | Display and format plans | OUT-01 to OUT-10 | Pending |
+| 7 | Email Generation | Manager-ready communications | EMAIL-01 to EMAIL-10 | Pending |
+| 8 | Approval Workflow | Manager approve/reject flow | APPR-01 to APPR-11 | Pending |
+| 9 | Audit Trail | Immutable decision logging | AUDIT-01 to AUDIT-08 | Pending |
+| 10 | RTW Planner UI | Complete user interface | UI-01 to UI-10 | Pending |
 
 ---
 

@@ -7,22 +7,22 @@
 
 ### Database Schema (DB)
 
-- [ ] **DB-01**: Create `roles` table (org_id, name, description, created_at)
-- [ ] **DB-02**: Create `duties` table (role_id, name, description, modifiable, risk_flags)
-- [ ] **DB-03**: Create `duty_demands` table with physical demand categories:
+- [x] **DB-01**: Create `roles` table (org_id, name, description, created_at) ✓
+- [x] **DB-02**: Create `duties` table (role_id, name, description, modifiable, risk_flags) ✓
+- [x] **DB-03**: Create `duty_demands` table with physical demand categories ✓
   - Bending, Squatting, Kneeling, Twisting
   - Reaching overhead, Reaching forward
   - Lifting (with weight limits), Carrying
   - Standing, Sitting, Walking
   - Repetitive movements
   - Cognitive: concentration, stress tolerance, pace
-- [ ] **DB-04**: Demand frequency enum: Never | Occasionally | Frequently | Constantly
-- [ ] **DB-05**: Create `rtw_plans` table (case_id, worker_id, status, plan_type, created_by)
-- [ ] **DB-06**: Create `rtw_plan_versions` table (plan_id, version, data_json, created_at)
-- [ ] **DB-07**: Create `rtw_plan_duties` table (plan_version_id, duty_id, suitability, modification_notes)
-- [ ] **DB-08**: Create `rtw_plan_schedule` table (plan_version_id, week_number, hours_per_day, days_per_week, duties_json)
-- [ ] **DB-09**: Create `rtw_approvals` table (plan_version_id, approver_id, status, reason, approved_at)
-- [ ] **DB-10**: Create `rtw_audit_log` table (entity_type, entity_id, action, user_id, data_json, timestamp)
+- [x] **DB-04**: Demand frequency enum: Never | Occasionally | Frequently | Constantly ✓
+- [x] **DB-05**: Create `rtw_plans` table (case_id, worker_id, status, plan_type, created_by) ✓
+- [x] **DB-06**: Create `rtw_plan_versions` table (plan_id, version, data_json, created_at) ✓
+- [x] **DB-07**: Create `rtw_plan_duties` table (plan_version_id, duty_id, suitability, modification_notes) ✓
+- [x] **DB-08**: Create `rtw_plan_schedule` table (plan_version_id, week_number, hours_per_day, days_per_week, duties_json) ✓
+- [x] **DB-09**: Create `rtw_approvals` table (plan_version_id, approver_id, status, reason, approved_at) ✓
+- [x] **DB-10**: Create `rtw_audit_log` table (entity_type, entity_id, action, user_id, data_json, timestamp) ✓
 
 ### Admin UI - Roles & Duties (ADMIN)
 
