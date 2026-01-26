@@ -1,5 +1,85 @@
 # Preventli Progress Snapshot - Session Handoff
 
+## Session 33 - 2026-01-26 - Treatment Plan AI Improvements & Certificate Upload
+
+### ✅ Treatment Plan AI Improvements
+
+**Problem Solved**: AI was recommending incorrect specialists (orthopedic for hand injuries, unnecessary psychological assessments)
+
+**Solution Implemented**:
+- Added injury-specific model extraction from case summary
+- AI prompt now includes injury-appropriate specialist referrals (e.g., "Hand surgeon" for trigger finger)
+- Explicit instructions to NOT recommend orthopedic for hand injuries or psychological unless indicated
+- Added `diagnosticTests` and `plateauAnalysis` fields to TreatmentPlan schema
+
+#### Files Modified
+- `server/services/treatmentPlanService.ts` - Injury-specific prompt building
+- `server/services/recoveryEstimator.ts` - Uses existing injury models
+- `shared/schema.ts` - Added "diagnostic" intervention type, new plan fields
+
+### ✅ Treatment Plan Auto-Generation & Plateau Detection
+
+**New Features**:
+- Auto-generates treatment plan on page load if none exists
+- Fetches recovery data to detect plateaus
+- Shows plateau alert when: stable trend + behind schedule + >8 weeks elapsed
+- Displays diagnostic tests and plateau analysis from AI response
+- Stale plan warning when plan >4 weeks old and recovery behind
+
+#### Files Modified
+- `client/src/components/TreatmentPlanCard.tsx` - Complete enhancement
+
+### ✅ Certificate Image Upload
+
+**Problem Solved**: Certificate dots clickable but showed "No certificate image available"
+
+**Solution Implemented**:
+- Added upload button in certificate modal when no image exists
+- Created `PUT /api/certificates/:id/image` endpoint
+- Stores base64 image data in `documentUrl` field
+- Supports images and PDFs up to 5MB
+- Image displays immediately after upload
+
+#### Files Modified
+- `client/src/components/DynamicRecoveryTimeline.tsx` - Upload UI
+- `server/routes/certificates.ts` - New image upload endpoint
+- `server/storage.ts` - Added `updateCertificateImage` method
+
+### ✅ Freshdesk Document URL Extraction
+
+**Enhancement**: When custom fields don't have certificate URLs, now extracts from ticket attachments
+- Looks for PDFs and images in ticket attachments
+- Prioritizes files with certificate-related names
+
+#### Files Modified
+- `server/services/freshdesk.ts` - Enhanced `extractCertificateFromTicket`
+
+### ✅ Logout Button Added
+
+**User Request**: Add visible logout button to main Preventli screen
+
+**Solution**: Added "Log Out" button at bottom of left sidebar on GPNet2Dashboard
+
+#### Files Modified
+- `client/src/pages/GPNet2Dashboard.tsx` - Sidebar logout button
+
+### Git Commit
+- **Hash**: 26e7346
+- **Message**: `feat: treatment plan improvements and certificate upload`
+- **Branch**: return-to-work-planner
+- **Files Changed**: 8 files, +499 insertions, -111 deletions
+
+### Next Steps
+1. **Restart server** to pick up new endpoints
+2. **Test certificate upload** - Click certificate dot, upload image
+3. **Test treatment plan** - Should auto-generate with correct specialist recommendations
+4. **Trigger Freshdesk sync** to populate certificate URLs from attachments
+
+### Context Usage
+- Session ended at ~30% context - healthy state for continuation
+
+---
+
 ## Session 32 - 2026-01-24 - Application Launch & Live Demonstration
 
 ### ✅ MAJOR ACHIEVEMENT - Live Ultra-Modern Dashboard Demonstration
