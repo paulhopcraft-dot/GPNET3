@@ -1165,6 +1165,8 @@ export interface CertificateMarker {
   certificateNumber: number;
   capacityLabel: string;
   color: string;
+  certificateId: string;
+  documentUrl?: string | null;
 }
 
 export interface RecoveryPhaseDisplay {
@@ -1381,6 +1383,9 @@ function generateActualCurve(
     ));
     const capacity = getCertificateCapacity(cert);
 
+    const docUrl = (cert as any).fileUrl || cert.documentUrl || null;
+    console.log(`[Recovery] Creating marker for cert ${cert.id}: hasDocUrl=${!!docUrl}, docUrlLen=${docUrl?.length}`);
+
     markers.push({
       date: cert.startDate,
       week: weeksSinceInjury,
@@ -1388,6 +1393,8 @@ function generateActualCurve(
       certificateNumber: index + 1,
       capacityLabel: `${capacity}% Capacity`,
       color: getCapacityColor(capacity),
+      certificateId: cert.id,
+      documentUrl: docUrl,
     });
   });
 
