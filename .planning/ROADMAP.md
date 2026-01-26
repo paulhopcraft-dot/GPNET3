@@ -44,6 +44,15 @@
 
 **Requirements:** ADMIN-01 to ADMIN-12
 
+**Plans:** 5 plans
+
+Plans:
+- [ ] 02-01-PLAN.md - Backend API for roles CRUD
+- [ ] 02-02-PLAN.md - Backend API for duties CRUD with demands
+- [ ] 02-03-PLAN.md - Frontend roles list and form pages
+- [ ] 02-04-PLAN.md - Frontend duties list, form, and DemandMatrix component
+- [ ] 02-05-PLAN.md - End-to-end verification checkpoint
+
 **Success Criteria:**
 1. Admin can create a role with duties
 2. Each duty has a complete demands matrix (physical + cognitive)
