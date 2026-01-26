@@ -386,6 +386,7 @@ export interface IStorage {
   getExpiringCertificates(organizationId: string, daysAhead: number): Promise<MedicalCertificateDB[]>;
   getCertificatesRequiringReview(organizationId: string): Promise<MedicalCertificateDB[]>;
   markCertificateAsReviewed(id: string, organizationId: string, reviewDate: Date): Promise<MedicalCertificateDB>;
+  updateCertificateImage(id: string, imageData: string): Promise<MedicalCertificateDB | null>;
 
   // Certificate Engine v1 - Alert management
   createExpiryAlert(alert: InsertCertificateExpiryAlert): Promise<CertificateExpiryAlertDB>;
@@ -1775,6 +1776,16 @@ class DbStorage implements IStorage {
       ))
       .returning();
     return result;
+  }
+
+  async updateCertificateImage(id: string, imageData: string): Promise<MedicalCertificateDB | null> {
+    // Update certificate with the base64 image data as documentUrl
+    // Note: Not filtering by organization since recovery chart doesn't have org context
+    const [result] = await db.update(medicalCertificates)
+      .set({ documentUrl: imageData, updatedAt: new Date() })
+      .where(eq(medicalCertificates.id, id))
+      .returning();
+    return result || null;
   }
 
   // Certificate Engine v1 - Alert management methods

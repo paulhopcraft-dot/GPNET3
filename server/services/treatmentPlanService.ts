@@ -22,7 +22,7 @@ import type {
   WorkerCase,
 } from "@shared/schema";
 import { fetchCaseContext } from "./smartSummary";
-import { calculateRecoveryTimeline } from "./recoveryEstimator";
+import { calculateRecoveryTimeline, extractInjuryType, getInjuryModel } from "./recoveryEstimator";
 import { evaluateClinicalEvidence } from "./clinicalEvidence";
 import { logAuditEvent } from "./auditLogger";
 import { randomUUID } from "crypto";
@@ -71,14 +71,17 @@ interface AITreatmentPlanResponse {
   interventions: TreatmentIntervention[];
   milestones: TreatmentMilestone[];
   specialistReferrals?: string[];
+  diagnosticTests?: string[];
   expectedDurationWeeks: number;
   expectedOutcomes: string[];
   successCriteria?: string[];
   factorsConsidered: string[];
+  plateauAnalysis?: string;
 }
 
 /**
  * Build AI prompt for treatment plan generation
+ * Uses injury models for appropriate specialist and diagnostic recommendations
  */
 function buildTreatmentPrompt(
   workerCase: WorkerCase,
@@ -89,6 +92,10 @@ function buildTreatmentPrompt(
   const summary = workerCase.summary || "Workplace injury (details pending)";
   const constraints = workerCase.clinical_status_json?.medicalConstraints;
   const capacity = workerCase.clinical_status_json?.functionalCapacity;
+
+  // Detect injury type and get injury-specific model
+  const injuryType = extractInjuryType(summary);
+  const injuryModel = getInjuryModel(injuryType);
 
   const constraintsText = constraints
     ? `
@@ -112,23 +119,52 @@ ${capacity.maxWorkHoursPerDay !== undefined ? `- Max work hours/day: ${capacity.
 `.trim()
     : "No functional capacity assessment documented.";
 
+  // Build injury-specific guidance
+  const injuryGuidance = injuryType !== "unknown" ? `
+INJURY-SPECIFIC GUIDANCE (${injuryType.replace(/_/g, ' ').toUpperCase()}):
+This is a ${injuryType.replace(/_/g, ' ')} injury. Based on medical guidelines:
+
+APPROPRIATE SPECIALIST REFERRALS for this injury type:
+${injuryModel.specialistReferrals.map(s => `- ${s}`).join('\n')}
+
+APPROPRIATE DIAGNOSTIC TESTS for this injury type:
+${injuryModel.diagnosticTests.map(t => `- ${t}`).join('\n')}
+
+RISK FACTORS to consider:
+${injuryModel.riskFactors.map(r => `- ${r}`).join('\n')}
+
+IMPORTANT: Only recommend specialists and tests that are appropriate for this SPECIFIC injury type.
+- DO NOT recommend orthopedic specialist for hand/finger injuries (recommend hand surgeon instead)
+- DO NOT recommend psychological assessment unless there are documented psychological factors
+- Match your recommendations to the injury location and type
+` : `
+INJURY TYPE: Unknown/Unspecified
+Since the injury type is unclear, recommend:
+- GP assessment to clarify diagnosis
+- Appropriate specialist once injury type is confirmed
+- Conservative treatment until diagnosis is clear
+`;
+
   return `You are a care coordination assistant helping case managers develop treatment plans for workplace injury cases in Australia.
 
 IMPORTANT: You are providing ADVISORY RECOMMENDATIONS only, NOT medical treatment decisions. All recommendations must be reviewed and approved by qualified healthcare professionals.
 
 CASE INFORMATION:
 - Worker: [REDACTED - no PII in prompts]
-- Injury: ${summary}
+- Injury Description: ${summary}
+- Detected Injury Type: ${injuryType.replace(/_/g, ' ')}
 - Risk Level: ${workerCase.riskLevel}
 - Work Status: ${workerCase.workStatus}
 - Date of Injury: ${workerCase.dateOfInjury}
+
+${injuryGuidance}
 
 ${constraintsText}
 
 ${capacityText}
 
 RECOVERY ESTIMATE:
-- Expected duration: ${recoveryEstimate.estimatedWeeks || 12} weeks
+- Expected duration: ${recoveryEstimate.estimatedWeeks || injuryModel.baselineWeeks} weeks
 - Confidence: ${recoveryEstimate.confidence || "medium"}
 
 CLINICAL FLAGS:
@@ -136,19 +172,29 @@ ${clinicalFlags.length > 0 ? clinicalFlags.map((f) => `- ${f}`).join("\n") : "No
 
 ${additionalContext ? `<user_provided_context>\n${sanitizeUserInput(additionalContext)}\n</user_provided_context>\n` : ""}
 
+${additionalContext?.includes('PLATEAU') ? `
+PLATEAU DETECTED - IMPORTANT:
+Recovery has plateaued. Focus recommendations on:
+1. Diagnostic tests from the list above that haven't been done
+2. Specialist referrals appropriate for THIS injury type only
+3. Alternative treatment approaches
+4. DO NOT add psychological unless specifically indicated by case notes
+` : ''}
+
 Generate a structured treatment plan with:
 1. **Interventions**: Specific treatment types (physiotherapy, medication, specialist referrals, workplace modifications, etc.)
 2. **Milestones**: Week-by-week recovery checkpoints
 3. **Expected Outcomes**: What success looks like
 4. **Specialist Referrals**: If needed (orthopedic, pain specialist, psychologist, etc.)
 5. **Success Criteria**: Objective measures
+${additionalContext?.includes('PLATEAU') ? '6. **Diagnostic Tests**: Specific tests recommended based on injury type and plateau duration' : ''}
 
 Return ONLY valid JSON matching this exact structure (no markdown, no code blocks):
 
 {
   "interventions": [
     {
-      "type": "physiotherapy" | "medication" | "specialist" | "surgical" | "workplace_modification" | "psychological" | "other",
+      "type": "physiotherapy" | "medication" | "specialist" | "surgical" | "workplace_modification" | "psychological" | "diagnostic" | "other",
       "description": "Specific intervention description",
       "frequency": "e.g., 3x per week",
       "duration": "e.g., 6 weeks",
@@ -163,10 +209,12 @@ Return ONLY valid JSON matching this exact structure (no markdown, no code block
     }
   ],
   "specialistReferrals": ["Specialist type if needed"],
+  "diagnosticTests": ["MRI lumbar spine", "Nerve conduction study"],
   "expectedDurationWeeks": 8,
   "expectedOutcomes": ["Return to full duties", "Pain-free movement"],
   "successCriteria": ["Objective measure 1", "Objective measure 2"],
-  "factorsConsidered": ["Factor 1", "Factor 2"]
+  "factorsConsidered": ["Factor 1", "Factor 2"],
+  "plateauAnalysis": "If plateau detected, explain likely causes and recommended approach"
 }
 
 Focus on practical, achievable interventions appropriate for Australian workplace injury management under WorkSafe Victoria guidelines.`;
@@ -306,12 +354,14 @@ export async function generateTreatmentPlan(
       diagnosisSummary: workerCase.summary,
       interventions: aiResponse.interventions,
       specialistReferrals: aiResponse.specialistReferrals,
+      diagnosticTests: aiResponse.diagnosticTests,
       expectedDurationWeeks: aiResponse.expectedDurationWeeks,
       milestones: aiResponse.milestones,
       expectedOutcomes: aiResponse.expectedOutcomes,
       successCriteria: aiResponse.successCriteria,
       factorsConsidered: aiResponse.factorsConsidered,
       disclaimerText: DISCLAIMER_TEXT,
+      plateauAnalysis: aiResponse.plateauAnalysis,
     };
 
     // Supersede existing plan if present

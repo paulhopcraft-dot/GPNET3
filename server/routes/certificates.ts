@@ -115,6 +115,40 @@ router.patch("/:id", requireAuth, async (req: Request, res: Response) => {
   }
 });
 
+// PUT /api/certificates/:id/image - Upload certificate image
+router.put("/:id/image", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { imageData } = req.body;
+
+    if (!imageData || typeof imageData !== "string") {
+      return res.status(400).json({ success: false, message: "Image data required" });
+    }
+
+    // Validate that it's a data URL (base64)
+    if (!imageData.startsWith("data:")) {
+      return res.status(400).json({ success: false, message: "Invalid image format" });
+    }
+
+    // Check size (roughly 5MB in base64)
+    if (imageData.length > 7 * 1024 * 1024) {
+      return res.status(400).json({ success: false, message: "Image too large (max 5MB)" });
+    }
+
+    // For now, we'll look up the certificate without organization check
+    // since the recovery chart doesn't pass organization context
+    const certificate = await storage.updateCertificateImage(req.params.id, imageData);
+
+    if (!certificate) {
+      return res.status(404).json({ success: false, message: "Certificate not found" });
+    }
+
+    res.json({ success: true, documentUrl: certificate.documentUrl });
+  } catch (error: any) {
+    console.error("Error uploading certificate image:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // DELETE /api/certificates/:id - Delete certificate
 router.delete("/:id", requireAdminOrEmployer, async (req: Request, res: Response) => {
   try {

@@ -572,6 +572,39 @@ export class FreshdeskService {
 
     const capacity = this.deriveCapacityFromTicket(ticket, fallbackWorkStatus);
 
+    // Extract document URL from custom fields or attachments
+    let documentUrl: string | undefined =
+      ticket.custom_fields?.cf_latest_medical_certificate ||
+      ticket.custom_fields?.cf_url ||
+      undefined;
+
+    // If no custom field URL, check ticket attachments for certificate documents
+    if (!documentUrl && ticket.attachments && ticket.attachments.length > 0) {
+      // Look for PDF or image files that might be certificates
+      const certificateAttachment = ticket.attachments.find((att) => {
+        const name = att.name.toLowerCase();
+        const contentType = att.content_type.toLowerCase();
+        // Match common certificate file patterns
+        return (
+          contentType.includes("pdf") ||
+          contentType.includes("image/") ||
+          name.includes("certificate") ||
+          name.includes("cert") ||
+          name.includes("medical") ||
+          name.includes("worksafe") ||
+          name.includes("capacity")
+        );
+      });
+      // If no specific match, use the first PDF or image attachment
+      const fallbackAttachment = certificateAttachment || ticket.attachments.find((att) => {
+        const contentType = att.content_type.toLowerCase();
+        return contentType.includes("pdf") || contentType.includes("image/");
+      });
+      if (fallbackAttachment) {
+        documentUrl = fallbackAttachment.attachment_url;
+      }
+    }
+
     return {
       issueDate: issue.toISOString(),
       startDate: start.toISOString(),
@@ -579,10 +612,7 @@ export class FreshdeskService {
       capacity,
       notes: ticket.custom_fields?.cf_check_status || undefined,
       source: "freshdesk",
-      documentUrl:
-        ticket.custom_fields?.cf_latest_medical_certificate ||
-        ticket.custom_fields?.cf_url ||
-        undefined,
+      documentUrl,
       sourceReference: ticket.id ? `ticket:${ticket.id}` : undefined,
     };
   }

@@ -85,6 +85,7 @@ export type TreatmentInterventionType =
   | "surgical"
   | "workplace_modification"
   | "psychological"
+  | "diagnostic"
   | "other";
 
 export type TreatmentPriority = "critical" | "recommended" | "optional";
@@ -117,6 +118,7 @@ export interface TreatmentPlan {
   functionalLimitations?: string[];
   interventions: TreatmentIntervention[];
   specialistReferrals?: string[];
+  diagnosticTests?: string[];           // Recommended diagnostic tests
   expectedDurationWeeks: number;
   milestones: TreatmentMilestone[];
   expectedOutcomes: string[];
@@ -127,6 +129,7 @@ export interface TreatmentPlan {
   supersededAt?: string;
   supersededBy?: string;
   notes?: string;
+  plateauAnalysis?: string;             // Analysis if recovery plateau detected
 
   // RTW Plan Timeline Fields (added for RTW plan expiry tracking)
   rtwPlanStartDate?: string;        // When RTW plan became active (ISO date string)

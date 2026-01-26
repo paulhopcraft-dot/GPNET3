@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchWithCsrf } from "@/lib/queryClient";
 import {
   LineChart,
   Line,
@@ -34,6 +35,8 @@ import {
   Stethoscope,
   FileText,
   X,
+  Upload,
+  Loader2,
 } from "lucide-react";
 
 // Types matching the server-side RecoveryTimelineChartData
@@ -52,6 +55,8 @@ interface CertificateMarker {
   certificateNumber: number;
   capacityLabel: string;
   color: string;
+  certificateId: string;
+  documentUrl?: string | null;
 }
 
 interface RecoveryPhaseDisplay {
@@ -187,12 +192,80 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
   caseId,
   className,
 }) => {
+  const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { data, isLoading, error } = useQuery<RecoveryTimelineChartData>({
     queryKey: [`/api/cases/${caseId}/recovery-chart`],
     enabled: !!caseId,
   });
 
   const [selectedCertificate, setSelectedCertificate] = useState<CertificateMarker | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  // Mutation to upload certificate image
+  const uploadImageMutation = useMutation({
+    mutationFn: async ({ certificateId, imageData }: { certificateId: string; imageData: string }) => {
+      const response = await fetchWithCsrf(`/api/certificates/${certificateId}/image`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageData }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to upload certificate image");
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      // Update the selected certificate with the new image URL
+      if (selectedCertificate) {
+        setSelectedCertificate({ ...selectedCertificate, documentUrl: data.documentUrl });
+      }
+      // Refresh the recovery chart data
+      queryClient.invalidateQueries({ queryKey: [`/api/cases/${caseId}/recovery-chart`] });
+    },
+  });
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !selectedCertificate) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/") && file.type !== "application/pdf") {
+      alert("Please select an image or PDF file");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert("File size must be less than 5MB");
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      // Convert file to base64
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64Data = reader.result as string;
+        await uploadImageMutation.mutateAsync({
+          certificateId: selectedCertificate.certificateId,
+          imageData: base64Data,
+        });
+        setIsUploading(false);
+      };
+      reader.onerror = () => {
+        alert("Failed to read file");
+        setIsUploading(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      setIsUploading(false);
+      alert("Failed to upload image");
+    }
+
+    // Reset file input
+    event.target.value = "";
+  };
 
   if (isLoading) {
     return (
@@ -391,87 +464,9 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-64 relative">
-            {/* Particle Container for Chart Animations */}
-            <div className="particle-container absolute inset-0 pointer-events-none z-10">
-              {/* Generate particle dots ONLY for actual certificate markers, not every week */}
-              {data.certificateMarkers.map((marker, index) => {
-                // Only show markers up to current week
-                if (marker.week > (data.weeksElapsed || 0)) return null;
-
-                // Calculate position based on chart dimensions and data
-                const maxWeek = Math.max(...chartData.map(d => d.week));
-                const xPercent = (marker.week / maxWeek) * 100;
-                const yPercent = 100 - (marker.capacity / 100) * 100;
-
-                // Calculate path animation for dynamic movement
-                const animationDuration = 3 + (index * 0.5); // Staggered durations
-
-                return (
-                  <div
-                    key={`particle-cert-${marker.certificateNumber}`}
-                    className="particle-dot animate-pulse absolute w-4 h-4 bg-emerald-400/90 rounded-full border-2 border-emerald-500 cursor-pointer hover:scale-150 hover:bg-emerald-300 transition-all duration-200 z-20 pointer-events-auto"
-                    style={{
-                      left: `${Math.max(5, Math.min(95, xPercent))}%`,
-                      top: `${Math.max(10, Math.min(80, yPercent))}%`,
-                      transform: `translate(-50%, -50%) translateX(${Math.sin(index * 0.5) * 10}px)`,
-                      animationDelay: `${index * 0.2}s`,
-                      animationDuration: `${animationDuration}s`,
-                      animationName: 'particlePathMove, particlePulse',
-                      animationIterationCount: 'infinite',
-                      animationDirection: 'alternate',
-                      animationTimingFunction: 'ease-in-out',
-                      opacity: 0.9
-                    }}
-                    title={`Click to view Certificate #${marker.certificateNumber}`}
-                    onClick={() => setSelectedCertificate(marker)}
-                  />
-                );
-              })}
-
-              {/* Additional floating particles with path animation and pulse */}
-              <div className="particle-dot animate-pulse absolute w-1.5 h-1.5 bg-purple-400/40 rounded-full"
-                   style={{
-                     left: '20%',
-                     top: '30%',
-                     transform: 'translate(-50%, -50%) translateX(0px)',
-                     animationDuration: '4s',
-                     animationName: 'particleFloatPath, particlePulse',
-                     animationIterationCount: 'infinite',
-                     animationDirection: 'alternate',
-                     animationTimingFunction: 'ease-in-out',
-                     opacity: 0.6
-                   }} />
-              <div className="particle-dot animate-pulse absolute w-1.5 h-1.5 bg-blue-400/40 rounded-full"
-                   style={{
-                     left: '50%',
-                     top: '45%',
-                     transform: 'translate(-50%, -50%) translateX(0px)',
-                     animationDuration: '3.5s',
-                     animationName: 'particleFloatPath, particlePulse',
-                     animationIterationCount: 'infinite',
-                     animationDirection: 'alternate',
-                     animationTimingFunction: 'ease-in-out',
-                     animationDelay: '1s',
-                     opacity: 0.6
-                   }} />
-              <div className="particle-dot animate-pulse absolute w-1.5 h-1.5 bg-teal-400/40 rounded-full"
-                   style={{
-                     left: '75%',
-                     top: '25%',
-                     transform: 'translate(-50%, -50%) translateX(0px)',
-                     animationDuration: '4.5s',
-                     animationName: 'particleFloatPath, particlePulse',
-                     animationIterationCount: 'infinite',
-                     animationDirection: 'alternate',
-                     animationTimingFunction: 'ease-in-out',
-                     animationDelay: '2s',
-                     opacity: 0.6
-                   }} />
-            </div>
-
+          <div className="h-72 relative">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
+              <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 40 }}>
                 <defs>
                   <linearGradient id="estimatedGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.8} />
@@ -491,8 +486,8 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
                   label={{
                     value: "Timeline (Month/Year)",
                     position: "insideBottom",
-                    offset: -10,
-                    style: { fontSize: 12 },
+                    offset: -5,
+                    style: { fontSize: 11 },
                   }}
                 />
                 <YAxis
@@ -505,7 +500,7 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
                   }}
                 />
                 <Tooltip content={(props) => <CustomTooltip {...props} injuryDate={data.injuryDate} />} />
-                <Legend />
+                <Legend verticalAlign="bottom" wrapperStyle={{ paddingTop: '20px' }} />
 
                 {/* Estimated recovery area (dashed outline with gradient) */}
                 <Area
@@ -1112,7 +1107,51 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
             </div>
 
             {/* Modal Content */}
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+              {/* Certificate Image */}
+              {selectedCertificate.documentUrl ? (
+                <div className="border rounded-lg overflow-hidden bg-gray-100">
+                  <img
+                    src={selectedCertificate.documentUrl}
+                    alt={`Medical Certificate #${selectedCertificate.certificateNumber}`}
+                    className="w-full h-auto max-h-96 object-contain"
+                    onError={(e) => {
+                      // Hide image on error and show fallback
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="border rounded-lg p-8 bg-gray-50 text-center">
+                  <FileText className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500 mb-3">No certificate image available</p>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileSelect}
+                    accept="image/*,application/pdf"
+                    className="hidden"
+                  />
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4" />
+                        Upload Certificate Image
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+
               {/* Capacity Badge */}
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-600">Work Capacity</span>
@@ -1151,17 +1190,6 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
                 </div>
               </div>
 
-              {/* Capacity Label */}
-              <div className="bg-gray-50 rounded-lg p-3">
-                <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
-                  <Stethoscope className="h-3 w-3" />
-                  Capacity Status
-                </div>
-                <p className="font-medium text-gray-900">
-                  {selectedCertificate.capacityLabel}
-                </p>
-              </div>
-
               {/* Capacity Visual Bar */}
               <div className="pt-2">
                 <div className="flex justify-between text-xs text-gray-500 mb-1">
@@ -1182,10 +1210,23 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
             </div>
 
             {/* Modal Footer */}
-            <div className="px-6 py-4 bg-gray-50 border-t">
+            <div className="px-6 py-4 bg-gray-50 border-t flex gap-2">
+              {selectedCertificate.documentUrl && (
+                <a
+                  href={selectedCertificate.documentUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-center"
+                >
+                  Open Full Size
+                </a>
+              )}
               <button
                 onClick={() => setSelectedCertificate(null)}
-                className="w-full bg-gray-900 hover:bg-gray-800 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                className={cn(
+                  "bg-gray-900 hover:bg-gray-800 text-white font-medium py-2 px-4 rounded-lg transition-colors",
+                  selectedCertificate.documentUrl ? "flex-1" : "w-full"
+                )}
               >
                 Close
               </button>
