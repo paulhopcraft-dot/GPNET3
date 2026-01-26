@@ -28,6 +28,8 @@ const SessionsPage = lazy(() => import("./pages/SessionsPage"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const CompanyList = lazy(() => import("./pages/admin/CompanyList"));
 const CompanyForm = lazy(() => import("./pages/admin/CompanyForm"));
+const RolesList = lazy(() => import("./pages/admin/roles/RolesList"));
+const RoleForm = lazy(() => import("./pages/admin/roles/RoleForm"));
 
 const CompanySettings = lazy(() => import("./pages/CompanySettings"));
 const CasesPage = lazy(() => import("./pages/CasesPage"));
@@ -288,6 +290,30 @@ export default function App() {
                       element={
                         <Suspense fallback={<PageLoader />}>
                           <CompanyForm />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="roles"
+                      element={
+                        <Suspense fallback={<PageLoader />}>
+                          <RolesList />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="roles/new"
+                      element={
+                        <Suspense fallback={<PageLoader />}>
+                          <RoleForm />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="roles/:id"
+                      element={
+                        <Suspense fallback={<PageLoader />}>
+                          <RoleForm />
                         </Suspense>
                       }
                     />
