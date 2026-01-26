@@ -1,5 +1,71 @@
 # Preventli Progress Snapshot - Session Handoff
 
+## Session 34 - 2026-01-26 - Certificate Image Display Debugging & Bulk Upload
+
+### Completed
+- ✅ **Investigated certificate image display issue**
+  - Images are in database (2-3MB base64) but not showing in recovery timeline modal
+  - Added debug logging to timeline.ts and recoveryEstimator.ts
+  - Extended CertificateMarker interface to include `certificateId` and `documentUrl`
+
+- ✅ **Verified database has certificate images**
+  - Jacob Gunn FD-46986: 2 certs with HAS_IMAGE
+  - Jacob Gunn FD-46933: 10 certs, 8 HAS_IMAGE
+  - Jacob Gunn FD-44345: 2 certs with HAS_IMAGE
+
+- ✅ **Created utility scripts for certificate management**
+  - `scripts/check-jacob-certs.cjs` - Query all Jacob Gunn certificates
+  - `scripts/get-certificates.cjs` - Get certificate details for a case
+  - `scripts/upload-certificate-image.cjs` - Upload base64 images to certificates
+  - `scripts/query-symmetry.cjs` - Query Symmetry workers
+
+- ✅ **Navigated Google Drive for bulk upload**
+  - User provided folder: `https://drive.google.com/drive/folders/1JHhemCO1IEgEUyst0-MsSO3jr3WFspWF`
+  - Found 8 certificate files for Jacob Gunn to upload
+
+### In Progress
+- **Certificate image modal not displaying** - `documentUrl` field exists in DB but not being passed through API to frontend
+  - Root cause likely in `generateActualCurve()` function in recoveryEstimator.ts
+  - Need to verify marker creation is including documentUrl correctly
+
+### Git Commit
+- **Hash**: 766cd4c
+- **Message**: `wip: add debug logging and certificateId/documentUrl to certificate markers`
+- **Branch**: return-to-work-planner
+
+### Next Steps
+1. **Fix certificate image display**
+   - Check why `documentUrl` not in API response for `certificateMarkers`
+   - Verify DynamicRecoveryTimeline receives documentUrl in marker data
+   - May need to update client component to use new marker fields
+
+2. **Download Jacob Gunn certificates from Google Drive**
+   - 8 files ready to download from user's folder
+   - Upload to appropriate cases based on dates
+
+3. **Test certificate modal**
+   - Click certificate dot
+   - Should see image after fix
+
+### Files Modified This Session
+- `server/routes/timeline.ts` - Added certificate mapping logging
+- `server/services/recoveryEstimator.ts` - Added certificateId/documentUrl to markers + logging
+
+### Scripts Created
+- `scripts/check-jacob-certs.cjs`
+- `scripts/get-certificates.cjs`
+- `scripts/upload-certificate-image.cjs`
+- `scripts/query-symmetry.cjs`
+
+### Admin Credentials
+- Reset admin password to `test123` for testing
+
+### Context Usage
+- **COMPACTION OCCURRED** - Should have warned at 70% and 85% per CLAUDE.md rules
+- Session ended abruptly due to context limit
+
+---
+
 ## Session 33 - 2026-01-26 - Treatment Plan AI Improvements & Certificate Upload
 
 ### ✅ Treatment Plan AI Improvements
