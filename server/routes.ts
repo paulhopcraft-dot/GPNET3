@@ -21,6 +21,7 @@ import emailDraftRoutes from "./routes/emailDrafts";
 import notificationRoutes from "./routes/notifications";
 import adminOrganizationRoutes from "./routes/admin/organizations";
 import adminInsurerRoutes from "./routes/admin/insurers";
+import adminRolesRoutes from "./routes/admin/roles";
 import organizationRoutes from "./routes/organization";
 import caseChatRoutes from "./routes/caseChat";
 import rtwRoutes from "./routes/rtw";
@@ -51,6 +52,9 @@ export async function registerRoutes(app: Express): Promise<void> {
 
   // Admin insurer management routes (requires admin authentication)
   app.use("/api/admin/insurers", adminInsurerRoutes);
+
+  // Admin RTW roles management routes (requires admin authentication)
+  app.use("/api/admin/roles", adminRolesRoutes);
 
   // Organization self-service routes (authenticated users)
   app.use("/api/organization", organizationRoutes);
