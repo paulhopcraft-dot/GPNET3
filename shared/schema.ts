@@ -1544,3 +1544,319 @@ export const contactRoleLabels: Record<CaseContactRole, string> = {
   gpnet: "GPNet Contact",
   other: "Other",
 };
+
+// =====================================================
+// RTW Planner Engine - Job Roles & Duties (DB-01 to DB-10)
+// =====================================================
+
+// Demand frequency for physical/cognitive requirements (DB-04)
+export type DemandFrequency = "never" | "occasionally" | "frequently" | "constantly";
+
+// Physical demand categories (per requirement)
+export type PhysicalDemandCategory =
+  | "bending"
+  | "squatting"
+  | "kneeling"
+  | "twisting"
+  | "reaching_overhead"
+  | "reaching_forward"
+  | "lifting"
+  | "carrying"
+  | "standing"
+  | "sitting"
+  | "walking"
+  | "repetitive_movements";
+
+// Cognitive demand categories
+export type CognitiveDemandCategory =
+  | "concentration"
+  | "stress_tolerance"
+  | "work_pace";
+
+// Duty suitability based on matrix evaluation
+export type DutySuitability = "suitable" | "suitable_with_modification" | "not_suitable";
+
+// RTW Plan types
+export type RTWPlanType = "normal_hours" | "partial_hours" | "graduated_return";
+
+// RTW Plan approval status
+export type RTWApprovalStatus = "draft" | "pending" | "approved" | "rejected" | "modification_requested";
+
+// Physical demands structure for a duty (matches medical certificate format)
+export interface DutyPhysicalDemands {
+  // Core physical functions (from Bridge Street Clinic format)
+  sitting: DemandFrequency;
+  standingWalking: DemandFrequency;
+  bending: DemandFrequency;
+  squatting: DemandFrequency;
+  kneelingClimbing: DemandFrequency;
+  twisting: DemandFrequency;
+  reachingOverhead: DemandFrequency;
+  reachingForward: DemandFrequency;
+  neckMovement: DemandFrequency;
+
+  // Lifting/carrying with weight limits
+  lifting: DemandFrequency;
+  liftingMaxKg?: number;
+  carrying: DemandFrequency;
+  carryingMaxKg?: number;
+
+  // Additional
+  pushing: DemandFrequency;
+  pulling: DemandFrequency;
+  repetitiveMovements: DemandFrequency;
+  useOfInjuredLimb: DemandFrequency;
+}
+
+// Cognitive demands structure for a duty
+export interface DutyCognitiveDemands {
+  concentration: DemandFrequency;
+  stressTolerance: DemandFrequency;
+  workPace: DemandFrequency;
+}
+
+// Medical restriction capability (from medical certificates)
+export type RestrictionCapability = "can" | "with_modifications" | "cannot" | "not_assessed";
+
+// Functional restrictions from medical certificate (CAN/WITH MODS/CANNOT matrix)
+export interface FunctionalRestrictions {
+  sitting: RestrictionCapability;
+  standingWalking: RestrictionCapability;
+  bending: RestrictionCapability;
+  squatting: RestrictionCapability;
+  kneelingClimbing: RestrictionCapability;
+  twisting: RestrictionCapability;
+  reachingOverhead: RestrictionCapability;
+  reachingForward: RestrictionCapability;
+  neckMovement: RestrictionCapability;
+  lifting: RestrictionCapability;
+  liftingMaxKg?: number;
+  carrying: RestrictionCapability;
+  carryingMaxKg?: number;
+  pushing: RestrictionCapability;
+  pulling: RestrictionCapability;
+  repetitiveMovements: RestrictionCapability;
+  useOfInjuredLimb: RestrictionCapability;
+
+  // Exercise and rest requirements (from medical certs)
+  exerciseMinutesPerHour?: number;
+  restMinutesPerHour?: number;
+
+  // Duration and review
+  constraintDurationWeeks?: number;
+  nextExaminationDate?: string;
+}
+
+// =====================================================
+// RTW Planner Engine - Database Tables (DB-01 to DB-09)
+// =====================================================
+
+// DB-01: Job Roles Table - Organization-specific job roles
+export const rtwRoles = pgTable("rtw_roles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type RTWRoleDB = typeof rtwRoles.$inferSelect;
+export type InsertRTWRole = typeof rtwRoles.$inferInsert;
+
+// DB-02: Duties Table - Duties for each role with modifiable flag
+export const rtwDuties = pgTable("rtw_duties", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  roleId: varchar("role_id").notNull().references(() => rtwRoles.id, { onDelete: "cascade" }),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  isModifiable: boolean("is_modifiable").notNull().default(false),
+  riskFlags: text("risk_flags").array().default(sql`ARRAY[]::text[]`),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type RTWDutyDB = typeof rtwDuties.$inferSelect;
+export type InsertRTWDuty = typeof rtwDuties.$inferInsert;
+
+// DB-03: Duty Demands Table - Physical and cognitive demands for each duty
+export const rtwDutyDemands = pgTable("rtw_duty_demands", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  dutyId: varchar("duty_id").notNull().references(() => rtwDuties.id, { onDelete: "cascade" }).unique(),
+
+  // Physical demands (Never/Occasionally/Frequently/Constantly)
+  bending: varchar("bending").notNull().default("never"),
+  squatting: varchar("squatting").notNull().default("never"),
+  kneeling: varchar("kneeling").notNull().default("never"),
+  twisting: varchar("twisting").notNull().default("never"),
+  reachingOverhead: varchar("reaching_overhead").notNull().default("never"),
+  reachingForward: varchar("reaching_forward").notNull().default("never"),
+  lifting: varchar("lifting").notNull().default("never"),
+  liftingMaxKg: integer("lifting_max_kg"),
+  carrying: varchar("carrying").notNull().default("never"),
+  carryingMaxKg: integer("carrying_max_kg"),
+  standing: varchar("standing").notNull().default("never"),
+  sitting: varchar("sitting").notNull().default("never"),
+  walking: varchar("walking").notNull().default("never"),
+  repetitiveMovements: varchar("repetitive_movements").notNull().default("never"),
+
+  // Cognitive demands
+  concentration: varchar("concentration").notNull().default("never"),
+  stressTolerance: varchar("stress_tolerance").notNull().default("never"),
+  workPace: varchar("work_pace").notNull().default("never"),
+
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type RTWDutyDemandsDB = typeof rtwDutyDemands.$inferSelect;
+export type InsertRTWDutyDemands = typeof rtwDutyDemands.$inferInsert;
+
+// DB-05: RTW Plans Table - Formal return-to-work plans
+export const rtwPlans = pgTable("rtw_plans", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id),
+  caseId: varchar("case_id").notNull().references(() => workerCases.id, { onDelete: "cascade" }),
+  workerId: varchar("worker_id"),
+  roleId: varchar("role_id").references(() => rtwRoles.id),
+
+  planType: varchar("plan_type").notNull().default("graduated_return"), // normal_hours, partial_hours, graduated_return
+  status: varchar("status").notNull().default("draft"), // draft, pending, approved, rejected, modification_requested
+  version: integer("version").notNull().default(1),
+
+  startDate: timestamp("start_date"),
+  targetEndDate: timestamp("target_end_date"),
+  restrictionReviewDate: timestamp("restriction_review_date"),
+
+  createdBy: varchar("created_by").notNull().references(() => users.id),
+
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type RTWPlanDB = typeof rtwPlans.$inferSelect;
+export type InsertRTWPlan = typeof rtwPlans.$inferInsert;
+
+// DB-06: RTW Plan Versions Table - Version control for plans
+export const rtwPlanVersions = pgTable("rtw_plan_versions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  planId: varchar("plan_id").notNull().references(() => rtwPlans.id, { onDelete: "cascade" }),
+  version: integer("version").notNull(),
+  dataJson: jsonb("data_json").notNull(),
+  createdBy: varchar("created_by").notNull().references(() => users.id),
+  changeReason: text("change_reason"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type RTWPlanVersionDB = typeof rtwPlanVersions.$inferSelect;
+export type InsertRTWPlanVersion = typeof rtwPlanVersions.$inferInsert;
+
+// DB-07: RTW Plan Duties Table - Plan-duty assignments with suitability
+export const rtwPlanDuties = pgTable("rtw_plan_duties", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  planVersionId: varchar("plan_version_id").notNull().references(() => rtwPlanVersions.id, { onDelete: "cascade" }),
+  dutyId: varchar("duty_id").notNull().references(() => rtwDuties.id),
+  suitability: varchar("suitability").notNull(), // suitable, suitable_with_modification, not_suitable
+  modificationNotes: text("modification_notes"),
+  excludedReason: text("excluded_reason"),
+  manuallyOverridden: boolean("manually_overridden").default(false),
+  overrideReason: text("override_reason"),
+  overriddenBy: varchar("overridden_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type RTWPlanDutyDB = typeof rtwPlanDuties.$inferSelect;
+export type InsertRTWPlanDuty = typeof rtwPlanDuties.$inferInsert;
+
+// DB-08: RTW Plan Schedule Table - Week-by-week schedule
+export const rtwPlanSchedule = pgTable("rtw_plan_schedule", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  planVersionId: varchar("plan_version_id").notNull().references(() => rtwPlanVersions.id, { onDelete: "cascade" }),
+  weekNumber: integer("week_number").notNull(),
+  hoursPerDay: numeric("hours_per_day", { precision: 4, scale: 2 }).notNull(),
+  daysPerWeek: integer("days_per_week").notNull(),
+  dutiesJson: jsonb("duties_json").default(sql`'[]'::jsonb`),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type RTWPlanScheduleDB = typeof rtwPlanSchedule.$inferSelect;
+export type InsertRTWPlanSchedule = typeof rtwPlanSchedule.$inferInsert;
+
+// DB-09: RTW Approvals Table - Manager approval workflow
+export const rtwApprovals = pgTable("rtw_approvals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  planVersionId: varchar("plan_version_id").notNull().references(() => rtwPlanVersions.id, { onDelete: "cascade" }),
+  approverId: varchar("approver_id").notNull().references(() => users.id),
+  status: varchar("status").notNull(), // approved, rejected, modification_requested
+  reason: text("reason"),
+  modificationComments: text("modification_comments"),
+  notificationSent: boolean("notification_sent").default(false),
+  notificationSentAt: timestamp("notification_sent_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type RTWApprovalDB = typeof rtwApprovals.$inferSelect;
+export type InsertRTWApproval = typeof rtwApprovals.$inferInsert;
+
+// RTW Audit Event Types (DB-10 - extends existing auditEvents)
+export type RTWAuditEventType =
+  | "rtw_plan_created"
+  | "rtw_plan_updated"
+  | "rtw_plan_submitted"
+  | "rtw_plan_approved"
+  | "rtw_plan_rejected"
+  | "rtw_plan_modification_requested"
+  | "rtw_duty_override"
+  | "rtw_role_created"
+  | "rtw_role_updated"
+  | "rtw_duty_created"
+  | "rtw_duty_updated";
+
+// Zod schemas for RTW Planner
+export const insertRTWRoleSchema = createInsertSchema(rtwRoles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertRTWDutySchema = createInsertSchema(rtwDuties).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertRTWDutyDemandsSchema = createInsertSchema(rtwDutyDemands).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertRTWPlanSchema = createInsertSchema(rtwPlans).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertRTWPlanVersionSchema = createInsertSchema(rtwPlanVersions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertRTWPlanDutySchema = createInsertSchema(rtwPlanDuties).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertRTWPlanScheduleSchema = createInsertSchema(rtwPlanSchedule).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertRTWApprovalSchema = createInsertSchema(rtwApprovals).omit({
+  id: true,
+  createdAt: true,
+});
