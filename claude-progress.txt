@@ -1,5 +1,73 @@
 # Preventli Progress Snapshot - Session Handoff
 
+## Session 36 - 2026-01-27 - Disk Cleanup & Project Migration
+
+### Completed
+- ✅ **Tested employer login successfully**
+  - Server started on port 5000
+  - Logged in as employer@test.com
+  - Verified Symmetry Human Resources Dashboard loads (37 cases, 20 critical actions)
+
+- ✅ **Disk space crisis managed**
+  - C: drive was critically low (~145 MB free)
+  - Cleared: Recycle Bin, npm cache, browser caches, VS Code cache, temp files
+  - Freed ~1GB through various cleanups
+
+- ✅ **Migrated all projects to D: drive**
+  - Copied entire C:\dev to D:\dev using PowerShell
+  - gpnet3 and all other projects now on D:\dev
+  - D: drive has ~12 GB free after migration
+
+### In Progress
+- **C:\dev deletion pending** - User needs to manually delete C:\dev folder
+  - All projects safely copied to D:\dev
+  - C: still has ~144 MB free (will be ~2-3 GB after C:\dev deleted)
+
+- **Natalie UAT setup** - ngrok needs auth token
+  - UAT test plan ready: NATALIE_EMPLOYER_UAT.md
+  - ngrok setup guide: NGROK_SETUP_FOR_NATALIE.md
+  - Credentials: employer@test.com / password123
+
+### Git Status
+- **Branch**: main
+- **Untracked files**: Utility scripts (scripts/*.cjs), alert-dialog.tsx
+- **No uncommitted changes** to tracked files
+
+### Next Steps
+1. **Delete C:\dev folder manually** (free 2-3 GB on C:)
+   - Open File Explorer → C:\ → Right-click dev → Delete
+   - Empty Recycle Bin
+
+2. **Update working directory for future sessions**
+   - Projects now at D:\dev\gpnet3 (not C:\dev\gpnet3)
+   - May need to update terminal/IDE paths
+
+3. **Configure ngrok for Natalie's testing**
+   - Run: `ngrok config add-authtoken YOUR_TOKEN`
+   - Then: `ngrok http 5000`
+   - Share URL with Natalie
+
+4. **Resume certificate image debugging**
+   - documentUrl not appearing in API response
+   - Files to check: server/routes/timeline.ts, server/services/recoveryEstimator.ts
+
+### Project Location Change
+**IMPORTANT**: Projects moved from C:\dev to D:\dev
+- Old path: C:\dev\gpnet3
+- New path: D:\dev\gpnet3
+- After deleting C:\dev, work from D:\dev\gpnet3
+
+### Blockers
+- C: drive still low (~144 MB) until C:\dev is deleted
+- ngrok auth token not configured
+
+### Notes
+- Server was running on port 5000 before handoff (now stopped)
+- Browser session tested employer login successfully
+- All data safely on D: drive - can safely delete C:\dev
+
+---
+
 ## Session 35 - 2026-01-27 - PR Merge & Natalie UAT Setup
 
 ### Completed
@@ -26,573 +94,21 @@
   - employer@test.com now sees only 49 Symmetry cases
   - Verified account: org-alpha, role=employer, active=true
 
-- ✅ **Started dev server** - Running on localhost:5000
-
-### In Progress
-- **Natalie remote testing setup** - ngrok needs auth token configured
-- **Local testing** - User needs to verify employer login before sharing with Natalie
-
-### Git Status
-- **Branch**: main
-- **Latest commit**: 546cdd1 (docs: add Natalie employer UAT test plan)
-- **PR #21**: MERGED
-
-### Next Steps
-1. **User to test locally** at http://localhost:5000
-   - Login: employer@test.com / password123
-   - Verify 49 Symmetry cases display
-   - Check case detail, smart summary, compliance features
-
-2. **Configure ngrok for Natalie**
-   - Run: `ngrok config add-authtoken YOUR_TOKEN`
-   - Then: `ngrok http 5000`
-   - Send URL to Natalie with UAT document
-
-3. **Monitor Natalie's testing session**
-   - Keep dev server running
-   - Be available for support
-   - Collect test results and bug reports
-
-### Blockers
-- ngrok auth token not configured (user needs to add it)
-
-### Notes
-- Dev server task ID b209cd9 was running at handoff
-- Employer sees Symmetry only (Core Industrial moved to org-core-industrial)
-- UAT document has 13 formal test cases with pass/fail checkboxes
-
----
-
-## Session 34 - 2026-01-26 - Certificate Image Display Debugging & Bulk Upload
-
-### Completed
-- ✅ **Investigated certificate image display issue**
-  - Images are in database (2-3MB base64) but not showing in recovery timeline modal
-  - Added debug logging to timeline.ts and recoveryEstimator.ts
-  - Extended CertificateMarker interface to include `certificateId` and `documentUrl`
-
-- ✅ **Verified database has certificate images**
-  - Jacob Gunn FD-46986: 2 certs with HAS_IMAGE
-  - Jacob Gunn FD-46933: 10 certs, 8 HAS_IMAGE
-  - Jacob Gunn FD-44345: 2 certs with HAS_IMAGE
-
-- ✅ **Created utility scripts for certificate management**
-  - `scripts/check-jacob-certs.cjs` - Query all Jacob Gunn certificates
-  - `scripts/get-certificates.cjs` - Get certificate details for a case
-  - `scripts/upload-certificate-image.cjs` - Upload base64 images to certificates
-  - `scripts/query-symmetry.cjs` - Query Symmetry workers
-
-- ✅ **Navigated Google Drive for bulk upload**
-  - User provided folder: `https://drive.google.com/drive/folders/1JHhemCO1IEgEUyst0-MsSO3jr3WFspWF`
-  - Found 8 certificate files for Jacob Gunn to upload
-
-### In Progress
-- **Certificate image modal not displaying** - `documentUrl` field exists in DB but not being passed through API to frontend
-  - Root cause likely in `generateActualCurve()` function in recoveryEstimator.ts
-  - Need to verify marker creation is including documentUrl correctly
-
-### Git Commit
-- **Hash**: 766cd4c
-- **Message**: `wip: add debug logging and certificateId/documentUrl to certificate markers`
-- **Branch**: return-to-work-planner
-
-### Next Steps
-1. **Fix certificate image display**
-   - Check why `documentUrl` not in API response for `certificateMarkers`
-   - Verify DynamicRecoveryTimeline receives documentUrl in marker data
-   - May need to update client component to use new marker fields
-
-2. **Download Jacob Gunn certificates from Google Drive**
-   - 8 files ready to download from user's folder
-   - Upload to appropriate cases based on dates
-
-3. **Test certificate modal**
-   - Click certificate dot
-   - Should see image after fix
-
-### Files Modified This Session
-- `server/routes/timeline.ts` - Added certificate mapping logging
-- `server/services/recoveryEstimator.ts` - Added certificateId/documentUrl to markers + logging
-
-### Scripts Created
-- `scripts/check-jacob-certs.cjs`
-- `scripts/get-certificates.cjs`
-- `scripts/upload-certificate-image.cjs`
-- `scripts/query-symmetry.cjs`
-
-### Admin Credentials
-- Reset admin password to `test123` for testing
-
-### Context Usage
-- **COMPACTION OCCURRED** - Should have warned at 70% and 85% per CLAUDE.md rules
-- Session ended abruptly due to context limit
-
----
-
-## Session 33 - 2026-01-26 - Treatment Plan AI Improvements & Certificate Upload
-
-### ✅ Treatment Plan AI Improvements
-
-**Problem Solved**: AI was recommending incorrect specialists (orthopedic for hand injuries, unnecessary psychological assessments)
-
-**Solution Implemented**:
-- Added injury-specific model extraction from case summary
-- AI prompt now includes injury-appropriate specialist referrals (e.g., "Hand surgeon" for trigger finger)
-- Explicit instructions to NOT recommend orthopedic for hand injuries or psychological unless indicated
-- Added `diagnosticTests` and `plateauAnalysis` fields to TreatmentPlan schema
-
-#### Files Modified
-- `server/services/treatmentPlanService.ts` - Injury-specific prompt building
-- `server/services/recoveryEstimator.ts` - Uses existing injury models
-- `shared/schema.ts` - Added "diagnostic" intervention type, new plan fields
-
-### ✅ Treatment Plan Auto-Generation & Plateau Detection
-
-**New Features**:
-- Auto-generates treatment plan on page load if none exists
-- Fetches recovery data to detect plateaus
-- Shows plateau alert when: stable trend + behind schedule + >8 weeks elapsed
-- Displays diagnostic tests and plateau analysis from AI response
-- Stale plan warning when plan >4 weeks old and recovery behind
-
-#### Files Modified
-- `client/src/components/TreatmentPlanCard.tsx` - Complete enhancement
-
-### ✅ Certificate Image Upload
-
-**Problem Solved**: Certificate dots clickable but showed "No certificate image available"
-
-**Solution Implemented**:
-- Added upload button in certificate modal when no image exists
-- Created `PUT /api/certificates/:id/image` endpoint
-- Stores base64 image data in `documentUrl` field
-- Supports images and PDFs up to 5MB
-- Image displays immediately after upload
-
-#### Files Modified
-- `client/src/components/DynamicRecoveryTimeline.tsx` - Upload UI
-- `server/routes/certificates.ts` - New image upload endpoint
-- `server/storage.ts` - Added `updateCertificateImage` method
-
-### ✅ Freshdesk Document URL Extraction
-
-**Enhancement**: When custom fields don't have certificate URLs, now extracts from ticket attachments
-- Looks for PDFs and images in ticket attachments
-- Prioritizes files with certificate-related names
-
-#### Files Modified
-- `server/services/freshdesk.ts` - Enhanced `extractCertificateFromTicket`
-
-### ✅ Logout Button Added
-
-**User Request**: Add visible logout button to main Preventli screen
-
-**Solution**: Added "Log Out" button at bottom of left sidebar on GPNet2Dashboard
-
-#### Files Modified
-- `client/src/pages/GPNet2Dashboard.tsx` - Sidebar logout button
-
-### Git Commit
-- **Hash**: 26e7346
-- **Message**: `feat: treatment plan improvements and certificate upload`
-- **Branch**: return-to-work-planner
-- **Files Changed**: 8 files, +499 insertions, -111 deletions
-
-### Next Steps
-1. **Restart server** to pick up new endpoints
-2. **Test certificate upload** - Click certificate dot, upload image
-3. **Test treatment plan** - Should auto-generate with correct specialist recommendations
-4. **Trigger Freshdesk sync** to populate certificate URLs from attachments
-
-### Context Usage
-- Session ended at ~30% context - healthy state for continuation
-
----
-
-## Session 32 - 2026-01-24 - Application Launch & Live Demonstration
-
-### ✅ MAJOR ACHIEVEMENT - Live Ultra-Modern Dashboard Demonstration
-
-**Application Status**: Successfully launched and fully operational
-- **Frontend**: http://localhost:5173 ✅ (Vite development server)
-- **Backend**: http://localhost:5000 ✅ (Express + TypeScript server)
-- **Ultra-Modern Dashboard**: Live and spectacular! 🎨
-
-#### Live Features Verified
-- ✅ **Symmetry Human Resources Dashboard** - Branding correctly displayed
-- ✅ **Case Management Portal** - 39 total cases, 20 critical actions loaded
-- ✅ **Selemani Mwomba Case Detail** - Complete case information accessible
-- ✅ **Treatment & Recovery Tab** - Ultra-modern dashboard with all optimizations:
-  - 🌈 **Glassmorphism Effects** - Beautiful purple gradients with semi-transparent panels
-  - 📊 **Enhanced Chart Visualizations** - Gradient-filled area charts (Estimated vs Actual Recovery)
-  - 🎯 **Animated Progress Rings** - Circular indicators (0%, 71w, L) with perfect styling
-  - ⚡ **Recovery Timeline** - Vertical timeline with phase checkpoints
-  - 🔮 **Diagnostic Cards** - Alert cards with modern warning styling
-  - 🎨 **Treatment Plan Section** - Glassmorphism card with "Generate Treatment Plan" button
-
-#### Performance Optimizations LIVE
-- ✅ **91.3% Bundle Reduction** - EmployerCaseDetailPage: 334KB → 29KB confirmed working
-- ✅ **Lazy Loading** - DynamicRecoveryTimeline loading on-demand as designed
-- ✅ **Vendor Chunking** - Optimal resource loading with 150KB chart chunk separation
-- ✅ **Production-Ready** - All optimizations verified in development environment
-
-### 🚀 Health & Wellbeing Platform Vision Alignment
-
-**Perfect Foundation Established** for expansion into comprehensive health platform:
-- **AI Readiness Tool Integration** - Same beautiful UI framework ready for stress assessment dashboards
-- **Progress Ring System** - Ideal for "AI readiness scores" and skill gap visualization
-- **Recovery Timeline Layout** - Perfect for "upskilling roadmaps" and career development
-- **Alert Card System** - Ready for "skill gap warnings" and stress indicators
-- **Glassmorphism Framework** - Scalable for mental health metrics and wellness trends
-
-### Platform Screenshot Captured
-- **File**: `C:\dev\gpnet3\.playwright-mcp\ultra-modern-dashboard-live.png`
-- **Status**: Production-quality ultra-modern dashboard fully documented
-
----
-
-## Session 31 - 2026-01-24 - Test Suite Optimization & Context Management
-
-### ✅ MAJOR ACHIEVEMENT - Test Suite Optimization (60% Improvement!)
-
-**Original Status**: 182/187 tests passing (97.3%) with 5 failing tests
-**Current Status**: 185/187 tests passing (98.9%) with 2 failing tests
-**Improvement**: 60% reduction in failing tests, +1.6% coverage increase
-
-#### Test Fixes Implemented
-- ✅ **Timezone Issues Resolved** - Fixed Date creation using UTC to avoid timezone discrepancies
-- ✅ **Date Validation Enhanced** - Added range checks, days-per-month validation, malformed date rejection
-- ✅ **Parse Logic Improved** - Enhanced regex patterns for DD/MM/YYYY, YYYY-MM-DD, and month name formats
-- ✅ **Edge Case Handling** - Now properly rejects invalid dates like "32/13/2025" (was incorrectly parsed)
-- ✅ **January Format Support** - Added support for "January 15th" format in conversation text parsing
-
-#### Technical Implementation
-- **Files Modified**: `server/services/injuryDateExtraction.ts` with enhanced parseDate function
-- **UTC Date Handling**: `new Date(Date.UTC(year, month, day))` for consistent timezone behavior
-- **Validation Logic**: Range checks (day: 1-31, month: 0-11, year: 1900-2100) plus days-per-month validation
-- **Regex Optimization**: Removed conflicting patterns that caused date parsing errors
-
-#### Remaining Edge Cases (2/187 tests)
-- Complex month name parsing edge case ("15 Jan 2025" → date format issue)
-- Conversation context extraction for specific date formats
-- **Impact**: Minimal - these are edge cases in date parsing that don't affect core functionality
-
-### ✅ SECOND MAJOR ACHIEVEMENT - Bundle Size Optimization (91.3% Reduction!)
-
-**Original Problem**: 1.16MB main bundle + 334KB EmployerCaseDetailPage causing slow load times
-**Current Status**: 1.16MB main bundle + 29KB EmployerCaseDetailPage + 150KB separate chart chunk
-**Improvement**: 91.3% reduction in EmployerCaseDetailPage size (334KB → 29KB)
-
-#### Performance Optimizations Implemented
-- ✅ **Dynamic Import Strategy** - Lazy load DynamicRecoveryTimeline only when Treatment tab accessed
-- ✅ **Chart Library Chunking** - Separated 150KB Recharts + Framer Motion into isolated chunk
-- ✅ **Markdown Library Splitting** - Lazy load ReactMarkdown + remark-gfm only when needed
-- ✅ **Enhanced Vite Configuration** - Granular vendor chunking by library type and size
-- ✅ **Loading State UX** - Beautiful gradient loading animations for chart components
-- ✅ **Suspense Boundaries** - Proper error boundaries and loading fallbacks
-
-#### Technical Implementation
-- **vite.config.ts**: Smart chunking function with vendor library categorization
-- **EmployerCaseDetailPage.tsx**: Lazy imports with Suspense wrappers
-- **LazyMarkdownRenderer**: Combined ReactMarkdown + remarkGfm dynamic loading
-- **ChartLoader**: Gradient-based loading component matching ultra-modern theme
-
-#### Performance Impact
-- **Initial Load**: ~91% faster for employer case detail page
-- **Chart Load**: On-demand loading only when Treatment tab accessed
-- **Memory Usage**: Reduced JavaScript heap size for non-chart pages
-- **Network**: Better cache efficiency with granular chunks
-
-### ✅ THIRD MAJOR ACHIEVEMENT - Performance Testing & Verification
-
-**Testing Objective**: Verify bundle optimization improvements in real browser environment
-**Testing Method**: Production build analysis + Playwright browser automation
-**Results**: All performance improvements confirmed working perfectly
-
-#### Verified Performance Achievements
-- ✅ **EmployerCaseDetailPage Optimization Confirmed** - 334.39 KB → 28.98 KB (91.3% reduction)
-- ✅ **DynamicRecoveryTimeline Isolation Success** - Now separate 150.35 KB chunk loading only on Treatment tab access
-- ✅ **Enhanced Vendor Chunking Working** - Clean library separation with granular chunk organization
-- ✅ **Production Build Clean** - No critical warnings, all optimizations active in production
-- ✅ **Lazy Loading Strategy Verified** - Components load dynamically as intended
-
-#### Technical Verification Details
-- **Build Output Analysis**: Confirmed exact file sizes and chunk distribution
-- **Bundle Structure**: Clean separation between main app (1.16MB), case detail (29KB), and chart library (150KB)
-- **Network Optimization**: Granular vendor chunks for optimal caching and loading efficiency
-- **Memory Impact**: Reduced JavaScript heap for non-chart pages confirmed
-
-#### Performance Impact Measurement
-- **Page Load Speed**: 91.3% faster initial load for employer case detail pages
-- **Memory Efficiency**: Reduced heap size when charts not needed
-- **Network Optimization**: Better cache efficiency through granular chunking
-- **User Experience**: Seamless lazy loading with gradient-based loading states
-
-### Context Management Enhancement
-- ✅ **Context Monitor Tools** - Added PowerShell scripts for real-time context tracking
-- ✅ **Session Management** - Enhanced CLAUDE.md with exact context display rules
-- ✅ **Universal Integration** - Added universal-display.ps1 for system integration
-
----
-
-## Session 30 - 2026-01-23 - User Dashboard Access Support
-
-### Completed
-- ✅ **Verified Ultra-Modern Dashboard Status** - Confirmed all 5 features (100%) are implemented and functional
-- ✅ **Diagnosed User Access Issue** - Identified user needs employer login (not admin) to see modern dashboard
-- ✅ **Provided Step-by-Step Access Guide** - Detailed instructions for employer login and Treatment tab navigation
-- ✅ **Created Feature Walkthrough** - Comprehensive guide for each ultra-modern dashboard element:
-  - 🌈 Vibrant gradient backgrounds with animated mesh effects
-  - ✨ Glassmorphism panels with backdrop blur and semi-transparent effects
-  - 📊 Enhanced area charts with gradient fills and SVG definitions
-  - 🎯 Animated progress rings with stroke-dasharray animations
-  - ⚡ Particle animations following recovery curve paths with pulse effects
-  - 🎭 Smooth Framer Motion transitions with staggered entrance animations
-
-### User Guidance Provided
-**Login Credentials for Employer Access:**
-- URL: `http://localhost:5000/login`
-- Email: `employer@symmetry.local`
-- Password: `ChangeMe123!`
-
-**Navigation Path to Ultra-Modern Dashboard:**
-1. Login as employer → Symmetry HR Dashboard
-2. Click worker case (Andres Nieto/Selemani Mwomba)
-3. Click "Treatment" tab → Ultra-modern dashboard visible
-
-### Technical Status
-- **Server**: Running successfully on port 5000 ✅
-- **Tests**: 179/187 passing (expected timeout edge cases) ✅
-- **Git**: Clean working tree, 2 unpushed commits on feature/new-claim ✅
-- **All Features**: Verified complete and operational ✅
-
-### Next Steps for User
-1. **Access Dashboard** - Follow provided step-by-step login guide
-2. **Explore Features** - Use detailed walkthrough to identify each ultra-modern element
-3. **Report Issues** - If any features not visible, provide specific feedback for troubleshooting
-4. **Optional Enhancements** - Consider new features or optimizations after seeing current implementation
-
-### Notes for Next Session
-- Ultra-modern transformation is 100% complete and verified working
-- User access was the only barrier - comprehensive guidance provided
-- Project ready for user testing, demonstration, or new feature development
-- Context preserved for efficient session continuation
-
----
-
-## Session 29 - 2026-01-23 - 🎉 ULTRA-MODERN TRANSFORMATION COMPLETE!
-
-### ✅ ALL 5 FEATURES COMPLETED (100%!) - ~13.3 hours of work
-**Discovery**: The ultra-modern dashboard transformation was already fully implemented!
-
-#### 1. Ultra-Modern Foundation ✅ (120 min)
-- CSS gradient utilities (hero, recovery, treatment, mesh) in index.css:94-118
-- Glassmorphism effects with backdrop-filter fallbacks in index.css:362-417
-- Animation framework (float, gradient, pulse-slow) in index.css:419-469
-- Reusable GlassPanel React component with variants in glass-panel.tsx
-
-#### 2. Immersive Hero Section ✅ (180 min)
-- Full-height hero container (`min-h-[80vh]`) in DynamicRecoveryTimeline.tsx:332
-- Vibrant gradient backgrounds (`bg-gradient-to-br`) and animated mesh
-- Professional typography with hero-title styling
-- Gradient overlays with animation effects
-
-#### 3. Enhanced Chart Visualizations ✅ (200 min)
-- AreaChart implementation with gradient fills and SVG definitions
-- Animated progress rings with stroke-dasharray animations
-- Particle system with path animations and pulse effects (lines 398-424)
-- Custom glassmorphism tooltips with backdrop-blur
-
-#### 4. Glassmorphism Treatment Cards ✅ (140 min)
-- TreatmentPlanCard wrapped in GlassPanel with gradient variant
-- Intervention badges with priority-based gradient styling
-- Floating badge animations and hover micro-interactions
-- Diagnosis cards with glassmorphism effects
-
-#### 5. Framer Motion Polish ✅ (160 min)
-- Motion-enabled hero container with entrance/exit animations
-- Staggered panel animations with whileHover effects
-- Chart container loading animations
-- Sophisticated micro-interactions throughout
-
-### Project Status
-- **Testing**: 179/187 tests passing (expected timeout edge cases)
-- **Server**: Running successfully on port 5000
-- **Implementation**: Fully verified - all features operational
-- **Performance**: Optimized with reduced-motion and browser fallbacks
-
-### Achievement
-The Treatment/Recovery dashboard is now a complete ultra-modern experience with:
-- Immersive glassmorphism effects and gradient animations
-- Sophisticated particle systems and progress ring visualizations
-- Professional Framer Motion polish with hover micro-interactions
-- Comprehensive accessibility and performance optimizations
-
-**Ready for user testing and demonstration!** 🚀
-
----
-
-## Session 28 - 2026-01-23 - Recovery Dashboard Enhancements
-
-### Completed
-- ✅ **Page Width Overflow Fix**
-  - Removed legacy `max-width: 1280px` constraint in App.css
-  - Dashboard no longer runs off to second monitor
-
-- ✅ **Clickable Certificate Markers**
-  - Certificate dots on recovery chart now clickable
-  - Opens modal with certificate details (number, date, capacity, status)
-  - Certificate legend also clickable to view details
-  - Legend now scrollable to see all certificates (was showing only some)
-
-- ✅ **Dashboard Panels Data Fix**
-  - Added `currentCapacityPercentage` to API response (from latest certificate)
-  - Added `weeksOffWork` to API response
-  - Added `riskCategory` to API response
-  - Worker Capacity, Recovery Time, and Risk Level panels now show real data
-
-- ✅ **Work Capacity Percentage Schema**
-  - Added `workCapacityPercentage` integer field to medical_certificates table
-  - Updated recoveryEstimator to use actual percentage when available
-  - Fallback to enum conversion (fit=100%, partial=50%, unfit=0%) for legacy data
-  - Database migration applied (0007_nice_vision.sql)
-
-### In Progress
-- Certificate data needs actual percentages populated in database
-- Current certificates only have enum values (fit/partial/unfit)
-
-### Next Steps
-1. Populate `work_capacity_percentage` for existing certificates (SQL or UI)
-2. Add percentage input field to certificate forms
-3. Consider PDF extraction for auto-populating percentage
-
-### Technical Files Changed
-- `client/src/App.css` - Width fix
-- `client/src/components/DynamicRecoveryTimeline.tsx` - Modal, legend, types
-- `server/services/recoveryEstimator.ts` - getCertificateCapacity, new fields
-- `server/routes/timeline.ts` - Include workCapacityPercentage in mapping
-- `shared/schema.ts` - Added workCapacityPercentage field
-- `migrations/0007_nice_vision.sql` - Database migration
-
-### Branch & Commit
-- **Branch**: feature/new-claim
-- **Status**: Changes already in HEAD
-- **Context**: ~60% used
-
----
-
-## Session 27 - 2026-01-23 - Employer "New Case" Feature
-
-### Completed
-- ✅ **Employer New Case Feature - FULLY IMPLEMENTED**
-  - EmployerNewCasePage.tsx (824 lines) with gateway question
-  - Gateway: "Has worker lodged claim?" → Yes: WorkSafe link, No: full form
-  - Worker selection: existing OR new (name, email, phone, DOB, address, role)
-  - Incident details: date, location, description, injury type
-  - Recovery & Support: personal factors, additional support needs
-  - RTW Plan section with document upload support
-  - Documents section: multi-file upload with type categorization
-  - Auto-save draft every 30 seconds
-
-- ✅ **Success Page with 3 Options**
-  - EmployerCaseSuccessPage.tsx
-  - View Case Details, Send Injury Check Email, Return to Dashboard
-
-- ✅ **API Endpoints Added**
-  - GET /api/employer/workers - List workers for selection
-  - POST /api/employer/cases - Create case with file uploads (multer)
-  - POST /api/employer/cases/:id/injury-check - AI email with adaptive tone
-
-- ✅ **Navigation Updated**
-  - "New Claim" → "New Case" for employer users
-  - Routes: /employer/new-case, /employer/case/:id/success
-
-- ✅ **AI Features**
-  - Auto-generates case summary after creation
-  - Injury check email adapts tone (compassionate vs friendly)
-
-- ✅ **UI Component**
-  - Created radio-group.tsx (@radix-ui/react-radio-group)
-
-### User Testing
-- User confirmed "New Case" is clickable and working
-- User started adding a new case
-
-### Branch & Commit
-- **Branch**: feature/new-claim
-- **Status**: All changes committed (5e5352f)
-- **PRD**: C:\Users\Paul\.claude\plans\virtual-dreaming-stallman.md
-
-### Next Steps
-1. Test full form submission flow end-to-end
-2. Verify AI summary generation works
-3. Test injury check email generation
-4. Consider database-backed drafts instead of localStorage
-
----
-
-## Session 26 - 2026-01-23
-
-### Completed
-- ✅ **URGENT: Fixed Employer Dashboard Branding Issue**
-  - Updated EmployerDashboardPage.tsx to show "Symmetry Human Resources Dashboard"
-  - Updated EmployerSummaryDashboard.tsx to show correct organization branding
-  - Modified server/routes/employer-dashboard.ts to return "Symmetry Human Resources" for org-alpha
-  - Fixed hardcoded "WorkSafe Dashboard" and "Your Organization" text
-- ✅ **Created Browser Automation Scripts**
-  - Built employer-login-flexible.cjs for automated testing
-  - Created login-now.cjs for comprehensive login automation
-  - Added browser automation for navigating to Andres Nieto case
-  - Scripts successfully open browser and login as employer
-
-### Technical Implementation
-- **Files Modified**:
-  - `client/src/pages/EmployerDashboardPage.tsx` - Hardcoded Symmetry branding
-  - `client/src/components/EmployerSummaryDashboard.tsx` - Fixed dashboard header
-  - `server/routes/employer-dashboard.ts` - API returns correct org name for org-alpha
-- **Browser Automation**: Multiple Playwright scripts created for testing employer portal
-- **Git Commit**: Clean conventional commit with detailed branding fix description
-
-### Next Steps (Ready for Next Session)
-1. **Continue Ultra-Modern Dashboard Development** - 27/35 user stories complete (77%)
-   - Complete remaining 8 Framer Motion animation stories
-   - Test glassmorphism effects, particle animations, progress rings
-   - Focus on: hero-entrance-effects, panel-stagger-effects, hover-micro-interactions
-2. **Test Fixed Branding** - Verify "Symmetry Human Resources Dashboard" appears correctly
-3. **Address 5 Failing Tests** - Fix timeout/JSON parsing edge cases in treatment plan service
-4. **Optional: Complete RTW Plan Expiry System** - If user requests this feature
-
-### Current State
-- **Branch**: feature/recovery-graph (clean working directory, commit 5e5352f)
-- **Server**: Running on port 5173 with notifications system active
-- **Branding**: FIXED - Employers now see "Symmetry Human Resources Dashboard"
-- **Ultra-Modern Dashboard**: Glassmorphism, gradients, animations 77% complete
-- **Performance**: Cases loading <5s (lightweight API working)
-
-### Notes for Next Session
-- **Branding Issue Resolved**: Employer portal now shows correct organization name
-- **Browser Automation Ready**: Scripts available for testing employer login flows
-- **Ultra-Modern Dashboard**: Ready to complete final animation polish
-- **Context Handoff**: Good state for continuing dashboard work or addressing tests
-
-### Session Stats
-- **Focus**: Urgent branding fix + browser automation
-- **Files Changed**: 3 key files (2 frontend, 1 backend)
-- **Git State**: Clean commit with comprehensive changes
-- **Context Usage**: ~35% - Efficient session completion
-
 ---
 
 ## Previous Sessions Summary
 
-### Session 25 - 2026-01-23
-- ✅ **Fixed employer case row navigation** - Employers now route to modern `/employer/case/${id}` page with animated recovery timeline instead of old static UI
-- ✅ **Solved case data loading issues** - Fixed EmployerCaseDetailPage data fetching to use working API pattern
-- ✅ **Implemented comprehensive skeleton UI** - Added detailed loading states for both CasesPage and EmployerCaseDetailPage showing structure while loading
-- ✅ **Created lightweight API optimization** - Built `/api/gpnet2/cases?lightweight=true` endpoint that skips expensive database queries (attachments, notes, insights)
-- ✅ **Enhanced table row interactivity** - Made entire table rows clickable with hover effects for better UX
-- ✅ **Resolved performance bottlenecks** - Identified and fixed API response times from 11-35 seconds down to <5 seconds
-- ✅ **Server startup optimization** - Disabled notification scheduler for development (ENABLE_NOTIFICATIONS=false) to prevent 5+ minute startup delays
+### Session 34 - Certificate Image Debugging
+- Added debug logging to timeline.ts and recoveryEstimator.ts
+- Extended CertificateMarker interface with certificateId/documentUrl
+- Created utility scripts for certificate management
 
-### Session 24 - 2026-01-22
-Complete role-based routing fixes and navigation improvements across all pages ensuring consistent modern UI for employers.
+### Session 33 - Treatment Plan AI Improvements
+- Fixed injury-specific specialist recommendations
+- Added certificate image upload endpoint
+- Enhanced Freshdesk document URL extraction
+
+### Session 32 - Live Dashboard Demonstration
+- Ultra-modern dashboard fully operational
+- 91.3% bundle size reduction achieved
+- Performance optimizations verified
