@@ -1,5 +1,68 @@
 # Preventli Progress Snapshot - Session Handoff
 
+## Session 35 - 2026-01-27 - PR Merge & Natalie UAT Setup
+
+### Completed
+- ✅ **Merged RTW Planner PR #21 to main**
+  - 23 commits, 48 files, +11,887 lines
+  - RTW Planner Engine with database schema
+  - Admin Roles & Duties CRUD (API + UI)
+  - Treatment plan improvements
+  - Certificate upload features
+
+- ✅ **Codebase stats**: ~59,300 lines of TypeScript
+  - Server: 30,413 lines
+  - Client: 25,722 lines
+  - Shared: 1,919 lines
+  - Tests: 1,295 lines
+
+- ✅ **Created formal UAT test plan for Natalie**
+  - `NATALIE_EMPLOYER_UAT.md` - 13 test cases across 5 modules
+  - `NGROK_SETUP_FOR_NATALIE.md` - Remote access setup guide
+  - `scripts/verify-employer.cjs` - Employer account verification
+
+- ✅ **Fixed employer account for Symmetry-only testing**
+  - Moved 2 Core Industrial cases to separate org
+  - employer@test.com now sees only 49 Symmetry cases
+  - Verified account: org-alpha, role=employer, active=true
+
+- ✅ **Started dev server** - Running on localhost:5000
+
+### In Progress
+- **Natalie remote testing setup** - ngrok needs auth token configured
+- **Local testing** - User needs to verify employer login before sharing with Natalie
+
+### Git Status
+- **Branch**: main
+- **Latest commit**: 546cdd1 (docs: add Natalie employer UAT test plan)
+- **PR #21**: MERGED
+
+### Next Steps
+1. **User to test locally** at http://localhost:5000
+   - Login: employer@test.com / password123
+   - Verify 49 Symmetry cases display
+   - Check case detail, smart summary, compliance features
+
+2. **Configure ngrok for Natalie**
+   - Run: `ngrok config add-authtoken YOUR_TOKEN`
+   - Then: `ngrok http 5000`
+   - Send URL to Natalie with UAT document
+
+3. **Monitor Natalie's testing session**
+   - Keep dev server running
+   - Be available for support
+   - Collect test results and bug reports
+
+### Blockers
+- ngrok auth token not configured (user needs to add it)
+
+### Notes
+- Dev server task ID b209cd9 was running at handoff
+- Employer sees Symmetry only (Core Industrial moved to org-core-industrial)
+- UAT document has 13 formal test cases with pass/fail checkboxes
+
+---
+
 ## Session 34 - 2026-01-26 - Certificate Image Display Debugging & Bulk Upload
 
 ### Completed
