@@ -85,21 +85,29 @@ export function registerTimelineRoutes(app: Express) {
         .orderBy(desc(medicalCertificates.startDate));
 
       // Map to MedicalCertificate interface
-      const certificates: MedicalCertificate[] = certificateRows.map((row) => ({
-        id: row.id,
-        caseId: row.caseId,
-        issueDate: row.issueDate?.toISOString() ?? row.startDate.toISOString(),
-        startDate: row.startDate.toISOString(),
-        endDate: row.endDate.toISOString(),
-        capacity: row.capacity as WorkCapacity,
-        workCapacityPercentage: row.workCapacityPercentage ?? undefined,
-        notes: row.notes ?? undefined,
-        source: (row.source as "freshdesk" | "manual") ?? "freshdesk",
-        documentUrl: row.documentUrl ?? undefined,
-        sourceReference: row.sourceReference ?? undefined,
-        createdAt: row.createdAt?.toISOString(),
-        updatedAt: row.updatedAt?.toISOString(),
-      }));
+      const certificates: MedicalCertificate[] = certificateRows.map((row) => {
+        const hasDocUrl = !!row.documentUrl;
+        logger.api.info("Certificate mapping", {
+          id: row.id,
+          hasDocUrl,
+          docUrlLen: row.documentUrl?.length
+        });
+        return {
+          id: row.id,
+          caseId: row.caseId,
+          issueDate: row.issueDate?.toISOString() ?? row.startDate.toISOString(),
+          startDate: row.startDate.toISOString(),
+          endDate: row.endDate.toISOString(),
+          capacity: row.capacity as WorkCapacity,
+          workCapacityPercentage: row.workCapacityPercentage ?? undefined,
+          notes: row.notes ?? undefined,
+          source: (row.source as "freshdesk" | "manual") ?? "freshdesk",
+          documentUrl: row.documentUrl ?? undefined,
+          sourceReference: row.sourceReference ?? undefined,
+          createdAt: row.createdAt?.toISOString(),
+          updatedAt: row.updatedAt?.toISOString(),
+        };
+      });
 
       // Evaluate clinical evidence to get flags
       const clinicalEvidence = evaluateClinicalEvidence(workerCase);

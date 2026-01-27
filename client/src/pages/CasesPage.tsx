@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { PageLayout } from "@/components/PageLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +20,7 @@ import { isLegitimateCase } from "@shared/schema";
 
 export default function CasesPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
@@ -183,7 +184,11 @@ export default function CasesPage() {
                   </TableRow>
                 ) : (
                   filteredCases.map((workerCase) => (
-                    <TableRow key={workerCase.id}>
+                    <TableRow
+                      key={workerCase.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => navigate(user?.role === "employer" ? `/employer/case/${workerCase.id}` : `/summary/${workerCase.id}`)}
+                    >
                       <TableCell className="font-medium">{workerCase.workerName}</TableCell>
                       <TableCell>{workerCase.company}</TableCell>
                       <TableCell>{workerCase.dateOfInjury}</TableCell>

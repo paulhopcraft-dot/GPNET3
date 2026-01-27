@@ -103,24 +103,6 @@ function EmployerDashboardContent() {
 
   return (
     <div className="space-y-6">
-      {/* Critical Actions Alert Bar */}
-      {criticalActions.length > 0 && (
-        <div className="bg-red-500 rounded-xl text-white p-6 shadow-lg animate-pulse">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <AlertTriangle className="w-6 h-6" />
-              <div>
-                <h2 className="text-lg font-bold">Critical Actions Required</h2>
-                <p className="text-red-100">
-                  {criticalActions.length} critical item{criticalActions.length !== 1 ? 's' : ''} need immediate attention
-                </p>
-              </div>
-            </div>
-            <ArrowRight className="w-6 h-6" />
-          </div>
-        </div>
-      )}
-
       {/* Statistics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="bg-white shadow-lg border-0 hover:shadow-xl transition-all duration-300">

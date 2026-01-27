@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { apiRequest } from "@/lib/queryClient";
 import type { WorkerCase, RTWPlanStatus, PaginatedCasesResponse } from "@shared/schema";
 import { isLegitimateCase } from "@shared/schema";
 
@@ -179,16 +180,11 @@ export default function RTWPlannerPage() {
       rtwPlanStatus: RTWPlanStatus;
       reason: string;
     }) => {
-      const response = await fetch(`/api/cases/${caseId}/rtw-plan`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ rtwPlanStatus, reason }),
-      });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to update RTW status");
-      }
+      const response = await apiRequest(
+        "PUT",
+        `/api/cases/${caseId}/rtw-plan`,
+        { rtwPlanStatus, reason }
+      );
       return response.json();
     },
     onSuccess: () => {

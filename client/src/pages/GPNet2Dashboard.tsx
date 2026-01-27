@@ -10,12 +10,14 @@ import { Button } from "@/components/ui/button";
 import { DashboardStats, type StatFilter } from "@/components/dashboard-stats";
 import { ActionQueueCard } from "@/components/ActionQueueCard";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { queryClient, fetchWithCsrf } from "@/lib/queryClient";
 import type { WorkerCase, PaginatedCasesResponse } from "@shared/schema";
 import { isLegitimateCase, getSurname } from "@shared/schema";
 import { Link } from "react-router-dom";
 
 export default function GPNet2Dashboard() {
+  const { logout } = useAuth();
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
@@ -207,7 +209,7 @@ export default function GPNet2Dashboard() {
   return (
     <div className="flex h-screen">
 
-      <aside className="hidden lg:block w-64 flex-shrink-0 bg-sidebar p-4 border-r border-sidebar-border">
+      <aside className="hidden lg:flex lg:flex-col w-64 flex-shrink-0 bg-sidebar p-4 border-r border-sidebar-border">
         <div className="mb-8">
           <div className="flex items-center gap-3">
             <div className="bg-primary/20 rounded-full size-10 flex items-center justify-center">
@@ -239,6 +241,18 @@ export default function GPNet2Dashboard() {
         </div>
 
         <CompanyNav companies={availableCompanies} selectedCompany={selectedCompany} onSelectCompany={setSelectedCompany} />
+
+        {/* Logout Button */}
+        <div className="mt-auto pt-4 border-t border-sidebar-border">
+          <Button
+            variant="ghost"
+            onClick={logout}
+            className="w-full justify-start gap-2 text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+          >
+            <span className="material-symbols-outlined text-lg">logout</span>
+            Log Out
+          </Button>
+        </div>
       </aside>
 
       <main className="flex-1 flex overflow-hidden">
