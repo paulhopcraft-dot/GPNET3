@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-25)
 ## Current Position
 
 Phase: 3 of 11 (Medical Integration)
-Plan: 1 of 2 - COMPLETE
-Status: Phase 3 in progress
-Last activity: 2026-01-28 - Completed 03-01-PLAN.md (schema + restriction extractor)
+Plan: 2 of 2 - COMPLETE (03-03 UI component)
+Status: Phase 3 COMPLETE
+Last activity: 2026-01-28 - Completed 03-03-PLAN.md (current restrictions UI panel)
 
-Progress: [####......] 40%
+Progress: [#####.....] 50%
 
 ## Current Status
 
@@ -31,7 +31,7 @@ Progress: [####......] 40%
 |-------|------|--------|-------|
 | 1 | Database Schema | COMPLETE | 1/1 |
 | 2 | Admin: Roles & Duties | COMPLETE | 5/5 |
-| 3 | Medical Integration | In Progress | 1/2 |
+| 3 | Medical Integration | COMPLETE | 2/2 |
 | 4 | Functional Ability Matrix | Pending | 0/0 |
 | 5 | Plan Generator | Pending | 0/0 |
 | 6 | Plan Output | Pending | 0/0 |
@@ -64,6 +64,9 @@ Progress: [####......] 40%
 | FunctionalRestrictionsExtracted extends base | Allows time limits and extraction metadata alongside capabilities | 3 |
 | Fire-and-forget extraction in pipeline | Extraction errors should not block certificate creation | 3 |
 | Edge case handling without LLM | Fit/unfit have deterministic mappings; saves API costs | 3 |
+| Category-based restriction grouping | Groups related demands for easier UI scanning | 3 |
+| Color coding (green/yellow/red/gray) | Consistent with app-wide status colors | 3 |
+| Inline weight limits | Shows max kg next to lifting/carrying for immediate context | 3 |
 
 ## Blockers/Concerns
 
@@ -77,15 +80,15 @@ None currently.
 
 ## Next Action
 
-**Continue Phase 3:** Medical Integration Plan 02
+**Start Phase 4:** Functional Ability Matrix
 
 Next steps:
-1. `/gsd:execute-phase 3.02` - Execute Plan 02 (API + UI for current restrictions)
-2. Plan 02 provides: API endpoint for current restrictions, UI component display
-3. After Plan 02: Phase 3 complete, ready for Phase 4
+1. `/gsd:plan 4` - Create Phase 4 plans (matrix evaluation, suitability calculation)
+2. Phase 4 will: Compare restrictions against duty demands, determine suitability
+3. After Phase 4: Ready for Phase 5 (Plan Generator)
 
-Completed phases: 1, 2, 11
-In progress: 3
+Completed phases: 1, 2, 3, 11
+In progress: None
 
 ## Roadmap Evolution
 
@@ -114,11 +117,12 @@ In progress: 3
 - 2026-01-28: Phase 2 Plan 04 previously EXECUTED - Duties UI pages (DutiesList, DutyForm, DemandMatrix)
 - 2026-01-28: Phase 2 Plan 05 VERIFIED - Code inspection confirms all ADMIN-01 to ADMIN-12 requirements implemented
 - 2026-01-28: Phase 3 Plan 01 EXECUTED - Schema update + restriction extractor service
+- 2026-01-28: Phase 3 Plan 03 EXECUTED - CurrentRestrictionsPanel UI component + restrictionUtils helpers
 
 ## Session Continuity
 
 Last session: 2026-01-28
-Stopped at: Phase 3 Plan 01 complete, ready for Plan 02
+Stopped at: Phase 3 COMPLETE, ready for Phase 4 planning
 Resume file: .planning/STATE.md
 
 ---
