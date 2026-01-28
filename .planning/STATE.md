@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-25)
 
 **Core value:** Automatically generate legally-defensible RTW plans from structured medical constraints and job duty data
-**Current focus:** Phase 3 - Medical Integration
+**Current focus:** Phase 4 - Functional Ability Matrix
 
 ## Current Position
 
-Phase: 3 of 11 (Medical Integration)
-Plan: 2 of 2 - COMPLETE (03-03 UI component)
-Status: Phase 3 COMPLETE
-Last activity: 2026-01-28 - Completed 03-03-PLAN.md (current restrictions UI panel)
+Phase: 4 of 11 (Functional Ability Matrix)
+Plan: 1 of ? - COMPLETE (04-01 core calculator)
+Status: Phase 4 IN PROGRESS
+Last activity: 2026-01-28 - Completed 04-01-PLAN.md (suitability calculator services)
 
-Progress: [#####.....] 50%
+Progress: [#####.....] 52%
 
 ## Current Status
 
@@ -32,7 +32,7 @@ Progress: [#####.....] 50%
 | 1 | Database Schema | COMPLETE | 1/1 |
 | 2 | Admin: Roles & Duties | COMPLETE | 5/5 |
 | 3 | Medical Integration | COMPLETE | 3/3 |
-| 4 | Functional Ability Matrix | Pending | 0/0 |
+| 4 | Functional Ability Matrix | In Progress | 1/? |
 | 5 | Plan Generator | Pending | 0/0 |
 | 6 | Plan Output | Pending | 0/0 |
 | 7 | Email Generation | Pending | 0/0 |
@@ -71,6 +71,10 @@ Progress: [#####.....] 50%
 | Weight limits use minimum in combination | Lower weight limit = more restrictive = safer for worker | 3 |
 | Rest requirements use maximum in combination | More rest = more restrictive = safer for worker | 3 |
 | Return source indicator in API response | UI can show if restrictions from single cert or combined sources | 3 |
+| Cognitive demands default to not_assessed | FunctionalRestrictions doesn't include cognitive fields | 4 |
+| Weight limit tolerance 5kg for modifications | Small weight differences can use mechanical aids | 4 |
+| Max 3 not_suitable demands for modification | More than 3 mismatches too many to accommodate | 4 |
+| SuitabilityLevel type only 3 values | FAM-02: Never undefined/null/invalid states | 4 |
 
 ## Blockers/Concerns
 
@@ -84,15 +88,15 @@ None currently.
 
 ## Next Action
 
-**Start Phase 4:** Functional Ability Matrix
+**Continue Phase 4:** Functional Ability Matrix
 
 Next steps:
-1. `/gsd:plan 4` - Create Phase 4 plans (matrix evaluation, suitability calculation)
-2. Phase 4 will: Compare restrictions against duty demands, determine suitability
+1. Execute 04-02-PLAN.md (Matrix API endpoint)
+2. Execute 04-03-PLAN.md (Matrix UI component)
 3. After Phase 4: Ready for Phase 5 (Plan Generator)
 
 Completed phases: 1, 2, 3, 11
-In progress: None
+In progress: Phase 4
 
 ## Roadmap Evolution
 
@@ -123,11 +127,12 @@ In progress: None
 - 2026-01-28: Phase 3 Plan 01 EXECUTED - Schema update + restriction extractor service
 - 2026-01-28: Phase 3 Plan 03 EXECUTED - CurrentRestrictionsPanel UI component + restrictionUtils helpers
 - 2026-01-28: Phase 3 Plan 02 EXECUTED - Restriction mapper + current restrictions API endpoint
+- 2026-01-28: Phase 4 Plan 01 EXECUTED - Core suitability calculator + modification suggester + 43 unit tests
 
 ## Session Continuity
 
 Last session: 2026-01-28
-Stopped at: Phase 3 COMPLETE, ready for Phase 4 planning
+Stopped at: Phase 4 Plan 01 COMPLETE, ready for Plan 02
 Resume file: .planning/STATE.md
 
 ---
