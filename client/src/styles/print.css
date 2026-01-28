@@ -1,0 +1,152 @@
+/* Print-specific styles for RTW Plan Output (Phase 6) */
+
+@media print {
+  /* Hide non-printable elements */
+  .print\:hidden,
+  nav,
+  aside,
+  footer,
+  header:not(.plan-header),
+  button:not(.print-include),
+  .sidebar,
+  .navigation,
+  .toast,
+  [role="dialog"],
+  .no-print {
+    display: none !important;
+  }
+
+  /* Reset page layout */
+  body {
+    font-size: 11pt;
+    line-height: 1.4;
+    color: black;
+    background: white;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Page break control */
+  .page-break-before {
+    page-break-before: always;
+    break-before: page;
+  }
+
+  .page-break-after {
+    page-break-after: always;
+    break-after: page;
+  }
+
+  .avoid-break {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Plan section styling */
+  .plan-header {
+    border-bottom: 2px solid #333;
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+  }
+
+  .plan-section {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    margin-bottom: 20px;
+  }
+
+  /* Card component print optimization */
+  .card {
+    border: 1px solid #ddd;
+    box-shadow: none !important;
+    margin-bottom: 16px;
+  }
+
+  /* Table optimizations */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10pt;
+  }
+
+  th, td {
+    border: 1px solid #ccc;
+    padding: 6px 8px;
+    text-align: left;
+  }
+
+  th {
+    background-color: #f5f5f5 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Preserve suitability colors in print (critical for matrix) */
+  .bg-green-50,
+  .bg-green-100 {
+    background-color: #dcfce7 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .bg-yellow-50,
+  .bg-yellow-100 {
+    background-color: #fef9c3 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .bg-red-50,
+  .bg-red-100 {
+    background-color: #fee2e2 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .bg-blue-50 {
+    background-color: #eff6ff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Text colors for print */
+  .text-green-600, .text-green-700 {
+    color: #16a34a !important;
+  }
+
+  .text-yellow-600, .text-yellow-700 {
+    color: #ca8a04 !important;
+  }
+
+  .text-red-600, .text-red-700 {
+    color: #dc2626 !important;
+  }
+
+  /* Badge styling for print */
+  .badge {
+    border: 1px solid #666;
+    padding: 2px 6px;
+  }
+
+  /* Icons - hide decorative, show functional */
+  .lucide:not(.print-icon) {
+    opacity: 0.7;
+    width: 14px;
+    height: 14px;
+  }
+
+  /* Links - show URL in print */
+  a[href]:after {
+    content: none; /* Don't show URLs for internal links */
+  }
+
+  /* Page margins and headers */
+  @page {
+    size: A4 portrait;
+    margin: 20mm 15mm;
+  }
+
+  @page :first {
+    margin-top: 15mm;
+  }
+}

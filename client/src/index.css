@@ -1,3 +1,6 @@
+/* Print styles for RTW Plan Output */
+@import './styles/print.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
