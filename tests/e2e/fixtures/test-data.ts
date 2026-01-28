@@ -27,13 +27,15 @@ export const TEST_CASE_IDS = [
 ] as const;
 
 // Performance targets in milliseconds
-// Used by @performance tagged tests to verify page load times
+// Used by @performance tagged tests to verify page load and API response times
 export const PERFORMANCE_TARGETS = {
   dashboard: 5000,     // Dashboard initial load
   caseList: 5000,      // Case list rendering
   caseDetail: 5000,    // Case detail page load
   login: 3000,         // Login flow completion
   navigation: 2000,    // Tab/route navigation
+  apiResponse: 5000,   // Generic API response target
+  authCheck: 2000,     // Auth check endpoint (should be fast)
 } as const;
 
 // Test timeouts for different scenarios
