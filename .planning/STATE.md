@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-25)
 
 **Core value:** Automatically generate legally-defensible RTW plans from structured medical constraints and job duty data
-**Current focus:** Phase 4 - Functional Ability Matrix
+**Current focus:** Phase 5 - Plan Generator
 
 ## Current Position
 
-Phase: 4 of 11 (Functional Ability Matrix)
-Plan: 3 of 3 - COMPLETE (04-03 matrix UI component)
-Status: Phase 4 COMPLETE
-Last activity: 2026-01-28 - Completed 04-03-PLAN.md (TRUE matrix UI component)
+Phase: 5 of 11 (Plan Generator)
+Plan: 1 of 3 - COMPLETE (05-01 core plan generation services)
+Status: In progress
+Last activity: 2026-01-28 - Completed 05-01-PLAN.md (core plan generation services)
 
-Progress: [######....] 56%
+Progress: [######....] 59%
 
 ## Current Status
 
@@ -33,7 +33,7 @@ Progress: [######....] 56%
 | 2 | Admin: Roles & Duties | COMPLETE | 5/5 |
 | 3 | Medical Integration | COMPLETE | 3/3 |
 | 4 | Functional Ability Matrix | COMPLETE | 3/3 |
-| 5 | Plan Generator | Pending | 0/0 |
+| 5 | Plan Generator | In progress | 1/3 |
 | 6 | Plan Output | Pending | 0/0 |
 | 7 | Email Generation | Pending | 0/0 |
 | 8 | Approval Workflow | Pending | 0/0 |
@@ -78,6 +78,11 @@ Progress: [######....] 56%
 | API returns dutyId not planDutyId | Phase 4 operates on templates for preview, plan instances come in Phase 5 | 4 |
 | TRUE matrix with sticky first column | Duties as rows, 15 demand columns, horizontal scroll with sticky duty name | 4 |
 | Abbreviated column headers | Short labels (Sit, Stand, Lift) with full name in tooltip for space efficiency | 4 |
+| 80% suitable threshold for duty restrictions | Industry standard for "duties OK" determination | 5 |
+| 4-4-6-8 hour graduated progression | WorkSafe Victoria guidance: days increase before hours for safer progression | 5 |
+| Max 12 weeks schedule duration | Reasonable recovery ceiling - longer plans should be broken into phases | 5 |
+| Max 2 hour/day or 2 day/week increase per week | Safe progression warning prevents aggressive ramp-up | 5 |
+| Modification notes capped at 3 | Keeps plan documentation readable, full details in suitability assessment | 5 |
 
 ## Blockers/Concerns
 
@@ -91,14 +96,14 @@ None currently.
 
 ## Next Action
 
-**Start Phase 5:** Plan Generator
+**Continue Phase 5:** Plan Generator
 
 Next steps:
-1. Create Phase 5 research document
-2. Plan and execute Phase 5 (Plan Generator)
+1. Execute Phase 5 Plan 02 (RTW Plan API endpoints)
+2. Execute Phase 5 Plan 03 (Plan Generator UI)
 
 Completed phases: 1, 2, 3, 4, 11
-Ready for: Phase 5
+In progress: Phase 5 (1/3 complete)
 
 ## Roadmap Evolution
 
@@ -132,11 +137,12 @@ Ready for: Phase 5
 - 2026-01-28: Phase 4 Plan 01 EXECUTED - Core suitability calculator + modification suggester + 43 unit tests
 - 2026-01-28: Phase 4 Plan 02 EXECUTED - Matrix API endpoint + suitabilityUtils display helpers
 - 2026-01-28: Phase 4 Plan 03 EXECUTED - TRUE matrix UI component (duties as rows, demands as columns)
+- 2026-01-28: Phase 5 Plan 01 EXECUTED - Plan generator + schedule calculator services + 53 unit tests
 
 ## Session Continuity
 
 Last session: 2026-01-28
-Stopped at: Phase 4 COMPLETE, ready for Phase 5
+Stopped at: Completed 05-01-PLAN.md
 Resume file: .planning/STATE.md
 
 ---
