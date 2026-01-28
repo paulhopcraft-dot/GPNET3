@@ -12,7 +12,7 @@
 | 2 | Admin: Roles & Duties | Employers can define their job structure | ADMIN-01 to ADMIN-12 | Complete |
 | 3 | Medical Integration | Extract constraints from existing certs | MED-01 to MED-10 | Complete |
 | 4 | Functional Ability Matrix | Match restrictions to duties | FAM-01 to FAM-09 | Complete |
-| 5 | Plan Generator | Auto-create RTW plans | GEN-01 to GEN-10 | Pending |
+| 5 | Plan Generator | Auto-create RTW plans | GEN-01 to GEN-10 | Complete |
 | 6 | Plan Output | Display and format plans | OUT-01 to OUT-10 | Pending |
 | 7 | Email Generation | Manager-ready communications | EMAIL-01 to EMAIL-10 | Pending |
 | 8 | Approval Workflow | Manager approve/reject flow | APPR-01 to APPR-11 | Pending |
@@ -136,10 +136,10 @@ Override functionality requires plan INSTANCES (rtwPlanDuties) - deferred to Pha
 **Plans:** 4 plans
 
 Plans:
-- [ ] 05-01-PLAN.md - Plan generator and schedule calculator services with unit tests
-- [ ] 05-02-PLAN.md - RTW plans API endpoints (recommend, create)
-- [ ] 05-03-PLAN.md - Multi-step wizard UI with draft persistence
-- [ ] 05-04-PLAN.md - End-to-end verification checkpoint
+- [x] 05-01-PLAN.md - Plan generator and schedule calculator services with unit tests
+- [x] 05-02-PLAN.md - RTW plans API endpoints (recommend, create)
+- [x] 05-03-PLAN.md - Multi-step wizard UI with draft persistence
+- [x] 05-04-PLAN.md - End-to-end verification checkpoint
 
 **Wave Structure:**
 - Wave 1: Plan 01 (backend services + tests)

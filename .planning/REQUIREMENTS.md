@@ -66,19 +66,19 @@
 
 ### RTW Plan Generator (GEN)
 
-- [ ] **GEN-01**: Auto-select plan type based on restrictions:
+- [x] **GEN-01**: Auto-select plan type based on restrictions: ✓
   - Normal hours: restrictions allow full duties
   - Partial hours: hours capped, duties OK
   - Graduated return: hours and/or duties scale over weeks
-- [ ] **GEN-02**: Generate week-by-week schedule for graduated plans
-- [ ] **GEN-03**: Default graduation: 4hrs → 6hrs → 8hrs over 3 weeks
-- [ ] **GEN-04**: Allow custom graduation schedule
-- [ ] **GEN-05**: Include only suitable and "with modification" duties
-- [ ] **GEN-06**: Exclude not-suitable duties with reason
-- [ ] **GEN-07**: Calculate total hours per week
-- [ ] **GEN-08**: Respect review dates (plan cannot extend past restriction review)
-- [ ] **GEN-09**: Preview plan before saving
-- [ ] **GEN-10**: Save plan as draft
+- [x] **GEN-02**: Generate week-by-week schedule for graduated plans ✓
+- [x] **GEN-03**: Default graduation: 4hrs → 6hrs → 8hrs over 3 weeks ✓
+- [x] **GEN-04**: Allow custom graduation schedule ✓
+- [x] **GEN-05**: Include only suitable and "with modification" duties ✓
+- [x] **GEN-06**: Exclude not-suitable duties with reason ✓
+- [x] **GEN-07**: Calculate total hours per week ✓
+- [x] **GEN-08**: Respect review dates (plan cannot extend past restriction review) ✓
+- [x] **GEN-09**: Preview plan before saving ✓
+- [x] **GEN-10**: Save plan as draft ✓
 
 ### RTW Plan Output (OUT)
 
@@ -179,7 +179,7 @@
 | ADMIN-01 to ADMIN-12 | Phase 2 | Pending |
 | MED-01 to MED-10 | Phase 3 | Pending |
 | FAM-01 to FAM-09 | Phase 4 | Pending |
-| GEN-01 to GEN-10 | Phase 5 | Pending |
+| GEN-01 to GEN-10 | Phase 5 | Complete |
 | OUT-01 to OUT-10 | Phase 6 | Pending |
 | EMAIL-01 to EMAIL-10 | Phase 7 | Pending |
 | APPR-01 to APPR-11 | Phase 8 | Pending |
