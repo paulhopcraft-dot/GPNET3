@@ -95,29 +95,33 @@ Plans:
 
 ## Phase 4: Functional Ability Matrix
 
-**Goal:** Automatically compare worker restrictions against duty requirements
+**Goal:** Automatically compare worker restrictions against duty requirements (suitability PREVIEW on templates)
 
-**Requirements:** FAM-01 to FAM-09
+**Requirements:** FAM-01 to FAM-08 (FAM-09 override deferred to Phase 8)
 
 **Plans:** 4 plans
 
 Plans:
-- [ ] 04-01-PLAN.md - Core suitability calculator and modification suggester services
-- [ ] 04-02-PLAN.md - Matrix API endpoint and suitability display utilities
-- [ ] 04-03-PLAN.md - Override API endpoint with audit logging
-- [ ] 04-04-PLAN.md - Matrix UI component with override dialog
+- [ ] 04-01-PLAN.md - Core suitability calculator and modification suggester services (with FAM-02 explicit tests)
+- [ ] 04-02-PLAN.md - Matrix API endpoint for duty templates and suitability display utilities
+- [ ] 04-03-PLAN.md - TRUE matrix UI component (duties as rows, demand categories as columns)
+- [ ] 04-04-PLAN.md - End-to-end verification checkpoint
 
 **Wave Structure:**
 - Wave 1: Plan 01 (algorithm services + unit tests)
-- Wave 2: Plans 02, 03 (parallel - matrix API + override API)
-- Wave 3: Plan 04 (UI components - depends on both APIs)
+- Wave 2: Plans 02, 03 (parallel - matrix API + matrix UI)
+- Wave 3: Plan 04 (verification checkpoint)
+
+**Architecture Note:**
+Phase 4 calculates suitability on duty TEMPLATES (rtwDuties) for preview.
+Override functionality requires plan INSTANCES (rtwPlanDuties) - deferred to Phase 8.
 
 **Success Criteria:**
-1. Matrix calculates suitability for each duty
-2. Color-coded display: green/yellow/red
+1. Matrix calculates suitability for each duty template
+2. Color-coded display: green/yellow/red in TRUE matrix format (FAM-08)
 3. "With modification" includes suggestions
-4. Manual override works with logged reason
-5. Edge cases handled (missing data, partial restrictions)
+4. Edge cases handled (missing data, partial restrictions)
+5. Suitability values are ONLY 'suitable' | 'suitable_with_modification' | 'not_suitable' (FAM-02)
 
 **Dependencies:** Phase 2 (duties), Phase 3 (restrictions)
 
@@ -176,9 +180,14 @@ Plans:
 
 ## Phase 8: Approval Workflow
 
-**Goal:** Managers can approve, modify, or reject plans
+**Goal:** Managers can approve, modify, or reject plans (includes FAM-09 override capability)
 
-**Requirements:** APPR-01 to APPR-11
+**Requirements:** APPR-01 to APPR-11 + FAM-09
+
+**Note:** FAM-09 (manual suitability override with audit logging) is implemented in Phase 8 because:
+- Override operates on plan INSTANCES (rtwPlanDuties), not templates
+- Plan instances are created in Phase 5 (Plan Generator)
+- Override is part of the approval/modification workflow
 
 **Success Criteria:**
 1. Submit changes status to pending
@@ -186,6 +195,7 @@ Plans:
 3. Rejection requires reason
 4. Modifications create new versions
 5. Only approved plans show as active
+6. Manual suitability override with audit trail (FAM-09)
 
 **Dependencies:** Phase 6 (plan output)
 
@@ -240,7 +250,7 @@ Phase 3 (Medical) -+-> Phase 4 (Matrix) -------------+
                                                       |
 Phase 7 (Email) -------------------------------------+
                                                       |
-Phase 8 (Approval) ----------------------------------+
+Phase 8 (Approval + Override) ----------------------+
                                                       |
 Phase 9 (Audit) -------------------------------------+
                                                       |
@@ -302,3 +312,4 @@ Plans:
 *Phase 11 planned: 2026-01-28*
 *Phase 3 planned: 2026-01-28*
 *Phase 4 planned: 2026-01-28*
+*Phase 4 revised: 2026-01-28 (FAM-09 override deferred to Phase 8, FAM-08 true matrix design)*
