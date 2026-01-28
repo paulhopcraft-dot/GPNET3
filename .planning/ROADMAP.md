@@ -133,12 +133,27 @@ Override functionality requires plan INSTANCES (rtwPlanDuties) - deferred to Pha
 
 **Requirements:** GEN-01 to GEN-10
 
+**Plans:** 4 plans
+
+Plans:
+- [ ] 05-01-PLAN.md - Plan generator and schedule calculator services with unit tests
+- [ ] 05-02-PLAN.md - RTW plans API endpoints (recommend, create)
+- [ ] 05-03-PLAN.md - Multi-step wizard UI with draft persistence
+- [ ] 05-04-PLAN.md - End-to-end verification checkpoint
+
+**Wave Structure:**
+- Wave 1: Plan 01 (backend services + tests)
+- Wave 2: Plans 02, 03 (parallel - API endpoints + UI wizard)
+- Wave 3: Plan 04 (verification checkpoint)
+
 **Success Criteria:**
-1. Plan type auto-selected correctly
-2. Graduated schedule generated (4->6->8 hrs)
-3. Custom schedule allowed
-4. Only suitable duties included
-5. Plan respects restriction review dates
+1. Plan type auto-selected correctly (GEN-01)
+2. Graduated schedule generated (4->6->8 hrs) (GEN-02, GEN-03)
+3. Custom schedule allowed (GEN-04)
+4. Only suitable duties included (GEN-05, GEN-06)
+5. Plan respects restriction review dates (GEN-08)
+6. Preview before save (GEN-09)
+7. Save as draft (GEN-10)
 
 **Dependencies:** Phase 4 (matrix)
 
@@ -313,3 +328,4 @@ Plans:
 *Phase 3 planned: 2026-01-28*
 *Phase 4 planned: 2026-01-28*
 *Phase 4 revised: 2026-01-28 (FAM-09 override deferred to Phase 8, FAM-08 true matrix design)*
+*Phase 5 planned: 2026-01-28*
