@@ -9,7 +9,7 @@
 | Phase | Name | Goal | Requirements | Status |
 |-------|------|------|--------------|--------|
 | 1 | Database Schema | Data foundation for all modules | DB-01 to DB-10 | Complete |
-| 2 | Admin: Roles & Duties | Employers can define their job structure | ADMIN-01 to ADMIN-12 | Pending |
+| 2 | Admin: Roles & Duties | Employers can define their job structure | ADMIN-01 to ADMIN-12 | Complete |
 | 3 | Medical Integration | Extract constraints from existing certs | MED-01 to MED-10 | Pending |
 | 4 | Functional Ability Matrix | Match restrictions to duties | FAM-01 to FAM-09 | Pending |
 | 5 | Plan Generator | Auto-create RTW plans | GEN-01 to GEN-10 | Pending |
@@ -48,11 +48,11 @@
 **Plans:** 5 plans
 
 Plans:
-- [ ] 02-01-PLAN.md - Backend API for roles CRUD
-- [ ] 02-02-PLAN.md - Backend API for duties CRUD with demands
-- [ ] 02-03-PLAN.md - Frontend roles list and form pages
-- [ ] 02-04-PLAN.md - Frontend duties list, form, and DemandMatrix component
-- [ ] 02-05-PLAN.md - End-to-end verification checkpoint
+- [x] 02-01-PLAN.md - Backend API for roles CRUD
+- [x] 02-02-PLAN.md - Backend API for duties CRUD with demands
+- [x] 02-03-PLAN.md - Frontend roles list and form pages
+- [x] 02-04-PLAN.md - Frontend duties list, form, and DemandMatrix component
+- [x] 02-05-PLAN.md - End-to-end verification checkpoint
 
 **Success Criteria:**
 1. Admin can create a role with duties
