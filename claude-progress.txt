@@ -1,5 +1,33 @@
 # Preventli Progress Snapshot - Session Handoff
 
+## Session 38 - 2026-01-28 - Handoff Continuation
+
+### Current Session (This Handoff)
+- ✅ **Fixed EmployerCaseDetailPage hardcoded content** (commit 185b42e)
+  - Summary tab: Dynamic API-driven actions
+  - Financial tab: Empty state instead of hardcoded values
+  - Risk tab: Empty state instead of hardcoded risks
+- ✅ **Created Playwright audit scripts** for comprehensive testing
+- ✅ **Updated progress file** and prepared session handoff
+
+### Server Status
+- Dev server running on port 5000
+- Start command: `NODE_ENV=development ./node_modules/.bin/tsx.cmd server/index.ts`
+
+### Active Worktrees
+- `C:/Dev/gpnet3-dashboard-fix` → fix/dashboard-issues
+- `C:/Dev/gpnet3-summary-fix` → fix/summary-improvements
+- `C:/Dev/gpnet3-testing` → fix/testing-improvements
+- `C:/Dev/worktrees/missing-info-prompts` → feature/missing-info-prompts
+- `C:/Dev/worktrees/presentations-work` → feature/presentations-work
+
+### Next Steps
+1. **Continue system audit** with Playwright tests
+2. **Fix API performance** - add database indexes on caseId columns
+3. **Apply GSD commands** for structured workflow
+
+---
+
 ## Session 37 - 2026-01-28 - Recovery Chart Debugging
 
 ### Completed
@@ -24,7 +52,6 @@
   - API returns 17 certificates for Andre Nieto case
   - Debug logging added to RecoveryChart component
   - Issue likely: multiple certs on same week get deduplicated in Map
-  - Need to verify browser console shows debug output
   - May need to render certificate markers separately (not via Line dot prop)
 
 ### Technical Details
@@ -39,26 +66,12 @@
 
 ### Next Steps
 1. **Check browser console** (F12) for `[RecoveryChart]` debug logs
-   - Should show: Certificates received, Weeks with certs, Data points with hasCertificate
-   - This will reveal if issue is in data processing or rendering
-
-2. **If dots still not showing**, likely fix needed:
-   - Render certificate dots via separate Scatter plot instead of Line dot prop
-   - Or use ReferenceDot for each certificate
-   - The CertificateDot component may not be called for all data points by recharts
-
+2. **If dots still not showing**, render via Scatter plot instead of Line dot prop
 3. **Reset rate limit** back to 10000 in `server/middleware/security.ts`
-   - Line 15: change `max: 100000` to `max: 10000`
-
 4. **Remove debug logging** from RecoveryChart.tsx after issue resolved
-
-### Blockers
-- Playwright tests not capturing console output properly
-- tsx scripts not producing output (shell configuration issue)
 
 ### Notes
 - Server logs show 17 certificates being processed correctly
-- The recovery-timeline API endpoint returns certificates successfully
 - Issue is isolated to frontend RecoveryChart component
 - May be a recharts limitation with custom dot components
 
@@ -74,3 +87,49 @@
 ### Notes
 - Projects at D:\dev\gpnet3 (may still be working from C:\dev\gpnet3)
 - Natalie UAT setup ready: NATALIE_EMPLOYER_UAT.md
+
+---
+
+## Session 35 - 2026-01-27 - PR Merge & Natalie UAT Setup
+
+### Completed
+- ✅ **Merged RTW Planner PR #21 to main**
+  - 23 commits, 48 files, +11,887 lines
+  - RTW Planner Engine with database schema
+  - Admin Roles & Duties CRUD (API + UI)
+  - Treatment plan improvements
+  - Certificate upload features
+
+- ✅ **Codebase stats**: ~59,300 lines of TypeScript
+  - Server: 30,413 lines
+  - Client: 25,722 lines
+  - Shared: 1,919 lines
+  - Tests: 1,295 lines
+
+- ✅ **Created formal UAT test plan for Natalie**
+  - `NATALIE_EMPLOYER_UAT.md` - 13 test cases across 5 modules
+  - `NGROK_SETUP_FOR_NATALIE.md` - Remote access setup guide
+  - `scripts/verify-employer.cjs` - Employer account verification
+
+- ✅ **Fixed employer account for Symmetry-only testing**
+  - employer@test.com now sees only 49 Symmetry cases
+  - Verified account: org-alpha, role=employer, active=true
+
+---
+
+## Previous Sessions Summary
+
+### Session 34 - Certificate Image Display Debugging
+- Investigated certificate image modal not displaying
+- Created utility scripts for certificate management
+- Images in DB but not passed through API correctly
+
+### Session 33 - Treatment Plan AI Improvements
+- Treatment plan AI now recommends injury-appropriate specialists
+- Certificate image upload working via PUT /api/certificates/:id/image
+- Logout button added to sidebar
+
+### Session 32 - Live Ultra-Modern Dashboard Demonstration
+- Application fully operational on localhost:5000/5173
+- 91.3% bundle reduction verified (334KB → 29KB)
+- All ultra-modern features visible and working
