@@ -1,14 +1,14 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, Suspense, lazy } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GlassPanel } from "@/components/ui/glass-panel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, RefreshCw, Sparkles } from "lucide-react";
+import { ArrowLeft, RefreshCw, Sparkles, CheckCircle2, Circle, AlertCircle, Clock } from "lucide-react";
 import { fetchWithCsrf } from "@/lib/queryClient";
-import type { WorkerCase, PaginatedCasesResponse } from "@shared/schema";
+import type { WorkerCase, PaginatedCasesResponse, CaseActionDB } from "@shared/schema";
 import { cn } from "@/lib/utils";
 import { TimelineCard } from "@/components/TimelineCard";
 import { CaseContactsPanel } from "@/components/CaseContactsPanel";
@@ -48,9 +48,25 @@ const ChartLoader = () => (
   </div>
 );
 
+// Action type for API response
+interface CaseAction {
+  id: string;
+  caseId: string;
+  type: string;
+  title: string;
+  description: string | null;
+  status: 'pending' | 'completed' | 'failed';
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  dueDate: string | null;
+  completedAt: string | null;
+  completedBy: string | null;
+  createdAt: string;
+}
+
 export default function EmployerCaseDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [loadingSummary, setLoadingSummary] = useState(false);
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [summaryLoaded, setSummaryLoaded] = useState(false);
@@ -61,6 +77,61 @@ export default function EmployerCaseDetailPage() {
   });
   const cases = paginatedData?.cases ?? [];
   const workerCase = cases.find((c) => c.id === id);
+
+  // Fetch case actions
+  const { data: actionsData } = useQuery<{ success: boolean; data: CaseAction[] }>({
+    queryKey: [`/api/actions/case/${id}`],
+    enabled: !!id,
+  });
+  const caseActions = actionsData?.data ?? [];
+
+  // Mutation to complete an action
+  const completeAction = useMutation({
+    mutationFn: async (actionId: string) => {
+      const response = await fetchWithCsrf(`/api/actions/case/${id}/actions/${actionId}/complete`, {
+        method: "POST",
+      });
+      if (!response.ok) throw new Error("Failed to complete action");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/actions/case/${id}`] });
+    },
+  });
+
+  // Mutation to uncomplete an action
+  const uncompleteAction = useMutation({
+    mutationFn: async (actionId: string) => {
+      const response = await fetchWithCsrf(`/api/actions/case/${id}/actions/${actionId}/uncomplete`, {
+        method: "POST",
+      });
+      if (!response.ok) throw new Error("Failed to uncomplete action");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/actions/case/${id}`] });
+    },
+  });
+
+  const toggleAction = (action: CaseAction) => {
+    if (action.status === 'completed') {
+      uncompleteAction.mutate(action.id);
+    } else {
+      completeAction.mutate(action.id);
+    }
+  };
+
+  // Group actions by priority
+  const groupActionsByPriority = (actions: CaseAction[]) => {
+    const critical = actions.filter(a => a.priority === 'critical' && a.status !== 'completed');
+    const high = actions.filter(a => a.priority === 'high' && a.status !== 'completed');
+    const medium = actions.filter(a => a.priority === 'medium' && a.status !== 'completed');
+    const low = actions.filter(a => a.priority === 'low' && a.status !== 'completed');
+    const completed = actions.filter(a => a.status === 'completed');
+    return { critical, high, medium, low, completed };
+  };
+
+  const groupedActions = groupActionsByPriority(caseActions);
 
   const generateSummary = async () => {
     if (!id) return;
@@ -340,112 +411,168 @@ export default function EmployerCaseDetailPage() {
             </div>
 
             <div className="min-w-0 overflow-hidden">
-              <Card>
+              <Card className="h-full">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Action Plan</CardTitle>
+                  <CardTitle className="text-base flex items-center justify-between">
+                    <span>Action Plan</span>
+                    <Badge variant="outline" className="text-xs">
+                      {caseActions.filter(a => a.status !== 'completed').length} pending
+                    </Badge>
+                  </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="space-y-3">
-                      <h3 className="text-sm font-semibold text-primary">Immediate Actions (This Week)</h3>
-                      <ul className="text-xs space-y-1.5 ml-2">
-                        <li className="flex items-start gap-2">
-                          <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
-                          <span>Follow up with {workerCase.workerName} after physio appointment re: clearance certificate</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
-                          <span>Request {workerCase.workerName} provide written update on symptom status post-physio</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
-                          <span>Confirm with employer whether wage top-up has been processed for first fortnight</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
-                          <span>Request copy of {workerCase.workerName}'s first payslip for records if not already received</span>
-                        </li>
-                      </ul>
+                <CardContent className="overflow-y-auto max-h-[calc(100vh-300px)]">
+                  {caseActions.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">No actions for this case yet.</p>
+                      <p className="text-xs mt-1">Actions will appear when compliance checks run.</p>
                     </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* Critical Priority */}
+                      {groupedActions.critical.length > 0 && (
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-semibold text-red-600 flex items-center gap-1">
+                            <AlertCircle className="h-4 w-4" />
+                            Critical ({groupedActions.critical.length})
+                          </h3>
+                          <ul className="text-xs space-y-1.5">
+                            {groupedActions.critical.map(action => (
+                              <li key={action.id} className="flex items-start gap-2 p-2 bg-red-50 rounded border border-red-200">
+                                <button
+                                  onClick={() => toggleAction(action)}
+                                  className="mt-0.5 shrink-0"
+                                  disabled={completeAction.isPending || uncompleteAction.isPending}
+                                >
+                                  <Circle className="h-4 w-4 text-red-500 hover:text-red-700" />
+                                </button>
+                                <div className="flex-1">
+                                  <span className="font-medium">{action.title}</span>
+                                  {action.description && <p className="text-muted-foreground mt-0.5">{action.description}</p>}
+                                  {action.dueDate && (
+                                    <p className="text-red-600 text-[10px] mt-1">Due: {new Date(action.dueDate).toLocaleDateString()}</p>
+                                  )}
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
 
-                    <div className="space-y-3">
-                      <h3 className="text-sm font-semibold text-primary">Short-Term Actions (Next 2 Weeks)</h3>
-                      <ul className="text-xs space-y-1.5 ml-2">
-                        <li className="flex items-start gap-2">
-                          <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
-                          <span>Conduct welfare check-in with {workerCase.workerName} (week commencing 13 Jan)</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
-                          <span>If symptoms stable, request GP/physio issue formal clearance certificate</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
-                          <span>Confirm {workerCase.workerName} has attended physio appointment and document feedback</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
-                          <span>Liaise with employer re: ongoing wage top-up process and payslip submissions</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
-                          <span>Update DXC if any concerns arise or if clearance certificate obtained</span>
-                        </li>
-                      </ul>
-                    </div>
+                      {/* High Priority */}
+                      {groupedActions.high.length > 0 && (
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-semibold text-orange-600">
+                            High Priority ({groupedActions.high.length})
+                          </h3>
+                          <ul className="text-xs space-y-1.5">
+                            {groupedActions.high.map(action => (
+                              <li key={action.id} className="flex items-start gap-2 p-2 bg-orange-50 rounded border border-orange-200">
+                                <button
+                                  onClick={() => toggleAction(action)}
+                                  className="mt-0.5 shrink-0"
+                                  disabled={completeAction.isPending || uncompleteAction.isPending}
+                                >
+                                  <Circle className="h-4 w-4 text-orange-500 hover:text-orange-700" />
+                                </button>
+                                <div className="flex-1">
+                                  <span className="font-medium">{action.title}</span>
+                                  {action.description && <p className="text-muted-foreground mt-0.5">{action.description}</p>}
+                                  {action.dueDate && (
+                                    <p className="text-orange-600 text-[10px] mt-1">Due: {new Date(action.dueDate).toLocaleDateString()}</p>
+                                  )}
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
 
-                    <div className="space-y-3">
-                      <h3 className="text-sm font-semibold text-primary">Medium-Term Actions (Jan-Feb 2026)</h3>
-                      <ul className="text-xs space-y-1.5 ml-2">
-                        <li className="flex items-start gap-2">
-                          <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
-                          <span>Continue fortnightly welfare monitoring until 3-month stability period reached</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
-                          <span>Track symptom reports - escalate to DXC if deterioration reported</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
-                          <span>Ensure {workerCase.workerName} continues physio until discharged by treating practitioner</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
-                          <span>Document all welfare contacts and symptom updates in ticket</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
-                          <span>Prepare for 3-month review (due ~8 March 2026)</span>
-                        </li>
-                      </ul>
-                    </div>
+                      {/* Medium Priority */}
+                      {groupedActions.medium.length > 0 && (
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-semibold text-yellow-600">
+                            Medium Priority ({groupedActions.medium.length})
+                          </h3>
+                          <ul className="text-xs space-y-1.5">
+                            {groupedActions.medium.map(action => (
+                              <li key={action.id} className="flex items-start gap-2 p-2 bg-yellow-50 rounded border border-yellow-200">
+                                <button
+                                  onClick={() => toggleAction(action)}
+                                  className="mt-0.5 shrink-0"
+                                  disabled={completeAction.isPending || uncompleteAction.isPending}
+                                >
+                                  <Circle className="h-4 w-4 text-yellow-600 hover:text-yellow-700" />
+                                </button>
+                                <div className="flex-1">
+                                  <span className="font-medium">{action.title}</span>
+                                  {action.description && <p className="text-muted-foreground mt-0.5">{action.description}</p>}
+                                  {action.dueDate && (
+                                    <p className="text-yellow-700 text-[10px] mt-1">Due: {new Date(action.dueDate).toLocaleDateString()}</p>
+                                  )}
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
 
-                    <div className="space-y-3">
-                      <h3 className="text-sm font-semibold text-primary">Milestone: 3-Month Stability Review (Target: 8 March 2026)</h3>
-                      <ul className="text-xs space-y-1.5 ml-2">
-                        <li className="flex items-start gap-2">
-                          <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
-                          <span>Confirm {workerCase.workerName} has sustained employment for 3 months</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
-                          <span>Obtain final clearance certificate if not already provided</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
-                          <span>Confirm with DXC claim is considered stable</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
-                          <span>Close active monitoring if no ongoing concerns</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5" />
-                          <span>Final update to Symmetry confirming case closure</span>
-                        </li>
-                      </ul>
+                      {/* Low Priority */}
+                      {groupedActions.low.length > 0 && (
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-semibold text-gray-600">
+                            Low Priority ({groupedActions.low.length})
+                          </h3>
+                          <ul className="text-xs space-y-1.5">
+                            {groupedActions.low.map(action => (
+                              <li key={action.id} className="flex items-start gap-2 p-2 bg-gray-50 rounded border border-gray-200">
+                                <button
+                                  onClick={() => toggleAction(action)}
+                                  className="mt-0.5 shrink-0"
+                                  disabled={completeAction.isPending || uncompleteAction.isPending}
+                                >
+                                  <Circle className="h-4 w-4 text-gray-500 hover:text-gray-700" />
+                                </button>
+                                <div className="flex-1">
+                                  <span>{action.title}</span>
+                                  {action.description && <p className="text-muted-foreground mt-0.5">{action.description}</p>}
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Completed */}
+                      {groupedActions.completed.length > 0 && (
+                        <div className="space-y-2 border-t pt-3 mt-3">
+                          <h3 className="text-sm font-semibold text-emerald-600 flex items-center gap-1">
+                            <CheckCircle2 className="h-4 w-4" />
+                            Completed ({groupedActions.completed.length})
+                          </h3>
+                          <ul className="text-xs space-y-1">
+                            {groupedActions.completed.slice(0, 5).map(action => (
+                              <li key={action.id} className="flex items-start gap-2 p-1.5 opacity-60">
+                                <button
+                                  onClick={() => toggleAction(action)}
+                                  className="mt-0.5 shrink-0"
+                                  disabled={completeAction.isPending || uncompleteAction.isPending}
+                                >
+                                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                                </button>
+                                <span className="line-through">{action.title}</span>
+                              </li>
+                            ))}
+                            {groupedActions.completed.length > 5 && (
+                              <li className="text-muted-foreground pl-6">
+                                +{groupedActions.completed.length - 5} more completed
+                              </li>
+                            )}
+                          </ul>
+                        </div>
+                      )}
                     </div>
-                  </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -684,28 +811,39 @@ export default function EmployerCaseDetailPage() {
               <CardTitle>Financial Summary</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                <div className="flex border-b pb-2">
-                  <div className="w-48 text-sm font-medium">Pre-injury weekly earnings</div>
-                  <div className="text-sm flex-1">$1,346.63</div>
+              {workerCase.financialData ? (
+                <div className="space-y-3">
+                  {workerCase.financialData.preInjuryEarnings && (
+                    <div className="flex border-b pb-2">
+                      <div className="w-48 text-sm font-medium">Pre-injury weekly earnings</div>
+                      <div className="text-sm flex-1">${workerCase.financialData.preInjuryEarnings.toLocaleString()}</div>
+                    </div>
+                  )}
+                  {workerCase.financialData.currentEarnings && (
+                    <div className="flex border-b pb-2">
+                      <div className="w-48 text-sm font-medium">Current weekly earnings</div>
+                      <div className="text-sm flex-1">${workerCase.financialData.currentEarnings.toLocaleString()}</div>
+                    </div>
+                  )}
+                  {workerCase.financialData.weeklyShortfall && (
+                    <div className="flex border-b pb-2">
+                      <div className="w-48 text-sm font-medium">Weekly shortfall</div>
+                      <div className="text-sm flex-1">${workerCase.financialData.weeklyShortfall.toLocaleString()}</div>
+                    </div>
+                  )}
+                  {workerCase.financialData.piaweEntitlement && (
+                    <div className="flex pb-2">
+                      <div className="w-48 text-sm font-medium">PIAWE entitlement</div>
+                      <div className="text-sm flex-1">${workerCase.financialData.piaweEntitlement.toLocaleString()}/week</div>
+                    </div>
+                  )}
                 </div>
-                <div className="flex border-b pb-2">
-                  <div className="w-48 text-sm font-medium">Current weekly earnings (IKON)</div>
-                  <div className="text-sm flex-1">$1,211.62</div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p className="text-sm">No financial data recorded for this case.</p>
+                  <p className="text-xs mt-1">Financial details will appear when claim data is synced.</p>
                 </div>
-                <div className="flex border-b pb-2">
-                  <div className="w-48 text-sm font-medium">Weekly shortfall</div>
-                  <div className="text-sm flex-1">$135.01</div>
-                </div>
-                <div className="flex border-b pb-2">
-                  <div className="w-48 text-sm font-medium">PIAWE entitlement</div>
-                  <div className="text-sm flex-1">$1,074/week</div>
-                </div>
-                <div className="flex pb-2">
-                  <div className="w-48 text-sm font-medium">Top-up required if below PIAWE</div>
-                  <div className="text-sm flex-1">Yes - Symmetry to pay difference</div>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -713,41 +851,46 @@ export default function EmployerCaseDetailPage() {
         <TabsContent value="risk" className="flex-1 p-6">
           <Card>
             <CardHeader>
-              <CardTitle>Risk Register</CardTitle>
+              <CardTitle>Risk Assessment</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="grid grid-cols-4 gap-4 p-2 border-b-2 border-primary text-sm font-semibold text-primary">
-                  <div>Risk</div>
-                  <div>Likelihood</div>
-                  <div>Impact</div>
-                  <div>Mitigation</div>
+              {workerCase.riskAssessment && workerCase.riskAssessment.length > 0 ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-4 gap-4 p-2 border-b-2 border-primary text-sm font-semibold text-primary">
+                    <div>Risk</div>
+                    <div>Likelihood</div>
+                    <div>Impact</div>
+                    <div>Mitigation</div>
+                  </div>
+                  {workerCase.riskAssessment.map((risk: any, idx: number) => (
+                    <div key={idx} className="grid grid-cols-4 gap-4 p-2 border-b text-sm">
+                      <div>{risk.description}</div>
+                      <div>
+                        <span className={cn(
+                          "px-2 py-1 rounded text-xs",
+                          risk.likelihood === "high" ? "bg-red-100 text-red-800" :
+                          risk.likelihood === "medium" ? "bg-amber-100 text-amber-800" :
+                          "bg-green-100 text-green-800"
+                        )}>{risk.likelihood}</span>
+                      </div>
+                      <div>
+                        <span className={cn(
+                          "px-2 py-1 rounded text-xs",
+                          risk.impact === "high" ? "bg-red-100 text-red-800" :
+                          risk.impact === "medium" ? "bg-amber-100 text-amber-800" :
+                          "bg-green-100 text-green-800"
+                        )}>{risk.impact}</span>
+                      </div>
+                      <div>{risk.mitigation}</div>
+                    </div>
+                  ))}
                 </div>
-                <div className="grid grid-cols-4 gap-4 p-2 border-b text-sm">
-                  <div>Symptom exacerbation leading to claim reopening</div>
-                  <div><span className="px-2 py-1 bg-amber-100 text-amber-800 rounded text-xs">Medium</span></div>
-                  <div><span className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs">High</span></div>
-                  <div>Welfare monitoring, physio continuation</div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p className="text-sm">No risk assessment recorded for this case.</p>
+                  <p className="text-xs mt-1">Risk factors will be identified during case review.</p>
                 </div>
-                <div className="grid grid-cols-4 gap-4 p-2 border-b text-sm">
-                  <div>Worker disengages from new role (long commute, difficult manager)</div>
-                  <div><span className="px-2 py-1 bg-amber-100 text-amber-800 rounded text-xs">Medium</span></div>
-                  <div><span className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs">High</span></div>
-                  <div>Regular check-ins, early intervention</div>
-                </div>
-                <div className="grid grid-cols-4 gap-4 p-2 border-b text-sm">
-                  <div>No formal clearance obtained</div>
-                  <div><span className="px-2 py-1 bg-amber-100 text-amber-800 rounded text-xs">Medium</span></div>
-                  <div><span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs">Low</span></div>
-                  <div>Request clearance from physio/GP</div>
-                </div>
-                <div className="grid grid-cols-4 gap-4 p-2 text-sm">
-                  <div>Employer liability if employment ends due to injury</div>
-                  <div><span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs">Low</span></div>
-                  <div><span className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs">High</span></div>
-                  <div>Monitor 3-month stability period</div>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
