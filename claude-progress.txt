@@ -1,5 +1,61 @@
 # Preventli Progress Snapshot - Session Handoff
 
+## Session 40 - 2026-01-28 - Phases 3 & 4 Complete (50% RTW Engine)
+
+### Completed
+- ✅ **Phase 3 (Medical Integration) COMPLETE** - 3 plans, 9 tasks
+  - 03-01: Schema + restrictionExtractor service (Claude Haiku LLM extraction)
+  - 03-02: restrictionMapper + getCurrentRestrictions API endpoint
+  - 03-03: CurrentRestrictionsPanel UI component
+  - Extracts structured restrictions from medical certificates
+  - "Most restrictive wins" combination logic for multiple certs
+
+- ✅ **Phase 4 (Functional Ability Matrix) COMPLETE** - 4 plans, 8 tasks
+  - 04-01: functionalAbilityCalculator.ts (561 lines) + modificationSuggester.ts (248 lines) + 43 unit tests
+  - 04-02: GET /api/functional-ability/matrix API + suitabilityUtils.ts
+  - 04-03: FunctionalAbilityMatrix.tsx TRUE matrix UI (duties × 15 demand columns)
+  - 04-04: Verification checkpoint - APPROVED by medical/case mgr/engineer review
+  - FAM-09 (override) deferred to Phase 8 (needs plan instances)
+
+### Key Architectural Decisions
+- Phase 4 operates on duty TEMPLATES (rtwDuties), not plan instances (rtwPlanDuties)
+- Override functionality requires plan instances → deferred to Phase 8
+- TRUE matrix design: duties as rows, 15 demand categories as columns
+- Frequency-to-capability comparison follows U.S. DOL OWCP-5c standards
+
+### Key Commits (Phase 4)
+- 6c84de4: docs(phase-4): mark Functional Ability Matrix phase complete
+- 9d6d959: docs(04-04): Phase 4 verification - APPROVED
+- 25ad23f: feat(04-01): create functional ability calculator service
+- 84d994e: feat(04-02): add GET /api/functional-ability/matrix endpoint
+- f5b28ef: feat(04-03): create FunctionalAbilityMatrix TRUE table component
+
+### Project Status
+- **Progress**: 50% (5/11 phases complete)
+- **Phase 1**: COMPLETE ✓ (Database Schema)
+- **Phase 2**: COMPLETE ✓ (Admin: Roles & Duties)
+- **Phase 3**: COMPLETE ✓ (Medical Integration)
+- **Phase 4**: COMPLETE ✓ (Functional Ability Matrix)
+- **Phase 11**: COMPLETE ✓ (System-Wide Testing)
+
+### Next Steps
+1. **Phase 5: Plan Generator** - Auto-create RTW plans from matrix results
+   - Run `/gsd:plan-phase 5` to create plans
+   - Then `/gsd:execute-phase 5` to implement
+2. Remaining phases: 6 (Output), 7 (Email), 8 (Approval), 9 (Audit), 10 (UI)
+
+### Files Created This Session
+- `server/services/restrictionExtractor.ts` - LLM-based restriction extraction
+- `server/services/restrictionMapper.ts` - Multi-certificate combination
+- `server/services/functionalAbilityCalculator.ts` - Suitability algorithm
+- `server/services/modificationSuggester.ts` - Workplace modification suggestions
+- `server/routes/functionalAbility.ts` - Matrix API endpoint
+- `client/src/components/rtw/FunctionalAbilityMatrix.tsx` - TRUE matrix UI
+- `client/src/components/rtw/CurrentRestrictionsPanel.tsx` - Restrictions display
+- 43 unit tests for functional ability calculator
+
+---
+
 ## Session 39 - 2026-01-28 - Phase 11 System-Wide Testing Complete
 
 ### Completed
