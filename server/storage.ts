@@ -51,6 +51,18 @@ import {
   notifications,
   complianceDocuments,
   caseContacts,
+  rtwPlans,
+  rtwPlanVersions,
+  rtwPlanDuties,
+  rtwPlanSchedule,
+  rtwDuties,
+  rtwDutyDemands,
+  type RTWPlanDB,
+  type RTWPlanVersionDB,
+  type RTWPlanDutyDB,
+  type RTWPlanScheduleDB,
+  type RTWDutyDB,
+  type RTWDutyDemandsDB,
 } from "@shared/schema";
 import { evaluateClinicalEvidence } from "./services/clinicalEvidence";
 import { combineRestrictions } from "./services/restrictionMapper";
@@ -58,6 +70,53 @@ import { eq, desc, asc, inArray, ilike, sql, and, lte, gte, or, isNull, ne } fro
 import { logger } from "./lib/logger";
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
+// ============================================================================
+// RTW Plan Types
+// ============================================================================
+
+/**
+ * Input data for creating a new RTW plan
+ */
+export interface CreateRTWPlanData {
+  organizationId: string;
+  caseId: string;
+  roleId: string;
+  planType: string;
+  startDate: Date;
+  restrictionReviewDate: Date | null;
+  createdBy: string;
+  schedule: Array<{
+    weekNumber: number;
+    hoursPerDay: number;
+    daysPerWeek: number;
+  }>;
+  duties: Array<{
+    dutyId: string;
+    dutyName: string;
+    suitability: string;
+    modificationNotes: string | null;
+    excludedReason: string | null;
+    isIncluded: boolean;
+  }>;
+}
+
+/**
+ * RTW Duty with its demands joined
+ */
+export interface RTWDutyWithDemands extends RTWDutyDB {
+  demands: RTWDutyDemandsDB | null;
+}
+
+/**
+ * RTW Plan with all related records
+ */
+export interface RTWPlanWithDetails {
+  plan: RTWPlanDB;
+  version: RTWPlanVersionDB | null;
+  schedule: RTWPlanScheduleDB[];
+  duties: RTWPlanDutyDB[];
+}
 
 function asDate(value: string | Date | null | undefined): Date | null {
   if (!value) return null;
@@ -462,6 +521,12 @@ export interface IStorage {
     source: "single_certificate" | "combined";
     certificateCount: number;
   } | null>;
+
+  // RTW Plans - Plan Generator (GEN-09, GEN-10)
+  createRTWPlan(data: CreateRTWPlanData): Promise<{ planId: string; versionId: string }>;
+  getRTWPlanById(planId: string, organizationId: string): Promise<RTWPlanWithDetails | null>;
+  getRoleDutiesWithDemands(roleId: string, organizationId: string): Promise<RTWDutyWithDemands[]>;
+  getDutiesByIds(dutyIds: string[], organizationId: string): Promise<RTWDutyWithDemands[]>;
 }
 
 class DbStorage implements IStorage {
@@ -2549,6 +2614,175 @@ class DbStorage implements IStorage {
       source: "combined",
       certificateCount: restrictionsList.length,
     };
+  }
+
+  // ============================================================================
+  // RTW PLANS - Plan Generator (GEN-09, GEN-10)
+  // ============================================================================
+
+  /**
+   * Create a new RTW plan with version 1 in draft status
+   * Uses transaction to ensure atomicity of plan + version + schedule + duties
+   */
+  async createRTWPlan(data: CreateRTWPlanData): Promise<{ planId: string; versionId: string }> {
+    // Use a transaction to ensure all records are created atomically
+    const result = await db.transaction(async (tx) => {
+      // 1. Create plan record
+      const [plan] = await tx.insert(rtwPlans).values({
+        organizationId: data.organizationId,
+        caseId: data.caseId,
+        roleId: data.roleId,
+        planType: data.planType,
+        status: "draft",
+        version: 1,
+        startDate: data.startDate,
+        restrictionReviewDate: data.restrictionReviewDate,
+        createdBy: data.createdBy,
+      }).returning();
+
+      // 2. Create version record
+      const [version] = await tx.insert(rtwPlanVersions).values({
+        planId: plan.id,
+        version: 1,
+        dataJson: data,
+        createdBy: data.createdBy,
+        changeReason: "Initial plan creation",
+      }).returning();
+
+      // 3. Create schedule records
+      if (data.schedule.length > 0) {
+        const scheduleRecords = data.schedule.map(week => ({
+          planVersionId: version.id,
+          weekNumber: week.weekNumber,
+          hoursPerDay: week.hoursPerDay.toString(),
+          daysPerWeek: week.daysPerWeek,
+        }));
+        await tx.insert(rtwPlanSchedule).values(scheduleRecords);
+      }
+
+      // 4. Create duty records (only included ones)
+      const includedDuties = data.duties.filter(d => d.isIncluded);
+      if (includedDuties.length > 0) {
+        const dutyRecords = includedDuties.map(duty => ({
+          planVersionId: version.id,
+          dutyId: duty.dutyId,
+          suitability: duty.suitability,
+          modificationNotes: duty.modificationNotes,
+          excludedReason: null as string | null,
+          manuallyOverridden: false,
+        }));
+        await tx.insert(rtwPlanDuties).values(dutyRecords);
+      }
+
+      return { planId: plan.id, versionId: version.id };
+    });
+
+    logger.storage.info("Created RTW plan", {
+      planId: result.planId,
+      versionId: result.versionId,
+      caseId: data.caseId,
+      planType: data.planType,
+      scheduleWeeks: data.schedule.length,
+      includedDuties: data.duties.filter(d => d.isIncluded).length,
+    });
+
+    return result;
+  }
+
+  /**
+   * Get RTW plan by ID with all related records
+   */
+  async getRTWPlanById(planId: string, organizationId: string): Promise<RTWPlanWithDetails | null> {
+    // Get plan with organization check
+    const [plan] = await db.select()
+      .from(rtwPlans)
+      .where(and(
+        eq(rtwPlans.id, planId),
+        eq(rtwPlans.organizationId, organizationId)
+      ))
+      .limit(1);
+
+    if (!plan) {
+      return null;
+    }
+
+    // Get current version
+    const [version] = await db.select()
+      .from(rtwPlanVersions)
+      .where(and(
+        eq(rtwPlanVersions.planId, planId),
+        eq(rtwPlanVersions.version, plan.version)
+      ))
+      .limit(1);
+
+    // Get schedule for current version
+    const schedule = version
+      ? await db.select()
+          .from(rtwPlanSchedule)
+          .where(eq(rtwPlanSchedule.planVersionId, version.id))
+          .orderBy(asc(rtwPlanSchedule.weekNumber))
+      : [];
+
+    // Get duties for current version
+    const duties = version
+      ? await db.select()
+          .from(rtwPlanDuties)
+          .where(eq(rtwPlanDuties.planVersionId, version.id))
+      : [];
+
+    return {
+      plan,
+      version: version || null,
+      schedule,
+      duties,
+    };
+  }
+
+  /**
+   * Get all duties for a role with their demands
+   */
+  async getRoleDutiesWithDemands(roleId: string, organizationId: string): Promise<RTWDutyWithDemands[]> {
+    const duties = await db.select({
+      duty: rtwDuties,
+      demands: rtwDutyDemands,
+    })
+      .from(rtwDuties)
+      .leftJoin(rtwDutyDemands, eq(rtwDuties.id, rtwDutyDemands.dutyId))
+      .where(and(
+        eq(rtwDuties.roleId, roleId),
+        eq(rtwDuties.organizationId, organizationId),
+        eq(rtwDuties.isActive, true)
+      ));
+
+    return duties.map(row => ({
+      ...row.duty,
+      demands: row.demands,
+    }));
+  }
+
+  /**
+   * Get duties by ID list with their demands
+   */
+  async getDutiesByIds(dutyIds: string[], organizationId: string): Promise<RTWDutyWithDemands[]> {
+    if (dutyIds.length === 0) {
+      return [];
+    }
+
+    const duties = await db.select({
+      duty: rtwDuties,
+      demands: rtwDutyDemands,
+    })
+      .from(rtwDuties)
+      .leftJoin(rtwDutyDemands, eq(rtwDuties.id, rtwDutyDemands.dutyId))
+      .where(and(
+        inArray(rtwDuties.id, dutyIds),
+        eq(rtwDuties.organizationId, organizationId)
+      ));
+
+    return duties.map(row => ({
+      ...row.duty,
+      demands: row.demands,
+    }));
   }
 }
 
