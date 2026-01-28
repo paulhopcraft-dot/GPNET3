@@ -15,7 +15,7 @@ import { test, expect } from '../fixtures/auth.fixture';
 test.describe('Error Handling', { tag: '@regression' }, () => {
   test('invalid case ID shows error gracefully', async ({ authenticatedPage: page }) => {
     await page.goto('/employer/case/invalid-case-id-12345');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Should show error message or redirect, not crash
     const pageContent = await page.content();
@@ -100,7 +100,7 @@ test.describe('Error Handling', { tag: '@regression' }, () => {
   test('empty data states render correctly', async ({ authenticatedPage: page }) => {
     // Navigate to cases
     await page.goto('/cases');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // If table is empty, should show empty state message
     const table = page.getByRole('table');
@@ -159,7 +159,7 @@ test.describe('Error Handling', { tag: '@regression' }, () => {
 
   test('form validation shows errors inline', async ({ authenticatedPage: page }) => {
     await page.goto('/employer/new-case');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Navigate past gateway if present
     const noOption = page.locator('label:has-text("No")').first();
@@ -310,7 +310,7 @@ test.describe('Error Handling', { tag: '@regression' }, () => {
   test('navigation errors are handled gracefully', async ({ authenticatedPage: page }) => {
     // Navigate to non-existent route
     await page.goto('/nonexistent-route-12345');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     const pageContent = await page.content();
 

@@ -8,7 +8,7 @@ test.describe("Treatment Tab E2E Test Suite", () => {
   async function authenticateUser(page: any) {
     console.log("🔐 Authenticating user...");
     await page.goto("/");
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Check if already logged in
     const preventliTitle = page.locator('h1:has-text("Preventli")').first();
@@ -57,7 +57,7 @@ test.describe("Treatment Tab E2E Test Suite", () => {
     console.log(`🧭 Navigating to case detail: ${caseId}`);
 
     await page.goto(`/employer/case/${caseId}`);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Wait for the page to stabilize
     await page.waitForTimeout(3000);

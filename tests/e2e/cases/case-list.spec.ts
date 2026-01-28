@@ -12,7 +12,7 @@ import { test, expect } from '../fixtures/auth.fixture';
 test.describe('Case List', { tag: ['@critical', '@regression'] }, () => {
   test.beforeEach(async ({ authenticatedPage: page }) => {
     await page.goto('/cases');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
   });
 
   test('case list displays cases table', async ({ authenticatedPage: page }) => {

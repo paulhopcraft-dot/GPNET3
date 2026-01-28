@@ -18,7 +18,7 @@ test.describe('Page Load Times', { tag: '@performance' }, () => {
     const startTime = Date.now();
 
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Wait for actual content (not just initial HTML)
     await page.waitForSelector('text=/cases|dashboard|employer/i', { timeout: TARGET_MS });
@@ -33,7 +33,7 @@ test.describe('Page Load Times', { tag: '@performance' }, () => {
     const startTime = Date.now();
 
     await page.goto('/cases');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Wait for table to appear
     await page.waitForSelector('table, [data-testid^="row-case-"]', { timeout: TARGET_MS });
@@ -64,7 +64,7 @@ test.describe('Page Load Times', { tag: '@performance' }, () => {
     const startTime = Date.now();
 
     await page.goto('/employer');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Wait for dashboard content
     await page.waitForSelector('text=/Symmetry|employer|dashboard/i', { timeout: TARGET_MS });
@@ -87,7 +87,7 @@ test.describe('Page Load Times', { tag: '@performance' }, () => {
     for (const { path, name } of pages) {
       const startTime = Date.now();
       await page.goto(path);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
       const loadTime = Date.now() - startTime;
       timings.push({ page: name, time: loadTime });
     }

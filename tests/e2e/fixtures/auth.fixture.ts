@@ -16,7 +16,7 @@
 
 import { test as base, expect, Page } from '@playwright/test';
 import {
-  ADMIN_CREDENTIALS,
+  EMPLOYER_CREDENTIALS,
   TEST_TIMEOUTS,
   URL_PATTERNS,
 } from './test-data';
@@ -32,7 +32,7 @@ type AuthFixtures = {
  */
 async function performLogin(page: Page): Promise<void> {
   await page.goto('/');
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded');
 
   // Check if already logged in by looking for dashboard indicators
   const dashboardIndicators = [
@@ -57,8 +57,8 @@ async function performLogin(page: Page): Promise<void> {
   await emailInput.waitFor({ state: 'visible', timeout: TEST_TIMEOUTS.medium });
 
   // Fill credentials
-  await emailInput.fill(ADMIN_CREDENTIALS.email);
-  await passwordInput.fill(ADMIN_CREDENTIALS.password);
+  await emailInput.fill(EMPLOYER_CREDENTIALS.email);
+  await passwordInput.fill(EMPLOYER_CREDENTIALS.password);
   await submitButton.click();
 
   // Wait for successful authentication

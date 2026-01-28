@@ -16,7 +16,7 @@ import { test, expect } from '../fixtures/auth.fixture';
 test.describe('New Case Creation Flow', { tag: ['@critical', '@regression'] }, () => {
   test.beforeEach(async ({ authenticatedPage: page }) => {
     await page.goto('/employer/new-case');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
   });
 
   test('new case page is accessible', { tag: '@critical' }, async ({ authenticatedPage: page }) => {
@@ -183,7 +183,7 @@ test.describe('New Case Creation Flow', { tag: ['@critical', '@regression'] }, (
   test('navigation link to new case exists from dashboard', { tag: '@critical' }, async ({ authenticatedPage: page }) => {
     // Go to dashboard/home
     await page.goto('/employer');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Look for new case link/button
     const newCaseLink = page.locator('a:has-text("New Case"), button:has-text("New Case"), a[href*="new-case"]').first();
