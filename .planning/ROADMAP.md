@@ -99,6 +99,19 @@ Plans:
 
 **Requirements:** FAM-01 to FAM-09
 
+**Plans:** 4 plans
+
+Plans:
+- [ ] 04-01-PLAN.md - Core suitability calculator and modification suggester services
+- [ ] 04-02-PLAN.md - Matrix API endpoint and suitability display utilities
+- [ ] 04-03-PLAN.md - Override API endpoint with audit logging
+- [ ] 04-04-PLAN.md - Matrix UI component with override dialog
+
+**Wave Structure:**
+- Wave 1: Plan 01 (algorithm services + unit tests)
+- Wave 2: Plans 02, 03 (parallel - matrix API + override API)
+- Wave 3: Plan 04 (UI components - depends on both APIs)
+
 **Success Criteria:**
 1. Matrix calculates suitability for each duty
 2. Color-coded display: green/yellow/red
@@ -288,3 +301,4 @@ Plans:
 *Roadmap created: 2026-01-25*
 *Phase 11 planned: 2026-01-28*
 *Phase 3 planned: 2026-01-28*
+*Phase 4 planned: 2026-01-28*
