@@ -30,6 +30,7 @@ import predictionRoutes from "./routes/predictions";
 import { registerTimelineRoutes } from "./routes/timeline";
 import { registerTreatmentPlanRoutes } from "./routes/treatmentPlan";
 import contactRoutes from "./routes/contacts";
+import restrictionRoutes from "./routes/restrictions";
 import { employerDashboardRouter } from "./routes/employer-dashboard";
 import complianceDashboardRouter from "./routes/compliance-dashboard";
 import type { RecoveryTimelineSummary } from "@shared/schema";
@@ -97,6 +98,9 @@ export async function registerRoutes(app: Express): Promise<void> {
 
   // Case Contacts routes (JWT-protected, case ownership)
   app.use("/api/cases", contactRoutes);
+
+  // Medical Restrictions routes (JWT-protected, case ownership) - MED-09, MED-10
+  app.use("/api/cases", restrictionRoutes);
 
   // Employer Dashboard routes (JWT-protected)
   app.use("/api/employer", employerDashboardRouter);
