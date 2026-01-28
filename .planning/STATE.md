@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-25)
 ## Current Position
 
 Phase: 11 of 11 (System-Wide Testing)
-Plan: 5 of 7 - COMPLETE
+Plan: 6 of 7 - COMPLETE
 Status: In progress
-Last activity: 2026-01-28 - Completed 11-05-PLAN.md (Performance Tests)
+Last activity: 2026-01-28 - Completed 11-06-PLAN.md (Database Integrity & Error Handling Tests)
 
-Progress: [#####.....] 50%
+Progress: [######....] 60%
 
 ## Current Status
 
@@ -39,7 +39,7 @@ Progress: [#####.....] 50%
 | 8 | Approval Workflow | Pending | 0/0 |
 | 9 | Audit Trail | Pending | 0/0 |
 | 10 | RTW Planner UI | Pending | 0/0 |
-| 11 | System-Wide Testing | IN PROGRESS | 3/7 |
+| 11 | System-Wide Testing | IN PROGRESS | 6/7 |
 
 ## Accumulated Decisions
 
@@ -58,6 +58,9 @@ Progress: [#####.....] 50%
 | Graceful tab handling in tests | Tab tests use catch pattern to handle missing tabs without failing | 11 |
 | 5 second performance target | All major endpoints and pages should respond within 5 seconds | 11 |
 | Performance logging for baseline | Tests log actual times to establish baseline before enforcing | 11 |
+| Direct pg Pool for integrity tests | Raw SQL cleaner for referential checks, avoids ORM in test layer | 11 |
+| Conditional skip for DATABASE_URL | Tests skip gracefully when no database, not fail | 11 |
+| Recovery chart tests log missing data | Test data may lack certificates; log rather than fail | 11 |
 
 ## Blockers/Concerns
 
@@ -65,7 +68,7 @@ None currently.
 
 ## Next Action
 
-**Continue Phase 11:** Plans 01-03 and 05 complete. Continue with plans 04, 06-07 (Regression, Accessibility, CI/CD).
+**Continue Phase 11:** Plans 01-03, 05-06 complete. Continue with plans 04, 07 (Regression, CI/CD).
 
 Run `/gsd:execute-phase 11` to continue with remaining plans.
 
@@ -91,11 +94,12 @@ Run `/gsd:execute-phase 11` to continue with remaining plans.
 - 2026-01-28: Phase 11 Plan 02 EXECUTED - Smoke tests (health, auth, navigation with @smoke tags)
 - 2026-01-28: Phase 11 Plan 03 EXECUTED - Critical path E2E tests (dashboard, case list, 7 case detail tabs)
 - 2026-01-28: Phase 11 Plan 05 EXECUTED - Performance tests (API response times, page load times)
+- 2026-01-28: Phase 11 Plan 06 EXECUTED - Database integrity tests, error handling E2E tests, recovery chart tests
 
 ## Session Continuity
 
-Last session: 2026-01-28T05:31:51Z
-Stopped at: Completed 11-05-PLAN.md (Performance Tests)
+Last session: 2026-01-28T05:35:00Z
+Stopped at: Completed 11-06-PLAN.md (Database Integrity & Error Handling Tests)
 Resume file: None
 
 ---
