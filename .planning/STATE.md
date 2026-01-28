@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-25)
 
 **Core value:** Automatically generate legally-defensible RTW plans from structured medical constraints and job duty data
-**Current focus:** Phase 2 - Admin: Roles & Duties
+**Current focus:** Phase 11 - System-Wide Testing
 
 ## Current Position
 
-Phase: 2 of 10 (Admin: Roles & Duties)
-Plan: 3 of 5 - COMPLETE
+Phase: 11 of 11 (System-Wide Testing)
+Plan: 1 of 7 - COMPLETE
 Status: In progress
-Last activity: 2026-01-26 - Completed 02-03-PLAN.md (Roles UI)
+Last activity: 2026-01-28 - Completed 11-01-PLAN.md (Test Infrastructure)
 
-Progress: [###.......] 30%
+Progress: [###.......] 35%
 
 ## Current Status
 
@@ -39,6 +39,7 @@ Progress: [###.......] 30%
 | 8 | Approval Workflow | Pending | 0/0 |
 | 9 | Audit Trail | Pending | 0/0 |
 | 10 | RTW Planner UI | Pending | 0/0 |
+| 11 | System-Wide Testing | IN PROGRESS | 1/7 |
 
 ## Accumulated Decisions
 
@@ -52,6 +53,8 @@ Progress: [###.......] 30%
 | Upsert pattern for demands on update | Handles missing demands gracefully | 2 |
 | Soft delete preserves demands | Audit trail for deleted duties | 2 |
 | Transaction wrapping for multi-table ops | Atomicity for duty+demands operations | 2 |
+| Playwright extended fixtures for auth | Reusable login across all E2E tests | 11 |
+| TEST_GREP env var for wave filtering | Enables smoke/critical/regression/performance test execution | 11 |
 
 ## Blockers/Concerns
 
@@ -59,9 +62,13 @@ None currently.
 
 ## Next Action
 
-**Continue Phase 2:** Plans 01-03 (Roles API & UI) complete. Continue with plans 04-05 (Duties UI) to complete admin UI.
+**Continue Phase 11:** Plan 01 (Test Infrastructure) complete. Continue with plans 02-07 (Smoke, Critical, Regression, Performance, Accessibility, CI/CD).
 
-Run `/gsd:execute-phase 2` to continue with remaining plans.
+Run `/gsd:execute-phase 11` to continue with remaining plans.
+
+## Roadmap Evolution
+
+- Phase 11 added: System-Wide Testing (2026-01-28)
 
 ## Session Notes
 
@@ -77,12 +84,13 @@ Run `/gsd:execute-phase 2` to continue with remaining plans.
 - 2026-01-26: Phase 1 EXECUTED - 8 RTW tables created, all migrations successful
 - 2026-01-26: Phase 2 Wave 1 (02-01, 02-02) EXECUTED - Roles and Duties APIs complete
 - 2026-01-26: Phase 2 Plan 03 EXECUTED - Roles UI pages (RolesList, RoleForm) complete
+- 2026-01-28: Phase 11 Plan 01 EXECUTED - Test infrastructure (auth fixture, test data, wave-based scripts)
 
 ## Session Continuity
 
-Last session: 2026-01-26T01:20:23Z
-Stopped at: Completed 02-03-PLAN.md (Roles UI)
+Last session: 2026-01-28T05:12:34Z
+Stopped at: Completed 11-01-PLAN.md (Test Infrastructure)
 Resume file: None
 
 ---
-*Last updated: 2026-01-26*
+*Last updated: 2026-01-28*
