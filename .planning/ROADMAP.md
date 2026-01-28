@@ -10,7 +10,7 @@
 |-------|------|------|--------------|--------|
 | 1 | Database Schema | Data foundation for all modules | DB-01 to DB-10 | Complete |
 | 2 | Admin: Roles & Duties | Employers can define their job structure | ADMIN-01 to ADMIN-12 | Complete |
-| 3 | Medical Integration | Extract constraints from existing certs | MED-01 to MED-10 | Planned |
+| 3 | Medical Integration | Extract constraints from existing certs | MED-01 to MED-10 | Complete |
 | 4 | Functional Ability Matrix | Match restrictions to duties | FAM-01 to FAM-09 | Pending |
 | 5 | Plan Generator | Auto-create RTW plans | GEN-01 to GEN-10 | Pending |
 | 6 | Plan Output | Display and format plans | OUT-01 to OUT-10 | Pending |
@@ -74,9 +74,9 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 03-01-PLAN.md - Schema update + restriction extractor service (Claude Haiku)
-- [ ] 03-02-PLAN.md - Restriction mapper + current restrictions API endpoint
-- [ ] 03-03-PLAN.md - Current restrictions UI panel component
+- [x] 03-01-PLAN.md - Schema update + restriction extractor service (Claude Haiku)
+- [x] 03-02-PLAN.md - Restriction mapper + current restrictions API endpoint
+- [x] 03-03-PLAN.md - Current restrictions UI panel component
 
 **Wave Structure:**
 - Wave 1: Plan 01 (schema + extraction service)
