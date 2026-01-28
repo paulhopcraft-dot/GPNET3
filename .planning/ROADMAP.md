@@ -10,7 +10,7 @@
 |-------|------|------|--------------|--------|
 | 1 | Database Schema | Data foundation for all modules | DB-01 to DB-10 | Complete |
 | 2 | Admin: Roles & Duties | Employers can define their job structure | ADMIN-01 to ADMIN-12 | Complete |
-| 3 | Medical Integration | Extract constraints from existing certs | MED-01 to MED-10 | Pending |
+| 3 | Medical Integration | Extract constraints from existing certs | MED-01 to MED-10 | Planned |
 | 4 | Functional Ability Matrix | Match restrictions to duties | FAM-01 to FAM-09 | Pending |
 | 5 | Plan Generator | Auto-create RTW plans | GEN-01 to GEN-10 | Pending |
 | 6 | Plan Output | Display and format plans | OUT-01 to OUT-10 | Pending |
@@ -70,6 +70,17 @@ Plans:
 **Goal:** Extract structured medical restrictions from existing certificate data
 
 **Requirements:** MED-01 to MED-10
+
+**Plans:** 3 plans
+
+Plans:
+- [ ] 03-01-PLAN.md - Schema update + restriction extractor service (Claude Haiku)
+- [ ] 03-02-PLAN.md - Restriction mapper + current restrictions API endpoint
+- [ ] 03-03-PLAN.md - Current restrictions UI panel component
+
+**Wave Structure:**
+- Wave 1: Plan 01 (schema + extraction service)
+- Wave 2: Plans 02, 03 (parallel - API endpoint + UI component)
 
 **Success Criteria:**
 1. Restrictions pulled from certificate records
@@ -236,13 +247,13 @@ Phase 10 (UI) ---------------------------------------+
 **Plans:** 7 plans
 
 Plans:
-- [ ] 11-01-PLAN.md - Test infrastructure setup (fixtures, config, npm scripts)
-- [ ] 11-02-PLAN.md - Smoke tests (health, auth, navigation)
-- [ ] 11-03-PLAN.md - Critical path E2E tests (dashboard, cases, tabs)
+- [x] 11-01-PLAN.md - Test infrastructure setup (fixtures, config, npm scripts)
+- [x] 11-02-PLAN.md - Smoke tests (health, auth, navigation)
+- [x] 11-03-PLAN.md - Critical path E2E tests (dashboard, cases, tabs)
 - [ ] 11-04-PLAN.md - New case flow E2E test
-- [ ] 11-05-PLAN.md - Performance and API tests
-- [ ] 11-06-PLAN.md - Database integrity and edge case tests
-- [ ] 11-07-PLAN.md - Run all tests and generate report
+- [x] 11-05-PLAN.md - Performance and API tests
+- [x] 11-06-PLAN.md - Database integrity and edge case tests
+- [x] 11-07-PLAN.md - Run all tests and generate report
 
 **Wave Structure:**
 - Wave 1: Plan 01 (infrastructure setup)
@@ -276,3 +287,4 @@ Plans:
 ---
 *Roadmap created: 2026-01-25*
 *Phase 11 planned: 2026-01-28*
+*Phase 3 planned: 2026-01-28*
