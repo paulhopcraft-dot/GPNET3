@@ -24,7 +24,9 @@
     "test:e2e:regression": "cross-env TEST_GREP=@regression playwright test",
     "test:e2e:performance": "cross-env TEST_GREP=@performance playwright test",
     "test:e2e:all": "playwright test",
-    "test:e2e:report": "playwright show-report"
+    "test:e2e:report": "playwright show-report",
+    "test:full": "tsx tests/test-report-generator.ts",
+    "test:report": "playwright show-report"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",
