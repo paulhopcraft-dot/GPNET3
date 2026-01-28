@@ -1,5 +1,6 @@
 import { useEffect, Suspense, lazy } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useAuth } from "./hooks/useAuth";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient, initializeCsrf } from "./lib/queryClient";
 import { Toaster } from "./components/ui/toaster";
@@ -49,6 +50,22 @@ const ReportsPage = lazy(() => import("./pages/ReportsPage"));
 const EmployerCaseDetailPage = lazy(() => import("./pages/EmployerCaseDetailPage"));
 const EmployerNewCasePage = lazy(() => import("./pages/EmployerNewCasePage"));
 const EmployerCaseSuccessPage = lazy(() => import("./pages/EmployerCaseSuccessPage"));
+const EmployerDashboardPage = lazy(() => import("./pages/EmployerDashboardPage"));
+
+// LogoutRedirect component - triggers logout and redirects to login
+function LogoutRedirect() {
+  const { logout, isAuthenticated } = useAuth();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      logout();
+    }
+  }, [isAuthenticated, logout]);
+
+  // Redirect to login immediately if not authenticated
+  // The logout() function also navigates to /login, but this handles edge cases
+  return <Navigate to="/login" replace />;
+}
 
 export default function App() {
   // Initialize CSRF token on app mount
@@ -151,6 +168,17 @@ export default function App() {
                       </ProtectedRoute>
                     }
                   />
+                  <Route
+                    path="/employer"
+                    element={
+                      <ProtectedRoute>
+                        <Suspense fallback={<PageLoader />}>
+                          <EmployerDashboardPage />
+                        </Suspense>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route path="/logout" element={<LogoutRedirect />} />
                   <Route
                     path="/claims/new"
                     element={
