@@ -33,6 +33,7 @@ import type {
   CaseContactDB,
   InsertCaseContact,
   CaseContact,
+  FunctionalRestrictions,
 } from "@shared/schema";
 import { db } from "./db";
 import {
@@ -52,6 +53,7 @@ import {
   caseContacts,
 } from "@shared/schema";
 import { evaluateClinicalEvidence } from "./services/clinicalEvidence";
+import { combineRestrictions } from "./services/restrictionMapper";
 import { eq, desc, asc, inArray, ilike, sql, and, lte, gte, or, isNull, ne } from "drizzle-orm";
 import { logger } from "./lib/logger";
 
@@ -448,6 +450,18 @@ export interface IStorage {
   deleteCaseContact(contactId: string, organizationId: string): Promise<boolean>;
   getCaseContactsByRole(caseId: string, organizationId: string, role: string): Promise<CaseContactDB[]>;
   getPrimaryCaseContact(caseId: string, organizationId: string, role: string): Promise<CaseContactDB | null>;
+
+  // Medical Restrictions - RTW Planner Engine (MED-09, MED-10)
+  getCurrentRestrictions(
+    caseId: string,
+    organizationId: string
+  ): Promise<{
+    restrictions: FunctionalRestrictions;
+    maxWorkHoursPerDay: number | null;
+    maxWorkDaysPerWeek: number | null;
+    source: "single_certificate" | "combined";
+    certificateCount: number;
+  } | null>;
 }
 
 class DbStorage implements IStorage {
@@ -2441,6 +2455,100 @@ class DbStorage implements IStorage {
       .orderBy(desc(caseContacts.isPrimary))
       .limit(1);
     return result ?? null;
+  }
+
+  // Medical Restrictions - RTW Planner Engine (MED-09, MED-10)
+  async getCurrentRestrictions(
+    caseId: string,
+    organizationId: string
+  ): Promise<{
+    restrictions: FunctionalRestrictions;
+    maxWorkHoursPerDay: number | null;
+    maxWorkDaysPerWeek: number | null;
+    source: "single_certificate" | "combined";
+    certificateCount: number;
+  } | null> {
+    // Verify case ownership before querying certificates
+    const caseCheck = await db
+      .select({ id: workerCases.id })
+      .from(workerCases)
+      .where(and(
+        eq(workerCases.id, caseId),
+        eq(workerCases.organizationId, organizationId)
+      ))
+      .limit(1);
+
+    if (caseCheck.length === 0) {
+      return null; // Case not found or access denied
+    }
+
+    // Get certificates where: isCurrentCertificate = true OR endDate >= today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const certificates = await db.select()
+      .from(medicalCertificates)
+      .where(and(
+        eq(medicalCertificates.caseId, caseId),
+        or(
+          eq(medicalCertificates.isCurrentCertificate, true),
+          gte(medicalCertificates.endDate, today)
+        )
+      ))
+      .orderBy(desc(medicalCertificates.endDate));
+
+    if (certificates.length === 0) {
+      logger.storage.warn("No current certificates found for case", { caseId });
+      return null;
+    }
+
+    // Extract functionalRestrictionsJson from each certificate
+    const restrictionsList = certificates
+      .map(cert => cert.functionalRestrictionsJson)
+      .filter((r): r is FunctionalRestrictions => r !== null && r !== undefined);
+
+    if (restrictionsList.length === 0) {
+      // No certificates have extracted restrictions yet
+      logger.storage.warn("No functional restrictions found for certificates", {
+        caseId,
+        certificateCount: certificates.length
+      });
+      return null;
+    }
+
+    if (restrictionsList.length === 1) {
+      // Single certificate - return directly
+      const cert = certificates.find(c => c.functionalRestrictionsJson !== null)!;
+      const restrictions = cert.functionalRestrictionsJson as FunctionalRestrictions;
+      return {
+        restrictions,
+        maxWorkHoursPerDay: (restrictions as any).maxWorkHoursPerDay ?? null,
+        maxWorkDaysPerWeek: (restrictions as any).maxWorkDaysPerWeek ?? null,
+        source: "single_certificate",
+        certificateCount: 1,
+      };
+    }
+
+    // Multiple certificates - combine using most restrictive logic
+    const combined = combineRestrictions(restrictionsList);
+
+    // Calculate maxWorkHoursPerDay and maxWorkDaysPerWeek from combined data
+    // Use minimum (more restrictive) across all certificates
+    const workHours = certificates
+      .map(c => (c.functionalRestrictionsJson as any)?.maxWorkHoursPerDay)
+      .filter((h): h is number => h !== null && h !== undefined);
+
+    const workDays = certificates
+      .map(c => (c.functionalRestrictionsJson as any)?.maxWorkDaysPerWeek)
+      .filter((d): d is number => d !== null && d !== undefined);
+
+    return {
+      restrictions: combined,
+      maxWorkHoursPerDay: workHours.length > 0 ? Math.min(...workHours) : null,
+      maxWorkDaysPerWeek: workDays.length > 0 ? Math.min(...workDays) : null,
+      source: "combined",
+      certificateCount: restrictionsList.length,
+    };
   }
 }
 
