@@ -18,7 +18,13 @@
     "test:performance": "tsx scripts/performance-test-extraction.ts",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "test:e2e:headed": "playwright test --headed"
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:smoke": "cross-env TEST_GREP=@smoke playwright test",
+    "test:e2e:critical": "cross-env TEST_GREP=@critical playwright test",
+    "test:e2e:regression": "cross-env TEST_GREP=@regression playwright test",
+    "test:e2e:performance": "cross-env TEST_GREP=@performance playwright test",
+    "test:e2e:all": "playwright test",
+    "test:e2e:report": "playwright show-report"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",
