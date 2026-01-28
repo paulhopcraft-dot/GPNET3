@@ -32,6 +32,7 @@ import { registerTreatmentPlanRoutes } from "./routes/treatmentPlan";
 import contactRoutes from "./routes/contacts";
 import restrictionRoutes from "./routes/restrictions";
 import functionalAbilityRouter from "./routes/functionalAbility";
+import rtwPlansRouter from "./routes/rtwPlans";
 import { employerDashboardRouter } from "./routes/employer-dashboard";
 import complianceDashboardRouter from "./routes/compliance-dashboard";
 import type { RecoveryTimelineSummary } from "@shared/schema";
@@ -105,6 +106,9 @@ export async function registerRoutes(app: Express): Promise<void> {
 
   // Functional Ability Matrix routes (JWT-protected) - FAM-01 to FAM-07
   app.use("/api/functional-ability", authorize(), functionalAbilityRouter);
+
+  // RTW Plan Generator routes (JWT-protected) - GEN-01 to GEN-10
+  app.use("/api/rtw-plans", authorize(), rtwPlansRouter);
 
   // Employer Dashboard routes (JWT-protected)
   app.use("/api/employer", employerDashboardRouter);
