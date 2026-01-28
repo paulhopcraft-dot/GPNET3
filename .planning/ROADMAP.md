@@ -165,12 +165,30 @@ Plans:
 
 **Requirements:** OUT-01 to OUT-10
 
+**Plans:** 4 plans
+
+Plans:
+- [ ] 06-01-PLAN.md - API endpoints for plan details and email generation service
+- [ ] 06-02-PLAN.md - Print CSS and plan section components
+- [ ] 06-03-PLAN.md - PlanDetailView, ManagerEmailSection, PlanPrintView, PlanPage
+- [ ] 06-04-PLAN.md - End-to-end verification checkpoint
+
+**Wave Structure:**
+- Wave 1: Plans 01, 02 (parallel - backend API + frontend components)
+- Wave 2: Plan 03 (composition and routing - depends on 01 and 02)
+- Wave 3: Plan 04 (verification checkpoint)
+
 **Success Criteria:**
-1. Plan shows worker, role, injury details
-2. Physical demands matrix visible in plan
-3. Proposed duties and schedule clear
-4. Excluded duties shown with reasons
-5. PDF export works
+1. Plan shows worker, role, injury details (OUT-01)
+2. Medical constraints section visible (OUT-02)
+3. Physical demands matrix visible in plan (OUT-03)
+4. Proposed duties with suitability status (OUT-04)
+5. Proposed schedule week-by-week (OUT-05)
+6. Excluded duties shown with reasons (OUT-06)
+7. Manager email generated from plan (OUT-07)
+8. Email editable only before approval (OUT-08)
+9. Print-friendly plan view (OUT-09)
+10. PDF export works (OUT-10)
 
 **Dependencies:** Phase 5 (generator)
 
