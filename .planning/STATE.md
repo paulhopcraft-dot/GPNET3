@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-25)
 ## Current Position
 
 Phase: 4 of 11 (Functional Ability Matrix)
-Plan: 2 of ? - COMPLETE (04-02 matrix API endpoint)
-Status: Phase 4 IN PROGRESS
-Last activity: 2026-01-28 - Completed 04-02-PLAN.md (matrix API + display utils)
+Plan: 3 of 3 - COMPLETE (04-03 matrix UI component)
+Status: Phase 4 COMPLETE
+Last activity: 2026-01-28 - Completed 04-03-PLAN.md (TRUE matrix UI component)
 
-Progress: [#####.....] 54%
+Progress: [######....] 56%
 
 ## Current Status
 
@@ -32,7 +32,7 @@ Progress: [#####.....] 54%
 | 1 | Database Schema | COMPLETE | 1/1 |
 | 2 | Admin: Roles & Duties | COMPLETE | 5/5 |
 | 3 | Medical Integration | COMPLETE | 3/3 |
-| 4 | Functional Ability Matrix | In Progress | 2/? |
+| 4 | Functional Ability Matrix | COMPLETE | 3/3 |
 | 5 | Plan Generator | Pending | 0/0 |
 | 6 | Plan Output | Pending | 0/0 |
 | 7 | Email Generation | Pending | 0/0 |
@@ -76,6 +76,8 @@ Progress: [#####.....] 54%
 | Max 3 not_suitable demands for modification | More than 3 mismatches too many to accommodate | 4 |
 | SuitabilityLevel type only 3 values | FAM-02: Never undefined/null/invalid states | 4 |
 | API returns dutyId not planDutyId | Phase 4 operates on templates for preview, plan instances come in Phase 5 | 4 |
+| TRUE matrix with sticky first column | Duties as rows, 15 demand columns, horizontal scroll with sticky duty name | 4 |
+| Abbreviated column headers | Short labels (Sit, Stand, Lift) with full name in tooltip for space efficiency | 4 |
 
 ## Blockers/Concerns
 
@@ -89,14 +91,14 @@ None currently.
 
 ## Next Action
 
-**Continue Phase 4:** Functional Ability Matrix
+**Start Phase 5:** Plan Generator
 
 Next steps:
-1. Execute 04-03-PLAN.md (Matrix UI component)
-2. After Phase 4: Ready for Phase 5 (Plan Generator)
+1. Create Phase 5 research document
+2. Plan and execute Phase 5 (Plan Generator)
 
-Completed phases: 1, 2, 3, 11
-In progress: Phase 4
+Completed phases: 1, 2, 3, 4, 11
+Ready for: Phase 5
 
 ## Roadmap Evolution
 
@@ -129,11 +131,12 @@ In progress: Phase 4
 - 2026-01-28: Phase 3 Plan 02 EXECUTED - Restriction mapper + current restrictions API endpoint
 - 2026-01-28: Phase 4 Plan 01 EXECUTED - Core suitability calculator + modification suggester + 43 unit tests
 - 2026-01-28: Phase 4 Plan 02 EXECUTED - Matrix API endpoint + suitabilityUtils display helpers
+- 2026-01-28: Phase 4 Plan 03 EXECUTED - TRUE matrix UI component (duties as rows, demands as columns)
 
 ## Session Continuity
 
 Last session: 2026-01-28
-Stopped at: Phase 4 Plan 02 COMPLETE, ready for Plan 03
+Stopped at: Phase 4 COMPLETE, ready for Phase 5
 Resume file: .planning/STATE.md
 
 ---
