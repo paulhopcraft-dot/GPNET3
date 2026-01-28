@@ -21,7 +21,8 @@ test.describe('Navigation', { tag: '@smoke' }, () => {
     await page.waitForLoadState('domcontentloaded');
 
     // Should see cases heading or table (increase timeout for slow loads)
-    const casesIndicator = page.locator('text=/cases|worker/i, table').first();
+    // Use separate locators for text regex and table element
+    const casesIndicator = page.locator('text=/cases|worker/i').or(page.locator('table')).first();
     await expect(casesIndicator).toBeVisible({ timeout: 30000 });
   });
 

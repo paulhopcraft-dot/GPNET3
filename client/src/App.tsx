@@ -54,7 +54,7 @@ const EmployerDashboardPage = lazy(() => import("./pages/EmployerDashboardPage")
 
 // LogoutRedirect component - triggers logout and redirects to login
 function LogoutRedirect() {
-  const { logout, isAuthenticated } = useAuth();
+  const { logout, isAuthenticated, isLoading } = useAuth();
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -62,9 +62,27 @@ function LogoutRedirect() {
     }
   }, [isAuthenticated, logout]);
 
-  // Redirect to login immediately if not authenticated
-  // The logout() function also navigates to /login, but this handles edge cases
-  return <Navigate to="/login" replace />;
+  // Wait for auth state to settle before redirecting
+  // This prevents a race condition where LoginPage sees authenticated user and redirects back to /
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // Only navigate to login after logout is complete (isAuthenticated is false)
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Still authenticated, logout in progress - show loading
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+    </div>
+  );
 }
 
 export default function App() {
