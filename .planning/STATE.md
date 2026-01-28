@@ -86,12 +86,13 @@ Run `/gsd:execute-phase 11` to continue with remaining plans.
 - 2026-01-26: Phase 2 Wave 1 (02-01, 02-02) EXECUTED - Roles and Duties APIs complete
 - 2026-01-26: Phase 2 Plan 03 EXECUTED - Roles UI pages (RolesList, RoleForm) complete
 - 2026-01-28: Phase 11 Plan 01 EXECUTED - Test infrastructure (auth fixture, test data, wave-based scripts)
+- 2026-01-28: Phase 11 Plan 02 EXECUTED - Smoke tests (health, auth, navigation with @smoke tags)
 - 2026-01-28: Phase 11 Plan 03 EXECUTED - Critical path E2E tests (dashboard, case list, 7 case detail tabs)
 
 ## Session Continuity
 
-Last session: 2026-01-28T13:25:00Z
-Stopped at: Completed 11-03-PLAN.md (Critical Path E2E Tests)
+Last session: 2026-01-28T05:25:00Z
+Stopped at: Completed 11-02-PLAN.md (Smoke Tests)
 Resume file: None
 
 ---
