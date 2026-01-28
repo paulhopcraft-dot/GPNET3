@@ -9,10 +9,11 @@
  */
 
 import type { FreshdeskAttachment } from "./freshdesk";
-import type { InsertMedicalCertificate, OcrExtractedData } from "@shared/schema";
+import type { InsertMedicalCertificate, OcrExtractedData, RestrictionItem } from "@shared/schema";
 import type { IStorage } from "../storage";
 import { processCertificateAttachments, isCertificateAttachment } from "./pdfProcessor";
 import { extractFromDocument, requiresReview } from "./certificateService";
+import { extractFunctionalRestrictions } from "./restrictionExtractor";
 import { logger } from "../lib/logger";
 
 export interface CertificateProcessingResult {
@@ -113,6 +114,25 @@ export async function processCertificatesFromTicket(
         requiresReview: needsReview,
       });
 
+      // Extract structured functional restrictions for RTW Planner Engine
+      // Run as fire-and-forget to not block the pipeline (extraction can be retried)
+      extractFunctionalRestrictionsForCertificate(
+        certificate.id,
+        organizationId,
+        {
+          capacity: certificate.capacity || "unknown",
+          notes: certificate.notes || extractedData.rawText,
+          restrictions: certificate.restrictions as RestrictionItem[] | undefined,
+          workCapacityPercentage: certificate.workCapacityPercentage ?? undefined,
+        },
+        storage
+      ).catch((err) => {
+        // Log but don't fail - extraction can be retried later
+        logger.certificate.error("Failed to extract functional restrictions (non-blocking)", {
+          certificateId: certificate.id,
+        }, err);
+      });
+
       results.push({
         ticketId,
         caseId,
@@ -185,4 +205,45 @@ export async function processCertificatesFromTickets(
     requiresReview: requiresReviewCount,
     results: allResults,
   };
+}
+
+/**
+ * Extract and store functional restrictions for a certificate
+ * Called asynchronously after certificate creation
+ */
+async function extractFunctionalRestrictionsForCertificate(
+  certificateId: string,
+  organizationId: string,
+  input: {
+    capacity: string;
+    notes?: string | null;
+    restrictions?: RestrictionItem[];
+    workCapacityPercentage?: number;
+  },
+  storage: IStorage
+): Promise<void> {
+  try {
+    const extractionResult = await extractFunctionalRestrictions({
+      capacity: input.capacity,
+      notes: input.notes || undefined,
+      restrictions: input.restrictions,
+      workCapacityPercentage: input.workCapacityPercentage,
+    });
+
+    // Update certificate with extracted restrictions
+    await storage.updateCertificate(certificateId, organizationId, {
+      functionalRestrictionsJson: extractionResult.restrictions,
+    } as any); // Type assertion needed as functionalRestrictionsJson is new
+
+    logger.certificate.info("Extracted functional restrictions", {
+      certificateId,
+      confidence: extractionResult.confidence,
+      requiresReview: extractionResult.requiresReview,
+    });
+  } catch (error) {
+    logger.certificate.error("Restriction extraction failed", {
+      certificateId,
+    }, error);
+    throw error; // Re-throw for caller to handle
+  }
 }
