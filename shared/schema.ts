@@ -776,6 +776,9 @@ export const medicalCertificates = pgTable("medical_certificates", {
   reviewDate: timestamp("review_date"),
   fileName: varchar("file_name"),
   fileUrl: varchar("file_url"),
+
+  // RTW Planner Engine - Functional restrictions extracted from certificate
+  functionalRestrictionsJson: jsonb("functional_restrictions_json").$type<FunctionalRestrictionsExtracted | null>(),
 });
 
 export const caseAttachments = pgTable("case_attachments", {
@@ -1648,6 +1651,20 @@ export interface FunctionalRestrictions {
   // Duration and review
   constraintDurationWeeks?: number;
   nextExaminationDate?: string;
+}
+
+// Extended FunctionalRestrictions with time limits for certificate storage
+export interface FunctionalRestrictionsExtracted extends FunctionalRestrictions {
+  // Time limits (extracted from "reduced hours" restrictions)
+  maxWorkHoursPerDay?: number;
+  maxWorkDaysPerWeek?: number;
+
+  // Repetitive movement limit (MED-06) - when certificate specifies quantitative limit
+  repetitiveMovementsMaxPerHour?: number;
+
+  // Extraction metadata
+  extractionConfidence?: number;
+  extractedAt?: string;
 }
 
 // =====================================================
