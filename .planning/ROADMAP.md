@@ -11,7 +11,7 @@
 | 1 | Database Schema | Data foundation for all modules | DB-01 to DB-10 | Complete |
 | 2 | Admin: Roles & Duties | Employers can define their job structure | ADMIN-01 to ADMIN-12 | Complete |
 | 3 | Medical Integration | Extract constraints from existing certs | MED-01 to MED-10 | Complete |
-| 4 | Functional Ability Matrix | Match restrictions to duties | FAM-01 to FAM-09 | Pending |
+| 4 | Functional Ability Matrix | Match restrictions to duties | FAM-01 to FAM-09 | Complete |
 | 5 | Plan Generator | Auto-create RTW plans | GEN-01 to GEN-10 | Pending |
 | 6 | Plan Output | Display and format plans | OUT-01 to OUT-10 | Pending |
 | 7 | Email Generation | Manager-ready communications | EMAIL-01 to EMAIL-10 | Pending |
@@ -102,10 +102,10 @@ Plans:
 **Plans:** 4 plans
 
 Plans:
-- [ ] 04-01-PLAN.md - Core suitability calculator and modification suggester services (with FAM-02 explicit tests)
-- [ ] 04-02-PLAN.md - Matrix API endpoint for duty templates and suitability display utilities
-- [ ] 04-03-PLAN.md - TRUE matrix UI component (duties as rows, demand categories as columns)
-- [ ] 04-04-PLAN.md - End-to-end verification checkpoint
+- [x] 04-01-PLAN.md - Core suitability calculator and modification suggester services (with FAM-02 explicit tests)
+- [x] 04-02-PLAN.md - Matrix API endpoint for duty templates and suitability display utilities
+- [x] 04-03-PLAN.md - TRUE matrix UI component (duties as rows, demand categories as columns)
+- [x] 04-04-PLAN.md - End-to-end verification checkpoint
 
 **Wave Structure:**
 - Wave 1: Plan 01 (algorithm services + unit tests)
