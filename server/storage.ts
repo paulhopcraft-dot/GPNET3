@@ -57,12 +57,14 @@ import {
   rtwPlanSchedule,
   rtwDuties,
   rtwDutyDemands,
+  rtwRoles,
   type RTWPlanDB,
   type RTWPlanVersionDB,
   type RTWPlanDutyDB,
   type RTWPlanScheduleDB,
   type RTWDutyDB,
   type RTWDutyDemandsDB,
+  type RTWRoleDB,
 } from "@shared/schema";
 import { evaluateClinicalEvidence } from "./services/clinicalEvidence";
 import { combineRestrictions } from "./services/restrictionMapper";
@@ -116,6 +118,43 @@ export interface RTWPlanWithDetails {
   version: RTWPlanVersionDB | null;
   schedule: RTWPlanScheduleDB[];
   duties: RTWPlanDutyDB[];
+}
+
+/**
+ * Full plan details for display (OUT-01 to OUT-06)
+ */
+export interface RTWPlanFullDetails {
+  plan: RTWPlanDB;
+  version: RTWPlanVersionDB | null;
+  schedule: RTWPlanScheduleDB[];
+  duties: Array<RTWPlanDutyDB & {
+    dutyName: string;
+    dutyDescription: string | null;
+    demands: RTWDutyDemandsDB | null;
+  }>;
+  workerCase: {
+    id: string;
+    workerName: string;
+    company: string;
+    dateOfInjury: string;
+    workStatus: string;
+  } | null;
+  role: {
+    id: string;
+    name: string;
+    description: string | null;
+  } | null;
+  restrictions: FunctionalRestrictions | null;
+  maxHoursPerDay: number | null;
+  maxDaysPerWeek: number | null;
+}
+
+/**
+ * Plan email draft
+ */
+export interface PlanEmailDraft {
+  subject: string;
+  body: string;
 }
 
 function asDate(value: string | Date | null | undefined): Date | null {
@@ -527,6 +566,14 @@ export interface IStorage {
   getRTWPlanById(planId: string, organizationId: string): Promise<RTWPlanWithDetails | null>;
   getRoleDutiesWithDemands(roleId: string, organizationId: string): Promise<RTWDutyWithDemands[]>;
   getDutiesByIds(dutyIds: string[], organizationId: string): Promise<RTWDutyWithDemands[]>;
+
+  // RTW Plan Output - Plan Details (OUT-01 to OUT-06)
+  getRTWPlanFullDetails(planId: string, organizationId: string): Promise<RTWPlanFullDetails | null>;
+  getRoleById(roleId: string, organizationId: string): Promise<RTWRoleDB | null>;
+
+  // RTW Plan Output - Email Management (OUT-07, OUT-08)
+  savePlanEmail(planId: string, email: PlanEmailDraft): Promise<void>;
+  getPlanEmail(planId: string): Promise<PlanEmailDraft | null>;
 }
 
 class DbStorage implements IStorage {
@@ -2783,6 +2830,214 @@ class DbStorage implements IStorage {
       ...row.duty,
       demands: row.demands,
     }));
+  }
+
+  // ============================================================================
+  // RTW Plan Output - Plan Details (OUT-01 to OUT-06)
+  // ============================================================================
+
+  /**
+   * Get full plan details for display including case, role, and restrictions
+   */
+  async getRTWPlanFullDetails(planId: string, organizationId: string): Promise<RTWPlanFullDetails | null> {
+    // Get plan with organization check
+    const planResult = await this.getRTWPlanById(planId, organizationId);
+    if (!planResult) {
+      return null;
+    }
+
+    const { plan, version, schedule, duties } = planResult;
+
+    // Get worker case for context (OUT-01)
+    let workerCase: RTWPlanFullDetails["workerCase"] = null;
+    if (plan.caseId) {
+      const caseRow = await db.select({
+        id: workerCases.id,
+        workerName: workerCases.workerName,
+        company: workerCases.company,
+        dateOfInjury: workerCases.dateOfInjury,
+        workStatus: workerCases.workStatus,
+      })
+        .from(workerCases)
+        .where(and(
+          eq(workerCases.id, plan.caseId),
+          eq(workerCases.organizationId, organizationId)
+        ))
+        .limit(1);
+
+      if (caseRow.length > 0) {
+        workerCase = {
+          id: caseRow[0].id,
+          workerName: caseRow[0].workerName,
+          company: caseRow[0].company,
+          dateOfInjury: caseRow[0].dateOfInjury,
+          workStatus: caseRow[0].workStatus,
+        };
+      }
+    }
+
+    // Get role for context
+    let role: RTWPlanFullDetails["role"] = null;
+    if (plan.roleId) {
+      const roleRow = await this.getRoleById(plan.roleId, organizationId);
+      if (roleRow) {
+        role = {
+          id: roleRow.id,
+          name: roleRow.name,
+          description: roleRow.description,
+        };
+      }
+    }
+
+    // Get current restrictions (OUT-02)
+    let restrictions: FunctionalRestrictions | null = null;
+    let maxHoursPerDay: number | null = null;
+    let maxDaysPerWeek: number | null = null;
+    if (plan.caseId) {
+      const restrictionsResult = await this.getCurrentRestrictions(plan.caseId, organizationId);
+      if (restrictionsResult) {
+        restrictions = restrictionsResult.restrictions;
+        maxHoursPerDay = restrictionsResult.maxWorkHoursPerDay;
+        maxDaysPerWeek = restrictionsResult.maxWorkDaysPerWeek;
+      }
+    }
+
+    // Enrich duties with names and demands (OUT-03, OUT-04, OUT-06)
+    const dutyIds = duties.map(d => d.dutyId);
+    const dutyDetails = dutyIds.length > 0
+      ? await this.getDutiesByIds(dutyIds, organizationId)
+      : [];
+
+    const enrichedDuties = duties.map(planDuty => {
+      const detail = dutyDetails.find(d => d.id === planDuty.dutyId);
+      return {
+        ...planDuty,
+        dutyName: detail?.name || "Unknown Duty",
+        dutyDescription: detail?.description || null,
+        demands: detail?.demands || null,
+      };
+    });
+
+    return {
+      plan,
+      version,
+      schedule,
+      duties: enrichedDuties,
+      workerCase,
+      role,
+      restrictions,
+      maxHoursPerDay,
+      maxDaysPerWeek,
+    };
+  }
+
+  /**
+   * Get role by ID
+   */
+  async getRoleById(roleId: string, organizationId: string): Promise<RTWRoleDB | null> {
+    const [role] = await db.select()
+      .from(rtwRoles)
+      .where(and(
+        eq(rtwRoles.id, roleId),
+        eq(rtwRoles.organizationId, organizationId)
+      ))
+      .limit(1);
+
+    return role || null;
+  }
+
+  // ============================================================================
+  // RTW Plan Output - Email Management (OUT-07, OUT-08)
+  // ============================================================================
+
+  /**
+   * Save or update plan email draft
+   * Uses email_drafts table with emailType='rtw_plan_notification' and planId in context
+   */
+  async savePlanEmail(planId: string, email: PlanEmailDraft): Promise<void> {
+    // Get plan to get organizationId and caseId
+    const [plan] = await db.select({
+      organizationId: rtwPlans.organizationId,
+      caseId: rtwPlans.caseId,
+    })
+      .from(rtwPlans)
+      .where(eq(rtwPlans.id, planId))
+      .limit(1);
+
+    if (!plan) {
+      throw new Error("Plan not found");
+    }
+
+    // Check if draft exists for this plan (via caseContextSnapshot.planId)
+    const existing = await db.select({ id: emailDrafts.id })
+      .from(emailDrafts)
+      .where(and(
+        eq(emailDrafts.caseId, plan.caseId),
+        eq(emailDrafts.emailType, "rtw_plan_notification"),
+        sql`${emailDrafts.caseContextSnapshot}->>'planId' = ${planId}`
+      ))
+      .limit(1);
+
+    if (existing.length > 0) {
+      // Update existing
+      await db.update(emailDrafts)
+        .set({
+          subject: email.subject,
+          body: email.body,
+          updatedAt: new Date(),
+        })
+        .where(eq(emailDrafts.id, existing[0].id));
+    } else {
+      // Insert new draft
+      await db.insert(emailDrafts).values({
+        organizationId: plan.organizationId,
+        caseId: plan.caseId,
+        emailType: "rtw_plan_notification",
+        recipient: "employer",
+        subject: email.subject,
+        body: email.body,
+        tone: "formal",
+        status: "draft",
+        caseContextSnapshot: { planId },
+        createdBy: "system",
+      });
+    }
+  }
+
+  /**
+   * Get plan email draft if exists
+   */
+  async getPlanEmail(planId: string): Promise<PlanEmailDraft | null> {
+    // First get the plan to find its caseId
+    const [plan] = await db.select({ caseId: rtwPlans.caseId })
+      .from(rtwPlans)
+      .where(eq(rtwPlans.id, planId))
+      .limit(1);
+
+    if (!plan) {
+      return null;
+    }
+
+    const [draft] = await db.select({
+      subject: emailDrafts.subject,
+      body: emailDrafts.body,
+    })
+      .from(emailDrafts)
+      .where(and(
+        eq(emailDrafts.caseId, plan.caseId),
+        eq(emailDrafts.emailType, "rtw_plan_notification"),
+        sql`${emailDrafts.caseContextSnapshot}->>'planId' = ${planId}`
+      ))
+      .limit(1);
+
+    if (!draft) {
+      return null;
+    }
+
+    return {
+      subject: draft.subject,
+      body: draft.body,
+    };
   }
 }
 
