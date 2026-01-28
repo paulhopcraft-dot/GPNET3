@@ -18,7 +18,7 @@
 | 8 | Approval Workflow | Manager approve/reject flow | APPR-01 to APPR-11 | Pending |
 | 9 | Audit Trail | Immutable decision logging | AUDIT-01 to AUDIT-08 | Pending |
 | 10 | RTW Planner UI | Complete user interface | UI-01 to UI-10 | Pending |
-| 11 | System-Wide Testing | Comprehensive E2E & integration tests | TEST-01 to TEST-15 | Planned |
+| 11 | System-Wide Testing | Comprehensive E2E & integration tests | TEST-01 to TEST-15 | Complete |
 
 ---
 
