@@ -66,6 +66,12 @@ Progress: [######....] 60%
 
 None currently.
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 001 | Fix smoke test failures (logout, auth guard, special chars, timeouts, 500 errors) | 2026-01-28 | 913dae8 | [001-fix-smoke-test-failures](./quick/001-fix-smoke-test-failures/) |
+
 ## Next Action
 
 **Human Verification Required:** Plan 11-07 checkpoint awaits user approval.
