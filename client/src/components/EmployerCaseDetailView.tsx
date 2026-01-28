@@ -10,7 +10,7 @@ import { CaseActionPlanCard } from "./CaseActionPlanCard";
 import { RecoveryChart } from "./RecoveryChart";
 import { ComplianceReportCard } from "./ComplianceReportCard";
 import { fetchWithCsrf } from "../lib/queryClient";
-import type { WorkerCase, CaseAction } from "@shared/schema";
+import type { WorkerCase, CaseAction, MedicalCertificate } from "@shared/schema";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -79,6 +79,16 @@ export function EmployerCaseDetailView({ workerCase, onClose }: EmployerCaseDeta
     },
   });
 
+  // Fetch certificates for recovery chart
+  const { data: recoveryData } = useQuery<{ certificates: MedicalCertificate[] }>({
+    queryKey: [`/api/cases/${workerCase.id}/recovery-timeline`],
+    queryFn: async () => {
+      const response = await fetchWithCsrf(`/api/cases/${workerCase.id}/recovery-timeline`);
+      if (!response.ok) throw new Error("Failed to fetch recovery timeline");
+      return response.json();
+    },
+  });
+
   // Filter actions for this specific case
   const caseActions = pendingActionsData?.data?.filter((action: CaseAction) =>
     action.caseId === workerCase.id && action.status === "pending"
@@ -118,6 +128,12 @@ export function EmployerCaseDetailView({ workerCase, onClose }: EmployerCaseDeta
       return data.needsRefresh || !data.summary;
     } catch (error) {
       console.error("Error fetching summary:", error);
+      // Don't retry on auth errors (401)
+      const errorMessage = error instanceof Error ? error.message : "";
+      if (errorMessage.includes("401")) {
+        setSummaryError("Session expired. Please refresh the page.");
+        return false; // Don't trigger generation
+      }
       return true;
     }
   };
@@ -152,7 +168,12 @@ export function EmployerCaseDetailView({ workerCase, onClose }: EmployerCaseDeta
       await refetchActions();
     } catch (error) {
       console.error("Error generating AI summary:", error);
-      setSummaryError(error instanceof Error ? error.message : "AI summary temporarily unavailable");
+      const errorMessage = error instanceof Error ? error.message : "";
+      if (errorMessage.includes("401")) {
+        setSummaryError("Session expired. Please refresh the page.");
+      } else {
+        setSummaryError(errorMessage || "AI summary temporarily unavailable");
+      }
     } finally {
       if (latestCaseIdRef.current === caseId) {
         setLoadingSummary(false);
@@ -378,7 +399,7 @@ export function EmployerCaseDetailView({ workerCase, onClose }: EmployerCaseDeta
                                         <RecoveryChart
                                           injuryDate={workerCase.dateOfInjury}
                                           expectedRecoveryDate={workerCase.dueDate}
-                                          certificates={workerCase.certificates}
+                                          certificates={recoveryData?.certificates}
                                         />
                                       </CardContent>
                                     </Card>

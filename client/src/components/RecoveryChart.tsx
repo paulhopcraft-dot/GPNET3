@@ -76,16 +76,21 @@ export const RecoveryChart: React.FC<RecoveryChartProps> = ({
     const now = new Date();
     const MS_PER_WEEK = 1000 * 60 * 60 * 24 * 7;
 
-    // More accurate week calculations
-    const totalWeeks = Math.max(
-      1,
-      Math.ceil((expected.getTime() - injury.getTime()) / MS_PER_WEEK),
-    );
+    // Process certificates first to determine max week needed
+    const certWeeks = certificates
+      ?.filter(cert => cert.startDate || cert.endDate)
+      .map(cert => {
+        const date = new Date(cert.endDate ?? cert.startDate);
+        if (isNaN(date.getTime())) return 0;
+        return Math.max(0, Math.floor((date.getTime() - injury.getTime()) / MS_PER_WEEK));
+      }) ?? [];
 
-    const currentWeek = Math.min(
-      totalWeeks,
-      Math.max(0, Math.floor((now.getTime() - injury.getTime()) / MS_PER_WEEK)),
-    );
+    // Calculate weeks - ensure we include all certificate weeks
+    const expectedTotalWeeks = Math.ceil((expected.getTime() - injury.getTime()) / MS_PER_WEEK);
+    const maxCertWeek = certWeeks.length > 0 ? Math.max(...certWeeks) : 0;
+    const totalWeeks = Math.max(1, expectedTotalWeeks, maxCertWeek + 2);
+
+    const currentWeek = Math.max(0, Math.floor((now.getTime() - injury.getTime()) / MS_PER_WEEK));
 
     // Enhanced expected recovery curve - S-shaped for more realistic recovery
     const expectedLine = Array.from({ length: totalWeeks + 1 }).map((_, i) => {
@@ -183,6 +188,12 @@ export const RecoveryChart: React.FC<RecoveryChartProps> = ({
         certificate: certificateByWeek.get(point.week) || null,
       };
     });
+
+    // Debug logging
+    console.log('[RecoveryChart] Certificates received:', certificates?.length);
+    console.log('[RecoveryChart] Certificate points:', certificatePoints.length);
+    console.log('[RecoveryChart] Weeks with certs:', Array.from(certificateByWeek.keys()));
+    console.log('[RecoveryChart] Data points with hasCertificate:', data.filter(d => d.hasCertificate).length);
 
     return { data, currentWeek, totalWeeks, certificateCount: certificatePoints.length, certificateByWeek };
   }, [injuryDate, expectedRecoveryDate, certificates]);
@@ -444,8 +455,8 @@ export const RecoveryChart: React.FC<RecoveryChartProps> = ({
                   stroke={CHART_COLORS.actual}
                   strokeWidth={3}
                   name="Actual Recovery"
-                  dot={{ r: 3, fill: CHART_COLORS.actual, strokeWidth: 0 }}
-                  activeDot={{ r: 6, fill: CHART_COLORS.actual, stroke: 'white', strokeWidth: 2 }}
+                  dot={<CertificateDot />}
+                  activeDot={{ r: 8, fill: CHART_COLORS.actual, stroke: 'white', strokeWidth: 2 }}
                 />
               )}
 

@@ -9,10 +9,10 @@ import { logger } from "../lib/logger";
  * Rate Limiting Configuration
  */
 
-// General API rate limiter: 10000 requests per 15 minutes (DEMO MODE)
+// General API rate limiter: TEMPORARILY DISABLED
 export const generalRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10000, // Limit each IP to 10000 requests per windowMs (DEMO MODE)
+  max: 100000, // TEMP HIGH - set back to 10000 after debugging
   message: {
     error: "Too Many Requests",
     message: "Too many requests from this IP, please try again later.",
