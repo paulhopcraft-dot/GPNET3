@@ -31,7 +31,7 @@ Progress: [#####.....] 50%
 |-------|------|--------|-------|
 | 1 | Database Schema | COMPLETE | 1/1 |
 | 2 | Admin: Roles & Duties | COMPLETE | 5/5 |
-| 3 | Medical Integration | COMPLETE | 2/2 |
+| 3 | Medical Integration | COMPLETE | 3/3 |
 | 4 | Functional Ability Matrix | Pending | 0/0 |
 | 5 | Plan Generator | Pending | 0/0 |
 | 6 | Plan Output | Pending | 0/0 |
@@ -67,6 +67,10 @@ Progress: [#####.....] 50%
 | Category-based restriction grouping | Groups related demands for easier UI scanning | 3 |
 | Color coding (green/yellow/red/gray) | Consistent with app-wide status colors | 3 |
 | Inline weight limits | Shows max kg next to lifting/carrying for immediate context | 3 |
+| CAPABILITY_PRIORITY constant mapping | Clear precedence: cannot > with_modifications > can > not_assessed | 3 |
+| Weight limits use minimum in combination | Lower weight limit = more restrictive = safer for worker | 3 |
+| Rest requirements use maximum in combination | More rest = more restrictive = safer for worker | 3 |
+| Return source indicator in API response | UI can show if restrictions from single cert or combined sources | 3 |
 
 ## Blockers/Concerns
 
@@ -118,6 +122,7 @@ In progress: None
 - 2026-01-28: Phase 2 Plan 05 VERIFIED - Code inspection confirms all ADMIN-01 to ADMIN-12 requirements implemented
 - 2026-01-28: Phase 3 Plan 01 EXECUTED - Schema update + restriction extractor service
 - 2026-01-28: Phase 3 Plan 03 EXECUTED - CurrentRestrictionsPanel UI component + restrictionUtils helpers
+- 2026-01-28: Phase 3 Plan 02 EXECUTED - Restriction mapper + current restrictions API endpoint
 
 ## Session Continuity
 
