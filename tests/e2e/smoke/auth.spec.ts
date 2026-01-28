@@ -94,9 +94,14 @@ test.describe('Authentication', { tag: '@smoke' }, () => {
     // Page should handle gracefully, not crash or show raw error
     await expect(page.locator('body')).toBeVisible();
 
+    // Wait a moment for any error messages to appear
+    await page.waitForTimeout(1000);
+
     // Should show validation error or invalid credentials, not 500 error
-    const pageContent = await page.content();
-    expect(pageContent).not.toContain('500');
-    expect(pageContent).not.toContain('Internal Server Error');
+    // Check visible text only (not HTML which may have port numbers like :5000)
+    const bodyText = await page.locator('body').innerText();
+    expect(bodyText).not.toContain('Internal Server Error');
+    // Allow for 500 appearing in contexts like port numbers by being more specific
+    expect(bodyText).not.toMatch(/500\s*(error|internal)/i);
   });
 });
