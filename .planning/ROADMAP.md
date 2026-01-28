@@ -1,14 +1,14 @@
 # Roadmap: RTW Planner Engine
 
 **Created:** 2026-01-25
-**Phases:** 10
-**Approach:** Bottom-up (data layer → logic → UI)
+**Phases:** 11
+**Approach:** Bottom-up (data layer -> logic -> UI)
 
 ## Phase Overview
 
 | Phase | Name | Goal | Requirements | Status |
 |-------|------|------|--------------|--------|
-| 1 | Database Schema | Data foundation for all modules | DB-01 to DB-10 | ✓ Complete |
+| 1 | Database Schema | Data foundation for all modules | DB-01 to DB-10 | Complete |
 | 2 | Admin: Roles & Duties | Employers can define their job structure | ADMIN-01 to ADMIN-12 | Pending |
 | 3 | Medical Integration | Extract constraints from existing certs | MED-01 to MED-10 | Pending |
 | 4 | Functional Ability Matrix | Match restrictions to duties | FAM-01 to FAM-09 | Pending |
@@ -18,6 +18,7 @@
 | 8 | Approval Workflow | Manager approve/reject flow | APPR-01 to APPR-11 | Pending |
 | 9 | Audit Trail | Immutable decision logging | AUDIT-01 to AUDIT-08 | Pending |
 | 10 | RTW Planner UI | Complete user interface | UI-01 to UI-10 | Pending |
+| 11 | System-Wide Testing | Comprehensive E2E & integration tests | TEST-01 to TEST-15 | Planned |
 
 ---
 
@@ -106,7 +107,7 @@ Plans:
 
 **Success Criteria:**
 1. Plan type auto-selected correctly
-2. Graduated schedule generated (4→6→8 hrs)
+2. Graduated schedule generated (4->6->8 hrs)
 3. Custom schedule allowed
 4. Only suitable duties included
 5. Plan respects restriction review dates
@@ -203,26 +204,75 @@ Plans:
 ## Build Order Rationale
 
 ```
-Phase 1 (DB) ─────────────────────────────────────┐
-                                                  │
-Phase 2 (Duties) ──┬──────────────────────────────┤
-                   │                              │
-Phase 3 (Medical) ─┴─→ Phase 4 (Matrix) ──────────┤
-                                                  │
-                       Phase 5 (Generator) ───────┤
-                                                  │
-                       Phase 6 (Output) ──────────┤
-                                                  │
-Phase 7 (Email) ──────────────────────────────────┤
-                                                  │
-Phase 8 (Approval) ───────────────────────────────┤
-                                                  │
-Phase 9 (Audit) ──────────────────────────────────┤
-                                                  │
-Phase 10 (UI) ────────────────────────────────────┘
+Phase 1 (DB) -----------------------------------------+
+                                                      |
+Phase 2 (Duties) --+----------------------------------+
+                   |                                  |
+Phase 3 (Medical) -+-> Phase 4 (Matrix) -------------+
+                                                      |
+                       Phase 5 (Generator) ----------+
+                                                      |
+                       Phase 6 (Output) -------------+
+                                                      |
+Phase 7 (Email) -------------------------------------+
+                                                      |
+Phase 8 (Approval) ----------------------------------+
+                                                      |
+Phase 9 (Audit) -------------------------------------+
+                                                      |
+Phase 10 (UI) ---------------------------------------+
 ```
 
 **Phases 2 & 3 can run in parallel** after Phase 1.
 
 ---
+
+## Phase 11: System-Wide Testing
+
+**Goal:** Comprehensive end-to-end testing of the entire GPNet system including employer portal, case management, and all integrations
+
+**Requirements:** TEST-01 to TEST-15
+
+**Plans:** 7 plans
+
+Plans:
+- [ ] 11-01-PLAN.md - Test infrastructure setup (fixtures, config, npm scripts)
+- [ ] 11-02-PLAN.md - Smoke tests (health, auth, navigation)
+- [ ] 11-03-PLAN.md - Critical path E2E tests (dashboard, cases, tabs)
+- [ ] 11-04-PLAN.md - New case flow E2E test
+- [ ] 11-05-PLAN.md - Performance and API tests
+- [ ] 11-06-PLAN.md - Database integrity and edge case tests
+- [ ] 11-07-PLAN.md - Run all tests and generate report
+
+**Wave Structure:**
+- Wave 1: Plan 01 (infrastructure setup)
+- Wave 2: Plans 02, 03, 04 (parallel - smoke, critical, new case)
+- Wave 3: Plans 05, 06 (parallel - performance, integrity)
+- Wave 4: Plan 07 (full suite run and verification checkpoint)
+
+**Success Criteria:**
+1. Employer portal login and navigation verified
+2. All 7 case detail tabs functional with real data
+3. New case creation flow works end-to-end
+4. API performance meets targets (<5s response times)
+5. Playwright E2E tests pass for critical paths
+6. Database integrity verified
+7. Error handling graceful (no infinite loops, proper error messages)
+8. Recovery chart displays certificate dots correctly
+
+**Dependencies:** Can run independently (tests existing system)
+
+**Test Coverage Areas:**
+- Employer authentication & session management
+- Dashboard data accuracy
+- Case list filtering and pagination
+- Case detail tabs (Summary, Injury, Timeline, Treatment, Contacts, Financial, Risk)
+- New case creation wizard
+- RTW Planner integration
+- API rate limiting and error handling
+- Certificate image display
+- Smart summary generation
+
+---
 *Roadmap created: 2026-01-25*
+*Phase 11 planned: 2026-01-28*
