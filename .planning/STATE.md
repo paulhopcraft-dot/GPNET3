@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-01-25)
 
 ## Current Position
 
-Phase: 2 of 11 (Admin: Roles & Duties)
-Plan: 5 of 5 - COMPLETE
-Status: Phase 2 verified and complete
-Last activity: 2026-01-28 - Phase 2 completed (roles & duties admin UI verified)
+Phase: 3 of 11 (Medical Integration)
+Plan: 1 of 2 - COMPLETE
+Status: Phase 3 in progress
+Last activity: 2026-01-28 - Completed 03-01-PLAN.md (schema + restriction extractor)
 
-Progress: [###.......] 30%
+Progress: [####......] 40%
 
 ## Current Status
 
@@ -30,8 +30,8 @@ Progress: [###.......] 30%
 | Phase | Name | Status | Plans |
 |-------|------|--------|-------|
 | 1 | Database Schema | COMPLETE | 1/1 |
-| 2 | Admin: Roles & Duties | COMPLETE | 5/5 ✓ |
-| 3 | Medical Integration | Pending | 0/0 |
+| 2 | Admin: Roles & Duties | COMPLETE | 5/5 |
+| 3 | Medical Integration | In Progress | 1/2 |
 | 4 | Functional Ability Matrix | Pending | 0/0 |
 | 5 | Plan Generator | Pending | 0/0 |
 | 6 | Plan Output | Pending | 0/0 |
@@ -39,7 +39,7 @@ Progress: [###.......] 30%
 | 8 | Approval Workflow | Pending | 0/0 |
 | 9 | Audit Trail | Pending | 0/0 |
 | 10 | RTW Planner UI | Pending | 0/0 |
-| 11 | System-Wide Testing | COMPLETE | 7/7 ✓ |
+| 11 | System-Wide Testing | COMPLETE | 7/7 |
 
 ## Accumulated Decisions
 
@@ -61,6 +61,9 @@ Progress: [###.......] 30%
 | Direct pg Pool for integrity tests | Raw SQL cleaner for referential checks, avoids ORM in test layer | 11 |
 | Conditional skip for DATABASE_URL | Tests skip gracefully when no database, not fail | 11 |
 | Recovery chart tests log missing data | Test data may lack certificates; log rather than fail | 11 |
+| FunctionalRestrictionsExtracted extends base | Allows time limits and extraction metadata alongside capabilities | 3 |
+| Fire-and-forget extraction in pipeline | Extraction errors should not block certificate creation | 3 |
+| Edge case handling without LLM | Fit/unfit have deterministic mappings; saves API costs | 3 |
 
 ## Blockers/Concerns
 
@@ -74,14 +77,15 @@ None currently.
 
 ## Next Action
 
-**Ready for Phase 3:** Medical Integration
+**Continue Phase 3:** Medical Integration Plan 02
 
 Next steps:
-1. `/gsd:plan-phase 3` - Create plans for Medical Integration
-2. Phase 3 extracts structured restrictions from existing medical certificates
-3. Dependencies: Phase 1 (database schema) - COMPLETE
+1. `/gsd:execute-phase 3.02` - Execute Plan 02 (API + UI for current restrictions)
+2. Plan 02 provides: API endpoint for current restrictions, UI component display
+3. After Plan 02: Phase 3 complete, ready for Phase 4
 
 Completed phases: 1, 2, 11
+In progress: 3
 
 ## Roadmap Evolution
 
@@ -109,11 +113,12 @@ Completed phases: 1, 2, 11
 - 2026-01-28: Phase 11 Plan 07 AUTO TASKS COMPLETE - Test report generator, npm scripts (checkpoint pending)
 - 2026-01-28: Phase 2 Plan 04 previously EXECUTED - Duties UI pages (DutiesList, DutyForm, DemandMatrix)
 - 2026-01-28: Phase 2 Plan 05 VERIFIED - Code inspection confirms all ADMIN-01 to ADMIN-12 requirements implemented
+- 2026-01-28: Phase 3 Plan 01 EXECUTED - Schema update + restriction extractor service
 
 ## Session Continuity
 
 Last session: 2026-01-28
-Stopped at: Phase 2 complete, ready for Phase 3
+Stopped at: Phase 3 Plan 01 complete, ready for Plan 02
 Resume file: .planning/STATE.md
 
 ---
