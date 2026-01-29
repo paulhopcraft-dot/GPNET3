@@ -200,12 +200,26 @@ Plans:
 
 **Requirements:** EMAIL-01 to EMAIL-10
 
+**Plans:** 3 plans
+
+Plans:
+- [ ] 07-01-PLAN.md - Organization-specific email templates with Handlebars (EMAIL-09)
+- [ ] 07-02-PLAN.md - SMTP sending with confirmation dialog (EMAIL-10)
+- [ ] 07-03-PLAN.md - End-to-end verification checkpoint
+
+**Wave Structure:**
+- Wave 1: Plan 01 (template system - schema + storage + rendering)
+- Wave 2: Plan 02 (SMTP sending - API + UI)
+- Wave 3: Plan 03 (verification checkpoint)
+
+**Note:** EMAIL-01 to EMAIL-08 (AI email generation, content, formatting) are already implemented in Phase 6. Phase 7 adds the missing capabilities: organization templates (EMAIL-09) and SMTP sending (EMAIL-10).
+
 **Success Criteria:**
-1. Email contains all required sections
-2. Professional formatting
-3. Editable before approval only
-4. Send or copy to clipboard works
-5. Templates customizable per org
+1. Email contains all required sections (EMAIL-01 to EMAIL-08 - Phase 6)
+2. Professional formatting (Phase 6)
+3. Editable before approval only (Phase 6)
+4. Send or copy to clipboard works (EMAIL-10)
+5. Templates customizable per org (EMAIL-09)
 
 **Dependencies:** Phase 6 (plan output)
 
@@ -347,3 +361,4 @@ Plans:
 *Phase 4 planned: 2026-01-28*
 *Phase 4 revised: 2026-01-28 (FAM-09 override deferred to Phase 8, FAM-08 true matrix design)*
 *Phase 5 planned: 2026-01-28*
+*Phase 7 planned: 2026-01-29*
