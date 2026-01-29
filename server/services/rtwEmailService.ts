@@ -4,10 +4,15 @@
  * AI-powered email drafting for RTW plan manager notifications.
  * Uses plan context (worker, role, schedule, duties, restrictions)
  * to generate professional emails for employer/manager.
+ *
+ * EMAIL-09: Organization-specific email templates supported via Handlebars.
+ * Fallback chain: Template -> AI -> Fallback template
  */
 
 import Anthropic from "@anthropic-ai/sdk";
+import Handlebars from "handlebars";
 import { logger } from "../lib/logger";
+import { storage } from "../storage";
 
 const MODEL = "claude-3-haiku-20240307";
 
@@ -174,6 +179,89 @@ function formatDutiesList(
 }
 
 /**
+ * Template variable context for Handlebars rendering (EMAIL-09)
+ */
+interface TemplateVariables {
+  workerName: string;
+  company: string;
+  dateOfInjury: string;
+  workStatus: string;
+  roleName: string;
+  roleDescription?: string | null;
+  planType: string;
+  planTypeLabel: string;
+  planStatus: string;
+  startDate: string;
+  restrictionReviewDate?: string | null;
+  scheduleSummary: string;
+  includedDutiesList: string;
+  excludedDutiesList: string;
+}
+
+/**
+ * Build template variables from plan context (EMAIL-09)
+ */
+function buildTemplateVariables(context: RTWPlanEmailContext): TemplateVariables {
+  const planTypeLabel = PLAN_TYPE_LABELS[context.planType] || context.planType;
+  const scheduleSummary = formatScheduleSummary(context.schedule);
+
+  const includedDutiesList = context.includedDuties
+    .map((d) => `- ${d.dutyName}${d.modificationNotes ? ` (modifications: ${d.modificationNotes})` : ""}`)
+    .join("\n");
+
+  const excludedDutiesList = context.excludedDuties
+    .map((d) => `- ${d.dutyName}${d.excludedReason ? ` (${d.excludedReason})` : ""}`)
+    .join("\n");
+
+  return {
+    workerName: context.workerName,
+    company: context.company,
+    dateOfInjury: context.dateOfInjury,
+    workStatus: context.workStatus,
+    roleName: context.roleName,
+    roleDescription: context.roleDescription,
+    planType: context.planType,
+    planTypeLabel,
+    planStatus: context.planStatus,
+    startDate: context.startDate,
+    restrictionReviewDate: context.restrictionReviewDate,
+    scheduleSummary,
+    includedDutiesList: includedDutiesList || "No included duties",
+    excludedDutiesList: excludedDutiesList || "No excluded duties",
+  };
+}
+
+/**
+ * Render email from organization template (EMAIL-09)
+ * Returns null if no template exists or rendering fails
+ */
+async function renderFromTemplate(
+  organizationId: string,
+  context: RTWPlanEmailContext
+): Promise<GeneratedEmail | null> {
+  const template = await storage.getEmailTemplate(organizationId, "rtw_plan_notification");
+
+  if (!template || !template.isActive) {
+    return null;
+  }
+
+  try {
+    const variables = buildTemplateVariables(context);
+
+    const subjectCompiled = Handlebars.compile(template.subjectTemplate);
+    const bodyCompiled = Handlebars.compile(template.bodyTemplate);
+
+    return {
+      subject: subjectCompiled(variables),
+      body: bodyCompiled(variables),
+    };
+  } catch (error) {
+    logger.api.error("Template rendering failed", { organizationId }, error);
+    return null;
+  }
+}
+
+/**
  * Build the prompt for email generation
  */
 function buildEmailPrompt(context: RTWPlanEmailContext): string {
@@ -272,11 +360,30 @@ function parseEmailResponse(responseText: string): GeneratedEmail {
 }
 
 /**
- * Generate RTW plan notification email using AI
+ * Generate RTW plan notification email using template chain (EMAIL-09)
+ *
+ * Fallback chain:
+ * 1. Organization-specific template (if exists and active)
+ * 2. AI generation (if API key configured)
+ * 3. Fallback static template
  */
 export async function generateRTWPlanEmail(
-  context: RTWPlanEmailContext
+  context: RTWPlanEmailContext,
+  organizationId?: string
 ): Promise<GeneratedEmail> {
+  // 1. Try organization-specific template first (EMAIL-09)
+  if (organizationId) {
+    const templateResult = await renderFromTemplate(organizationId, context);
+    if (templateResult) {
+      logger.api.info("Generated RTW email from template", {
+        workerName: context.workerName,
+        organizationId,
+      });
+      return templateResult;
+    }
+  }
+
+  // 2. Fall back to AI generation
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     logger.api.warn("ANTHROPIC_API_KEY not configured, using fallback email template");
@@ -310,7 +417,7 @@ export async function generateRTWPlanEmail(
     // Parse the response
     const result = parseEmailResponse(textContent.text);
 
-    logger.api.info("Generated RTW plan email", {
+    logger.api.info("Generated RTW plan email via AI", {
       workerName: context.workerName,
       planType: context.planType,
       subjectLength: result.subject.length,
