@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-25)
 
 **Core value:** Automatically generate legally-defensible RTW plans from structured medical constraints and job duty data
-**Current focus:** Phase 5 - Plan Generator COMPLETE
+**Current focus:** Phase 6 - Plan Output IN PROGRESS
 
 ## Current Position
 
-Phase: 5 of 11 (Plan Generator)
-Plan: 4 of 4 - COMPLETE (05-04 verification)
-Status: Phase 5 COMPLETE - Verified
-Last activity: 2026-01-28 - Phase 5 verified (7/7 must-haves passed)
+Phase: 6 of 11 (Plan Output)
+Plan: 1 of 4 - COMPLETE (06-01 backend API)
+Status: Phase 6 IN PROGRESS
+Last activity: 2026-01-29 - Completed 06-01-PLAN.md (backend API endpoints)
 
-Progress: [######....] 65%
+Progress: [######....] 68%
 
 ## Current Status
 
@@ -34,7 +34,7 @@ Progress: [######....] 65%
 | 3 | Medical Integration | COMPLETE | 3/3 |
 | 4 | Functional Ability Matrix | COMPLETE | 3/3 |
 | 5 | Plan Generator | COMPLETE | 4/4 |
-| 6 | Plan Output | Pending | 0/0 |
+| 6 | Plan Output | IN PROGRESS | 1/4 |
 | 7 | Email Generation | Pending | 0/0 |
 | 8 | Approval Workflow | Pending | 0/0 |
 | 9 | Audit Trail | Pending | 0/0 |
@@ -88,6 +88,9 @@ Progress: [######....] 65%
 | Server-side suitability re-validation | Prevents frontend manipulation, recalculates before saving | 5 |
 | Transaction wrapping for RTW plan creation | Atomicity across plan + version + schedule + duties tables | 5 |
 | Audit logging for plan creation | Uses case.create event type until RTW-specific types added | 5 |
+| Use caseContextSnapshot.planId for plan email lookup | email_drafts lacks resource columns, use existing JSONB column | 6 |
+| Fallback email template when AI unavailable | Graceful degradation for missing ANTHROPIC_API_KEY | 6 |
+| Block email regeneration for approved plans | OUT-08 requires emails locked after plan approval | 6 |
 
 ## Blockers/Concerns
 
@@ -101,15 +104,15 @@ None currently.
 
 ## Next Action
 
-**Start Phase 6:** Plan Output
+**Continue Phase 6:** Plan Output
 
 Next steps:
-1. Research Phase 6 domain
-2. Plan Phase 6
-3. Execute Phase 6 plans
+1. Execute 06-02-PLAN.md (UI components for plan display)
+2. Execute remaining Phase 6 plans
+3. Verify Phase 6 completion
 
 Completed phases: 1, 2, 3, 4, 5, 11
-Ready for: Phase 6
+In progress: Phase 6 (1/4 plans complete)
 
 ## Roadmap Evolution
 
@@ -147,12 +150,13 @@ Ready for: Phase 6
 - 2026-01-28: Phase 5 Plan 03 EXECUTED - Plan Generator UI wizard + draft persistence + step components
 - 2026-01-28: Phase 5 Plan 02 EXECUTED - RTW Plans API (recommend + create + get endpoints) + storage methods
 - 2026-01-28: Phase 5 Plan 04 VERIFIED - 7/7 must-haves passed, all GEN-01 to GEN-10 implemented
+- 2026-01-29: Phase 6 Plan 01 EXECUTED - Backend API (details, email endpoints) + rtwEmailService
 
 ## Session Continuity
 
-Last session: 2026-01-28
-Stopped at: Phase 5 COMPLETE, ready for Phase 6
+Last session: 2026-01-29
+Stopped at: Phase 6 Plan 01 COMPLETE, ready for 06-02
 Resume file: .planning/STATE.md
 
 ---
-*Last updated: 2026-01-28*
+*Last updated: 2026-01-29*
