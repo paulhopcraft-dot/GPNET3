@@ -26,43 +26,43 @@
 
 ### Admin UI - Roles & Duties (ADMIN)
 
-- [ ] **ADMIN-01**: List all roles for organisation
-- [ ] **ADMIN-02**: Create new role with name and description
-- [ ] **ADMIN-03**: Edit existing role
-- [ ] **ADMIN-04**: Delete role (soft delete, check for active plans)
-- [ ] **ADMIN-05**: List duties for a role
-- [ ] **ADMIN-06**: Create new duty with name, description, modifiable flag
-- [ ] **ADMIN-07**: Set physical demands for duty (frequency matrix)
-- [ ] **ADMIN-08**: Set cognitive demands for duty
-- [ ] **ADMIN-09**: Mark duty risk flags
-- [ ] **ADMIN-10**: Edit existing duty and demands
-- [ ] **ADMIN-11**: Delete duty (soft delete)
-- [ ] **ADMIN-12**: Copy role with all duties (template feature)
+- [x] **ADMIN-01**: List all roles for organisation ✓
+- [x] **ADMIN-02**: Create new role with name and description ✓
+- [x] **ADMIN-03**: Edit existing role ✓
+- [x] **ADMIN-04**: Delete role (soft delete, check for active plans) ✓
+- [x] **ADMIN-05**: List duties for a role ✓
+- [x] **ADMIN-06**: Create new duty with name, description, modifiable flag ✓
+- [x] **ADMIN-07**: Set physical demands for duty (frequency matrix) ✓
+- [x] **ADMIN-08**: Set cognitive demands for duty ✓
+- [x] **ADMIN-09**: Mark duty risk flags ✓
+- [x] **ADMIN-10**: Edit existing duty and demands ✓
+- [x] **ADMIN-11**: Delete duty (soft delete) ✓
+- [x] **ADMIN-12**: Copy role with all duties (template feature) ✓
 
 ### Medical Constraints Integration (MED)
 
-- [ ] **MED-01**: Read medical restrictions from existing certificate data
-- [ ] **MED-02**: Map certificate restrictions to demand categories
-- [ ] **MED-03**: Extract: max hours/day, max days/week
-- [ ] **MED-04**: Extract: lifting limits (kg)
-- [ ] **MED-05**: Extract: sitting/standing tolerance
-- [ ] **MED-06**: Extract: repetitive movement limits
-- [ ] **MED-07**: Extract: cognitive limits (concentration, stress, pace)
-- [ ] **MED-08**: Extract: restriction start and review dates
-- [ ] **MED-09**: Display current restrictions on RTW planning screen
-- [ ] **MED-10**: Handle multiple active restrictions (combine most restrictive)
+- [x] **MED-01**: Read medical restrictions from existing certificate data ✓
+- [x] **MED-02**: Map certificate restrictions to demand categories ✓
+- [x] **MED-03**: Extract: max hours/day, max days/week ✓
+- [x] **MED-04**: Extract: lifting limits (kg) ✓
+- [x] **MED-05**: Extract: sitting/standing tolerance ✓
+- [x] **MED-06**: Extract: repetitive movement limits ✓
+- [x] **MED-07**: Extract: cognitive limits (concentration, stress, pace) ✓
+- [x] **MED-08**: Extract: restriction start and review dates ✓
+- [x] **MED-09**: Display current restrictions on RTW planning screen ✓
+- [x] **MED-10**: Handle multiple active restrictions (combine most restrictive) ✓
 
 ### Functional Ability Matrix (FAM)
 
-- [ ] **FAM-01**: Compare worker restrictions against duty demands
-- [ ] **FAM-02**: Calculate suitability per duty: Suitable / With modification / Not suitable
-- [ ] **FAM-03**: For each demand category, compare restriction vs requirement
-- [ ] **FAM-04**: "Suitable" = all demands within restrictions
-- [ ] **FAM-05**: "With modification" = some demands exceed but duty is modifiable
-- [ ] **FAM-06**: "Not suitable" = demands exceed and not modifiable
-- [ ] **FAM-07**: Generate modification suggestions for "with modification" duties
-- [ ] **FAM-08**: Display matrix view: duties vs demand categories with color coding
-- [ ] **FAM-09**: Allow manual override with reason (logged)
+- [x] **FAM-01**: Compare worker restrictions against duty demands ✓
+- [x] **FAM-02**: Calculate suitability per duty: Suitable / With modification / Not suitable ✓
+- [x] **FAM-03**: For each demand category, compare restriction vs requirement ✓
+- [x] **FAM-04**: "Suitable" = all demands within restrictions ✓
+- [x] **FAM-05**: "With modification" = some demands exceed but duty is modifiable ✓
+- [x] **FAM-06**: "Not suitable" = demands exceed and not modifiable ✓
+- [x] **FAM-07**: Generate modification suggestions for "with modification" duties ✓
+- [x] **FAM-08**: Display matrix view: duties vs demand categories with color coding ✓
+- [ ] **FAM-09**: Allow manual override with reason (logged) (deferred to Phase 8)
 
 ### RTW Plan Generator (GEN)
 
@@ -82,16 +82,16 @@
 
 ### RTW Plan Output (OUT)
 
-- [ ] **OUT-01**: Display plan summary with worker, role, injury details
-- [ ] **OUT-02**: Show medical constraints section
-- [ ] **OUT-03**: Show physical demands matrix in plan (Never/Occasionally/Frequently/Constantly)
-- [ ] **OUT-04**: Show proposed duties with suitability status
-- [ ] **OUT-05**: Show proposed schedule (hours per day, days per week, by week)
-- [ ] **OUT-06**: Show excluded duties with reasons
-- [ ] **OUT-07**: Generate manager email from plan
-- [ ] **OUT-08**: Email editable only before approval
-- [ ] **OUT-09**: Print-friendly plan view
-- [ ] **OUT-10**: PDF export of plan
+- [x] **OUT-01**: Display plan summary with worker, role, injury details ✓
+- [x] **OUT-02**: Show medical constraints section ✓
+- [x] **OUT-03**: Show physical demands matrix in plan (Never/Occasionally/Frequently/Constantly) ✓
+- [x] **OUT-04**: Show proposed duties with suitability status ✓
+- [x] **OUT-05**: Show proposed schedule (hours per day, days per week, by week) ✓
+- [x] **OUT-06**: Show excluded duties with reasons ✓
+- [x] **OUT-07**: Generate manager email from plan ✓
+- [x] **OUT-08**: Email editable only before approval ✓
+- [x] **OUT-09**: Print-friendly plan view ✓
+- [x] **OUT-10**: PDF export of plan ✓
 
 ### Email Generation (EMAIL)
 

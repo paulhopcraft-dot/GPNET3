@@ -13,7 +13,7 @@
 | 3 | Medical Integration | Extract constraints from existing certs | MED-01 to MED-10 | Complete |
 | 4 | Functional Ability Matrix | Match restrictions to duties | FAM-01 to FAM-09 | Complete |
 | 5 | Plan Generator | Auto-create RTW plans | GEN-01 to GEN-10 | Complete |
-| 6 | Plan Output | Display and format plans | OUT-01 to OUT-10 | Pending |
+| 6 | Plan Output | Display and format plans | OUT-01 to OUT-10 | Complete |
 | 7 | Email Generation | Manager-ready communications | EMAIL-01 to EMAIL-10 | Pending |
 | 8 | Approval Workflow | Manager approve/reject flow | APPR-01 to APPR-11 | Pending |
 | 9 | Audit Trail | Immutable decision logging | AUDIT-01 to AUDIT-08 | Pending |
@@ -168,10 +168,10 @@ Plans:
 **Plans:** 4 plans
 
 Plans:
-- [ ] 06-01-PLAN.md - API endpoints for plan details and email generation service
-- [ ] 06-02-PLAN.md - Print CSS and plan section components
-- [ ] 06-03-PLAN.md - PlanDetailView, ManagerEmailSection, PlanPrintView, PlanPage
-- [ ] 06-04-PLAN.md - End-to-end verification checkpoint
+- [x] 06-01-PLAN.md - API endpoints for plan details and email generation service
+- [x] 06-02-PLAN.md - Print CSS and plan section components
+- [x] 06-03-PLAN.md - PlanDetailView, ManagerEmailSection, PlanPrintView, PlanPage
+- [x] 06-04-PLAN.md - End-to-end verification checkpoint
 
 **Wave Structure:**
 - Wave 1: Plans 01, 02 (parallel - backend API + frontend components)
