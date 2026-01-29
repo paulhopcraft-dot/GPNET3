@@ -574,7 +574,8 @@ router.get("/:planId/email", async (req: AuthRequest, res) => {
       });
     }
 
-    const email = await generateRTWPlanEmail(emailContext);
+    // Pass organizationId for template lookup (EMAIL-09)
+    const email = await generateRTWPlanEmail(emailContext, organizationId);
 
     // Save generated email
     await storage.savePlanEmail(planId, email);
@@ -582,6 +583,7 @@ router.get("/:planId/email", async (req: AuthRequest, res) => {
     logger.api.info("Generated RTW plan email", {
       planId,
       workerName: emailContext.workerName,
+      organizationId,
     });
 
     res.json({
@@ -633,8 +635,8 @@ router.post("/:planId/email/regenerate", async (req: AuthRequest, res) => {
       });
     }
 
-    // Generate fresh email
-    const email = await generateRTWPlanEmail(emailContext);
+    // Generate fresh email with organizationId for template lookup (EMAIL-09)
+    const email = await generateRTWPlanEmail(emailContext, organizationId);
 
     // Save (overwrites existing)
     await storage.savePlanEmail(planId, email);
@@ -642,6 +644,7 @@ router.post("/:planId/email/regenerate", async (req: AuthRequest, res) => {
     logger.api.info("Regenerated RTW plan email", {
       planId,
       workerName: emailContext.workerName,
+      organizationId,
     });
 
     res.json({
