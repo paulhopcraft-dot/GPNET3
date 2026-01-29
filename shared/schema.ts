@@ -1373,6 +1373,27 @@ export interface EmailTypeInfo {
 }
 
 // =====================================================
+// Email Templates - Organization-specific email templates (EMAIL-09)
+// =====================================================
+
+export const emailTemplates = pgTable("email_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id),
+  templateType: varchar("template_type").notNull(), // 'rtw_plan_notification', 'certificate_chase', etc.
+  templateName: varchar("template_name"), // User-friendly name
+  subjectTemplate: text("subject_template").notNull(),
+  bodyTemplate: text("body_template").notNull(),
+  format: varchar("format").notNull().default("plain"), // 'plain' or 'html'
+  isActive: boolean("is_active").notNull().default(true),
+  createdBy: varchar("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type EmailTemplateDB = typeof emailTemplates.$inferSelect;
+export type InsertEmailTemplate = typeof emailTemplates.$inferInsert;
+
+// =====================================================
 // Email Notifications Engine v1 - Automated Alerts
 // =====================================================
 

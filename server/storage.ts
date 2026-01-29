@@ -34,6 +34,8 @@ import type {
   InsertCaseContact,
   CaseContact,
   FunctionalRestrictions,
+  EmailTemplateDB,
+  InsertEmailTemplate,
 } from "@shared/schema";
 import { db } from "./db";
 import {
@@ -58,6 +60,7 @@ import {
   rtwDuties,
   rtwDutyDemands,
   rtwRoles,
+  emailTemplates,
   type RTWPlanDB,
   type RTWPlanVersionDB,
   type RTWPlanDutyDB,
@@ -574,6 +577,11 @@ export interface IStorage {
   // RTW Plan Output - Email Management (OUT-07, OUT-08)
   savePlanEmail(planId: string, email: PlanEmailDraft): Promise<void>;
   getPlanEmail(planId: string): Promise<PlanEmailDraft | null>;
+
+  // Email Templates - Organization-specific templates (EMAIL-09)
+  getEmailTemplate(organizationId: string, templateType: string): Promise<EmailTemplateDB | null>;
+  saveEmailTemplate(template: InsertEmailTemplate): Promise<EmailTemplateDB>;
+  updateEmailTemplate(id: string, updates: Partial<InsertEmailTemplate>): Promise<EmailTemplateDB | null>;
 }
 
 class DbStorage implements IStorage {
@@ -3038,6 +3046,69 @@ class DbStorage implements IStorage {
       subject: draft.subject,
       body: draft.body,
     };
+  }
+
+  // ============================================================================
+  // Email Templates - Organization-specific templates (EMAIL-09)
+  // ============================================================================
+
+  /**
+   * Get active email template for organization and template type
+   */
+  async getEmailTemplate(organizationId: string, templateType: string): Promise<EmailTemplateDB | null> {
+    const [template] = await db.select()
+      .from(emailTemplates)
+      .where(and(
+        eq(emailTemplates.organizationId, organizationId),
+        eq(emailTemplates.templateType, templateType),
+        eq(emailTemplates.isActive, true)
+      ))
+      .limit(1);
+
+    return template || null;
+  }
+
+  /**
+   * Create a new email template
+   */
+  async saveEmailTemplate(template: InsertEmailTemplate): Promise<EmailTemplateDB> {
+    const [result] = await db.insert(emailTemplates)
+      .values({
+        ...template,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+
+    logger.storage.info("Created email template", {
+      templateId: result.id,
+      organizationId: result.organizationId,
+      templateType: result.templateType,
+    });
+
+    return result;
+  }
+
+  /**
+   * Update an existing email template
+   */
+  async updateEmailTemplate(id: string, updates: Partial<InsertEmailTemplate>): Promise<EmailTemplateDB | null> {
+    const [result] = await db.update(emailTemplates)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(eq(emailTemplates.id, id))
+      .returning();
+
+    if (result) {
+      logger.storage.info("Updated email template", {
+        templateId: id,
+        templateType: result.templateType,
+      });
+    }
+
+    return result || null;
   }
 }
 
