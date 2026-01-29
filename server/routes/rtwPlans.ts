@@ -26,6 +26,8 @@ import { calculateDutySuitability } from "../services/functionalAbilityCalculato
 import { generateModificationSuggestions } from "../services/modificationSuggester";
 import { logAuditEvent, getRequestMetadata } from "../services/auditLogger";
 import { logger } from "../lib/logger";
+import { generateRTWPlanEmail, type RTWPlanEmailContext } from "../services/rtwEmailService";
+import { format } from "date-fns";
 
 const router = Router();
 
@@ -379,6 +381,280 @@ router.get("/:planId", async (req: AuthRequest, res) => {
     }, err);
     res.status(500).json({
       error: "Failed to get plan",
+      details: err instanceof Error ? err.message : "Unknown error",
+    });
+  }
+});
+
+// ============================================================================
+// Plan Output Endpoints (OUT-01 to OUT-08)
+// ============================================================================
+
+/**
+ * GET /api/rtw-plans/:planId/details
+ * OUT-01 to OUT-06: Get complete plan with case, role, restrictions context
+ *
+ * Returns enriched plan data for display including:
+ * - Worker case info (name, company, injury date)
+ * - Role info
+ * - Current restrictions
+ * - Schedule
+ * - Duties with demands for matrix display
+ */
+router.get("/:planId/details", async (req: AuthRequest, res) => {
+  try {
+    const { planId } = req.params;
+    const organizationId = req.user!.organizationId;
+
+    const details = await storage.getRTWPlanFullDetails(planId, organizationId);
+    if (!details) {
+      return res.status(404).json({ error: "Plan not found" });
+    }
+
+    logger.api.info("Fetched RTW plan details", {
+      planId,
+      hasWorkerCase: !!details.workerCase,
+      hasRole: !!details.role,
+      hasRestrictions: !!details.restrictions,
+      dutiesCount: details.duties.length,
+    });
+
+    res.json({
+      success: true,
+      data: {
+        plan: {
+          id: details.plan.id,
+          caseId: details.plan.caseId,
+          roleId: details.plan.roleId,
+          planType: details.plan.planType,
+          status: details.plan.status,
+          version: details.plan.version,
+          startDate: details.plan.startDate?.toISOString() || null,
+          restrictionReviewDate: details.plan.restrictionReviewDate?.toISOString() || null,
+          createdAt: details.plan.createdAt?.toISOString() || null,
+        },
+        version: details.version ? {
+          id: details.version.id,
+          versionNumber: details.version.version,
+          dataJson: details.version.dataJson,
+        } : null,
+        schedule: details.schedule.map(s => ({
+          weekNumber: s.weekNumber,
+          hoursPerDay: s.hoursPerDay,
+          daysPerWeek: s.daysPerWeek,
+        })),
+        duties: details.duties.map(d => ({
+          dutyId: d.dutyId,
+          dutyName: d.dutyName,
+          dutyDescription: d.dutyDescription,
+          suitability: d.suitability,
+          modificationNotes: d.modificationNotes,
+          isIncluded: d.suitability !== "not_suitable",
+          excludedReason: d.excludedReason,
+          demands: d.demands ? {
+            sitting: d.demands.sitting,
+            standing: d.demands.standing,
+            walking: d.demands.walking,
+            bending: d.demands.bending,
+            squatting: d.demands.squatting,
+            kneeling: d.demands.kneeling,
+            twisting: d.demands.twisting,
+            reachingOverhead: d.demands.reachingOverhead,
+            reachingForward: d.demands.reachingForward,
+            lifting: d.demands.lifting,
+            liftingMaxKg: d.demands.liftingMaxKg,
+            carrying: d.demands.carrying,
+            carryingMaxKg: d.demands.carryingMaxKg,
+            repetitiveMovements: d.demands.repetitiveMovements,
+            concentration: d.demands.concentration,
+            stressTolerance: d.demands.stressTolerance,
+            workPace: d.demands.workPace,
+          } : null,
+        })),
+        workerCase: details.workerCase,
+        role: details.role,
+        restrictions: details.restrictions,
+        maxHoursPerDay: details.maxHoursPerDay,
+        maxDaysPerWeek: details.maxDaysPerWeek,
+      },
+    });
+  } catch (err) {
+    logger.api.error("RTW plan details fetch failed", {
+      planId: req.params.planId,
+    }, err);
+    res.status(500).json({
+      error: "Failed to fetch plan details",
+      details: err instanceof Error ? err.message : "Unknown error",
+    });
+  }
+});
+
+/**
+ * Helper: Build email context from plan details
+ */
+function buildEmailContext(details: Awaited<ReturnType<typeof storage.getRTWPlanFullDetails>>): RTWPlanEmailContext | null {
+  if (!details || !details.workerCase || !details.role) {
+    return null;
+  }
+
+  const includedDuties = details.duties
+    .filter(d => d.suitability !== "not_suitable")
+    .map(d => ({
+      dutyName: d.dutyName,
+      suitability: d.suitability,
+      modificationNotes: d.modificationNotes,
+    }));
+
+  const excludedDuties = details.duties
+    .filter(d => d.suitability === "not_suitable")
+    .map(d => ({
+      dutyName: d.dutyName,
+      excludedReason: d.excludedReason,
+    }));
+
+  return {
+    workerName: details.workerCase.workerName,
+    company: details.workerCase.company,
+    dateOfInjury: details.workerCase.dateOfInjury,
+    workStatus: details.workerCase.workStatus,
+    roleName: details.role.name,
+    roleDescription: details.role.description,
+    planType: details.plan.planType,
+    planStatus: details.plan.status,
+    startDate: details.plan.startDate
+      ? format(details.plan.startDate, "d MMMM yyyy")
+      : "Not set",
+    restrictionReviewDate: details.plan.restrictionReviewDate
+      ? format(details.plan.restrictionReviewDate, "d MMMM yyyy")
+      : null,
+    schedule: details.schedule.map(s => ({
+      weekNumber: s.weekNumber,
+      hoursPerDay: s.hoursPerDay,
+      daysPerWeek: s.daysPerWeek,
+    })),
+    includedDuties,
+    excludedDuties,
+    maxHoursPerDay: details.maxHoursPerDay,
+    maxDaysPerWeek: details.maxDaysPerWeek,
+  };
+}
+
+/**
+ * GET /api/rtw-plans/:planId/email
+ * OUT-07: Get or generate manager notification email
+ *
+ * Returns existing email draft if available, otherwise generates new one.
+ */
+router.get("/:planId/email", async (req: AuthRequest, res) => {
+  try {
+    const { planId } = req.params;
+    const organizationId = req.user!.organizationId;
+
+    // Check for existing email draft
+    const existingEmail = await storage.getPlanEmail(planId);
+    if (existingEmail) {
+      logger.api.info("Returning existing RTW plan email", { planId });
+      return res.json({
+        success: true,
+        data: existingEmail,
+        cached: true,
+      });
+    }
+
+    // Generate new email
+    const details = await storage.getRTWPlanFullDetails(planId, organizationId);
+    if (!details) {
+      return res.status(404).json({ error: "Plan not found" });
+    }
+
+    const emailContext = buildEmailContext(details);
+    if (!emailContext) {
+      return res.status(400).json({
+        error: "Cannot generate email - missing worker case or role data",
+      });
+    }
+
+    const email = await generateRTWPlanEmail(emailContext);
+
+    // Save generated email
+    await storage.savePlanEmail(planId, email);
+
+    logger.api.info("Generated RTW plan email", {
+      planId,
+      workerName: emailContext.workerName,
+    });
+
+    res.json({
+      success: true,
+      data: email,
+      cached: false,
+    });
+  } catch (err) {
+    logger.api.error("RTW plan email fetch failed", {
+      planId: req.params.planId,
+    }, err);
+    res.status(500).json({
+      error: "Failed to get/generate email",
+      details: err instanceof Error ? err.message : "Unknown error",
+    });
+  }
+});
+
+/**
+ * POST /api/rtw-plans/:planId/email/regenerate
+ * OUT-08: Force regenerate manager notification email
+ *
+ * Always generates fresh email, replacing any existing draft.
+ * Only allowed when plan.status !== 'approved'
+ */
+router.post("/:planId/email/regenerate", async (req: AuthRequest, res) => {
+  try {
+    const { planId } = req.params;
+    const organizationId = req.user!.organizationId;
+
+    // Get plan details
+    const details = await storage.getRTWPlanFullDetails(planId, organizationId);
+    if (!details) {
+      return res.status(404).json({ error: "Plan not found" });
+    }
+
+    // Check plan status - cannot regenerate for approved plans (OUT-08)
+    if (details.plan.status === "approved") {
+      return res.status(403).json({
+        error: "Cannot regenerate email for approved plan",
+        hint: "Email is locked after plan approval",
+      });
+    }
+
+    const emailContext = buildEmailContext(details);
+    if (!emailContext) {
+      return res.status(400).json({
+        error: "Cannot generate email - missing worker case or role data",
+      });
+    }
+
+    // Generate fresh email
+    const email = await generateRTWPlanEmail(emailContext);
+
+    // Save (overwrites existing)
+    await storage.savePlanEmail(planId, email);
+
+    logger.api.info("Regenerated RTW plan email", {
+      planId,
+      workerName: emailContext.workerName,
+    });
+
+    res.json({
+      success: true,
+      data: email,
+      regenerated: true,
+    });
+  } catch (err) {
+    logger.api.error("RTW plan email regeneration failed", {
+      planId: req.params.planId,
+    }, err);
+    res.status(500).json({
+      error: "Failed to regenerate email",
       details: err instanceof Error ? err.message : "Unknown error",
     });
   }
