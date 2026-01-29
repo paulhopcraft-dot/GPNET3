@@ -255,8 +255,8 @@ export default function EmployerCaseDetailPage() {
             <Badge className={cn(
               "text-xs",
               workerCase.workStatus === "At work"
-                ? "bg-emerald-100 text-emerald-800"
-                : "bg-orange-100 text-orange-800"
+                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-100"
+                : "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-100"
             )}>
               {workerCase.workStatus}
             </Badge>
@@ -277,15 +277,15 @@ export default function EmployerCaseDetailPage() {
       {/* Tabs at the top */}
       <Tabs defaultValue="summary" className="flex-1 flex flex-col">
         {/* Ultra-Modern Tabs with Glassmorphism */}
-        <div className="relative border-b bg-gradient-to-r from-slate-50 via-white to-slate-50 px-4 py-3 overflow-x-auto backdrop-blur-xl">
+        <div className="relative border-b bg-gradient-to-r from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 px-4 py-3 overflow-x-auto backdrop-blur-xl">
           <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-blue-500/5 to-teal-500/5 pointer-events-none"></div>
-          <TabsList className="relative inline-flex h-12 w-max gap-2 bg-white/40 backdrop-blur-md p-1 rounded-xl border border-white/20 shadow-2xl">
+          <TabsList className="relative inline-flex h-12 w-max gap-2 bg-white/40 dark:bg-slate-800/60 backdrop-blur-md p-1 rounded-xl border border-white/20 dark:border-slate-700 shadow-2xl">
             <TabsTrigger
               value="summary"
               className="relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300
                          data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-blue-500
                          data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/25
-                         hover:bg-white/60 hover:shadow-md text-slate-700"
+                         hover:bg-white/60 dark:hover:bg-slate-700/60 hover:shadow-md text-slate-700 dark:text-slate-200"
             >
               Summary
             </TabsTrigger>
@@ -294,7 +294,7 @@ export default function EmployerCaseDetailPage() {
               className="relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300
                          data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-500
                          data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-emerald-500/25
-                         hover:bg-white/60 hover:shadow-md text-slate-700"
+                         hover:bg-white/60 dark:hover:bg-slate-700/60 hover:shadow-md text-slate-700 dark:text-slate-200"
             >
               Injury & Diagnosis
             </TabsTrigger>
@@ -303,7 +303,7 @@ export default function EmployerCaseDetailPage() {
               className="relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300
                          data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-500 data-[state=active]:to-rose-500
                          data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-pink-500/25
-                         hover:bg-white/60 hover:shadow-md text-slate-700"
+                         hover:bg-white/60 dark:hover:bg-slate-700/60 hover:shadow-md text-slate-700 dark:text-slate-200"
             >
               Treatment & Recovery
             </TabsTrigger>
@@ -312,7 +312,7 @@ export default function EmployerCaseDetailPage() {
               className="relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300
                          data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500
                          data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-indigo-500/25
-                         hover:bg-white/60 hover:shadow-md text-slate-700"
+                         hover:bg-white/60 dark:hover:bg-slate-700/60 hover:shadow-md text-slate-700 dark:text-slate-200"
             >
               Timeline
             </TabsTrigger>
@@ -321,7 +321,7 @@ export default function EmployerCaseDetailPage() {
               className="relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300
                          data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-500
                          data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-amber-500/25
-                         hover:bg-white/60 hover:shadow-md text-slate-700"
+                         hover:bg-white/60 dark:hover:bg-slate-700/60 hover:shadow-md text-slate-700 dark:text-slate-200"
             >
               Financial
             </TabsTrigger>
@@ -330,7 +330,7 @@ export default function EmployerCaseDetailPage() {
               className="relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300
                          data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-pink-500
                          data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-red-500/25
-                         hover:bg-white/60 hover:shadow-md text-slate-700"
+                         hover:bg-white/60 dark:hover:bg-slate-700/60 hover:shadow-md text-slate-700 dark:text-slate-200"
             >
               Risk
             </TabsTrigger>
@@ -339,7 +339,7 @@ export default function EmployerCaseDetailPage() {
               className="relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300
                          data-[state=active]:bg-gradient-to-r data-[state=active]:from-slate-500 data-[state=active]:to-gray-500
                          data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-slate-500/25
-                         hover:bg-white/60 hover:shadow-md text-slate-700"
+                         hover:bg-white/60 dark:hover:bg-slate-700/60 hover:shadow-md text-slate-700 dark:text-slate-200"
             >
               Contacts
             </TabsTrigger>
@@ -368,8 +368,8 @@ export default function EmployerCaseDetailPage() {
                       <Badge className={cn(
                         "text-sm",
                         workerCase.workStatus === "At work"
-                          ? "bg-emerald-100 text-emerald-800"
-                          : "bg-amber-100 text-amber-800"
+                          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-100"
+                          : "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-100"
                       )}>
                         {workerCase.workStatus}
                       </Badge>
