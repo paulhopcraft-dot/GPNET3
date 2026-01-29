@@ -33,6 +33,18 @@ const LazyMarkdownRenderer = lazy(async () => {
   };
 });
 
+// Date formatting helper
+const formatCertDate = (dateStr: string | undefined): string => {
+  if (!dateStr) return "Unknown";
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return dateStr;
+  return date.toLocaleDateString("en-AU", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  });
+};
+
 // Chart loading component for better UX
 const ChartLoader = () => (
   <div className="animate-pulse space-y-4 p-6 bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg border border-purple-200/50">
@@ -758,14 +770,29 @@ export default function EmployerCaseDetailPage() {
                         return (
                           <div className="space-y-2">
                             {workerCase.latestCertificate && (
-                              <div className="flex items-center justify-between p-2 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded text-sm">
+                              <div
+                                className={cn(
+                                  "flex items-center justify-between p-2 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded text-sm",
+                                  workerCase.latestCertificate.documentUrl && "cursor-pointer hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors"
+                                )}
+                                onClick={() => {
+                                  if (workerCase.latestCertificate?.documentUrl) {
+                                    window.open(workerCase.latestCertificate.documentUrl, '_blank');
+                                  }
+                                }}
+                              >
                                 <div>
                                   <span className="font-medium">Current Certificate</span>
                                   <p className="text-xs text-muted-foreground">
-                                    Valid: {workerCase.latestCertificate.startDate} to {workerCase.latestCertificate.endDate}
+                                    Valid: {formatCertDate(workerCase.latestCertificate.startDate)} to {formatCertDate(workerCase.latestCertificate.endDate)}
                                   </p>
                                 </div>
-                                <Badge className="bg-emerald-100 text-emerald-800">Active</Badge>
+                                <div className="flex items-center gap-2">
+                                  <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-800 dark:text-emerald-100">Active</Badge>
+                                  {workerCase.latestCertificate.documentUrl && (
+                                    <Button variant="ghost" size="sm" className="h-6 text-xs px-2">View</Button>
+                                  )}
+                                </div>
                               </div>
                             )}
                             {certAttachments.map(att => (

@@ -1007,22 +1007,22 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
                   key={index}
                   variant={rec.severity === "critical" ? "destructive" : "default"}
                   className={cn(
-                    rec.severity === "warning" && "border-amber-300 bg-amber-50",
-                    rec.severity === "info" && "border-blue-300 bg-blue-50"
+                    rec.severity === "warning" && "border-amber-300 bg-amber-50 text-amber-900",
+                    rec.severity === "info" && "border-blue-300 bg-blue-50 text-blue-900"
                   )}
                 >
                   <SeverityIcon severity={rec.severity} />
-                  <AlertTitle className="text-sm">{rec.title}</AlertTitle>
+                  <AlertTitle className="text-sm font-semibold">{rec.title}</AlertTitle>
                   <AlertDescription className="text-xs mt-1">
-                    <p>{rec.description}</p>
-                    <p className="mt-2 font-medium">Action: {rec.suggestedAction}</p>
+                    <p className="text-slate-800 dark:text-slate-200">{rec.description}</p>
+                    <p className="mt-2 font-medium text-slate-900 dark:text-slate-100">Action: {rec.suggestedAction}</p>
                     {rec.relatedTests && rec.relatedTests.length > 0 && (
-                      <p className="mt-1">
+                      <p className="mt-1 text-slate-700 dark:text-slate-300">
                         Suggested tests: {rec.relatedTests.join(", ")}
                       </p>
                     )}
                     {rec.specialistReferral && (
-                      <p className="mt-1">Specialist: {rec.specialistReferral}</p>
+                      <p className="mt-1 text-slate-700 dark:text-slate-300">Specialist: {rec.specialistReferral}</p>
                     )}
                   </AlertDescription>
                 </Alert>

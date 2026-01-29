@@ -398,7 +398,21 @@ export function EmployerCaseDetailView({ workerCase, onClose }: EmployerCaseDeta
                                       <CardContent>
                                         <RecoveryChart
                                           injuryDate={workerCase.dateOfInjury}
-                                          expectedRecoveryDate={workerCase.dueDate}
+                                          expectedRecoveryDate={(() => {
+                                            // Calculate expected recovery date as injury + 12 weeks if dueDate is not a valid date
+                                            const dueDate = new Date(workerCase.dueDate);
+                                            if (!isNaN(dueDate.getTime())) {
+                                              return workerCase.dueDate;
+                                            }
+                                            // Fallback: injury date + 12 weeks
+                                            const injuryDate = new Date(workerCase.dateOfInjury);
+                                            if (!isNaN(injuryDate.getTime())) {
+                                              const recovery = new Date(injuryDate);
+                                              recovery.setDate(recovery.getDate() + 84); // 12 weeks
+                                              return recovery.toISOString().split('T')[0];
+                                            }
+                                            return workerCase.dueDate;
+                                          })()}
                                           certificates={recoveryData?.certificates}
                                         />
                                       </CardContent>
