@@ -39,6 +39,7 @@ const CasesPage = lazy(() => import("./pages/CasesPage"));
 const CaseSummaryPage = lazy(() => import("./pages/CaseSummaryPage"));
 const NewClaimPage = lazy(() => import("./pages/NewClaimPage"));
 const RTWPlannerPage = lazy(() => import("./pages/RTWPlannerPage"));
+const RTWPlanPage = lazy(() => import("./pages/rtw/PlanPage"));
 const CheckInsPage = lazy(() => import("./pages/CheckInsPage"));
 const FinancialsPage = lazy(() => import("./pages/FinancialsPage"));
 const PredictionsPage = lazy(() => import("./pages/PredictionsPage"));
@@ -213,6 +214,16 @@ export default function App() {
                       <ProtectedRoute>
                         <Suspense fallback={<PageLoader />}>
                           <RTWPlannerPage />
+                        </Suspense>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/rtw/plans/:planId"
+                    element={
+                      <ProtectedRoute>
+                        <Suspense fallback={<PageLoader />}>
+                          <RTWPlanPage />
                         </Suspense>
                       </ProtectedRoute>
                     }
