@@ -1,0 +1,70 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GSD-Ralph Bridge Configuration",
+  "description": "Integration settings for connecting GSD planning system with Ralph execution loop",
+
+  "integration_mode": "hybrid",
+  "execution_backend": "ralph",
+
+  "phase_to_story_mapping": {
+    "enabled": true,
+    "granularity": "task",
+    "task_to_story_ratio": "1:1",
+    "preserve_dependencies": true,
+    "auto_generate_ids": true,
+    "id_prefix": "gsd"
+  },
+
+  "plan_source": {
+    "default_path": ".planning/PLAN.md",
+    "fallback_paths": [
+      ".planning/phases/{phase}/PLAN.md",
+      ".planning/current/PLAN.md"
+    ],
+    "required_sections": ["Tasks", "Acceptance Criteria"],
+    "optional_sections": ["Dependencies", "Verification", "Rollback"]
+  },
+
+  "results_destination": {
+    "default_path": ".planning/RESULTS.md",
+    "phase_specific": ".planning/phases/{phase}/RESULTS.md",
+    "append_mode": true,
+    "include_timestamps": true
+  },
+
+  "verification": {
+    "use_ralph_browser": true,
+    "fallback_to_manual": true,
+    "verification_priority": ["browser_verify", "cli_verify", "test_verify", "manual_verify"],
+    "require_all_criteria": true,
+    "timeout_seconds": 60
+  },
+
+  "approval": {
+    "require_prd_harden": true,
+    "require_gsd_plan_check": false,
+    "auto_approve_after_verification": false,
+    "approval_file": ".ralph-approved.json"
+  },
+
+  "execution": {
+    "fresh_context_per_task": true,
+    "max_retries_per_task": 2,
+    "stop_on_failure": true,
+    "commit_after_each_task": true,
+    "commit_message_format": "feat(gsd-ralph): {phase}.{task} - {description}"
+  },
+
+  "sync": {
+    "sync_progress_to_gsd": true,
+    "sync_interval": "after_each_task",
+    "progress_file": "ralph/progress.txt",
+    "create_checkpoint_after_phase": true
+  },
+
+  "logging": {
+    "level": "info",
+    "log_file": "ralph/gsd-integration.log",
+    "include_gsd_metadata": true
+  }
+}

@@ -93,6 +93,10 @@
                   "type": "boolean",
                   "description": "Whether this story passes all acceptance criteria"
                 },
+                "gsdTaskRef": {
+                  "type": "string",
+                  "description": "Reference to original GSD task ID when converted from GSD plan"
+                },
                 "attempts": {
                   "type": "array",
                   "description": "Ralph execution attempts for this story",
@@ -171,9 +175,59 @@
                 "description": "Ports that must be available"
               }
             }
+          },
+          "gsdIntegration": {
+            "type": "object",
+            "description": "GSD integration metadata when feature was converted from GSD plan",
+            "properties": {
+              "sourcePhase": {
+                "type": "number",
+                "description": "GSD phase number this feature was converted from"
+              },
+              "convertedAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "When the GSD plan was converted to Ralph format"
+              },
+              "sourcePath": {
+                "type": "string",
+                "description": "Path to the original GSD PLAN.md file"
+              },
+              "planChecksum": {
+                "type": "string",
+                "description": "Checksum of source plan for change detection"
+              }
+            }
           }
         },
         "required": ["id", "name", "status", "userStories"]
+      }
+    },
+    "gsdConfig": {
+      "type": "object",
+      "description": "GSD integration configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether this features.json was generated from GSD"
+        },
+        "projectPath": {
+          "type": "string",
+          "description": "Path to .planning directory"
+        },
+        "autoSync": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically sync results back to GSD format"
+        },
+        "phaseMapping": {
+          "type": "object",
+          "description": "Mapping of GSD phases to feature IDs",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
       }
     },
     "ralphConfig": {

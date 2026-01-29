@@ -38,6 +38,25 @@ vi.mock("./recoveryEstimator", () => ({
     confidence: "medium",
     factors: [],
   }),
+  extractInjuryType: vi.fn().mockReturnValue("musculoskeletal_back"),
+  getInjuryModel: vi.fn().mockReturnValue({
+    baselineWeeks: 8,
+    minWeeks: 4,
+    maxWeeks: 16,
+    phases: [
+      {
+        name: "Acute Phase",
+        weekStart: 0,
+        weekEnd: 2,
+        expectedCapacity: 20,
+        description: "Rest and pain management",
+        milestones: ["Initial assessment", "Pain management started"],
+      },
+    ],
+    riskFactors: ["Sedentary work", "Previous injury"],
+    diagnosticTests: ["X-ray", "MRI if needed"],
+    specialistReferrals: ["Physiotherapist", "Occupational therapist"],
+  }),
 }));
 
 vi.mock("./clinicalEvidence", () => ({
