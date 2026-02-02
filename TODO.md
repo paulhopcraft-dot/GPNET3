@@ -1,5 +1,11 @@
 # GPNet3 TODO
 
+## 🐛 Bugs to Investigate
+
+- [ ] **Browser click redirect issue (2026-02-01)** — Clicks in case detail view sometimes redirect to LinkedIn. Possible event handler conflict or browser extension interference. Noted when testing via Clawd browser automation.
+
+---
+
 ## ✅ Recently Completed - Performance & Compliance
 
 **Status:** Major optimizations and compliance engine complete

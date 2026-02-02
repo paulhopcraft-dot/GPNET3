@@ -11,6 +11,7 @@ import { RefreshCw } from "lucide-react";
 import type { WorkerCase, PaginatedCasesResponse } from "@shared/schema";
 import { cn } from "@/lib/utils";
 import { CaseContactsPanel } from "@/components/CaseContactsPanel";
+import { FinancialSummaryPanel } from "@/components/FinancialSummaryPanel";
 
 export default function CaseSummaryPage() {
   const { id } = useParams<{ id: string }>();
@@ -233,16 +234,7 @@ export default function CaseSummaryPage() {
           </TabsContent>
 
           <TabsContent value="financial" className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Financial Information</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Financial details and cost tracking information will be displayed here.
-                </p>
-              </CardContent>
-            </Card>
+            <FinancialSummaryPanel caseId={workerCase.id} workerName={workerCase.workerName} />
           </TabsContent>
 
           <TabsContent value="risk" className="mt-4">

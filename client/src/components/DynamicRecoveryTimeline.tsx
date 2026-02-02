@@ -14,6 +14,7 @@ import {
   Legend,
   ResponsiveContainer,
   ReferenceLine,
+  ReferenceDot,
   ComposedChart,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -522,27 +523,44 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
                   strokeWidth={3}
                   fill="url(#actualGradient)"
                   name="Actual Recovery"
-                  dot={(props: any) => {
-                    const { cx, cy, payload } = props;
-                    if (payload?.actual === null || payload?.actual === undefined) return null;
-
-                    // Only show dots where there's an actual certificate (certificateExists flag)
-                    // Skip interpolated/assumed data points
-                    if (!payload?.certificateExists) return null;
-
-                    return (
-                      <circle
-                        cx={cx}
-                        cy={cy}
-                        r={5}
-                        fill="#10b981"
-                        stroke="#059669"
-                        strokeWidth={2}
-                      />
-                    );
-                  }}
+                  dot={false}
                   connectNulls
                 />
+
+                {/* Certificate markers as independent clickable dots */}
+                {data.certificateMarkers
+                  .filter(marker => {
+                    // Only show markers within the chart range and with valid data
+                    return marker.week >= 0 && 
+                           marker.week <= (data.weeksElapsed + 2) && 
+                           marker.capacity >= 0 && 
+                           marker.capacity <= 100;
+                  })
+                  .map((marker, index) => {
+                    console.log(`Rendering certificate marker ${index + 1}:`, {
+                      week: marker.week,
+                      capacity: marker.capacity,
+                      certificateId: marker.certificateId,
+                      color: marker.color
+                    });
+                    
+                    return (
+                      <ReferenceDot
+                        key={`cert-${marker.certificateId}-${index}`}
+                        x={marker.week}
+                        y={marker.capacity}
+                        r={7}
+                        fill={marker.color}
+                        stroke="#ffffff"
+                        strokeWidth={2}
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => {
+                          console.log('Certificate dot clicked:', marker);
+                          setSelectedCertificate(marker);
+                        }}
+                      />
+                    );
+                  })}
 
                 {/* Current week marker */}
                 <ReferenceLine
@@ -576,11 +594,14 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
           </div>
 
           {/* Certificate markers legend */}
-          {data.certificateMarkers.length > 0 && (
-            <div className="mt-4">
-              <div className="text-xs font-medium text-gray-600 mb-2">
-                Medical Certificates ({data.certificateMarkers.length})
-              </div>
+          <div className="mt-4">
+            <div className="text-xs font-medium text-gray-600 mb-2">
+              Medical Certificates ({data.certificateMarkers.length})
+              {data.certificateMarkers.length === 0 && (
+                <span className="text-amber-600 ml-2">(No certificates found - dots won't be visible)</span>
+              )}
+            </div>
+            {data.certificateMarkers.length > 0 ? (
               <div className="max-h-32 overflow-y-auto flex flex-wrap gap-2 p-2 bg-gray-50 rounded-lg">
                 {data.certificateMarkers.map((marker) => (
                   <div
@@ -593,13 +614,18 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
                       style={{ backgroundColor: marker.color }}
                     />
                     <span className="whitespace-nowrap">
-                      #{marker.certificateNumber} - {marker.capacity}%
+                      #{marker.certificateNumber} - Week {marker.week} - {marker.capacity}%
                     </span>
                   </div>
                 ))}
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
+                <strong>Debug:</strong> No certificate markers found in data. 
+                Check if medical certificates exist for this case and are being properly processed by the API.
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
       </motion.div>
