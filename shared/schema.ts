@@ -1901,3 +1901,209 @@ export const insertRTWApprovalSchema = createInsertSchema(rtwApprovals).omit({
   id: true,
   createdAt: true,
 });
+
+// =============================================================================
+// Pre-Employment Health Checks Module
+// =============================================================================
+
+// Pre-Employment Assessment Status Types
+export type PreEmploymentAssessmentStatus =
+  | "pending"
+  | "scheduled"
+  | "in_progress"
+  | "completed"
+  | "failed"
+  | "cancelled";
+
+export type PreEmploymentAssessmentType =
+  | "baseline_health"
+  | "functional_capacity"
+  | "medical_screening"
+  | "fitness_for_duty"
+  | "psychological_assessment"
+  | "substance_screening";
+
+export type PreEmploymentClearanceLevel =
+  | "cleared_unconditional"
+  | "cleared_conditional"
+  | "cleared_with_restrictions"
+  | "not_cleared"
+  | "pending_review";
+
+// Pre-Employment Health Assessments
+export const preEmploymentAssessments = pgTable("pre_employment_assessments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id),
+
+  // Candidate Information
+  candidateName: text("candidate_name").notNull(),
+  candidateEmail: text("candidate_email"),
+  candidatePhone: text("candidate_phone"),
+  dateOfBirth: timestamp("date_of_birth"),
+
+  // Position Information
+  positionTitle: text("position_title").notNull(),
+  departmentName: text("department_name"),
+  roleId: varchar("role_id").references(() => rtwRoles.id), // Links to existing RTW roles
+
+  // Assessment Details
+  assessmentType: text("assessment_type").notNull().$type<PreEmploymentAssessmentType>(),
+  status: text("status").notNull().default("pending").$type<PreEmploymentAssessmentStatus>(),
+  scheduledDate: timestamp("scheduled_date"),
+  completedDate: timestamp("completed_date"),
+
+  // Results
+  clearanceLevel: text("clearance_level").$type<PreEmploymentClearanceLevel>(),
+  medicalRestrictions: jsonb("medical_restrictions").$type<MedicalConstraints | null>(),
+  functionalCapacityJson: jsonb("functional_capacity_json").$type<FunctionalCapacity | null>(),
+
+  // Assessment Provider
+  assessorName: text("assessor_name"),
+  assessorType: text("assessor_type"), // 'GP', 'Occupational Physician', 'Physiotherapist', etc.
+  assessmentLocation: text("assessment_location"),
+
+  // Documentation
+  reportUrl: text("report_url"),
+  certificateUrl: text("certificate_url"),
+  notes: text("notes"),
+
+  // Tracking
+  createdBy: varchar("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Pre-Employment Health Requirements (job-specific requirements)
+export const preEmploymentHealthRequirements = pgTable("pre_employment_health_requirements", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull().references(() => organizations.id),
+
+  // Role/Position Information
+  roleId: varchar("role_id").references(() => rtwRoles.id),
+  positionTitle: text("position_title").notNull(),
+
+  // Required Assessments
+  requiresBaselineHealth: boolean("requires_baseline_health").default(true),
+  requiresFunctionalCapacity: boolean("requires_functional_capacity").default(false),
+  requiresMedicalScreening: boolean("requires_medical_screening").default(false),
+  requiresFitnessForDuty: boolean("requires_fitness_for_duty").default(false),
+  requiresPsychologicalAssessment: boolean("requires_psychological_assessment").default(false),
+  requiresSubstanceScreening: boolean("requires_substance_screening").default(false),
+
+  // Physical Requirements (inherited from RTW role demands)
+  minimumLiftingCapacityKg: integer("minimum_lifting_capacity_kg"),
+  requiresExtendedStanding: boolean("requires_extended_standing").default(false),
+  requiresExtendedSitting: boolean("requires_extended_sitting").default(false),
+  requiresClimbing: boolean("requires_climbing").default(false),
+  requiresDriving: boolean("requires_driving").default(false),
+
+  // Additional Requirements
+  requiredCertifications: text("required_certifications"), // JSON array of certification types
+  medicalClearanceValidityMonths: integer("medical_clearance_validity_months").default(12),
+
+  // Compliance & Legal
+  legislativeRequirement: text("legislative_requirement"), // Reference to relevant legislation
+  industryStandards: text("industry_standards"), // Reference to industry-specific standards
+
+  // Tracking
+  createdBy: varchar("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Pre-Employment Assessment Components (individual tests within an assessment)
+export const preEmploymentAssessmentComponents = pgTable("pre_employment_assessment_components", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  assessmentId: varchar("assessment_id").notNull().references(() => preEmploymentAssessments.id, { onDelete: "cascade" }),
+
+  // Component Details
+  componentType: text("component_type").notNull(), // 'vision_test', 'hearing_test', 'cardio_assessment', etc.
+  componentName: text("component_name").notNull(),
+
+  // Results
+  result: text("result"), // 'pass', 'fail', 'conditional', 'pending'
+  measurementValue: text("measurement_value"), // Actual measurement if applicable
+  measurementUnit: text("measurement_unit"),
+  normalRange: text("normal_range"),
+
+  // Recommendations
+  recommendations: text("recommendations"),
+  restrictions: jsonb("restrictions").$type<MedicalConstraints | null>(),
+  followUpRequired: boolean("follow_up_required").default(false),
+  followUpDate: timestamp("follow_up_date"),
+
+  // Tracking
+  completedDate: timestamp("completed_date"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Pre-Employment Health History (candidate's health background)
+export const preEmploymentHealthHistory = pgTable("pre_employment_health_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  assessmentId: varchar("assessment_id").notNull().references(() => preEmploymentAssessments.id, { onDelete: "cascade" }),
+
+  // Medical History
+  previousInjuries: text("previous_injuries"), // JSON array of injury details
+  ongoingMedicalConditions: text("ongoing_medical_conditions"), // JSON array
+  currentMedications: text("current_medications"), // JSON array
+  allergies: text("allergies"),
+
+  // Work History
+  previousWorkersCompClaims: boolean("previous_workers_comp_claims").default(false),
+  previousWorkersCompClaimsDetails: text("previous_workers_comp_claims_details"),
+
+  // Lifestyle Factors
+  smokingStatus: text("smoking_status"), // 'never', 'former', 'current'
+  exerciseLevel: text("exercise_level"), // 'sedentary', 'light', 'moderate', 'high'
+
+  // Declarations
+  healthDeclarationComplete: boolean("health_declaration_complete").default(false),
+  healthDeclarationDate: timestamp("health_declaration_date"),
+  declarationAccurate: boolean("declaration_accurate").default(false),
+
+  // Privacy & Consent
+  consentToAssessment: boolean("consent_to_assessment").default(false),
+  consentToDataSharing: boolean("consent_to_data_sharing").default(false),
+  consentDate: timestamp("consent_date"),
+
+  // Tracking
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Database type exports for Pre-Employment module
+export type PreEmploymentAssessmentDB = typeof preEmploymentAssessments.$inferSelect;
+export type InsertPreEmploymentAssessment = typeof preEmploymentAssessments.$inferInsert;
+
+export type PreEmploymentHealthRequirementDB = typeof preEmploymentHealthRequirements.$inferSelect;
+export type InsertPreEmploymentHealthRequirement = typeof preEmploymentHealthRequirements.$inferInsert;
+
+export type PreEmploymentAssessmentComponentDB = typeof preEmploymentAssessmentComponents.$inferSelect;
+export type InsertPreEmploymentAssessmentComponent = typeof preEmploymentAssessmentComponents.$inferInsert;
+
+export type PreEmploymentHealthHistoryDB = typeof preEmploymentHealthHistory.$inferSelect;
+export type InsertPreEmploymentHealthHistory = typeof preEmploymentHealthHistory.$inferInsert;
+
+// Zod schemas for Pre-Employment module
+export const insertPreEmploymentAssessmentSchema = createInsertSchema(preEmploymentAssessments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertPreEmploymentHealthRequirementSchema = createInsertSchema(preEmploymentHealthRequirements).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertPreEmploymentAssessmentComponentSchema = createInsertSchema(preEmploymentAssessmentComponents).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertPreEmploymentHealthHistorySchema = createInsertSchema(preEmploymentHealthHistory).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});

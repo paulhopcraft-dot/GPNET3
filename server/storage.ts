@@ -36,6 +36,16 @@ import type {
   FunctionalRestrictions,
   EmailTemplateDB,
   InsertEmailTemplate,
+  PreEmploymentAssessmentDB,
+  InsertPreEmploymentAssessment,
+  PreEmploymentHealthRequirementDB,
+  InsertPreEmploymentHealthRequirement,
+  PreEmploymentAssessmentComponentDB,
+  InsertPreEmploymentAssessmentComponent,
+  PreEmploymentHealthHistoryDB,
+  InsertPreEmploymentHealthHistory,
+  PreEmploymentAssessmentStatus,
+  PreEmploymentClearanceLevel,
 } from "@shared/schema";
 import { db } from "./db";
 import {
@@ -61,6 +71,10 @@ import {
   rtwDutyDemands,
   rtwRoles,
   emailTemplates,
+  preEmploymentAssessments,
+  preEmploymentHealthRequirements,
+  preEmploymentAssessmentComponents,
+  preEmploymentHealthHistory,
   type RTWPlanDB,
   type RTWPlanVersionDB,
   type RTWPlanDutyDB,
@@ -582,6 +596,20 @@ export interface IStorage {
   getEmailTemplate(organizationId: string, templateType: string): Promise<EmailTemplateDB | null>;
   saveEmailTemplate(template: InsertEmailTemplate): Promise<EmailTemplateDB>;
   updateEmailTemplate(id: string, updates: Partial<InsertEmailTemplate>): Promise<EmailTemplateDB | null>;
+
+  // Pre-Employment Health Checks Module
+  getPreEmploymentHealthRequirements(organizationId: string): Promise<PreEmploymentHealthRequirementDB[]>;
+  createPreEmploymentHealthRequirement(data: InsertPreEmploymentHealthRequirement): Promise<PreEmploymentHealthRequirementDB>;
+  updatePreEmploymentHealthRequirement(requirementId: string, organizationId: string, updates: Partial<InsertPreEmploymentHealthRequirement>): Promise<PreEmploymentHealthRequirementDB | null>;
+  getPreEmploymentAssessments(organizationId: string, filters?: { status?: PreEmploymentAssessmentStatus; assessmentType?: string; limit?: number; offset?: number }): Promise<PreEmploymentAssessmentDB[]>;
+  createPreEmploymentAssessment(data: InsertPreEmploymentAssessment): Promise<PreEmploymentAssessmentDB>;
+  getPreEmploymentAssessmentById(assessmentId: string, organizationId: string): Promise<PreEmploymentAssessmentDB | null>;
+  updatePreEmploymentAssessmentStatus(assessmentId: string, organizationId: string, updates: { status: PreEmploymentAssessmentStatus; clearanceLevel?: PreEmploymentClearanceLevel; completedDate?: string; notes?: string }): Promise<PreEmploymentAssessmentDB | null>;
+  getPreEmploymentAssessmentComponents(assessmentId: string): Promise<PreEmploymentAssessmentComponentDB[]>;
+  createPreEmploymentAssessmentComponent(data: InsertPreEmploymentAssessmentComponent): Promise<PreEmploymentAssessmentComponentDB>;
+  getPreEmploymentHealthHistory(assessmentId: string): Promise<PreEmploymentHealthHistoryDB | null>;
+  savePreEmploymentHealthHistory(data: InsertPreEmploymentHealthHistory): Promise<PreEmploymentHealthHistoryDB>;
+  getPreEmploymentDashboardStats(organizationId: string): Promise<{ totalAssessments: number; pendingAssessments: number; completedAssessments: number; clearedCandidates: number; rejectedCandidates: number; assessmentsByType: Record<string, number>; clearanceLevelBreakdown: Record<string, number> }>;
 }
 
 class DbStorage implements IStorage {
@@ -3109,6 +3137,376 @@ class DbStorage implements IStorage {
     }
 
     return result || null;
+  }
+
+  // ============================================================================
+  // Pre-Employment Health Checks Module
+  // ============================================================================
+
+  /**
+   * Get all pre-employment health requirements for an organization
+   */
+  async getPreEmploymentHealthRequirements(organizationId: string): Promise<PreEmploymentHealthRequirementDB[]> {
+    const requirements = await db.select()
+      .from(preEmploymentHealthRequirements)
+      .where(eq(preEmploymentHealthRequirements.organizationId, organizationId))
+      .orderBy(preEmploymentHealthRequirements.createdAt);
+
+    logger.db.info("Retrieved pre-employment health requirements", {
+      organizationId,
+      count: requirements.length
+    });
+
+    return requirements;
+  }
+
+  /**
+   * Create a new pre-employment health requirement
+   */
+  async createPreEmploymentHealthRequirement(data: InsertPreEmploymentHealthRequirement): Promise<PreEmploymentHealthRequirementDB> {
+    const [requirement] = await db.insert(preEmploymentHealthRequirements)
+      .values({
+        ...data,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+
+    logger.db.info("Created pre-employment health requirement", {
+      requirementId: requirement.id,
+      organizationId: requirement.organizationId,
+      positionTitle: requirement.positionTitle
+    });
+
+    return requirement;
+  }
+
+  /**
+   * Update a pre-employment health requirement
+   */
+  async updatePreEmploymentHealthRequirement(
+    requirementId: string,
+    organizationId: string,
+    updates: Partial<InsertPreEmploymentHealthRequirement>
+  ): Promise<PreEmploymentHealthRequirementDB | null> {
+    const [requirement] = await db.update(preEmploymentHealthRequirements)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(and(
+        eq(preEmploymentHealthRequirements.id, requirementId),
+        eq(preEmploymentHealthRequirements.organizationId, organizationId)
+      ))
+      .returning();
+
+    if (requirement) {
+      logger.db.info("Updated pre-employment health requirement", {
+        requirementId: requirement.id,
+        organizationId: requirement.organizationId,
+        positionTitle: requirement.positionTitle
+      });
+    }
+
+    return requirement || null;
+  }
+
+  /**
+   * Get pre-employment assessments with optional filters
+   */
+  async getPreEmploymentAssessments(
+    organizationId: string,
+    filters?: {
+      status?: PreEmploymentAssessmentStatus;
+      assessmentType?: string;
+      limit?: number;
+      offset?: number;
+    }
+  ): Promise<PreEmploymentAssessmentDB[]> {
+    // Build where conditions
+    const whereConditions = [eq(preEmploymentAssessments.organizationId, organizationId)];
+
+    if (filters?.status) {
+      whereConditions.push(eq(preEmploymentAssessments.status, filters.status));
+    }
+
+    if (filters?.assessmentType) {
+      whereConditions.push(eq(preEmploymentAssessments.assessmentType, filters.assessmentType as any));
+    }
+
+    let query = db.select()
+      .from(preEmploymentAssessments)
+      .where(and(...whereConditions))
+      .orderBy(preEmploymentAssessments.createdAt);
+
+    // Build the final query with proper typing
+    if (filters?.limit && filters?.offset) {
+      const assessments = await query.limit(filters.limit).offset(filters.offset);
+      return assessments;
+    } else if (filters?.limit) {
+      const assessments = await query.limit(filters.limit);
+      return assessments;
+    } else if (filters?.offset) {
+      const assessments = await query.offset(filters.offset);
+      return assessments;
+    }
+
+    const assessments = await query;
+
+    logger.db.info("Retrieved pre-employment assessments", {
+      organizationId,
+      count: assessments.length,
+      filters
+    });
+
+    return assessments;
+  }
+
+  /**
+   * Create a new pre-employment assessment
+   */
+  async createPreEmploymentAssessment(data: InsertPreEmploymentAssessment): Promise<PreEmploymentAssessmentDB> {
+    const [assessment] = await db.insert(preEmploymentAssessments)
+      .values({
+        ...data,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+
+    logger.db.info("Created pre-employment assessment", {
+      assessmentId: assessment.id,
+      organizationId: assessment.organizationId,
+      candidateName: assessment.candidateName,
+      assessmentType: assessment.assessmentType
+    });
+
+    return assessment;
+  }
+
+  /**
+   * Get a specific pre-employment assessment by ID
+   */
+  async getPreEmploymentAssessmentById(
+    assessmentId: string,
+    organizationId: string
+  ): Promise<PreEmploymentAssessmentDB | null> {
+    const [assessment] = await db.select()
+      .from(preEmploymentAssessments)
+      .where(and(
+        eq(preEmploymentAssessments.id, assessmentId),
+        eq(preEmploymentAssessments.organizationId, organizationId)
+      ))
+      .limit(1);
+
+    if (assessment) {
+      logger.db.info("Retrieved pre-employment assessment", {
+        assessmentId: assessment.id,
+        organizationId: assessment.organizationId,
+        candidateName: assessment.candidateName
+      });
+    }
+
+    return assessment || null;
+  }
+
+  /**
+   * Update assessment status and clearance level
+   */
+  async updatePreEmploymentAssessmentStatus(
+    assessmentId: string,
+    organizationId: string,
+    updates: {
+      status: PreEmploymentAssessmentStatus;
+      clearanceLevel?: PreEmploymentClearanceLevel;
+      completedDate?: string;
+      notes?: string;
+    }
+  ): Promise<PreEmploymentAssessmentDB | null> {
+    const updateData: any = {
+      status: updates.status,
+      updatedAt: new Date(),
+    };
+
+    if (updates.clearanceLevel) {
+      updateData.clearanceLevel = updates.clearanceLevel;
+    }
+
+    if (updates.completedDate) {
+      updateData.completedDate = new Date(updates.completedDate);
+    }
+
+    if (updates.notes) {
+      updateData.notes = updates.notes;
+    }
+
+    const [assessment] = await db.update(preEmploymentAssessments)
+      .set(updateData)
+      .where(and(
+        eq(preEmploymentAssessments.id, assessmentId),
+        eq(preEmploymentAssessments.organizationId, organizationId)
+      ))
+      .returning();
+
+    if (assessment) {
+      logger.db.info("Updated pre-employment assessment status", {
+        assessmentId: assessment.id,
+        organizationId: assessment.organizationId,
+        status: assessment.status,
+        clearanceLevel: assessment.clearanceLevel
+      });
+    }
+
+    return assessment || null;
+  }
+
+  /**
+   * Get assessment components for a specific assessment
+   */
+  async getPreEmploymentAssessmentComponents(assessmentId: string): Promise<PreEmploymentAssessmentComponentDB[]> {
+    const components = await db.select()
+      .from(preEmploymentAssessmentComponents)
+      .where(eq(preEmploymentAssessmentComponents.assessmentId, assessmentId))
+      .orderBy(preEmploymentAssessmentComponents.createdAt);
+
+    logger.db.info("Retrieved assessment components", {
+      assessmentId,
+      count: components.length
+    });
+
+    return components;
+  }
+
+  /**
+   * Create a new assessment component
+   */
+  async createPreEmploymentAssessmentComponent(data: InsertPreEmploymentAssessmentComponent): Promise<PreEmploymentAssessmentComponentDB> {
+    const [component] = await db.insert(preEmploymentAssessmentComponents)
+      .values({
+        ...data,
+        createdAt: new Date(),
+      })
+      .returning();
+
+    logger.db.info("Created assessment component", {
+      componentId: component.id,
+      assessmentId: component.assessmentId,
+      componentType: component.componentType,
+      result: component.result
+    });
+
+    return component;
+  }
+
+  /**
+   * Get health history for a specific assessment
+   */
+  async getPreEmploymentHealthHistory(assessmentId: string): Promise<PreEmploymentHealthHistoryDB | null> {
+    const [healthHistory] = await db.select()
+      .from(preEmploymentHealthHistory)
+      .where(eq(preEmploymentHealthHistory.assessmentId, assessmentId))
+      .limit(1);
+
+    if (healthHistory) {
+      logger.db.info("Retrieved pre-employment health history", {
+        assessmentId,
+        healthHistoryId: healthHistory.id
+      });
+    }
+
+    return healthHistory || null;
+  }
+
+  /**
+   * Create or update health history for an assessment
+   */
+  async savePreEmploymentHealthHistory(data: InsertPreEmploymentHealthHistory): Promise<PreEmploymentHealthHistoryDB> {
+    // Check if health history already exists for this assessment
+    const existing = await this.getPreEmploymentHealthHistory(data.assessmentId);
+
+    if (existing) {
+      // Update existing
+      const [updated] = await db.update(preEmploymentHealthHistory)
+        .set({
+          ...data,
+          updatedAt: new Date(),
+        })
+        .where(eq(preEmploymentHealthHistory.assessmentId, data.assessmentId))
+        .returning();
+
+      logger.db.info("Updated pre-employment health history", {
+        assessmentId: data.assessmentId,
+        healthHistoryId: updated.id
+      });
+
+      return updated;
+    } else {
+      // Create new
+      const [created] = await db.insert(preEmploymentHealthHistory)
+        .values({
+          ...data,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+
+      logger.db.info("Created pre-employment health history", {
+        assessmentId: data.assessmentId,
+        healthHistoryId: created.id
+      });
+
+      return created;
+    }
+  }
+
+  /**
+   * Get dashboard statistics for pre-employment module
+   */
+  async getPreEmploymentDashboardStats(organizationId: string): Promise<{
+    totalAssessments: number;
+    pendingAssessments: number;
+    completedAssessments: number;
+    clearedCandidates: number;
+    rejectedCandidates: number;
+    assessmentsByType: Record<string, number>;
+    clearanceLevelBreakdown: Record<string, number>;
+  }> {
+    // Get all assessments for organization
+    const assessments = await this.getPreEmploymentAssessments(organizationId);
+
+    const stats = {
+      totalAssessments: assessments.length,
+      pendingAssessments: assessments.filter(a => a.status === "pending" || a.status === "scheduled").length,
+      completedAssessments: assessments.filter(a => a.status === "completed").length,
+      clearedCandidates: assessments.filter(a =>
+        a.clearanceLevel === "cleared_unconditional" ||
+        a.clearanceLevel === "cleared_conditional" ||
+        a.clearanceLevel === "cleared_with_restrictions"
+      ).length,
+      rejectedCandidates: assessments.filter(a => a.clearanceLevel === "not_cleared").length,
+      assessmentsByType: {} as Record<string, number>,
+      clearanceLevelBreakdown: {} as Record<string, number>
+    };
+
+    // Count by assessment type
+    assessments.forEach(assessment => {
+      stats.assessmentsByType[assessment.assessmentType] =
+        (stats.assessmentsByType[assessment.assessmentType] || 0) + 1;
+
+      if (assessment.clearanceLevel) {
+        stats.clearanceLevelBreakdown[assessment.clearanceLevel] =
+          (stats.clearanceLevelBreakdown[assessment.clearanceLevel] || 0) + 1;
+      }
+    });
+
+    logger.db.info("Calculated pre-employment dashboard stats", {
+      organizationId,
+      totalAssessments: stats.totalAssessments,
+      pendingAssessments: stats.pendingAssessments,
+      completedAssessments: stats.completedAssessments
+    });
+
+    return stats;
   }
 }
 

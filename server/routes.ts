@@ -35,6 +35,7 @@ import functionalAbilityRouter from "./routes/functionalAbility";
 import rtwPlansRouter from "./routes/rtwPlans";
 import { employerDashboardRouter } from "./routes/employer-dashboard";
 import complianceDashboardRouter from "./routes/compliance-dashboard";
+import preEmploymentRoutes from "./routes/preEmployment";
 import type { RecoveryTimelineSummary } from "@shared/schema";
 import { evaluateClinicalEvidence } from "./services/clinicalEvidence";
 import { authorize, type AuthRequest } from "./middleware/auth";
@@ -118,6 +119,9 @@ export async function registerRoutes(app: Express): Promise<void> {
 
   // Notification Engine v1 routes (JWT-protected, admin)
   app.use("/api/notifications", notificationRoutes);
+
+  // Pre-Employment Health Checks routes (JWT-protected)
+  app.use("/api/pre-employment", preEmploymentRoutes);
 
   // Local diagnostics (non-sensitive env presence check)
   app.get("/api/diagnostics/env", (_req, res) => {
