@@ -529,7 +529,7 @@ function buildEmailContext(details: Awaited<ReturnType<typeof storage.getRTWPlan
       : null,
     schedule: details.schedule.map(s => ({
       weekNumber: s.weekNumber,
-      hoursPerDay: s.hoursPerDay,
+      hoursPerDay: Number(s.hoursPerDay),
       daysPerWeek: s.daysPerWeek,
     })),
     includedDuties,

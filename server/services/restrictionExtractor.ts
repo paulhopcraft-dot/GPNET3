@@ -217,16 +217,16 @@ function parseClaudeResponse(text: string): {
     useOfInjuredLimb: validateCapability(parsed.restrictions?.useOfInjuredLimb),
     exerciseMinutesPerHour: validatePositiveNumber(parsed.restrictions?.exerciseMinutesPerHour),
     restMinutesPerHour: validatePositiveNumber(parsed.restrictions?.restMinutesPerHour),
-    maxWorkHoursPerDay: validatePositiveNumber(parsed.maxWorkHoursPerDay),
-    maxWorkDaysPerWeek: validatePositiveNumber(parsed.maxWorkDaysPerWeek),
+    maxWorkHoursPerDay: parsed.maxWorkHoursPerDay > 0 ? parsed.maxWorkHoursPerDay : null,
+    maxWorkDaysPerWeek: parsed.maxWorkDaysPerWeek > 0 ? parsed.maxWorkDaysPerWeek : null,
     extractedAt: new Date().toISOString(),
     extractionConfidence: Math.min(1, Math.max(0, parsed.confidence || 0.5)),
   };
 
   return {
     restrictions,
-    maxWorkHoursPerDay: validatePositiveNumber(parsed.maxWorkHoursPerDay),
-    maxWorkDaysPerWeek: validatePositiveNumber(parsed.maxWorkDaysPerWeek),
+    maxWorkHoursPerDay: parsed.maxWorkHoursPerDay > 0 ? parsed.maxWorkHoursPerDay : null,
+    maxWorkDaysPerWeek: parsed.maxWorkDaysPerWeek > 0 ? parsed.maxWorkDaysPerWeek : null,
     confidence: Math.min(1, Math.max(0, parsed.confidence || 0.5)),
   };
 }

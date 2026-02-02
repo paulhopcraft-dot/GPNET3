@@ -182,7 +182,7 @@ router.get("/:id", async (req: AuthRequest, res: Response) => {
       isActive: row.isActive,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
-      demands: row.demands.id ? row.demands : null,
+      demands: row.demands?.id ? row.demands : null,
     }));
 
     res.json({

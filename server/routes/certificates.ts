@@ -2,8 +2,19 @@ import express, { type Request, type Response } from "express";
 import { z } from "zod";
 import { storage } from "../storage";
 import { authorize } from "../middleware/auth";
-import { insertMedicalCertificateSchema } from "@shared/schema";
+import { insertMedicalCertificateSchema, type FunctionalRestrictionsExtracted } from "@shared/schema";
 import { extractCertificateData } from "../services/certificateService";
+
+// Type guard to ensure functionalRestrictionsJson is properly typed
+function validateFunctionalRestrictions(value: any): FunctionalRestrictionsExtracted | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'string') return null; // Convert string to null
+  if (typeof value === 'object' && value !== null) {
+    // Assume it's a valid FunctionalRestrictionsExtracted object
+    return value as FunctionalRestrictionsExtracted;
+  }
+  return null;
+}
 
 const router = express.Router();
 
@@ -22,7 +33,14 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
       return res.status(403).json({ success: false, message: "Access denied" });
     }
 
-    const certificate = await storage.createCertificate(data);
+    // Ensure functionalRestrictionsJson is properly typed
+    const { functionalRestrictionsJson, ...otherData } = data;
+    const certificateData = {
+      ...otherData,
+      functionalRestrictionsJson: validateFunctionalRestrictions(functionalRestrictionsJson)
+    };
+
+    const certificate = await storage.createCertificate(certificateData as any);
     res.json({ success: true, data: certificate });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
@@ -108,7 +126,14 @@ router.patch("/:id", requireAuth, async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, message: "Certificate not found" });
     }
 
-    const certificate = await storage.updateCertificate(req.params.id, organizationId, updates);
+    // Ensure functionalRestrictionsJson is properly typed
+    const { functionalRestrictionsJson, ...otherUpdates } = updates;
+    const updateData = functionalRestrictionsJson !== undefined ? {
+      ...otherUpdates,
+      functionalRestrictionsJson: validateFunctionalRestrictions(functionalRestrictionsJson)
+    } : updates;
+
+    const certificate = await storage.updateCertificate(req.params.id, organizationId, updateData as any);
     res.json({ success: true, data: certificate });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });

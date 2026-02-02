@@ -1,5 +1,29 @@
 # GPNet3 TODO
 
+## 🚀 Strategic Expansion: Full Employee Lifecycle Portal
+
+**Vision:** Evolve from WorkSafe compliance tool → Complete Health & Wellbeing Portal
+
+**Employee Lifecycle Coverage:**
+- [ ] **Pre-Employment / Hiring**
+  - [ ] New starter health checks
+  - [ ] Pre-employment medical assessments
+  - [ ] Baseline fitness for work evaluations
+  
+- [ ] **During Employment** (current focus)
+  - [x] Workers' comp case management
+  - [x] Return-to-work tracking
+  - [x] Compliance monitoring
+  
+- [ ] **Exit / Offboarding**
+  - [ ] Exit health checks
+  - [ ] Final medical clearances
+  - [ ] Liability documentation
+
+*Added 2026-02-02 — Transform into end-to-end employee wellbeing platform*
+
+---
+
 ## 🐛 Bugs to Investigate
 
 - [ ] **Browser click redirect issue (2026-02-01)** — Clicks in case detail view sometimes redirect to LinkedIn. Possible event handler conflict or browser extension interference. Noted when testing via Clawd browser automation.

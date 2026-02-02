@@ -2618,7 +2618,7 @@ class DbStorage implements IStorage {
       .orderBy(desc(medicalCertificates.endDate));
 
     if (certificates.length === 0) {
-      logger.storage.warn("No current certificates found for case", { caseId });
+      logger.db.warn("No current certificates found for case", { caseId });
       return null;
     }
 
@@ -2629,7 +2629,7 @@ class DbStorage implements IStorage {
 
     if (restrictionsList.length === 0) {
       // No certificates have extracted restrictions yet
-      logger.storage.warn("No functional restrictions found for certificates", {
+      logger.db.warn("No functional restrictions found for certificates", {
         caseId,
         certificateCount: certificates.length
       });
@@ -2732,7 +2732,7 @@ class DbStorage implements IStorage {
       return { planId: plan.id, versionId: version.id };
     });
 
-    logger.storage.info("Created RTW plan", {
+    logger.db.info("Created RTW plan", {
       planId: result.planId,
       versionId: result.versionId,
       caseId: data.caseId,
@@ -2878,7 +2878,7 @@ class DbStorage implements IStorage {
           id: caseRow[0].id,
           workerName: caseRow[0].workerName,
           company: caseRow[0].company,
-          dateOfInjury: caseRow[0].dateOfInjury,
+          dateOfInjury: caseRow[0].dateOfInjury.toISOString(),
           workStatus: caseRow[0].workStatus,
         };
       }
@@ -3080,7 +3080,7 @@ class DbStorage implements IStorage {
       })
       .returning();
 
-    logger.storage.info("Created email template", {
+    logger.db.info("Created email template", {
       templateId: result.id,
       organizationId: result.organizationId,
       templateType: result.templateType,
@@ -3102,7 +3102,7 @@ class DbStorage implements IStorage {
       .returning();
 
     if (result) {
-      logger.storage.info("Updated email template", {
+      logger.db.info("Updated email template", {
         templateId: id,
         templateType: result.templateType,
       });
