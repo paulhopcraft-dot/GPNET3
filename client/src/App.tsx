@@ -53,6 +53,7 @@ const EmployerNewCasePage = lazy(() => import("./pages/EmployerNewCasePage"));
 const EmployerCaseSuccessPage = lazy(() => import("./pages/EmployerCaseSuccessPage"));
 const EmployerDashboardPage = lazy(() => import("./pages/EmployerDashboardPage"));
 const PreEmploymentPage = lazy(() => import("./pages/PreEmploymentPage"));
+const UnifiedCaseWorkspace = lazy(() => import("./pages/UnifiedCaseWorkspace"));
 
 // LogoutRedirect component - triggers logout and redirects to login
 function LogoutRedirect() {
@@ -144,6 +145,26 @@ export default function App() {
                       <ProtectedRoute>
                         <Suspense fallback={<PageLoader />}>
                           <CasesPage />
+                        </Suspense>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/workspace"
+                    element={
+                      <ProtectedRoute>
+                        <Suspense fallback={<PageLoader />}>
+                          <UnifiedCaseWorkspace />
+                        </Suspense>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/cases/:id/workspace"
+                    element={
+                      <ProtectedRoute>
+                        <Suspense fallback={<PageLoader />}>
+                          <UnifiedCaseWorkspace />
                         </Suspense>
                       </ProtectedRoute>
                     }
