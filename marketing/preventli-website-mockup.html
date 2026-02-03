@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preventli - Employee Health Intelligence Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #10B981 0%, #065F46 100%); }
+        .feature-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .feature-card:hover { transform: translateY(-4px); box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 10px 10px -5px rgb(0 0 0 / 0.04); }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2l-5 3c-3 1.5-3 4-3 7 0 7 8 12 8 12s8-5 8-12c0-3 0-5.5-3-7l-5-3z"/>
+                            <path d="M8 10c0-1.5 1.5-3 4-3s4 1.5 4 3c0 1.5-4 5-4 5s-4-3.5-4-5z" fill="white"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="text-xl font-semibold text-gray-900">Preventli</div>
+                        <div class="text-xs text-gray-500">Employee Health Intelligence</div>
+                    </div>
+                </div>
+
+                <!-- Navigation Links -->
+                <div class="hidden md:flex space-x-8">
+                    <a href="#platform" class="text-gray-700 hover:text-emerald-600 px-3 py-2 text-sm font-medium">Platform</a>
+                    <a href="#features" class="text-gray-700 hover:text-emerald-600 px-3 py-2 text-sm font-medium">Features</a>
+                    <a href="#pricing" class="text-gray-700 hover:text-emerald-600 px-3 py-2 text-sm font-medium">Pricing</a>
+                    <a href="#contact" class="text-gray-700 hover:text-emerald-600 px-3 py-2 text-sm font-medium">Contact</a>
+                </div>
+
+                <!-- CTA Button -->
+                <div class="flex items-center space-x-3">
+                    <a href="#demo" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                        Book Demo
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="gradient-bg text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+            <div class="grid md:grid-cols-2 gap-12 items-center">
+                <!-- Hero Content -->
+                <div>
+                    <h1 class="text-4xl md:text-5xl font-bold mb-6 leading-tight">
+                        Complete Employee Health Intelligence<br>
+                        <span class="text-emerald-200">Hire to Retire</span>
+                    </h1>
+
+                    <p class="text-xl text-emerald-100 mb-8 leading-relaxed">
+                        Transform your workforce health management with Australia's first comprehensive employee lifecycle platform. From pre-employment screening to exit documentation, predict, prevent, and protect your people.
+                    </p>
+
+                    <!-- Key Stats -->
+                    <div class="grid grid-cols-3 gap-6 mb-8">
+                        <div class="text-center">
+                            <div class="text-3xl font-bold">71%</div>
+                            <div class="text-emerald-200 text-sm">Compliance Score</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-3xl font-bold">174+</div>
+                            <div class="text-emerald-200 text-sm">Active Cases</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-3xl font-bold">$90M</div>
+                            <div class="text-emerald-200 text-sm">Market Opportunity</div>
+                        </div>
+                    </div>
+
+                    <!-- CTA Buttons -->
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <a href="#demo" class="bg-white text-emerald-600 px-6 py-3 rounded-lg font-semibold hover:bg-emerald-50 transition-colors text-center">
+                            Start Free Trial
+                        </a>
+                        <a href="#platform" class="border-2 border-emerald-200 text-white px-6 py-3 rounded-lg font-semibold hover:bg-emerald-500 transition-colors text-center">
+                            See Platform Demo
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Hero Visual -->
+                <div class="relative">
+                    <div class="bg-white rounded-2xl shadow-2xl p-6">
+                        <!-- Platform Preview -->
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <h3 class="font-semibold text-gray-900">Employee Lifecycle Dashboard</h3>
+                                <span class="text-emerald-600 text-sm">Live Preview</span>
+                            </div>
+
+                            <!-- Timeline Visual -->
+                            <div class="space-y-3">
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center">
+                                        <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="text-sm font-medium text-gray-900">Pre-Employment Health Screening</div>
+                                        <div class="text-xs text-gray-500">Completed • Risk Score: Low</div>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
+                                        <div class="w-3 h-3 bg-white rounded-full"></div>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="text-sm font-medium text-gray-900">Ongoing Health Monitoring</div>
+                                        <div class="text-xs text-gray-500">In Progress • Next Check: 2 weeks</div>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center">
+                                        <div class="w-3 h-3 bg-white rounded-full"></div>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="text-sm font-medium text-gray-400">Exit Health Documentation</div>
+                                        <div class="text-xs text-gray-400">Pending Employment End</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-bold text-gray-900 mb-4">
+                    Complete Employee Health Lifecycle Management
+                </h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                    The only platform that covers every stage of your employee's health journey, creating longitudinal intelligence that protects your workforce and your business.
+                </p>
+            </div>
+
+            <!-- Feature Cards Grid -->
+            <div class="grid md:grid-cols-3 gap-8">
+                <!-- Pre-Employment -->
+                <div class="feature-card bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-2xl p-8 border border-emerald-200">
+                    <div class="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center mb-6">
+                        <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-4">Pre-Employment Health Screening</h3>
+                    <p class="text-gray-700 mb-6">
+                        Comprehensive 8-step health assessment wizard with AI-powered risk scoring. Modern UX eliminates JotForm dependency with auto-save and conditional logic.
+                    </p>
+                    <ul class="space-y-2 text-sm text-gray-600">
+                        <li class="flex items-center"><span class="w-2 h-2 bg-emerald-500 rounded-full mr-3"></span>250+ comprehensive health fields</li>
+                        <li class="flex items-center"><span class="w-2 h-2 bg-emerald-500 rounded-full mr-3"></span>AI risk assessment scoring</li>
+                        <li class="flex items-center"><span class="w-2 h-2 bg-emerald-500 rounded-full mr-3"></span>WorkSafe Victoria compliance</li>
+                    </ul>
+                </div>
+
+                <!-- Active Employment -->
+                <div class="feature-card bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-8 border border-blue-200">
+                    <div class="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center mb-6">
+                        <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-4">Active Health Monitoring</h3>
+                    <p class="text-gray-700 mb-6">
+                        Ongoing injury management, medical certificate tracking, and return-to-work planning with integrated AI analytics and compliance indicators.
+                    </p>
+                    <ul class="space-y-2 text-sm text-gray-600">
+                        <li class="flex items-center"><span class="w-2 h-2 bg-blue-500 rounded-full mr-3"></span>Real-time case management</li>
+                        <li class="flex items-center"><span class="w-2 h-2 bg-blue-500 rounded-full mr-3"></span>Predictive injury analytics</li>
+                        <li class="flex items-center"><span class="w-2 h-2 bg-blue-500 rounded-full mr-3"></span>Automated compliance tracking</li>
+                    </ul>
+                </div>
+
+                <!-- Exit Documentation -->
+                <div class="feature-card bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-8 border border-purple-200">
+                    <div class="w-12 h-12 bg-purple-500 rounded-xl flex items-center justify-center mb-6">
+                        <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-4">Exit Health Documentation</h3>
+                    <p class="text-gray-700 mb-6">
+                        Complete health documentation upon employment termination, liability closure, and longitudinal health data preservation for legal protection.
+                    </p>
+                    <ul class="space-y-2 text-sm text-gray-600">
+                        <li class="flex items-center"><span class="w-2 h-2 bg-purple-500 rounded-full mr-3"></span>Liability closure documentation</li>
+                        <li class="flex items-center"><span class="w-2 h-2 bg-purple-500 rounded-full mr-3"></span>Health history preservation</li>
+                        <li class="flex items-center"><span class="w-2 h-2 bg-purple-500 rounded-full mr-3"></span>Legal compliance protection</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Platform Preview Section -->
+    <section id="platform" class="py-20 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-bold text-gray-900 mb-4">
+                    See the Platform in Action
+                </h2>
+                <p class="text-xl text-gray-600">
+                    Beautiful, intuitive interface designed for enterprise health management
+                </p>
+            </div>
+
+            <!-- Platform Screenshot Mockup -->
+            <div class="bg-white rounded-2xl shadow-2xl overflow-hidden">
+                <div class="bg-gray-800 px-6 py-4 flex items-center space-x-2">
+                    <div class="w-3 h-3 bg-red-500 rounded-full"></div>
+                    <div class="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                    <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                    <div class="ml-6 text-gray-400 text-sm font-medium">app.preventli.com.au</div>
+                </div>
+
+                <div class="p-8 bg-gradient-to-br from-gray-50 to-white min-h-[400px]">
+                    <div class="flex items-center justify-between mb-8">
+                        <h3 class="text-2xl font-semibold text-gray-900">Employee Lifecycle Dashboard</h3>
+                        <div class="flex space-x-3">
+                            <span class="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-sm font-medium">174 Active Employees</span>
+                            <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">71% Compliance</span>
+                        </div>
+                    </div>
+
+                    <!-- Employee Lifecycle Timeline -->
+                    <div class="grid md:grid-cols-6 gap-4">
+                        <div class="text-center">
+                            <div class="w-12 h-12 bg-emerald-500 rounded-full mx-auto mb-3 flex items-center justify-center text-white font-semibold">23</div>
+                            <div class="text-sm font-medium text-gray-900">New Starters</div>
+                            <div class="text-xs text-gray-500">Pre-Employment</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="w-12 h-12 bg-blue-500 rounded-full mx-auto mb-3 flex items-center justify-center text-white font-semibold">89</div>
+                            <div class="text-sm font-medium text-gray-900">Prevention</div>
+                            <div class="text-xs text-gray-500">Health Monitoring</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="w-12 h-12 bg-green-500 rounded-full mx-auto mb-3 flex items-center justify-center text-white font-semibold">45</div>
+                            <div class="text-sm font-medium text-gray-900">Wellbeing</div>
+                            <div class="text-xs text-gray-500">Active Wellness</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="w-12 h-12 bg-orange-500 rounded-full mx-auto mb-3 flex items-center justify-center text-white font-semibold">12</div>
+                            <div class="text-sm font-medium text-gray-900">Injury</div>
+                            <div class="text-xs text-gray-500">Case Management</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="w-12 h-12 bg-purple-500 rounded-full mx-auto mb-3 flex items-center justify-center text-white font-semibold">8</div>
+                            <div class="text-sm font-medium text-gray-900">Mental Health</div>
+                            <div class="text-xs text-gray-500">Support Services</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="w-12 h-12 bg-gray-500 rounded-full mx-auto mb-3 flex items-center justify-center text-white font-semibold">5</div>
+                            <div class="text-sm font-medium text-gray-900">Exit</div>
+                            <div class="text-xs text-gray-500">Documentation</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="gradient-bg text-white py-20">
+        <div class="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
+            <h2 class="text-3xl font-bold mb-6">
+                Ready to Transform Your Employee Health Management?
+            </h2>
+            <p class="text-xl text-emerald-100 mb-8">
+                Join the blue ocean opportunity. Be the first to offer complete lifecycle health intelligence to your workforce.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="#demo" class="bg-white text-emerald-600 px-8 py-4 rounded-lg font-semibold text-lg hover:bg-emerald-50 transition-colors">
+                    Book Your Demo Today
+                </a>
+                <a href="#contact" class="border-2 border-emerald-200 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-emerald-500 transition-colors">
+                    Contact Sales
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid md:grid-cols-4 gap-8">
+                <!-- Company Info -->
+                <div>
+                    <div class="flex items-center space-x-3 mb-6">
+                        <div class="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2l-5 3c-3 1.5-3 4-3 7 0 7 8 12 8 12s8-5 8-12c0-3 0-5.5-3-7l-5-3z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="font-semibold">Preventli</div>
+                            <div class="text-xs text-gray-400">Employee Health Intelligence</div>
+                        </div>
+                    </div>
+                    <p class="text-gray-400 text-sm">
+                        Australia's first comprehensive employee lifecycle health platform. Protect your people, protect your business.
+                    </p>
+                </div>
+
+                <!-- Platform Links -->
+                <div>
+                    <h4 class="font-semibold mb-4">Platform</h4>
+                    <ul class="space-y-2 text-sm text-gray-400">
+                        <li><a href="#" class="hover:text-emerald-400">Pre-Employment Screening</a></li>
+                        <li><a href="#" class="hover:text-emerald-400">Health Monitoring</a></li>
+                        <li><a href="#" class="hover:text-emerald-400">Case Management</a></li>
+                        <li><a href="#" class="hover:text-emerald-400">Exit Documentation</a></li>
+                    </ul>
+                </div>
+
+                <!-- Company Links -->
+                <div>
+                    <h4 class="font-semibold mb-4">Company</h4>
+                    <ul class="space-y-2 text-sm text-gray-400">
+                        <li><a href="#" class="hover:text-emerald-400">About Us</a></li>
+                        <li><a href="#" class="hover:text-emerald-400">Careers</a></li>
+                        <li><a href="#" class="hover:text-emerald-400">Contact</a></li>
+                        <li><a href="#" class="hover:text-emerald-400">Privacy Policy</a></li>
+                    </ul>
+                </div>
+
+                <!-- Contact Info -->
+                <div>
+                    <h4 class="font-semibold mb-4">Contact</h4>
+                    <ul class="space-y-2 text-sm text-gray-400">
+                        <li>hello@preventli.com.au</li>
+                        <li>1300 PREVENT</li>
+                        <li>Melbourne, Australia</li>
+                        <li>WorkSafe Victoria Compliant</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="border-t border-gray-800 mt-12 pt-8 text-center text-sm text-gray-400">
+                © 2026 Preventli. All rights reserved. | Built with ❤️ for Australian workplaces.
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
