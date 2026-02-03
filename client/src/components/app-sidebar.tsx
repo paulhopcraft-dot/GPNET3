@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Building2, FileText, Settings, HelpCircle, Monitor } from "lucide-react";
+import { LayoutDashboard, Users, Building2, FileText, Settings, HelpCircle, Monitor, Heart } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -26,6 +26,11 @@ const menuItems = [
     title: "Cases",
     url: "/cases",
     icon: FileText,
+  },
+  {
+    title: "Employee Lifecycle",
+    url: "/lifecycle",
+    icon: Heart,
   },
   {
     title: "Organizations",

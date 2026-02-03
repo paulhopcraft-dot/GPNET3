@@ -36,6 +36,7 @@ import rtwPlansRouter from "./routes/rtwPlans";
 import { employerDashboardRouter } from "./routes/employer-dashboard";
 import complianceDashboardRouter from "./routes/compliance-dashboard";
 import preEmploymentRoutes from "./routes/preEmployment";
+import memoryRoutes from "./routes/memory";
 import type { RecoveryTimelineSummary } from "@shared/schema";
 import { evaluateClinicalEvidence } from "./services/clinicalEvidence";
 import { authorize, type AuthRequest } from "./middleware/auth";
@@ -122,6 +123,9 @@ export async function registerRoutes(app: Express): Promise<void> {
 
   // Pre-Employment Health Checks routes (JWT-protected)
   app.use("/api/pre-employment", preEmploymentRoutes);
+
+  // Memory API routes (JWT-protected) - Infinite context system
+  app.use("/api/v1/memory", memoryRoutes);
 
   // Local diagnostics (non-sensitive env presence check)
   app.get("/api/diagnostics/env", (_req, res) => {
