@@ -55,6 +55,7 @@ const EmployerDashboardPage = lazy(() => import("./pages/EmployerDashboardPage")
 const PreEmploymentPage = lazy(() => import("./pages/PreEmploymentPage"));
 const UnifiedCaseWorkspace = lazy(() => import("./pages/UnifiedCaseWorkspace"));
 const LifecycleDashboard = lazy(() => import("./pages/LifecycleDashboard"));
+const PreEmploymentForm = lazy(() => import("./pages/PreEmploymentForm"));
 
 // LogoutRedirect component - triggers logout and redirects to login
 function LogoutRedirect() {
@@ -166,6 +167,16 @@ export default function App() {
                       <ProtectedRoute>
                         <Suspense fallback={<PageLoader />}>
                           <LifecycleDashboard />
+                        </Suspense>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/pre-employment-form"
+                    element={
+                      <ProtectedRoute>
+                        <Suspense fallback={<PageLoader />}>
+                          <PreEmploymentForm />
                         </Suspense>
                       </ProtectedRoute>
                     }
