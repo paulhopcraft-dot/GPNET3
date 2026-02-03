@@ -289,6 +289,52 @@ export default function PreEmploymentForm() {
   };
 
   // Validation for current step
+  // Calculate risk score based on form responses
+  const calculateRiskScore = (): number => {
+    let riskScore = 0;
+
+    // Work injury history
+    if (formData.hasWorkInjury) riskScore += 2;
+
+    // Hazardous exposure
+    if (formData.hasHazardousExposure) riskScore += 1;
+    if (formData.hasSilicaExposure === 'yes') riskScore += 2;
+
+    // Medical conditions
+    const conditions = formData.medicalConditions;
+    if (conditions.respiratoryConditions.length > 0) riskScore += 1;
+    if (conditions.cardiovascularConditions.length > 0) riskScore += 2;
+    if (conditions.musculoskeletalConditions.length > 0) riskScore += 1;
+    if (conditions.neurologicalConditions.length > 0) riskScore += 2;
+
+    // Pain levels (higher pain = higher risk)
+    const avgPain = (
+      formData.painLevels.backPain +
+      formData.painLevels.neckPain +
+      formData.painLevels.shoulderPain +
+      formData.painLevels.kneePain
+    ) / 4;
+    riskScore += Math.floor(avgPain / 2); // 0-10 scale divided by 2
+
+    // Lifestyle factors
+    if (formData.smokingStatus === 'current') riskScore += 2;
+    if (formData.smokingStatus === 'former') riskScore += 1;
+    if (formData.alcoholConsumption === 'daily' || formData.alcoholConsumption === 'heavy') riskScore += 1;
+
+    // Normalize to 0-10 scale
+    return Math.min(Math.max(riskScore, 0), 10);
+  };
+
+  // Calculate clearance level based on risk score
+  const calculateClearanceLevel = (): 'cleared' | 'conditional' | 'requires_review' | 'not_cleared' => {
+    const riskScore = calculateRiskScore();
+
+    if (riskScore <= 2) return 'cleared';
+    if (riskScore <= 5) return 'conditional';
+    if (riskScore <= 8) return 'requires_review';
+    return 'not_cleared';
+  };
+
   const validateCurrentStep = (): boolean => {
     const newErrors: Record<string, string> = {};
 
@@ -315,14 +361,26 @@ export default function PreEmploymentForm() {
 
     setIsSubmitting(true);
     try {
-      // TODO: Submit to API
-      const response = await fetch('/api/v1/pre-employment/submissions', {
+      // Create pre-employment assessment
+      const response = await fetch('/api/pre-employment/assessments', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          candidateName: `${formData.firstName} ${formData.lastName}`,
+          candidateEmail: formData.email,
+          positionTitle: formData.roleAppliedFor,
+          department: formData.companyName,
+          assessmentType: 'comprehensive_health_screening',
+          status: 'completed',
+          clearanceLevel: calculateClearanceLevel(),
+          riskScore: calculateRiskScore(),
+          assessmentData: formData,
+          notes: `Comprehensive health screening completed via self-assessment form`,
+          completedAt: new Date().toISOString()
+        }),
       });
 
       if (response.ok) {

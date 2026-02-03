@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Users,
   Shield,
@@ -15,7 +17,8 @@ import {
   Search,
   Calendar,
   TrendingUp,
-  AlertTriangle
+  AlertTriangle,
+  CheckCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -48,7 +51,120 @@ interface LifecycleStage {
   actionRequired?: boolean;
 }
 
-// Mock data for development
+// Fetch employee lifecycle data from pre-employment assessments and existing cases
+const fetchEmployeeLifecycleData = async (): Promise<EmployeeLifecycle[]> => {
+  try {
+    // Fetch pre-employment assessments
+    const assessmentsResponse = await fetch('/api/pre-employment/assessments', {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+    const assessmentsData = await assessmentsResponse.json();
+
+    // Fetch existing worker cases for employment stage data
+    const casesResponse = await fetch('/api/gpnet2/cases', {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+    const casesData = await casesResponse.json();
+
+    // Convert pre-employment assessments to lifecycle format
+    const assessmentLifecycles = assessmentsData.assessments?.map((assessment: any) => ({
+      id: assessment.id,
+      employeeName: assessment.candidateName,
+      positionTitle: assessment.positionTitle,
+      department: assessment.department,
+      hireDate: assessment.completedAt,
+      currentStage: 'pre_employment',
+      stages: {
+        preEmployment: {
+          status: assessment.status === 'completed' ? 'completed' : 'active',
+          completedDate: assessment.completedAt,
+          riskLevel: assessment.riskScore <= 3 ? 'low' : assessment.riskScore <= 7 ? 'medium' : 'high',
+          notes: assessment.clearanceLevel === 'cleared' ? 'Health assessment cleared' : 'Requires review'
+        },
+        prevention: {
+          status: 'scheduled',
+          dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
+          riskLevel: assessment.riskScore <= 3 ? 'low' : assessment.riskScore <= 7 ? 'medium' : 'high'
+        },
+        wellbeing: {
+          status: 'scheduled',
+          dueDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 90 days
+          riskLevel: 'low'
+        },
+        injury: {
+          status: 'not_applicable',
+          riskLevel: 'low'
+        },
+        mentalHealth: {
+          status: 'scheduled',
+          dueDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 6 months
+          riskLevel: 'low'
+        },
+        exit: {
+          status: 'not_applicable',
+          riskLevel: 'low'
+        }
+      },
+      riskScore: assessment.riskScore * 10, // Convert to percentage
+      lastUpdated: assessment.updatedAt || assessment.createdAt
+    })) || [];
+
+    // Convert existing worker cases to lifecycle format (employment stage)
+    const casesLifecycles = casesData.cases?.map((workerCase: any) => ({
+      id: `case-${workerCase.id}`,
+      employeeName: workerCase.workerName,
+      positionTitle: workerCase.jobTitle || 'Not specified',
+      department: workerCase.organization?.name || 'Unknown',
+      hireDate: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Assume hired a year ago
+      currentStage: 'employment',
+      stages: {
+        preEmployment: {
+          status: 'completed',
+          completedDate: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          riskLevel: 'low'
+        },
+        prevention: {
+          status: 'completed',
+          completedDate: new Date(Date.now() - 300 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          riskLevel: 'medium'
+        },
+        wellbeing: {
+          status: 'active',
+          riskLevel: 'medium'
+        },
+        injury: {
+          status: workerCase.status === 'Open' ? 'active' : 'completed',
+          completedDate: workerCase.status === 'Closed' ? workerCase.updatedAt : undefined,
+          riskLevel: workerCase.priority === 'High' ? 'high' : workerCase.priority === 'Medium' ? 'medium' : 'low',
+          notes: `WorkCover case: ${workerCase.injuryType}`,
+          actionRequired: workerCase.status === 'Open'
+        },
+        mentalHealth: {
+          status: 'scheduled',
+          dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          riskLevel: 'low'
+        },
+        exit: {
+          status: 'not_applicable',
+          riskLevel: 'low'
+        }
+      },
+      riskScore: workerCase.priority === 'High' ? 85 : workerCase.priority === 'Medium' ? 60 : 35,
+      lastUpdated: workerCase.updatedAt
+    })) || [];
+
+    return [...assessmentLifecycles, ...casesLifecycles];
+  } catch (error) {
+    console.error('Error fetching employee lifecycle data:', error);
+    return mockEmployeeData; // Fallback to mock data
+  }
+};
+
+// Mock data for development (fallback)
 const mockEmployeeData: EmployeeLifecycle[] = [
   {
     id: "emp-001",
@@ -179,16 +295,36 @@ const getRiskColor = (riskLevel: LifecycleStage['riskLevel']) => {
 };
 
 export default function LifecycleDashboard() {
+  const location = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeLifecycle | null>(null);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [newCandidateName, setNewCandidateName] = useState<string>("");
+
+  // Check for assessment completion message from URL params
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const assessmentCompleted = urlParams.get('assessment');
+    const candidateName = urlParams.get('candidate');
+
+    if (assessmentCompleted === 'completed' && candidateName) {
+      setShowSuccessMessage(true);
+      setNewCandidateName(candidateName);
+
+      // Clear success message after 10 seconds
+      setTimeout(() => setShowSuccessMessage(false), 10000);
+
+      // Clean URL parameters
+      window.history.replaceState({}, '', '/lifecycle');
+    }
+  }, [location]);
 
   // TODO: Replace with actual API call
-  const { data: employees = mockEmployeeData, isLoading } = useQuery({
+  const { data: employees = [], isLoading } = useQuery({
     queryKey: ['employee-lifecycles'],
-    queryFn: async () => {
-      // Future API call: await fetch('/api/v1/employee-lifecycles');
-      return mockEmployeeData;
-    }
+    queryFn: fetchEmployeeLifecycleData,
+    staleTime: 30000, // 30 seconds
+    refetchInterval: 60000 // 1 minute
   });
 
   const filteredEmployees = employees.filter(employee =>
@@ -215,6 +351,18 @@ export default function LifecycleDashboard() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
+      {/* Success Message */}
+      {showSuccessMessage && (
+        <Alert className="border-green-200 bg-green-50">
+          <CheckCircle className="h-4 w-4 text-green-600" />
+          <AlertDescription className="text-green-800">
+            <strong>Assessment Complete!</strong> Pre-employment health screening for{" "}
+            <strong>{newCandidateName}</strong> has been successfully submitted and processed.
+            They will appear in the New Starter stage below.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
