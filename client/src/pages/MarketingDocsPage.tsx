@@ -18,11 +18,16 @@ import {
   Mail,
   Calendar,
   Copy,
-  CheckCircle
+  CheckCircle,
+  MessageCircle,
+  Send,
+  Zap
 } from "lucide-react";
 
 export default function MarketingDocsPage() {
   const [copiedDoc, setCopiedDoc] = useState<string | null>(null);
+  const [postingToDiscord, setPostingToDiscord] = useState<string | null>(null);
+  const [discordStatus, setDiscordStatus] = useState<'idle' | 'posting' | 'success' | 'error'>('idle');
 
   const marketingDocs = [
     {
@@ -205,9 +210,170 @@ ${doc.keyPoints.map((point: string) => `• ${point}`).join('\n')}
 *Last updated: ${doc.lastUpdated}*`;
   };
 
+  const postToDiscord = async (documentId: string, customMessage?: string) => {
+    setPostingToDiscord(documentId);
+    setDiscordStatus('posting');
+
+    try {
+      const response = await fetch('/api/discord/post-document', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          documentId,
+          channelMessage: customMessage
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      setDiscordStatus('success');
+      setTimeout(() => setDiscordStatus('idle'), 3000);
+
+    } catch (error) {
+      console.error('Error posting to Discord:', error);
+      setDiscordStatus('error');
+      setTimeout(() => setDiscordStatus('idle'), 3000);
+    } finally {
+      setPostingToDiscord(null);
+    }
+  };
+
+  const postUrgentAction = async () => {
+    setDiscordStatus('posting');
+
+    try {
+      const response = await fetch('/api/discord/post-urgent-action', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      setDiscordStatus('success');
+      setTimeout(() => setDiscordStatus('idle'), 3000);
+
+    } catch (error) {
+      console.error('Error posting urgent action to Discord:', error);
+      setDiscordStatus('error');
+      setTimeout(() => setDiscordStatus('idle'), 3000);
+    }
+  };
+
+  const postSummary = async (deployReadyOnly: boolean = false) => {
+    setDiscordStatus('posting');
+
+    try {
+      const response = await fetch('/api/discord/post-summary', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          includeDeployReady: deployReadyOnly,
+          channelMessage: deployReadyOnly
+            ? "🚀 **DEPLOY READY DOCUMENTS** - Ready for immediate execution"
+            : "📊 **Complete Marketing Strategy Overview**"
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      setDiscordStatus('success');
+      setTimeout(() => setDiscordStatus('idle'), 3000);
+
+    } catch (error) {
+      console.error('Error posting summary to Discord:', error);
+      setDiscordStatus('error');
+      setTimeout(() => setDiscordStatus('idle'), 3000);
+    }
+  };
+
   return (
     <PageLayout title="Marketing Documents" subtitle="Business strategy and deployment assets for Employee Health Lifecycle Platform">
       <div className="space-y-6">
+
+        {/* Discord Action Bar */}
+        <Card className="border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-purple-50">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <MessageCircle className="h-6 w-6 text-blue-600" />
+                <div>
+                  <CardTitle className="text-lg">Discord Integration</CardTitle>
+                  <CardDescription>Post marketing documents directly to Discord channels</CardDescription>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={postUrgentAction}
+                  disabled={discordStatus === 'posting'}
+                  className="bg-red-600 hover:bg-red-700"
+                  size="sm"
+                >
+                  {discordStatus === 'posting' ? (
+                    <>🔄 Posting...</>
+                  ) : (
+                    <>
+                      <Zap className="h-4 w-4 mr-1" />
+                      🚨 POST URGENT ACTION
+                    </>
+                  )}
+                </Button>
+                <Button
+                  onClick={() => postSummary(true)}
+                  disabled={discordStatus === 'posting'}
+                  variant="outline"
+                  size="sm"
+                >
+                  {discordStatus === 'posting' ? (
+                    <>🔄 Posting...</>
+                  ) : (
+                    <>
+                      <Rocket className="h-4 w-4 mr-1" />
+                      Deploy Ready Docs
+                    </>
+                  )}
+                </Button>
+                <Button
+                  onClick={() => postSummary(false)}
+                  disabled={discordStatus === 'posting'}
+                  variant="outline"
+                  size="sm"
+                >
+                  {discordStatus === 'posting' ? (
+                    <>🔄 Posting...</>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4 mr-1" />
+                      Full Summary
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+            {discordStatus === 'success' && (
+              <div className="mt-2 p-2 bg-green-100 text-green-800 rounded-lg text-sm">
+                ✅ Successfully posted to Discord!
+              </div>
+            )}
+            {discordStatus === 'error' && (
+              <div className="mt-2 p-2 bg-red-100 text-red-800 rounded-lg text-sm">
+                ❌ Failed to post to Discord. Check webhook configuration.
+              </div>
+            )}
+          </CardHeader>
+        </Card>
 
         {/* Stats Overview */}
         <div className="grid gap-4 md:grid-cols-4">
@@ -315,6 +481,21 @@ ${doc.keyPoints.map((point: string) => `• ${point}`).join('\n')}
                           </div>
                           <div className="flex gap-2">
                             <Button
+                              onClick={() => postToDiscord(doc.id)}
+                              disabled={postingToDiscord === doc.id}
+                              className="bg-purple-600 hover:bg-purple-700"
+                              size="sm"
+                            >
+                              {postingToDiscord === doc.id ? (
+                                <>🔄 Posting...</>
+                              ) : (
+                                <>
+                                  <MessageCircle className="h-3 w-3 mr-1" />
+                                  Post to Discord
+                                </>
+                              )}
+                            </Button>
+                            <Button
                               variant="outline"
                               size="sm"
                               onClick={() => copyToClipboard(doc.id, generateDiscordEmbed(doc))}
@@ -325,11 +506,7 @@ ${doc.keyPoints.map((point: string) => `• ${point}`).join('\n')}
                               ) : (
                                 <Copy className="h-3 w-3" />
                               )}
-                              {copiedDoc === doc.id ? "Copied!" : "Copy for Discord"}
-                            </Button>
-                            <Button variant="outline" size="sm">
-                              <ExternalLink className="h-3 w-3 mr-1" />
-                              View Full
+                              {copiedDoc === doc.id ? "Copied!" : "Copy Text"}
                             </Button>
                           </div>
                         </div>

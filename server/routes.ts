@@ -124,6 +124,10 @@ export async function registerRoutes(app: Express): Promise<void> {
   // Pre-Employment Health Checks routes (JWT-protected)
   app.use("/api/pre-employment", preEmploymentRoutes);
 
+  // Discord Integration routes (JWT-protected)
+  const discordRoutes = require("./routes/discord").default;
+  app.use("/api/discord", discordRoutes);
+
   // Memory API routes (JWT-protected) - Infinite context system
   app.use("/api/v1/memory", memoryRoutes);
 
