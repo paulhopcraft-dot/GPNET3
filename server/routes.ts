@@ -128,6 +128,10 @@ export async function registerRoutes(app: Express): Promise<void> {
   const discordRoutes = require("./routes/discord").default;
   app.use("/api/discord", discordRoutes);
 
+  // Discord Analytics routes (JWT-protected) - Real business data
+  const discordAnalyticsRoutes = require("./routes/discord-analytics").default;
+  app.use("/api/discord-analytics", discordAnalyticsRoutes);
+
   // Memory API routes (JWT-protected) - Infinite context system
   app.use("/api/v1/memory", memoryRoutes);
 
