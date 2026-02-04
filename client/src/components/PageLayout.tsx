@@ -12,7 +12,14 @@ interface PageLayoutProps {
 
 const navItems = [
   { path: "/", label: "Dashboard", icon: "dashboard" },
+
+  // Health Checks - All 5 check types in one section
+  { path: "/checks", label: "Checks", icon: "health_and_safety" },
+
+  // Case Management
   { path: "/cases", label: "Cases", icon: "folder_open" },
+
+  // Supporting Tools
   { path: "/claims/new", label: "New Claim", icon: "add_circle", employerPath: "/employer/new-case", employerLabel: "New Case" },
   { path: "/rtw-planner", label: "RTW Planner", icon: "event_available" },
   { path: "/checkins", label: "Check-ins", icon: "task_alt" },
