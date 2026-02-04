@@ -58,6 +58,7 @@ const LifecycleDashboard = lazy(() => import("./pages/LifecycleDashboard"));
 const PreEmploymentForm = lazy(() => import("./pages/PreEmploymentForm"));
 const ChecksPage = lazy(() => import("./pages/ChecksPage"));
 const ExitProcessingPage = lazy(() => import("./pages/ExitProcessingPage"));
+const MarketingDocsPage = lazy(() => import("./pages/MarketingDocsPage"));
 
 // LogoutRedirect component - triggers logout and redirects to login
 function LogoutRedirect() {
@@ -300,6 +301,16 @@ export default function App() {
                       <ProtectedRoute>
                         <Suspense fallback={<PageLoader />}>
                           <ExitProcessingPage />
+                        </Suspense>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/marketing-docs"
+                    element={
+                      <ProtectedRoute>
+                        <Suspense fallback={<PageLoader />}>
+                          <MarketingDocsPage />
                         </Suspense>
                       </ProtectedRoute>
                     }

@@ -19,6 +19,9 @@ const navItems = [
   // Case Management
   { path: "/cases", label: "Cases", icon: "folder_open" },
 
+  // Business Documents
+  { path: "/marketing-docs", label: "Marketing Docs", icon: "description" },
+
   // Supporting Tools
   { path: "/claims/new", label: "New Claim", icon: "add_circle", employerPath: "/employer/new-case", employerLabel: "New Case" },
   { path: "/rtw-planner", label: "RTW Planner", icon: "event_available" },
