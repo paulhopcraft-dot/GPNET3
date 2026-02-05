@@ -13,8 +13,8 @@ interface PageLayoutProps {
 const navItems = [
   { path: "/", label: "Dashboard", icon: "dashboard" },
 
-  // Health Checks - All 5 check types in one section
-  { path: "/checks", label: "Checks", icon: "health_and_safety" },
+  // Health Checks - All 6 check types in one section
+  { path: "/checks", label: "🩺 Checks", icon: "health_and_safety" },
 
   // Case Management
   { path: "/cases", label: "Cases", icon: "folder_open" },
