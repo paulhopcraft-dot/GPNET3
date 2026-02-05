@@ -56,6 +56,8 @@ const PreEmploymentPage = lazy(() => import("./pages/PreEmploymentPage"));
 const UnifiedCaseWorkspace = lazy(() => import("./pages/UnifiedCaseWorkspace"));
 const LifecycleDashboard = lazy(() => import("./pages/LifecycleDashboard"));
 const PreEmploymentForm = lazy(() => import("./pages/PreEmploymentForm"));
+const PreventionAssessmentForm = lazy(() => import("./pages/PreventionAssessmentForm"));
+const InjuryAssessmentForm = lazy(() => import("./pages/InjuryAssessmentForm"));
 const ChecksPage = lazy(() => import("./pages/ChecksPage"));
 const ExitProcessingPage = lazy(() => import("./pages/ExitProcessingPage"));
 const MarketingDocsPage = lazy(() => import("./pages/MarketingDocsPage"));
@@ -180,6 +182,26 @@ export default function App() {
                       <ProtectedRoute>
                         <Suspense fallback={<PageLoader />}>
                           <PreEmploymentForm />
+                        </Suspense>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/prevention-assessment-form"
+                    element={
+                      <ProtectedRoute>
+                        <Suspense fallback={<PageLoader />}>
+                          <PreventionAssessmentForm />
+                        </Suspense>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/injury-assessment-form"
+                    element={
+                      <ProtectedRoute>
+                        <Suspense fallback={<PageLoader />}>
+                          <InjuryAssessmentForm />
                         </Suspense>
                       </ProtectedRoute>
                     }

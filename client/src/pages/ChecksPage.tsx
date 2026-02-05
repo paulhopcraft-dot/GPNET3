@@ -185,8 +185,11 @@ export default function ChecksPage() {
                   • Ergonomic evaluations<br/>
                   • Health and safety training compliance
                 </div>
-                <div className="mt-4">
+                <div className="mt-4 flex gap-2">
                   <Button variant="outline">Manage Programs</Button>
+                  <Button asChild>
+                    <Link to="/prevention-assessment-form">New Assessment</Link>
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -232,9 +235,14 @@ export default function ChecksPage() {
                     <CardTitle>Injury Management</CardTitle>
                     <CardDescription>Workplace injury tracking and return-to-work coordination</CardDescription>
                   </div>
-                  <Button variant="outline" asChild>
-                    <Link to="/cases">View All Cases</Link>
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button variant="outline" asChild>
+                      <Link to="/cases">View All Cases</Link>
+                    </Button>
+                    <Button asChild>
+                      <Link to="/injury-assessment-form">New Injury Report</Link>
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
