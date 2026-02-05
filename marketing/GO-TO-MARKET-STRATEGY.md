@@ -1,17 +1,55 @@
-# Preventli Go-To-Market Strategy
+# 📊 Preventli Go-To-Market Strategy
 
-## Executive Summary
+<div align="center">
 
-A multi-segment, phased approach targeting Victorian workers' compensation stakeholders. Primary focus on building reference customers in each segment before scaling.
+![Market Size](https://img.shields.io/badge/Market%20Size-$35M%20ARR-gold?style=for-the-badge)
+![Target Segments](https://img.shields.io/badge/Target%20Segments-3-blue?style=for-the-badge)
+![Timeline](https://img.shields.io/badge/Timeline-12%20Months-green?style=for-the-badge)
+
+**🎯 Multi-segment approach to capture the Australian WorkCover market**
+
+</div>
 
 ---
 
-## Target Market Segments
+## 📋 **Executive Summary**
 
-### Segment Priority Order
-1. **Employers (SMB)** - Fastest sales cycle, prove product-market fit
-2. **Self-Insurers** - Higher ACV, stronger references
-3. **Insurance Companies** - Largest deals, longest sales cycle
+A **multi-segment, phased approach** targeting Victorian workers' compensation stakeholders with a focus on building reference customers in each segment before scaling to national markets.
+
+**🎯 Primary Strategy:** Prove product-market fit with SMB employers → Build enterprise references with self-insurers → Scale with insurance companies
+
+---
+
+## 🎯 **Target Market Segments**
+
+<div align="center">
+
+### **📈 Strategic Segment Approach**
+```
+🚀 Phase 1: SMB Employers
+├─ Sales Cycle: 2-6 weeks
+├─ Deal Size: $1,200-$36,000/year  
+└─ Goal: Product-market fit validation
+
+🏢 Phase 2: Self-Insurers  
+├─ Sales Cycle: 3-6 months
+├─ Deal Size: $36,000-$180,000/year
+└─ Goal: Enterprise reference customers
+
+🏦 Phase 3: Insurance Companies
+├─ Sales Cycle: 6-18 months  
+├─ Deal Size: $180,000-$1M+/year
+└─ Goal: Market domination & scale
+```
+
+</div>
+
+### **🥇 Segment Priority Order**
+| Priority | Segment | Why This Order | Expected Outcome |
+|----------|---------|----------------|------------------|
+| **1st** | 🏭 **Employers (SMB)** | Fastest sales cycle, prove product-market fit | Reference customers + revenue |
+| **2nd** | 🏢 **Self-Insurers** | Higher ACV, stronger references | Enterprise credibility |
+| **3rd** | 🏦 **Insurance Companies** | Largest deals, longest sales cycle | Market leadership |
 
 ---
 

@@ -1,8 +1,23 @@
-# Preventli Pricing Model v1.0
+# 💰 Preventli Pricing Model v1.0
 
-## Executive Summary
+<div align="center">
 
-Three-tier pricing strategy targeting different customer segments with distinct value propositions and pricing structures. All pricing follows the Alex Hormozi "Grand Slam Offer" philosophy: make the value so obvious that price becomes irrelevant.
+![Revenue Target](https://img.shields.io/badge/Revenue%20Target-$2.5M%20ARR-gold?style=for-the-badge)
+![ROI](https://img.shields.io/badge/Customer%20ROI-282%E2%80%93500%25-brightgreen?style=for-the-badge)
+![Pricing Strategy](https://img.shields.io/badge/Strategy-Value%20Based-blue?style=for-the-badge)
+
+**🎯 Grand Slam Offer Pricing Strategy**  
+*Make the value so obvious that price becomes irrelevant*
+
+</div>
+
+---
+
+## 📋 **Executive Summary**
+
+**Three-tier pricing strategy** targeting different customer segments with distinct value propositions. Built on **Alex Hormozi's "Grand Slam Offer" philosophy** - deliver so much value that customers would feel stupid saying no.
+
+**💡 Core Principle:** Every customer should see 3-10x ROI in year one.
 
 ---
 
