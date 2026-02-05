@@ -514,7 +514,7 @@ export default function UnifiedCaseWorkspace() {
                     <Alert className="bg-blue-50 border-blue-200">
                       <Lightbulb className="w-4 h-4" />
                       <AlertDescription>
-                        Early intervention on cases off work >14 days reduces long-term disability by 40%
+                        Early intervention on cases off work {'>'} 14 days reduces long-term disability by 40%
                       </AlertDescription>
                     </Alert>
                     <Alert className="bg-green-50 border-green-200">

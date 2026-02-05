@@ -18,6 +18,8 @@ import certificateRoutes from "./routes/certificates";
 import actionRoutes from "./routes/actions";
 import smartSummaryRoutes from "./routes/smartSummary";
 import emailDraftRoutes from "./routes/emailDrafts";
+import discordRoutes from "./routes/discord";
+import discordAnalyticsRoutes from "./routes/discord-analytics";
 import notificationRoutes from "./routes/notifications";
 import adminOrganizationRoutes from "./routes/admin/organizations";
 import adminInsurerRoutes from "./routes/admin/insurers";
@@ -125,11 +127,9 @@ export async function registerRoutes(app: Express): Promise<void> {
   app.use("/api/pre-employment", preEmploymentRoutes);
 
   // Discord Integration routes (JWT-protected)
-  const discordRoutes = require("./routes/discord").default;
   app.use("/api/discord", discordRoutes);
 
   // Discord Analytics routes (JWT-protected) - Real business data
-  const discordAnalyticsRoutes = require("./routes/discord-analytics").default;
   app.use("/api/discord-analytics", discordAnalyticsRoutes);
 
   // Memory API routes (JWT-protected) - Infinite context system
