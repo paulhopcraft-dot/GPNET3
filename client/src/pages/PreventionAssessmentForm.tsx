@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { fetchWithCsrf } from '@/lib/queryClient';
 import { PageLayout } from "@/components/PageLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -200,17 +201,59 @@ export default function PreventionAssessmentForm() {
     });
   };
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const calculatePreventionRiskScore = (): number => {
+    let score = 0;
+    // Pain levels (each 0-10)
+    const painFields = ['neckPain', 'armsPain', 'shouldersPain', 'upperBackPain', 'lowerBackPain', 'legsPain', 'kneesPain', 'feetPain'] as const;
+    const totalPain = painFields.reduce((sum, f) => sum + (parseInt(formData[f]) || 0), 0);
+    score += Math.min(Math.floor(totalPain / 10), 3);
+    // Psychological indicators
+    const psychFields = ['tiredNoReason', 'feltNervous', 'feltHopeless', 'feltDepressed', 'feltWorthless'] as const;
+    const psychScore = psychFields.filter(f => formData[f] === 'most' || formData[f] === 'all').length;
+    score += Math.min(psychScore, 3);
+    // Lifestyle
+    if (formData.smokingStatus === 'daily' || formData.smokingStatus === 'occasionally') score += 1;
+    if (formData.alcoholConsumption === 'daily') score += 1;
+    if (formData.vigorousActivity === 'none') score += 1;
+    return Math.min(Math.max(score, 0), 10);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
     try {
-      // Here you would submit to your API endpoint
-      console.log("Prevention Assessment Data:", formData);
+      const riskScore = calculatePreventionRiskScore();
+      const clearanceLevel = riskScore <= 3 ? 'cleared_unconditional' : riskScore <= 6 ? 'cleared_conditional' : 'cleared_with_restrictions';
 
-      // For now, navigate to checks page
-      navigate('/checks');
+      const response = await fetchWithCsrf('/api/pre-employment/assessments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          candidateName: `${formData.firstName} ${formData.lastName}`,
+          candidateEmail: formData.email,
+          positionTitle: formData.jobTitle,
+          departmentName: formData.companyName,
+          assessmentType: 'prevention_health_screening',
+          status: 'completed',
+          clearanceLevel,
+          notes: `Risk score: ${riskScore}/10. Prevention health screening completed via self-assessment form.`
+        }),
+      });
+
+      if (response.ok) {
+        navigate('/checks', {
+          state: { message: 'Prevention assessment submitted successfully!' }
+        });
+      } else {
+        throw new Error('Failed to submit assessment');
+      }
     } catch (error) {
       console.error("Error submitting prevention assessment:", error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -1029,9 +1072,9 @@ export default function PreventionAssessmentForm() {
                 ) : (
                   <Button
                     type="submit"
-                    disabled={!formData.confirmationChecked || !formData.signature}
+                    disabled={!formData.confirmationChecked || !formData.signature || isSubmitting}
                   >
-                    Submit Assessment
+                    {isSubmitting ? 'Submitting...' : 'Submit Assessment'}
                   </Button>
                 )}
               </div>
