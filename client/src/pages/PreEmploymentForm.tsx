@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { fetchWithCsrf } from '@/lib/queryClient';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -302,24 +303,25 @@ export default function PreEmploymentForm() {
 
     // Medical conditions
     const conditions = formData.medicalConditions;
-    if (conditions.respiratoryConditions.length > 0) riskScore += 1;
-    if (conditions.cardiovascularConditions.length > 0) riskScore += 2;
-    if (conditions.musculoskeletalConditions.length > 0) riskScore += 1;
-    if (conditions.neurologicalConditions.length > 0) riskScore += 2;
+    if (conditions.musculoskeletal.length > 0) riskScore += 1;
+    if (conditions.neurological.length > 0) riskScore += 2;
+    if (conditions.mentalHealth.length > 0) riskScore += 1;
+    if (conditions.systemic.length > 0) riskScore += 2;
+    if (conditions.sensory.length > 0) riskScore += 1;
 
     // Pain levels (higher pain = higher risk)
     const avgPain = (
-      formData.painLevels.backPain +
-      formData.painLevels.neckPain +
-      formData.painLevels.shoulderPain +
-      formData.painLevels.kneePain
+      formData.painRatings.lowerBack +
+      formData.painRatings.upperBack +
+      formData.painRatings.shoulders +
+      formData.painRatings.knees
     ) / 4;
     riskScore += Math.floor(avgPain / 2); // 0-10 scale divided by 2
 
     // Lifestyle factors
-    if (formData.smokingStatus === 'current') riskScore += 2;
-    if (formData.smokingStatus === 'former') riskScore += 1;
-    if (formData.alcoholConsumption === 'daily' || formData.alcoholConsumption === 'heavy') riskScore += 1;
+    if (formData.smoker) riskScore += 2;
+    if (formData.formerSmoker) riskScore += 1;
+    if (formData.drinksAlcohol) riskScore += 1;
 
     // Normalize to 0-10 scale
     return Math.min(Math.max(riskScore, 0), 10);
@@ -362,30 +364,24 @@ export default function PreEmploymentForm() {
     setIsSubmitting(true);
     try {
       // Create pre-employment assessment
-      const response = await fetch('/api/pre-employment/assessments', {
+      const response = await fetchWithCsrf('/api/pre-employment/assessments', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           candidateName: `${formData.firstName} ${formData.lastName}`,
           candidateEmail: formData.email,
           positionTitle: formData.roleAppliedFor,
-          department: formData.companyName,
+          departmentName: formData.companyName,
           assessmentType: 'comprehensive_health_screening',
           status: 'completed',
           clearanceLevel: calculateClearanceLevel(),
-          riskScore: calculateRiskScore(),
-          assessmentData: formData,
-          notes: `Comprehensive health screening completed via self-assessment form`,
-          completedAt: new Date().toISOString()
+          notes: `Risk score: ${calculateRiskScore()}/10. Comprehensive health screening completed via self-assessment form.`
         }),
       });
 
       if (response.ok) {
         localStorage.removeItem('preEmploymentFormData');
-        navigate('/lifecycle', {
+        navigate('/checks', {
           state: { message: 'Pre-employment assessment submitted successfully!' }
         });
       } else {

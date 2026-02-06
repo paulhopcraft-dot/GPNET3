@@ -1079,6 +1079,96 @@
         "Foundation for comprehensive employee wellness programs",
         "Professional presentation supporting enterprise sales positioning"
       ]
+    },
+    {
+      "id": "health-check-forms-implementation",
+      "name": "Health Check Forms Implementation",
+      "description": "Implementation of specific health check forms based on JotForm specifications: Prevention, Injury, Comprehensive RTW, and General Wellness assessments",
+      "priority": "high",
+      "status": "in_progress",
+      "verified_at": null,
+      "estimatedTotalMinutes": 480,
+      "prerequisites": [
+        "Comprehensive health checks system navigation complete",
+        "JotForm specifications analyzed and documented",
+        "Form routing infrastructure established",
+        "UI component library available for form creation"
+      ],
+      "userStories": [
+        {
+          "id": "prevention-assessment-form",
+          "story": "As an HR manager, I can conduct prevention health assessments so that proactive health screening is standardized",
+          "acceptanceCriteria": [
+            "6-section prevention assessment form implemented",
+            "Covers initial info, pain assessment, psychological wellbeing, health & lifestyle, job capacity, completion",
+            "Multi-step navigation with validation",
+            "Route accessible from Prevention tab",
+            "Form data properly structured for API submission"
+          ],
+          "implementation": "Complete PreventionAssessmentForm.tsx with 6 sections based on JotForm 240266476492059 specifications",
+          "estimatedMinutes": 120,
+          "status": "completed",
+          "verified_at": "2026-02-05T08:00:00Z"
+        },
+        {
+          "id": "injury-assessment-form",
+          "story": "As a workplace safety coordinator, I can document injury incidents so that proper medical and safety protocols are followed",
+          "acceptanceCriteria": [
+            "5-section injury assessment form implemented",
+            "Covers personal info, incident details, treatment & recovery, pain assessment, work capacity",
+            "Professional incident reporting workflow",
+            "Route accessible from Injury tab",
+            "Comprehensive incident documentation captured"
+          ],
+          "implementation": "Complete InjuryAssessmentForm.tsx with 5 sections based on JotForm 240273367274054 specifications",
+          "estimatedMinutes": 120,
+          "status": "completed",
+          "verified_at": "2026-02-05T08:30:00Z"
+        },
+        {
+          "id": "comprehensive-rtw-form",
+          "story": "As a return-to-work coordinator, I can manage complex injury cases so that comprehensive RTW planning is documented",
+          "acceptanceCriteria": [
+            "9-section comprehensive RTW form implemented",
+            "Covers worker details, functional requirements, medical status, work planning, employer input",
+            "Professional RTW case management workflow",
+            "Route accessible from injury management system",
+            "Complete RTW documentation captured"
+          ],
+          "implementation": "Create ComprehensiveRTWForm.tsx based on JotForm 251308218013445 specifications",
+          "estimatedMinutes": 180,
+          "status": "pending"
+        },
+        {
+          "id": "general-wellness-form",
+          "story": "As an employee wellness coordinator, I can assess general health status so that comprehensive wellness monitoring is available",
+          "acceptanceCriteria": [
+            "3-section general wellness form implemented",
+            "Covers health status, functional limitations, mental wellbeing",
+            "SF-36 style health assessment",
+            "Route accessible from Wellness tab",
+            "Health status properly documented"
+          ],
+          "implementation": "Create GeneralWellnessForm.tsx based on JotForm 240032989875064 specifications",
+          "estimatedMinutes": 60,
+          "status": "pending"
+        }
+      ],
+      "technicalNotes": [
+        "All forms implement multi-step navigation with validation",
+        "Forms use consistent UI components matching design system",
+        "Professional styling with progress indicators",
+        "Conditional field display based on user responses",
+        "Digital signature capture for legal compliance",
+        "Integration with unified health checks navigation"
+      ],
+      "businessImpact": [
+        "Standardized health assessment processes across organization",
+        "Digital transformation of paper-based health forms",
+        "Comprehensive employee health data capture",
+        "Professional compliance documentation",
+        "Streamlined health management workflows"
+      ]
     }
   ],
   "ralphConfig": {

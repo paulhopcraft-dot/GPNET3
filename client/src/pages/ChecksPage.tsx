@@ -11,7 +11,7 @@ import {
   Activity,
   Heart,
   Brain,
-  ExitToApp,
+  LogOut,
   CheckCircle,
   Clock,
   AlertTriangle,
@@ -74,7 +74,7 @@ export default function ChecksPage() {
               Mental Health
             </TabsTrigger>
             <TabsTrigger value="exit" className="flex items-center gap-2">
-              <ExitToApp className="h-4 w-4" />
+              <LogOut className="h-4 w-4" />
               Exit
             </TabsTrigger>
           </TabsList>
@@ -367,7 +367,7 @@ export default function ChecksPage() {
                 title="Active Exits"
                 value={checkStats.exit.total}
                 description="In progress"
-                icon={ExitToApp}
+                icon={LogOut}
                 color="gray"
               />
               <StatCard

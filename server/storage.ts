@@ -90,6 +90,15 @@ import { logger } from "./lib/logger";
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
+/** Sanitize nextStep values - replace URLs with meaningful fallback text */
+function sanitizeNextStep(value: string | undefined | null): string {
+  if (!value) return "Review case";
+  if (value.startsWith("http://") || value.startsWith("https://")) {
+    return "Review case documents";
+  }
+  return value;
+}
+
 // ============================================================================
 // RTW Plan Types
 // ============================================================================
@@ -360,7 +369,7 @@ function applyDiscussionInsights(
     const latest = notes[0];
 
     if (latest.nextSteps && latest.nextSteps.length > 0) {
-      workerCase.nextStep = latest.nextSteps[0];
+      workerCase.nextStep = sanitizeNextStep(latest.nextSteps[0]);
     }
 
     const riskFromNotes = determineRiskLevelFromNotes(notes);
@@ -662,23 +671,31 @@ class DbStorage implements IStorage {
       }
     }
 
-    const casesWithAttachments = await Promise.all(
-      dbCases.map(async (dbCase: WorkerCaseDB) => {
-        const attachments = await db
-          .select()
-          .from(caseAttachments)
-          .where(eq(caseAttachments.caseId, dbCase.id));
+    // Batch fetch attachments and certificates for all cases (avoids N+1)
+    const [allAttachmentRows, allCertificateRows] = caseIds.length > 0
+      ? await Promise.all([
+          db.select().from(caseAttachments).where(inArray(caseAttachments.caseId, caseIds)),
+          db.select().from(medicalCertificates).where(inArray(medicalCertificates.caseId, caseIds)).orderBy(desc(medicalCertificates.startDate)),
+        ])
+      : [[], []];
 
-        const latestCertificateRow = await db
-          .select()
-          .from(medicalCertificates)
-          .where(eq(medicalCertificates.caseId, dbCase.id))
-          .orderBy(desc(medicalCertificates.startDate))
-          .limit(1);
+    const attachmentsByCase = new Map<string, typeof allAttachmentRows>();
+    for (const att of allAttachmentRows) {
+      const list = attachmentsByCase.get(att.caseId) ?? [];
+      list.push(att);
+      attachmentsByCase.set(att.caseId, list);
+    }
 
-        const latestCertificate = latestCertificateRow[0]
-          ? mapCertificateRow(latestCertificateRow[0])
-          : undefined;
+    const latestCertByCase = new Map<string, ReturnType<typeof mapCertificateRow>>();
+    for (const cert of allCertificateRows) {
+      if (!latestCertByCase.has(cert.caseId)) {
+        latestCertByCase.set(cert.caseId, mapCertificateRow(cert));
+      }
+    }
+
+    const casesWithAttachments = dbCases.map((dbCase: WorkerCaseDB) => {
+        const attachments = attachmentsByCase.get(dbCase.id) || [];
+        const latestCertificate = latestCertByCase.get(dbCase.id);
 
         const workerCase: WorkerCase = {
           id: dbCase.id,
@@ -704,7 +721,7 @@ class DbStorage implements IStorage {
           specialistStatus: dbCase.clinicalStatusJson?.specialistStatus,
           specialistReportSummary: dbCase.clinicalStatusJson?.specialistReportSummary,
           currentStatus: dbCase.currentStatus,
-          nextStep: dbCase.nextStep,
+          nextStep: sanitizeNextStep(dbCase.nextStep),
           owner: dbCase.owner,
           dueDate: dbCase.dueDate,
           summary: dbCase.summary,
@@ -735,8 +752,7 @@ class DbStorage implements IStorage {
         const discussionNotes = notesByCase.get(dbCase.id) ?? [];
         const discussionInsights = insightsByCase.get(dbCase.id) ?? [];
         return applyDiscussionInsights(workerCase, discussionNotes, discussionInsights);
-      })
-    );
+      });
 
     return casesWithAttachments;
   }
@@ -850,7 +866,7 @@ class DbStorage implements IStorage {
           specialistStatus: dbCase.clinicalStatusJson?.specialistStatus,
           specialistReportSummary: dbCase.clinicalStatusJson?.specialistReportSummary,
           currentStatus: dbCase.currentStatus,
-          nextStep: dbCase.nextStep,
+          nextStep: sanitizeNextStep(dbCase.nextStep),
           owner: dbCase.owner,
           dueDate: dbCase.dueDate,
           summary: dbCase.summary,
@@ -946,7 +962,7 @@ class DbStorage implements IStorage {
       specialistStatus: workerCase.clinicalStatusJson?.specialistStatus,
       specialistReportSummary: workerCase.clinicalStatusJson?.specialistReportSummary,
       currentStatus: workerCase.currentStatus,
-      nextStep: workerCase.nextStep,
+      nextStep: sanitizeNextStep(workerCase.nextStep),
       owner: workerCase.owner,
       dueDate: workerCase.dueDate,
       summary: workerCase.summary,
@@ -1029,7 +1045,7 @@ class DbStorage implements IStorage {
       specialistStatus: workerCase.clinicalStatusJson?.specialistStatus,
       specialistReportSummary: workerCase.clinicalStatusJson?.specialistReportSummary,
       currentStatus: workerCase.currentStatus,
-      nextStep: workerCase.nextStep,
+      nextStep: sanitizeNextStep(workerCase.nextStep),
       owner: workerCase.owner,
       dueDate: workerCase.dueDate,
       summary: workerCase.summary,

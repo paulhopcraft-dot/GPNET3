@@ -198,7 +198,10 @@ router.post("/assessments", authorize(), async (req: AuthRequest, res: Response)
     const assessmentData = {
       ...req.body,
       organizationId,
-      createdBy: userId
+      createdBy: userId,
+      // Set completedDate as Date object when status is completed
+      ...(req.body.status === 'completed' ? { completedDate: new Date() } : {}),
+      ...(req.body.scheduledDate ? { scheduledDate: new Date(req.body.scheduledDate) } : {}),
     };
 
     const assessment = await storage.createPreEmploymentAssessment(assessmentData as any);

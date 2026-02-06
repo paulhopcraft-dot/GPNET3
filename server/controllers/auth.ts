@@ -20,9 +20,9 @@ import {
 } from "../services/refreshTokenService";
 
 const SALT_ROUNDS = 10;
-const JWT_EXPIRES_IN = "15m"; // 15 minutes as per requirements
+const JWT_EXPIRES_IN = "8h"; // 8 hours for development (was 15m)
 const COOKIE_NAME = "gpnet_auth";
-const COOKIE_MAX_AGE = 15 * 60 * 1000; // 15 minutes in milliseconds
+const COOKIE_MAX_AGE = 8 * 60 * 60 * 1000; // 8 hours in milliseconds (was 15 min)
 const REFRESH_COOKIE_NAME = "gpnet_refresh";
 const REFRESH_COOKIE_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 
