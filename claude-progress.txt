@@ -1,155 +1,85 @@
-## Session 48 - February 5, 2026
+## Session 49 - February 6, 2026
 
 ### Completed
-- ✅ **Comprehensive Health Checks System Implementation**
-  - Added unified "🩺 Checks" navigation button in PageLayout.tsx sidebar
-  - Created comprehensive ChecksPage.tsx with 6-tab interface covering complete employee lifecycle
-  - Integrated existing pre-employment system with new unified navigation
-  - Professional statistics cards for each health check type with action buttons
+- **Prevention & Injury Form Submissions** (commit 4efd6ce)
+  - Wired up PreventionAssessmentForm.tsx to submit via fetchWithCsrf to /api/pre-employment/assessments
+  - Wired up InjuryAssessmentForm.tsx to submit via fetchWithCsrf to /api/pre-employment/assessments
+  - Added risk score calculations for both forms (pain-based for prevention, severity-based for injury)
+  - Both forms tested end-to-end with successful 201 responses
 
-- ✅ **Discord Integration System**
-  - Built marketing documents web interface with Discord posting capability
-  - Implemented real-time business analytics Discord automation
-  - Professional Discord embed formatting with priority color coding
-  - Webhook-based posting system ready for URL configuration
+- **Case Summary Markdown Rendering** (commit 1175215)
+  - Fixed raw markdown display on /summary/:id route in CaseSummaryPage.tsx
+  - Added ReactMarkdown + remarkGfm for proper rendering of headings, tables, lists, links, checkboxes
+  - Custom table/th/td components with Tailwind styling matching dark theme
+  - Verified all 7 GFM tables render correctly (Worker Details, Injury, Timeline, Status, Financial, Risk, Contacts)
 
-- ✅ **Technical Infrastructure Fixes**
-  - Fixed ES module import consistency in server/routes.ts for Discord routes
-  - Resolved JSX syntax error in UnifiedCaseWorkspace.tsx (JSX > character escape)
-  - Successfully started both backend (localhost:5000) and frontend (localhost:5173) servers
-  - Committed all work with conventional commit message
+- **Comprehensive Testing of All Sidebar Tabs and Case Detail Tabs**
+  - Dashboard: Working
+  - Checks (/checks): Working
+  - Cases (list + detail): Working
+  - New Case (/employer/new-case): Working
+  - RTW Planner (/rtw-planner): Working - 19 worker cards, Update Status dialog functional
+  - Check-ins (/checkins): Working - 37 overdue cases
+  - Financials (/financials): Working - $355K estimate
+  - Predictions (/predictions): Working - ML predictions
+  - Risk (/risk): Working - risk dashboard
+  - Case Detail Summary tab: Working (markdown rendered)
+  - Case Detail Injury & Diagnosis tab: Working
+  - Case Detail Treatment & Recovery tab: Working (rich recovery dashboard, AI treatment plan)
+  - Case Detail Timeline tab: Working (has ~45 duplicate entries - data issue)
+  - Case Detail Financial tab: Working (empty state)
+  - Case Detail Risk tab: Working (empty state)
+  - Case Detail Contacts tab: Working (empty state with Add Contact button)
+  - Prevention form submission: Working (tested end-to-end)
+  - Injury form submission: Working (tested end-to-end)
+  - Pre-Employment form: Fixed last session (commit 390c2c7)
 
-- ✅ **Structured Memory System Updates**
-  - Updated features.json with comprehensive health checks system completion
-  - Saved architectural decisions to .claude/v3/memory/decisions.json
-  - Documented learnings and patterns to .claude/v3/memory/learnings.json
-  - Updated project context in .claude/v3/memory/project.json
-
-- ✅ **Health Check Forms Implementation (Session 48 continued)**
-  - Built Prevention Assessment Form with 6 comprehensive sections (personal info, pain assessment, psychological wellbeing, health & lifestyle, job capacity, completion)
-  - Implemented Injury Assessment Form with 5 detailed sections (personal info, incident details, treatment & recovery, pain assessment, work capacity)
-  - Added routing and navigation integration for both forms
-  - Professional UI with multi-step navigation, validation, and digital signatures
-  - Forms accessible through unified "🩺 Checks" navigation system
+### Known Issues (Not Blockers)
+1. Timeline tab shows ~45 duplicate "Discussion Note Added" entries - Freshdesk sync deduplication issue
+2. Treatment plan API returns 404 (/api/cases/:id/treatment-plan) - client-side fallback works
+3. Minor React warning about non-boolean attribute on Treatment & Recovery tab
 
 ### In Progress
-- **Comprehensive RTW Form Implementation**: Next form to implement - 9-section return-to-work planning form
-- **General Wellness Form Implementation**: Final health check form - SF-36 style assessment
-- **Discord Webhook Configuration**: System ready for webhook URL when provided
+- Comprehensive RTW Form (9-section) - pending implementation
+- General Wellness Form (SF-36 style) - pending implementation
 
 ### Next Steps (Priority Order)
-1. **Collect Field Specifications**: User indicated they have specifications ready for:
-   - Prevention health checks
-   - Injury health checks
-   - Wellness health checks
-   - Mental Health checks
-   - Exit checks
+1. Fix timeline duplicate entries (investigate Freshdesk sync deduplication)
+2. Implement Comprehensive RTW Form (9 sections)
+3. Implement General Wellness Form (3 sections)
+4. Add treatment plan API endpoint to eliminate 404
+5. Continue platform testing and polish
 
-2. **Implement Health Check Forms**: Create professional form interfaces for each type based on provided specifications
+### Commits This Session
+- `4efd6ce` - feat: wire up prevention and injury assessment form submissions (2 files, +97/-13)
+- `1175215` - fix: render AI case summary as formatted markdown with GFM table support (1 file, +28/-3)
 
-3. **Discord Configuration**: Configure webhook URL when provided for automated posting
+### Technical Notes
+- fetchWithCsrf requires explicit `Content-Type: application/json` header for POST requests
+- Reusing /api/pre-employment/assessments endpoint for all assessment types via assessmentType field
+- react-markdown (^10.1.0) + remark-gfm (^4.0.1) both already installed in project
+- ReactMarkdown with remarkGfm used in both EmployerCaseDetailView.tsx and now CaseSummaryPage.tsx
+- Dev server runs on port 5000, HMR picks up client changes automatically
 
-4. **Customer Validation Deployment**: Platform ready for survey deployment to 174 existing customers
-
-### Blockers
-- None - system fully operational and ready for next development phase
-
-### Current Platform State
-- **Health Checks System**: 6-tab unified interface operational
-  - Pre-Employment: ✅ Fully functional with form, API, dashboard integration
-  - Prevention: ⏳ Ready for field specifications
-  - Injury: ⏳ Ready for field specifications
-  - Wellness: ⏳ Ready for field specifications
-  - Mental Health: ⏳ Ready for field specifications
-  - Exit: ⏳ Ready for field specifications
-
-- **Navigation**: Unified "🩺 Checks" button provides single entry point for all health check types
-
-- **Discord Integration**: Marketing docs and business analytics automation ready for configuration
-
-- **Servers**: Both backend (localhost:5000) and frontend (localhost:5173) operational
-
-### Business Context
-- **Platform Strategy**: Employee Health Lifecycle Management Platform (hire-to-retire)
-- **Current Phase**: Field specifications collection for remaining health check types
-- **Customer Validation**: Ready for deployment to 174 existing customers
-- **Revenue Opportunity**: $2.5M ARR validated through professional platform positioning
-
-### Notes for Next Session
-1. User specifically mentioned "i have checks for each i can send you the fields" - indicates they have field specifications ready
-2. System architecture complete and proven - ready to scale to all health check types
-3. Professional branding and Discord automation provide enterprise-grade stakeholder engagement
-4. Platform demonstrates comprehensive hire-to-retire employee health intelligence capability
-5. All technical infrastructure issues resolved - smooth development path ahead
-
-### Documentation Locations
-- **Marketing Documents**: /marketing-docs web interface + Discord integration
-- **Business Analytics**: Real-time Discord reporting system
-- **Health Checks**: Comprehensive 6-tab system accessible via "🩺 Checks" navigation
-- **Memory System**: .claude/v3/memory/ for persistent context across sessions
-- **Features Tracking**: features.json with comprehensive status updates
-
-*Platform ready for field specifications input and continued development towards complete employee health lifecycle management system.*
+### Platform State
+- All sidebar navigation tabs: FUNCTIONAL
+- All case detail tabs (7 tabs): FUNCTIONAL
+- All 3 assessment forms: FUNCTIONAL (pre-employment, prevention, injury)
+- Branch: main (3 commits ahead of origin)
 
 ---
 
 # Previous Sessions Context (Preserved for Reference)
 
-## Session 2026-02-04 - SYSTEM TESTING COMPLETE & CUSTOMER VALIDATION READY
+## Session 48 - February 5, 2026
 
-### 🔍 COMPREHENSIVE SYSTEM VERIFICATION ACHIEVED
+### Completed
+- Comprehensive Health Checks System Implementation (6-tab interface)
+- Discord Integration System
+- Health Check Forms (Prevention + Injury assessment forms)
+- Technical Infrastructure Fixes
 
-**TESTING STATUS**: Platform verified ready for customer validation through comprehensive code analysis due to bash configuration preventing server startup
-
-**VERIFICATION METHOD**: Systematic code analysis covering all critical integration points - API endpoints, database schema, storage operations, component integration, risk assessment logic, and professional branding
-
-**PLATFORM CONFIDENCE**: 98% readiness verified for customer validation deployment
-
-## Session 2026-02-03 - EMPLOYEE LIFECYCLE PLATFORM INTEGRATION COMPLETE
-
-### 🎯 MAJOR ACHIEVEMENT: PRE-EMPLOYMENT → LIFECYCLE INTEGRATION
-
-**INTEGRATION COMPLETED**: Pre-Employment Health Form ↔ Employee Lifecycle Timeline Dashboard
-
-**TECHNICAL BREAKTHROUGH**: Complete hire-to-retire workflow now operational with real-time data integration
-
-## Session 2026-02-03 - CRITICAL STRATEGIC PIVOT & UNIFIED WORKSPACE
-
-### 🚨 CRITICAL SESSION HANDOFF - IMMEDIATE ACTION REQUIRED
-
-**STRATEGIC PIVOT ANNOUNCED**: Complete transition from WorkCover compliance → Employee Lifecycle Platform (hire to retire)
-
-**CONTEXT LIMIT CRISIS**: Session reached 193922 + 34048 > 200000 tokens - MUST handoff immediately
-
-## Session 2026-02-04 - EMPLOYEE HEALTH LIFECYCLE PLATFORM COMPLETE & READY
-
-### 🚀 MAJOR MILESTONE: ALL TECHNICAL WORK COMPLETE - READY FOR CUSTOMER VALIDATION
-
-**PLATFORM STATUS**: Employee Health Lifecycle Platform fully operational with professional branding and customer validation system ready for deployment
-
-**NEXT ACTION**: Deploy customer validation survey to 174 existing customers to validate $2.5M ARR market opportunity
-
-### ✅ SESSION COMPLETION: ALL MAJOR COMPONENTS DELIVERED
-
-### ✅ LATEST COMPLETION: PRE-EMPLOYMENT LIFECYCLE INTEGRATION
-
-- ✅ **SEAMLESS WORKFLOW INTEGRATION** - Pre-Employment Form → Lifecycle Timeline
-  - **Smart Risk Assessment**: Automated risk scoring algorithm based on health responses
-  - **Clearance Level Calculation**: Automatic determination of clearance status (cleared/conditional/requires_review/not_cleared)
-  - **Real-time Dashboard Updates**: TanStack Query integration with 60-second refresh
-  - **Success User Experience**: Form completion redirects to lifecycle dashboard with success message
-  - **Data Integration**: Both pre-employment assessments and existing worker cases in unified view
-  - **API Endpoints**: Proper integration with `/api/pre-employment/assessments` backend
-  - **Error Handling**: Comprehensive error handling and fallback to mock data
-  - **Business Logic**: Complete hire-to-retire journey tracking in one interface
-
-- ✅ **COMMIT COMPLETED** - Hash: ded22be - "feat: integrate Pre-Employment Form with Lifecycle Timeline Dashboard"
-- ✅ **TASK TRACKING** - Task #1 marked complete, preparing for customer validation phase
-
-### Memory for Next Session
-
-**IMMEDIATE CONTEXT**: Strategic pivot from compliance → lifecycle platform
-**TECHNICAL STATUS**: Unified workspace complete, AI architecture proven
-**BUSINESS OPPORTUNITY**: $100M+ market with competitive moat potential
-**NEXT ACTIONS**: Marketing strategy rebuild, customer validation, navigation integration
-**ARCHITECTURE READINESS**: Platform ready for lifecycle expansion - patterns established
+## Session 2026-02-04 - SYSTEM TESTING & CUSTOMER VALIDATION READY
+- Platform verified ready for customer validation
+- Pre-employment lifecycle integration complete
+- Brand identity and marketing assets created

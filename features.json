@@ -1105,10 +1105,10 @@
             "Route accessible from Prevention tab",
             "Form data properly structured for API submission"
           ],
-          "implementation": "Complete PreventionAssessmentForm.tsx with 6 sections based on JotForm 240266476492059 specifications",
+          "implementation": "Complete PreventionAssessmentForm.tsx with 6 sections, API submission via fetchWithCsrf, risk score calculation, tested end-to-end",
           "estimatedMinutes": 120,
           "status": "completed",
-          "verified_at": "2026-02-05T08:00:00Z"
+          "verified_at": "2026-02-06T08:00:00Z"
         },
         {
           "id": "injury-assessment-form",
@@ -1120,10 +1120,10 @@
             "Route accessible from Injury tab",
             "Comprehensive incident documentation captured"
           ],
-          "implementation": "Complete InjuryAssessmentForm.tsx with 5 sections based on JotForm 240273367274054 specifications",
+          "implementation": "Complete InjuryAssessmentForm.tsx with 5 sections, API submission via fetchWithCsrf, risk score calculation, tested end-to-end",
           "estimatedMinutes": 120,
           "status": "completed",
-          "verified_at": "2026-02-05T08:30:00Z"
+          "verified_at": "2026-02-06T08:30:00Z"
         },
         {
           "id": "comprehensive-rtw-form",
