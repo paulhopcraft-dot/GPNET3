@@ -139,6 +139,8 @@ export async function registerRoutes(app: Express): Promise<void> {
   // Intelligence API routes (JWT-protected) - 6-agent AI analysis
   app.use("/api/intelligence", intelligenceRoutes);
 
+  // Inbound Email webhook registered in server/index.ts (before CSRF middleware)
+
   // Local diagnostics (non-sensitive env presence check)
   app.get("/api/diagnostics/env", (_req, res) => {
     res.json({

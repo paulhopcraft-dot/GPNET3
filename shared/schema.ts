@@ -2107,3 +2107,59 @@ export const insertPreEmploymentHealthHistorySchema = createInsertSchema(preEmpl
   createdAt: true,
   updatedAt: true,
 });
+
+// =============================================================================
+// Inbound Email System - Direct email ingestion (bypasses Freshdesk)
+// =============================================================================
+
+export type EmailProcessingStatus = "received" | "matched" | "case_created" | "failed";
+export type EmailSource = "sendgrid" | "demo" | "freshdesk" | "manual";
+export type EmailMatchMethod = "thread" | "claim_number" | "sender_email" | "worker_name" | "new_case" | "none";
+
+export const caseEmails = pgTable("case_emails", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  messageId: varchar("message_id").unique(), // RFC 2822 Message-ID (idempotency)
+  inReplyTo: varchar("in_reply_to"), // Thread tracking
+  caseId: varchar("case_id").references(() => workerCases.id, { onDelete: "set null" }),
+  organizationId: varchar("organization_id"),
+  fromEmail: text("from_email").notNull(),
+  fromName: text("from_name"),
+  toEmail: text("to_email"),
+  subject: text("subject").notNull(),
+  bodyText: text("body_text"),
+  bodyHtml: text("body_html"),
+  attachmentCount: integer("attachment_count").default(0),
+  attachmentsJson: jsonb("attachments_json").$type<Array<{ filename: string; contentType: string; sizeBytes: number }>>(),
+  processingStatus: text("processing_status").notNull().default("received"),
+  matchMethod: text("match_method"),
+  matchConfidence: numeric("match_confidence", { precision: 3, scale: 2 }),
+  source: text("source").notNull().default("sendgrid"),
+  receivedAt: timestamp("received_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const emailAttachments = pgTable("email_attachments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  emailId: varchar("email_id").notNull().references(() => caseEmails.id, { onDelete: "cascade" }),
+  filename: text("filename").notNull(),
+  contentType: text("content_type").notNull(),
+  sizeBytes: integer("size_bytes").default(0),
+  base64Data: text("base64_data"),
+  isCertificate: boolean("is_certificate").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type CaseEmailDB = typeof caseEmails.$inferSelect;
+export type InsertCaseEmail = typeof caseEmails.$inferInsert;
+export type EmailAttachmentDB = typeof emailAttachments.$inferSelect;
+export type InsertEmailAttachment = typeof emailAttachments.$inferInsert;
+
+export const insertCaseEmailSchema = createInsertSchema(caseEmails).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertEmailAttachmentSchema = createInsertSchema(emailAttachments).omit({
+  id: true,
+  createdAt: true,
+});

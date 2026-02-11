@@ -46,6 +46,10 @@ import type {
   InsertPreEmploymentHealthHistory,
   PreEmploymentAssessmentStatus,
   PreEmploymentClearanceLevel,
+  CaseEmailDB,
+  InsertCaseEmail,
+  EmailAttachmentDB,
+  InsertEmailAttachment,
 } from "@shared/schema";
 import { db } from "./db";
 import {
@@ -75,6 +79,8 @@ import {
   preEmploymentHealthRequirements,
   preEmploymentAssessmentComponents,
   preEmploymentHealthHistory,
+  caseEmails,
+  emailAttachments,
   type RTWPlanDB,
   type RTWPlanVersionDB,
   type RTWPlanDutyDB,
@@ -619,6 +625,15 @@ export interface IStorage {
   getPreEmploymentHealthHistory(assessmentId: string): Promise<PreEmploymentHealthHistoryDB | null>;
   savePreEmploymentHealthHistory(data: InsertPreEmploymentHealthHistory): Promise<PreEmploymentHealthHistoryDB>;
   getPreEmploymentDashboardStats(organizationId: string): Promise<{ totalAssessments: number; pendingAssessments: number; completedAssessments: number; clearedCandidates: number; rejectedCandidates: number; assessmentsByType: Record<string, number>; clearanceLevelBreakdown: Record<string, number> }>;
+
+  // Inbound Email System - Direct email ingestion
+  createCaseEmail(email: InsertCaseEmail): Promise<CaseEmailDB>;
+  getCaseEmailByMessageId(messageId: string): Promise<CaseEmailDB | null>;
+  getCaseEmailsByCase(caseId: string): Promise<CaseEmailDB[]>;
+  updateCaseEmail(id: string, updates: Partial<InsertCaseEmail>): Promise<CaseEmailDB>;
+  createEmailAttachment(attachment: InsertEmailAttachment): Promise<EmailAttachmentDB>;
+  getEmailAttachments(emailId: string): Promise<EmailAttachmentDB[]>;
+  findCaseContactByEmail(email: string): Promise<{ caseId: string; organizationId: string; role: string } | null>;
 }
 
 class DbStorage implements IStorage {
@@ -3523,6 +3538,69 @@ class DbStorage implements IStorage {
     });
 
     return stats;
+  }
+
+  // ============================================================================
+  // Inbound Email System
+  // ============================================================================
+
+  async createCaseEmail(email: InsertCaseEmail): Promise<CaseEmailDB> {
+    const [created] = await db.insert(caseEmails).values(email).returning();
+    return created;
+  }
+
+  async getCaseEmailByMessageId(messageId: string): Promise<CaseEmailDB | null> {
+    const [row] = await db
+      .select()
+      .from(caseEmails)
+      .where(eq(caseEmails.messageId, messageId))
+      .limit(1);
+    return row ?? null;
+  }
+
+  async getCaseEmailsByCase(caseId: string): Promise<CaseEmailDB[]> {
+    return db
+      .select()
+      .from(caseEmails)
+      .where(eq(caseEmails.caseId, caseId))
+      .orderBy(desc(caseEmails.receivedAt));
+  }
+
+  async updateCaseEmail(id: string, updates: Partial<InsertCaseEmail>): Promise<CaseEmailDB> {
+    const [updated] = await db
+      .update(caseEmails)
+      .set(updates)
+      .where(eq(caseEmails.id, id))
+      .returning();
+    return updated;
+  }
+
+  async createEmailAttachment(attachment: InsertEmailAttachment): Promise<EmailAttachmentDB> {
+    const [created] = await db.insert(emailAttachments).values(attachment).returning();
+    return created;
+  }
+
+  async getEmailAttachments(emailId: string): Promise<EmailAttachmentDB[]> {
+    return db
+      .select()
+      .from(emailAttachments)
+      .where(eq(emailAttachments.emailId, emailId));
+  }
+
+  async findCaseContactByEmail(email: string): Promise<{ caseId: string; organizationId: string; role: string } | null> {
+    const [row] = await db
+      .select({
+        caseId: caseContacts.caseId,
+        organizationId: caseContacts.organizationId,
+        role: caseContacts.role,
+      })
+      .from(caseContacts)
+      .where(and(
+        eq(caseContacts.email, email.toLowerCase()),
+        eq(caseContacts.isActive, true),
+      ))
+      .limit(1);
+    return row ?? null;
   }
 }
 

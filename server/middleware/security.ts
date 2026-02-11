@@ -154,6 +154,7 @@ export function shouldSkipCsrf(path: string): boolean {
     "/api/auth/forgot-password", // Public endpoint, no auth
     "/api/auth/reset-password", // Uses token from email as auth
     "/api/webhooks/",
+    "/api/inbound-email",
     "/api/health",
     "/health",
     "/api/csrf-token", // CSRF token endpoint itself

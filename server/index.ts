@@ -71,6 +71,10 @@ app.use("/api", generalRateLimiter);
 // CSRF token endpoint (must be before CSRF protection)
 app.get("/api/csrf-token", getCsrfToken);
 
+// Inbound email webhook (must be before CSRF - uses webhook secret auth)
+import inboundEmailRoutes from "./routes/inbound-email";
+app.use("/api/inbound-email", inboundEmailRoutes);
+
 // CSRF protection middleware
 // Skips login, register, webhooks, and health checks
 app.use(conditionalCsrfProtection);
