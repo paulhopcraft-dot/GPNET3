@@ -281,7 +281,7 @@ Remember: Reliable integrations are critical for seamless case management and op
   }
 
   public async analyze(data: { 
-    caseId?: number; 
+    caseId?: string;
     focusArea?: 'health' | 'performance' | 'automation' | 'comprehensive';
     includeMetrics?: boolean;
   }): Promise<AgentResponse> {

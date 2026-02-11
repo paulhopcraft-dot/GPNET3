@@ -76,7 +76,7 @@ Remember: You're supporting case managers with clinical intelligence, not replac
     return "Injury Case Intelligence - Recovery patterns, treatment coordination, and clinical analysis";
   }
 
-  public async analyze(data: { caseId: number; includeHistory?: boolean }): Promise<AgentResponse> {
+  public async analyze(data: { caseId: string; includeHistory?: boolean }): Promise<AgentResponse> {
     const timer = this.startTimer();
     
     try {

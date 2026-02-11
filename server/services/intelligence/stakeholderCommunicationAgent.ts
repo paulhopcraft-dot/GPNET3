@@ -203,7 +203,7 @@ Remember: Effective communication is critical for successful injury recovery and
     return "Stakeholder Communication Intelligence - Multi-party coordination, communication optimization, and relationship management";
   }
 
-  public async analyze(data: { caseId: number; includeHistory?: boolean; focusArea?: string }): Promise<AgentResponse> {
+  public async analyze(data: { caseId: string; includeHistory?: boolean; focusArea?: string }): Promise<AgentResponse> {
     const timer = this.startTimer();
     
     try {

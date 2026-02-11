@@ -140,7 +140,7 @@ Remember: Non-compliance can result in significant penalties and claim rejection
     return "Compliance Intelligence - WorkSafe regulations, deadline management, and compliance monitoring";
   }
 
-  public async analyze(data: { caseId: number; includeProjections?: boolean }): Promise<AgentResponse> {
+  public async analyze(data: { caseId: string; includeProjections?: boolean }): Promise<AgentResponse> {
     const timer = this.startTimer();
     
     try {

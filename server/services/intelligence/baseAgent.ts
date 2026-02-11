@@ -13,7 +13,7 @@ import { randomUUID } from "crypto";
 export interface AgentMemory {
   id: string;
   timestamp: Date;
-  caseId?: number;
+  caseId?: string;
   context: string;
   content: string;
   tags: string[];
@@ -146,7 +146,7 @@ export abstract class BaseHealthcareAgent {
     return this.agentId;
   }
 
-  protected async getCaseData(caseId: number) {
+  protected async getCaseData(caseId: string) {
     try {
       return await storage.getGPNet2CaseByIdAdmin(String(caseId));
     } catch (error) {

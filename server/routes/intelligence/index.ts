@@ -16,7 +16,7 @@ const router = express.Router();
 
 // Input validation schemas
 const CaseAnalysisSchema = z.object({
-  caseId: z.number().positive(),
+  caseId: z.string().min(1),
   analysisOptions: z.object({
     includeBusinessIntelligence: z.boolean().optional(),
     includeIntegrationHealth: z.boolean().optional(),
@@ -33,7 +33,7 @@ const AgentAnalysisSchema = z.object({
     'business-intelligence', 
     'integration-orchestration'
   ]),
-  caseId: z.number().positive().optional(),
+  caseId: z.string().min(1).optional(),
   options: z.record(z.any()).optional()
 });
 
@@ -75,9 +75,9 @@ router.get('/health', authorize(), async (req, res) => {
  */
 router.post('/analyze/case/:caseId', authorize(), requireCaseOwnership(), async (req, res) => {
   try {
-    const caseId = parseInt(req.params.caseId);
-    
-    if (isNaN(caseId)) {
+    const caseId = req.params.caseId;
+
+    if (!caseId || caseId.trim().length === 0) {
       return res.status(400).json({ error: 'Invalid case ID' });
     }
 
@@ -188,7 +188,7 @@ router.post('/agent/:agentType', authorize(), async (req, res) => {
 
     const validation = AgentAnalysisSchema.safeParse({
       agentType,
-      caseId: caseId ? parseInt(caseId) : undefined,
+      caseId: caseId || undefined,
       options
     });
 
@@ -268,9 +268,9 @@ router.get('/agents', authorize(), async (req, res) => {
  */
 router.get('/case/:caseId/insights', authorize(), requireCaseOwnership(), async (req, res) => {
   try {
-    const caseId = parseInt(req.params.caseId);
-    
-    if (isNaN(caseId)) {
+    const caseId = req.params.caseId;
+
+    if (!caseId || caseId.trim().length === 0) {
       return res.status(400).json({ error: 'Invalid case ID' });
     }
 
@@ -337,7 +337,7 @@ router.post('/batch-analyze', authorize(), async (req, res) => {
     for (let i = 0; i < caseIds.length; i += batchSize) {
       const batch = caseIds.slice(i, i + batchSize);
       
-      const batchPromises = batch.map(async (caseId: number) => {
+      const batchPromises = batch.map(async (caseId: string) => {
         try {
           const analysis = await intelligenceCoordinator.performCoordinatedAnalysis(
             caseId,

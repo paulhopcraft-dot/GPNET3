@@ -159,7 +159,7 @@ Remember: Early risk identification enables proactive management and cost contro
     return "Risk Assessment Intelligence - Predictive analytics, cost forecasting, and comprehensive risk modeling";
   }
 
-  public async analyze(data: { caseId: number; includePredictions?: boolean; timeHorizon?: number }): Promise<AgentResponse> {
+  public async analyze(data: { caseId: string; includePredictions?: boolean; timeHorizon?: number }): Promise<AgentResponse> {
     const timer = this.startTimer();
     
     try {

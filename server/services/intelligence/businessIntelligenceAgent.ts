@@ -258,7 +258,7 @@ Remember: Business intelligence should drive informed decision-making and sustai
   }
 
   public async analyze(data: { 
-    caseId?: number; 
+    caseId?: string;
     analysisType?: 'performance' | 'benchmarking' | 'trends' | 'comprehensive';
     timeframe?: number; // days
   }): Promise<AgentResponse> {
