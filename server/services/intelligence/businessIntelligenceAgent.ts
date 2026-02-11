@@ -332,10 +332,10 @@ PLATFORM CONTEXT:
 ${context.case ? `
 SPECIFIC CASE CONTEXT:
 - Case ID: ${context.case.id}
-- Worker: ${context.case.worker_name}
-- Employer: ${context.case.employer_name || 'Not specified'}
-- Status: ${context.case.status}
-- Duration: ${Math.floor((context.currentDate.getTime() - new Date(context.case.date_of_injury).getTime()) / (1000 * 60 * 60 * 24))} days
+- Worker: ${context.case.workerName}
+- Employer: ${context.case.company || 'Not specified'}
+- Status: ${context.case.currentStatus}
+- Duration: ${Math.floor((context.currentDate.getTime() - new Date(context.case.dateOfInjury).getTime()) / (1000 * 60 * 60 * 24))} days
 ` : ''}
 
 HISTORICAL BUSINESS PATTERNS:

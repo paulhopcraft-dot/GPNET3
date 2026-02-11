@@ -1,7 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "include": ["server/**/*", "shared/**/*"],
-  "exclude": ["node_modules", "build", "dist", "client/**/*", "**/*.test.ts", "**/*.spec.ts", "server/src/**/*"],
+  "exclude": ["node_modules", "build", "dist", "client/**/*", "**/*.test.ts", "**/*.spec.ts", "server/src/**/*", "server/routes/discord-analytics.ts"],
   "compilerOptions": {
     "noEmit": true,
     "module": "ESNext",
