@@ -1135,9 +1135,10 @@
             "Route accessible from injury management system",
             "Complete RTW documentation captured"
           ],
-          "implementation": "Create ComprehensiveRTWForm.tsx based on JotForm 251308218013445 specifications",
+          "implementation": "Complete ComprehensiveRTWForm.tsx with 9 sections: Worker Details, Injury/Condition, Medical Status, Functional Capacity, Treatment & Recovery, Workplace Assessment, RTW Plan, Employer Input, Completion. Route at /comprehensive-rtw-form, linked from Injury tab.",
           "estimatedMinutes": 180,
-          "status": "pending"
+          "status": "completed",
+          "verified_at": "2026-02-11T10:00:00Z"
         },
         {
           "id": "general-wellness-form",
@@ -1149,9 +1150,10 @@
             "Route accessible from Wellness tab",
             "Health status properly documented"
           ],
-          "implementation": "Create GeneralWellnessForm.tsx based on JotForm 240032989875064 specifications",
+          "implementation": "Complete GeneralWellnessForm.tsx with 3 sections: General Health Status (SF-36 style), Functional Limitations & Physical Activity, Mental Wellbeing & Work Satisfaction. Route at /wellness-form, linked from Wellness tab.",
           "estimatedMinutes": 60,
-          "status": "pending"
+          "status": "completed",
+          "verified_at": "2026-02-11T10:00:00Z"
         }
       ],
       "technicalNotes": [

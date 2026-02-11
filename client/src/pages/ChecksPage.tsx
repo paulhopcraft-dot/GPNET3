@@ -252,6 +252,11 @@ export default function ChecksPage() {
                   • Return-to-work planning<br/>
                   • Recovery timeline tracking
                 </div>
+                <div className="mt-4">
+                  <Button variant="outline" asChild>
+                    <Link to="/comprehensive-rtw-form">New RTW Assessment</Link>
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -301,8 +306,11 @@ export default function ChecksPage() {
                   • Fitness assessments<br/>
                   • Health education programs
                 </div>
-                <div className="mt-4">
+                <div className="mt-4 flex gap-2">
                   <Button variant="outline">Wellness Dashboard</Button>
+                  <Button asChild>
+                    <Link to="/wellness-form">New Wellness Assessment</Link>
+                  </Button>
                 </div>
               </CardContent>
             </Card>

@@ -1,3 +1,37 @@
+## Session 51 - February 11, 2026
+
+### Completed
+- **Comprehensive RTW Form** (9-section)
+  - Created ComprehensiveRTWForm.tsx with 9 sections: Worker Details, Injury/Condition, Medical Status, Functional Capacity, Treatment & Recovery, Workplace Assessment, RTW Plan, Employer Input, Completion
+  - Progress indicator with clickable section navigation
+  - Conditional field rendering (surgery details, previous injury, alternative duties, employer/worker concerns)
+  - RTW risk score calculation based on functional restrictions, surgery, recovery timeline
+  - Submits to /api/pre-employment/assessments with assessmentType 'comprehensive_rtw'
+  - Route: /comprehensive-rtw-form, linked from Injury tab on Checks page
+
+- **General Wellness Form** (SF-36 style, 3-section)
+  - Created GeneralWellnessForm.tsx with 3 sections: General Health Status, Functional Limitations & Physical Activity, Mental Wellbeing & Work Satisfaction
+  - SF-36 standard health questions (10 functional limitation items, 9 mental wellbeing frequency items)
+  - Wellness score calculation based on self-rated health, limitations, pain, mental wellbeing, lifestyle
+  - Chronic conditions checklist, lifestyle factors (smoking, alcohol, sleep, diet, exercise)
+  - Work satisfaction and stress assessment
+  - Route: /wellness-form, linked from Wellness tab on Checks page
+
+- **Routes & Navigation Wiring**
+  - Added lazy imports for both forms in App.tsx
+  - Added ProtectedRoute wrappers with Suspense for both routes
+  - Added "New RTW Assessment" button on Injury tab in ChecksPage
+  - Added "New Wellness Assessment" button on Wellness tab in ChecksPage
+
+### Platform State
+- All sidebar navigation tabs: FUNCTIONAL
+- All case detail tabs (7 tabs): FUNCTIONAL
+- All 5 assessment forms: FUNCTIONAL (pre-employment, prevention, injury, RTW, wellness)
+- Intelligence engine: COMPILES, routes wired
+- Branch: main
+
+---
+
 ## Session 49 - February 6, 2026
 
 ### Completed
