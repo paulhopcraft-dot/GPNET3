@@ -494,10 +494,40 @@ test.describe('Exit Health Check Form @critical', () => {
 });
 
 // ─────────────────────────────────────────────────────────
-// 9. FORM SUBMISSION E2E (smoke test for one form)
+// 9. FORM SUBMISSION E2E (all 7 form types)
 // ─────────────────────────────────────────────────────────
 
 test.describe('Form Submission E2E @regression', () => {
+
+  test('pre-employment form end-to-end submission', async ({ authenticatedPage: page }) => {
+    await page.goto('/pre-employment-form');
+    await page.waitForLoadState('networkidle');
+
+    // Section 1: Fill all required fields (form validates before Next)
+    await page.getByLabel(/first name/i).fill('Sarah');
+    await page.getByLabel(/last name/i).fill('Connor');
+    await page.getByLabel(/email/i).first().fill('sarah@test.com');
+    await page.getByLabel(/company name/i).fill('Skynet Corp');
+    await page.getByLabel(/age/i).fill('35');
+    await page.getByRole('radio', { name: 'Man', exact: true }).click();
+    await page.getByLabel(/role applied for/i).fill('Engineer');
+
+    // Navigate through steps 2-8 (7 clicks)
+    for (let i = 0; i < 7; i++) {
+      await page.getByRole('button', { name: /next/i }).click();
+      await page.waitForTimeout(300);
+    }
+
+    await expect(page.getByText('Step 8 of 8')).toBeVisible();
+
+    // Submit (no signature required, only isSubmitting gates the button)
+    const submitBtn = page.getByRole('button', { name: /submit assessment/i });
+    await expect(submitBtn).toBeEnabled();
+    await submitBtn.click();
+
+    await page.waitForURL(/\/checks/, { timeout: TEST_TIMEOUTS.medium });
+  });
+
   test('prevention form end-to-end submission', async ({ authenticatedPage: page }) => {
     await page.goto('/prevention-assessment-form');
     await page.waitForLoadState('networkidle');
@@ -510,25 +540,177 @@ test.describe('Form Submission E2E @regression', () => {
     await page.getByLabel(/your email/i).fill('jane@test.com');
     await page.getByLabel(/job title/i).fill('Tester');
 
-    // Navigate through sections 2-6 (5 clicks to reach section 6)
+    // Navigate through sections 2-6 (5 clicks)
     for (let i = 0; i < 5; i++) {
       await page.getByRole('button', { name: /next/i }).click();
       await page.waitForTimeout(300);
     }
 
-    // Section 6: Completion
     await expect(page.getByText('Section 6 of 6')).toBeVisible();
 
-    // Check confirmation checkbox and fill signature
+    // Check confirmation and sign
     await page.locator('#confirmation').click();
     await page.locator('#signature').fill('Jane Doe');
 
-    // Submit
     const submitBtn = page.getByRole('button', { name: /submit assessment/i });
     await expect(submitBtn).toBeEnabled();
     await submitBtn.click();
 
-    // Should redirect to checks page with success message
+    await page.waitForURL(/\/checks/, { timeout: TEST_TIMEOUTS.medium });
+  });
+
+  test('injury form end-to-end submission', async ({ authenticatedPage: page }) => {
+    await page.goto('/injury-assessment-form');
+    await page.waitForLoadState('networkidle');
+
+    // Section 1: Fill required fields
+    await page.getByLabel(/company name/i).fill('Acme Industries');
+    await page.getByLabel(/employer email/i).fill('hr@acme.com');
+    await page.getByLabel(/first name/i).fill('John');
+    await page.getByLabel(/last name/i).fill('Smith');
+    await page.getByLabel(/your email/i).fill('john@test.com');
+    await page.getByLabel(/job title/i).fill('Operator');
+    await page.getByLabel(/age/i).fill('42');
+
+    // Navigate through sections 2-5 (4 clicks)
+    for (let i = 0; i < 4; i++) {
+      await page.getByRole('button', { name: /next/i }).click();
+      await page.waitForTimeout(300);
+    }
+
+    await expect(page.getByText('Section 5 of 5')).toBeVisible();
+
+    // Check confirmation and sign
+    await page.locator('#confirmation').click();
+    await page.locator('#signature').fill('John Smith');
+
+    const submitBtn = page.getByRole('button', { name: /submit assessment/i });
+    await expect(submitBtn).toBeEnabled();
+    await submitBtn.click();
+
+    await page.waitForURL(/\/checks/, { timeout: TEST_TIMEOUTS.medium });
+  });
+
+  test('comprehensive RTW form end-to-end submission', async ({ authenticatedPage: page }) => {
+    await page.goto('/comprehensive-rtw-form');
+    await page.waitForLoadState('networkidle');
+
+    // Section 1: Fill required fields
+    await page.getByLabel(/first name/i).fill('Maria');
+    await page.getByLabel(/last name/i).fill('Garcia');
+    await page.getByLabel(/email/i).first().fill('maria@test.com');
+    await page.getByLabel(/employer.*company/i).fill('SafeWork Ltd');
+    await page.getByLabel(/occupation.*job title/i).fill('Nurse');
+
+    // Navigate through sections 2-9 (8 clicks)
+    for (let i = 0; i < 8; i++) {
+      await page.getByRole('button', { name: /next/i }).click();
+      await page.waitForTimeout(300);
+    }
+
+    await expect(page.getByText('Section 9 of 9')).toBeVisible();
+
+    // Check confirmation and fill both signatures
+    await page.locator('#confirmationChecked').click();
+    await page.locator('#workerSignature').fill('Maria Garcia');
+    await page.locator('#coordinatorSignature').fill('Dr. RTW Coordinator');
+
+    const submitBtn = page.getByRole('button', { name: /submit rtw assessment/i });
+    await expect(submitBtn).toBeEnabled();
+    await submitBtn.click();
+
+    await page.waitForURL(/\/checks/, { timeout: TEST_TIMEOUTS.medium });
+  });
+
+  test('wellness form end-to-end submission', async ({ authenticatedPage: page }) => {
+    await page.goto('/wellness-form');
+    await page.waitForLoadState('networkidle');
+
+    // Section 1: Fill required fields
+    await page.getByLabel(/first name/i).fill('Tom');
+    await page.getByLabel(/last name/i).fill('Wilson');
+    await page.getByLabel(/email/i).first().fill('tom@test.com');
+    await page.getByLabel(/employer/i).first().fill('WellCo');
+
+    // Navigate through sections 2-3 (2 clicks)
+    for (let i = 0; i < 2; i++) {
+      await page.getByRole('button', { name: /next/i }).click();
+      await page.waitForTimeout(300);
+    }
+
+    await expect(page.getByText('Section 3 of 3')).toBeVisible();
+
+    // Check confirmation and sign
+    await page.locator('#confirmationChecked').click();
+    await page.locator('#signature').fill('Tom Wilson');
+
+    const submitBtn = page.getByRole('button', { name: /submit wellness assessment/i });
+    await expect(submitBtn).toBeEnabled();
+    await submitBtn.click();
+
+    await page.waitForURL(/\/checks/, { timeout: TEST_TIMEOUTS.medium });
+  });
+
+  test('mental health form end-to-end submission', async ({ authenticatedPage: page }) => {
+    await page.goto('/mental-health-form');
+    await page.waitForLoadState('networkidle');
+
+    // Section 1: Fill required fields
+    await page.getByLabel(/first name/i).fill('Alex');
+    await page.getByLabel(/last name/i).fill('Chen');
+    await page.getByLabel(/email/i).first().fill('alex@test.com');
+    await page.getByLabel(/employer/i).first().fill('MindWell Inc');
+
+    // Navigate through sections 2-4 (3 clicks)
+    for (let i = 0; i < 3; i++) {
+      await page.getByRole('button', { name: /next/i }).click();
+      await page.waitForTimeout(300);
+    }
+
+    await expect(page.getByText('Section 4 of 4')).toBeVisible();
+
+    // Check confirmation and sign
+    await page.locator('#confirmationChecked').click();
+    await page.locator('#signature').fill('Alex Chen');
+
+    const submitBtn = page.getByRole('button', { name: /submit assessment/i });
+    await expect(submitBtn).toBeEnabled();
+    await submitBtn.click();
+
+    await page.waitForURL(/\/checks/, { timeout: TEST_TIMEOUTS.medium });
+  });
+
+  test('exit health check form end-to-end submission', async ({ authenticatedPage: page }) => {
+    await page.goto('/exit-health-check-form');
+    await page.waitForLoadState('networkidle');
+
+    // Section 1: Fill required fields
+    await page.getByLabel(/first name/i).fill('Pat');
+    await page.getByLabel(/last name/i).fill('Taylor');
+    await page.getByLabel(/email/i).first().fill('pat@test.com');
+    await page.getByLabel(/employer/i).first().fill('ExitCo');
+    await page.getByLabel(/last working day/i).fill('2026-03-15');
+    // Select exit reason (shadcn Select)
+    await page.locator('button[role="combobox"]').first().click();
+    await page.getByRole('option', { name: /resignation/i }).click();
+
+    // Navigate through sections 2-4 (3 clicks)
+    for (let i = 0; i < 3; i++) {
+      await page.getByRole('button', { name: /next/i }).click();
+      await page.waitForTimeout(300);
+    }
+
+    await expect(page.getByText('Section 4 of 4')).toBeVisible();
+
+    // Check confirmation and fill both signatures
+    await page.locator('#confirmationChecked').click();
+    await page.locator('#employeeSignature').fill('Pat Taylor');
+    await page.locator('#assessorSignature').fill('Dr. Exit Assessor');
+
+    const submitBtn = page.getByRole('button', { name: /submit exit health check/i });
+    await expect(submitBtn).toBeEnabled();
+    await submitBtn.click();
+
     await page.waitForURL(/\/checks/, { timeout: TEST_TIMEOUTS.medium });
   });
 });
