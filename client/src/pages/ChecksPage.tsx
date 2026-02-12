@@ -361,8 +361,11 @@ export default function ChecksPage() {
                   • Stress and anxiety management<br/>
                   • Mental health first aid training
                 </div>
-                <div className="mt-4">
+                <div className="mt-4 flex gap-2">
                   <Button variant="outline">Mental Health Dashboard</Button>
+                  <Button asChild>
+                    <Link to="/mental-health-form">New MH Assessment</Link>
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -419,6 +422,11 @@ export default function ChecksPage() {
                   • Exit documentation completion<br/>
                   • Liability and insurance closure<br/>
                   • Health record archival
+                </div>
+                <div className="mt-4">
+                  <Button asChild>
+                    <Link to="/exit-health-check-form">New Exit Health Check</Link>
+                  </Button>
                 </div>
               </CardContent>
             </Card>

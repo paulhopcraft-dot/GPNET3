@@ -61,6 +61,8 @@ const InjuryAssessmentForm = lazy(() => import("./pages/InjuryAssessmentForm"));
 const ChecksPage = lazy(() => import("./pages/ChecksPage"));
 const ComprehensiveRTWForm = lazy(() => import("./pages/ComprehensiveRTWForm"));
 const GeneralWellnessForm = lazy(() => import("./pages/GeneralWellnessForm"));
+const MentalHealthForm = lazy(() => import("./pages/MentalHealthForm"));
+const ExitHealthCheckForm = lazy(() => import("./pages/ExitHealthCheckForm"));
 const ExitProcessingPage = lazy(() => import("./pages/ExitProcessingPage"));
 const MarketingDocsPage = lazy(() => import("./pages/MarketingDocsPage"));
 
@@ -224,6 +226,26 @@ export default function App() {
                       <ProtectedRoute>
                         <Suspense fallback={<PageLoader />}>
                           <GeneralWellnessForm />
+                        </Suspense>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/mental-health-form"
+                    element={
+                      <ProtectedRoute>
+                        <Suspense fallback={<PageLoader />}>
+                          <MentalHealthForm />
+                        </Suspense>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/exit-health-check-form"
+                    element={
+                      <ProtectedRoute>
+                        <Suspense fallback={<PageLoader />}>
+                          <ExitHealthCheckForm />
                         </Suspense>
                       </ProtectedRoute>
                     }
