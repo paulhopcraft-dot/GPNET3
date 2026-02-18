@@ -47,7 +47,8 @@ export function EmployerSummaryDashboard() {
   const { data: dashboardData, isLoading, error } = useQuery<DashboardData>({
     queryKey: ['employer-dashboard'],
     queryFn: () => fetch('/api/employer/dashboard').then(r => r.json()),
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 120_000, // Refresh every 2 minutes
+    staleTime: 60_000, // Cache for 1 minute
   });
 
   if (isLoading) {

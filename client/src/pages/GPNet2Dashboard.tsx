@@ -27,13 +27,11 @@ export default function GPNet2Dashboard() {
 
   const { data: paginatedData, isLoading } = useQuery<PaginatedCasesResponse>({
     queryKey: ["/api/gpnet2/cases?limit=200"],
-    refetchInterval: 30000,
-    staleTime: 0, // Always fetch fresh data
+    refetchInterval: 120_000, // Refresh every 2 minutes
+    staleTime: 60_000, // Cache for 1 minute
   });
   const cases = paginatedData?.cases ?? [];
 
-  // Debug log to verify we're getting all cases
-  console.log(`Dashboard loaded ${cases.length} cases, total: ${paginatedData?.total}`);
 
   const syncMutation = useMutation({
     mutationFn: async () => {
@@ -91,10 +89,7 @@ export default function GPNet2Dashboard() {
     },
   });
 
-  useEffect(() => {
-    syncMutation.mutate();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Freshdesk sync is now manual-only (via Sync button) to avoid blocking dashboard load
 
   const filteredCases = useMemo(() => {
     const filtered = cases.filter((c) => {

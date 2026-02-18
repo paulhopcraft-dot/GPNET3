@@ -453,6 +453,16 @@ async function seed() {
       companyId: null,
       insurerId: null,
     },
+    {
+      id: randomUUID(),
+      organizationId: ORG_ALPHA_ID, // Natalie - employer in org-alpha
+      email: "natalie@preventli.com",
+      password: passwordHash,
+      role: "employer",
+      subrole: "rtw-coordinator",
+      companyId: employers[0].id,
+      insurerId: null,
+    },
   ]);
 
   // Seed cases for Org Alpha

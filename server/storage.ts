@@ -839,23 +839,31 @@ class DbStorage implements IStorage {
       }
     }
 
-    const casesWithAttachments = await Promise.all(
-      dbCases.map(async (dbCase: WorkerCaseDB) => {
-        const attachments = await db
-          .select()
-          .from(caseAttachments)
-          .where(eq(caseAttachments.caseId, dbCase.id));
+    // Batch fetch attachments and certificates for all cases (avoids N+1)
+    const [allAttachmentRows, allCertificateRows] = caseIds.length > 0
+      ? await Promise.all([
+          db.select().from(caseAttachments).where(inArray(caseAttachments.caseId, caseIds)),
+          db.select().from(medicalCertificates).where(inArray(medicalCertificates.caseId, caseIds)).orderBy(desc(medicalCertificates.startDate)),
+        ])
+      : [[], []];
 
-        const latestCertificateRow = await db
-          .select()
-          .from(medicalCertificates)
-          .where(eq(medicalCertificates.caseId, dbCase.id))
-          .orderBy(desc(medicalCertificates.startDate))
-          .limit(1);
+    const attachmentsByCase = new Map<string, typeof allAttachmentRows>();
+    for (const att of allAttachmentRows) {
+      const list = attachmentsByCase.get(att.caseId) ?? [];
+      list.push(att);
+      attachmentsByCase.set(att.caseId, list);
+    }
 
-        const latestCertificate = latestCertificateRow[0]
-          ? mapCertificateRow(latestCertificateRow[0])
-          : undefined;
+    const latestCertByCase = new Map<string, ReturnType<typeof mapCertificateRow>>();
+    for (const cert of allCertificateRows) {
+      if (!latestCertByCase.has(cert.caseId)) {
+        latestCertByCase.set(cert.caseId, mapCertificateRow(cert));
+      }
+    }
+
+    const casesWithAttachments = dbCases.map((dbCase: WorkerCaseDB) => {
+        const attachments = attachmentsByCase.get(dbCase.id) || [];
+        const latestCertificate = latestCertByCase.get(dbCase.id);
 
         const workerCase: WorkerCase = {
           id: dbCase.id,
@@ -912,8 +920,7 @@ class DbStorage implements IStorage {
         const discussionNotes = notesByCase.get(dbCase.id) ?? [];
         const discussionInsights = insightsByCase.get(dbCase.id) ?? [];
         return applyDiscussionInsights(workerCase, discussionNotes, discussionInsights);
-      })
-    );
+      });
 
     return {
       cases: casesWithAttachments,
