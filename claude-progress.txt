@@ -14,9 +14,9 @@
 
 After that: **Onboarding Course** - Walk through full RTW Coordinator workflow.
 
-### Environment (CHANGED)
-- Primary dev: WSL Ubuntu-24.04 at ~/dev/gpnet3
-- Code path: /home/paul_clawdbot/dev/gpnet3
+### Environment
+- PRIMARY DEV: WSL Ubuntu-24.04 ONLY — NO Windows paths
+- Code path: /home/paul_clawdbot/dev/gpnet3 (~/dev/gpnet3)
 - Branch: main (commit 15d4666)
 - Dev server: port 5000 (run `npm run dev` from WSL)
 - Clawdbot: port 18789 (auto-starts on Windows login)
