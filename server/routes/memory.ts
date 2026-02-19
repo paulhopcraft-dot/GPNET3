@@ -53,7 +53,7 @@ function readMemoryFile<T>(filePath: string, defaultValue: T): T {
     const content = fs.readFileSync(filePath, "utf-8");
     return JSON.parse(content);
   } catch (error) {
-    logger.error(`Error reading memory file ${filePath}:`, error);
+    logger.error(`Error reading memory file ${filePath}:`, undefined, error);
     return defaultValue;
   }
 }
@@ -63,8 +63,8 @@ function writeMemoryFile<T>(filePath: string, data: T): void {
     ensureDirectoryExists(path.dirname(filePath));
     fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
   } catch (error) {
-    logger.error(`Error writing memory file ${filePath}:`, error);
-    throw new Error(`Failed to write memory file: ${error.message}`);
+    logger.error(`Error writing memory file ${filePath}:`, undefined, error);
+    throw new Error(`Failed to write memory file: ${(error as Error).message}`);
   }
 }
 
@@ -78,7 +78,7 @@ function generateId(prefix: string): string {
 router.get("/decisions", authorize(), async (req: AuthRequest, res) => {
   try {
     const appliesTo = req.query.appliesTo as string;
-    const decisions = readMemoryFile(DECISIONS_FILE, []);
+    const decisions = readMemoryFile<any[]>(DECISIONS_FILE, []);
 
     let filteredDecisions = decisions;
     if (appliesTo) {
@@ -99,7 +99,7 @@ router.get("/decisions", authorize(), async (req: AuthRequest, res) => {
       total: filteredDecisions.length
     });
   } catch (error) {
-    logger.error("Error retrieving decisions:", error);
+    logger.error("Error retrieving decisions:", undefined, error);
     res.status(500).json({
       error: "Failed to retrieve decisions",
       details: error instanceof Error ? error.message : "Unknown error"
@@ -119,7 +119,7 @@ router.post("/decisions", authorize(), async (req: AuthRequest, res) => {
     }
 
     const { content, rationale, appliesTo, sessionId, metadata } = validation.data;
-    const decisions = readMemoryFile(DECISIONS_FILE, []);
+    const decisions = readMemoryFile<any[]>(DECISIONS_FILE, []);
 
     const newDecision = {
       id: generateId("d"),
@@ -148,7 +148,7 @@ router.post("/decisions", authorize(), async (req: AuthRequest, res) => {
       message: "Decision created successfully"
     });
   } catch (error) {
-    logger.error("Error creating decision:", error);
+    logger.error("Error creating decision:", undefined, error);
     res.status(500).json({
       error: "Failed to create decision",
       details: error instanceof Error ? error.message : "Unknown error"
@@ -160,7 +160,7 @@ router.post("/decisions", authorize(), async (req: AuthRequest, res) => {
 router.get("/learnings", authorize(), async (req: AuthRequest, res) => {
   try {
     const appliesTo = req.query.appliesTo as string;
-    const learnings = readMemoryFile(LEARNINGS_FILE, []);
+    const learnings = readMemoryFile<any[]>(LEARNINGS_FILE, []);
 
     let filteredLearnings = learnings;
     if (appliesTo) {
@@ -181,7 +181,7 @@ router.get("/learnings", authorize(), async (req: AuthRequest, res) => {
       total: filteredLearnings.length
     });
   } catch (error) {
-    logger.error("Error retrieving learnings:", error);
+    logger.error("Error retrieving learnings:", undefined, error);
     res.status(500).json({
       error: "Failed to retrieve learnings",
       details: error instanceof Error ? error.message : "Unknown error"
@@ -201,7 +201,7 @@ router.post("/learnings", authorize(), async (req: AuthRequest, res) => {
     }
 
     const { pattern, source, successRate, appliesTo, details } = validation.data;
-    const learnings = readMemoryFile(LEARNINGS_FILE, []);
+    const learnings = readMemoryFile<any[]>(LEARNINGS_FILE, []);
 
     const newLearning = {
       id: generateId("l"),
@@ -230,7 +230,7 @@ router.post("/learnings", authorize(), async (req: AuthRequest, res) => {
       message: "Learning created successfully"
     });
   } catch (error) {
-    logger.error("Error creating learning:", error);
+    logger.error("Error creating learning:", undefined, error);
     res.status(500).json({
       error: "Failed to create learning",
       details: error instanceof Error ? error.message : "Unknown error"
@@ -263,7 +263,7 @@ router.get("/sessions/:sessionId", authorize(), async (req: AuthRequest, res) =>
       data: sessionData
     });
   } catch (error) {
-    logger.error("Error retrieving session:", error);
+    logger.error("Error retrieving session:", undefined, error);
     res.status(500).json({
       error: "Failed to retrieve session",
       details: error instanceof Error ? error.message : "Unknown error"
@@ -311,7 +311,7 @@ router.post("/sessions", authorize(), async (req: AuthRequest, res) => {
       message: "Session context created successfully"
     });
   } catch (error) {
-    logger.error("Error creating session:", error);
+    logger.error("Error creating session:", undefined, error);
     res.status(500).json({
       error: "Failed to create session",
       details: error instanceof Error ? error.message : "Unknown error"
@@ -327,11 +327,11 @@ router.get("/sessions", authorize(), async (req: AuthRequest, res) => {
 
     const sessions = sessionFiles.map(file => {
       const sessionPath = path.join(SESSIONS_DIR, file);
-      const sessionData = readMemoryFile(sessionPath, null);
-      return {
+      const sessionData = readMemoryFile<Record<string, any> | null>(sessionPath, null);
+      return sessionData ? {
         sessionName: file.replace('.json', ''),
         ...sessionData
-      };
+      } : null;
     }).filter(session => session !== null);
 
     logger.info(`Retrieved ${sessions.length} sessions`, {
@@ -344,7 +344,7 @@ router.get("/sessions", authorize(), async (req: AuthRequest, res) => {
       total: sessions.length
     });
   } catch (error) {
-    logger.error("Error listing sessions:", error);
+    logger.error("Error listing sessions:", undefined, error);
     res.status(500).json({
       error: "Failed to list sessions",
       details: error instanceof Error ? error.message : "Unknown error"
@@ -355,8 +355,8 @@ router.get("/sessions", authorize(), async (req: AuthRequest, res) => {
 // GET /api/v1/memory/stats - Get memory system statistics
 router.get("/stats", authorize(), async (req: AuthRequest, res) => {
   try {
-    const decisions = readMemoryFile(DECISIONS_FILE, []);
-    const learnings = readMemoryFile(LEARNINGS_FILE, []);
+    const decisions = readMemoryFile<any[]>(DECISIONS_FILE, []);
+    const learnings = readMemoryFile<any[]>(LEARNINGS_FILE, []);
 
     ensureDirectoryExists(SESSIONS_DIR);
     const sessionFiles = fs.readdirSync(SESSIONS_DIR).filter(file => file.endsWith('.json'));
@@ -398,7 +398,7 @@ router.get("/stats", authorize(), async (req: AuthRequest, res) => {
       data: stats
     });
   } catch (error) {
-    logger.error("Error retrieving memory stats:", error);
+    logger.error("Error retrieving memory stats:", undefined, error);
     res.status(500).json({
       error: "Failed to retrieve memory statistics",
       details: error instanceof Error ? error.message : "Unknown error"

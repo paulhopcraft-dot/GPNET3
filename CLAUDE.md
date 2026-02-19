@@ -37,7 +37,7 @@
 **CRITICAL: Exact Context Display Rule:**
 - NEVER use approximations (~XX%) for context usage
 - ALWAYS use exact tracking: `powershell -Command "& 'C:\dev\claude-code-toolkit\context-tracker.ps1' -Action status"`
-- End every response with: "Branch: [branch] | Context: [exact tokens]/188000 = [exact %]"
+- End every response with: "Branch: [branch] | Context: [exact tokens]/1000000 = [exact %]"
 - This prevents regression to estimation system
 
 **Auto-Command Recommendations (ENABLED):**

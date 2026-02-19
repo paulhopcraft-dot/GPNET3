@@ -112,12 +112,22 @@ export function registerTimelineRoutes(app: Express) {
       // Evaluate clinical evidence to get flags
       const clinicalEvidence = evaluateClinicalEvidence(workerCase);
 
+      // Use AI summary (rich medical text) for injury type detection, fall back to ticket subject
+      const diagnosisText = workerCase.aiSummary || workerCase.summary || "";
+      logger.api.info("Injury type detection input", {
+        caseId: id,
+        hasAiSummary: !!workerCase.aiSummary,
+        aiSummaryLen: workerCase.aiSummary?.length || 0,
+        summaryLen: workerCase.summary?.length || 0,
+        diagnosisTextLen: diagnosisText.length,
+      });
+
       // Generate comprehensive chart data
       const chartData = generateRecoveryTimelineChartData(
         id,
         workerCase.workerName,
         workerCase.dateOfInjury.toISOString(),
-        workerCase.summary || "",
+        diagnosisText,
         workerCase.riskLevel as "High" | "Medium" | "Low",
         clinicalEvidence.flags || [],
         certificates

@@ -34,6 +34,7 @@ const inboundEmailSchema = z.object({
     base64Data: z.string().optional(),
   })).optional(),
   source: z.enum(["sendgrid", "demo", "freshdesk", "manual"]).optional(),
+  receivedAt: z.string().optional(),
 });
 
 /**

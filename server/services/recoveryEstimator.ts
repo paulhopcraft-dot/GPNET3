@@ -860,7 +860,7 @@ export function extractInjuryType(summary: string): InjuryType {
   // Carpal tunnel syndrome
   if (
     lower.includes("carpal tunnel") ||
-    lower.includes("cts") ||
+    /\bcts\b/.test(lower) ||
     (lower.includes("wrist") && (lower.includes("numbness") || lower.includes("tingling")))
   ) {
     return "carpal_tunnel";
@@ -892,8 +892,10 @@ export function extractInjuryType(summary: string): InjuryType {
     lower.includes("disc herniation") ||
     lower.includes("herniated disc") ||
     lower.includes("bulging disc") ||
+    lower.includes("disc bulge") ||
     lower.includes("slipped disc") ||
-    lower.includes("prolapsed disc")
+    lower.includes("prolapsed disc") ||
+    /l\d[\s/](?:l|s)\d/.test(lower)
   ) {
     return "disc_herniation";
   }
@@ -953,8 +955,8 @@ export function extractInjuryType(summary: string): InjuryType {
   // Repetitive strain injury
   if (
     lower.includes("repetitive strain") ||
-    lower.includes("rsi") ||
-    lower.includes("overuse") ||
+    /\brsi\b/.test(lower) ||
+    lower.includes("overuse injury") ||
     lower.includes("repetitive motion")
   ) {
     return "repetitive_strain";
@@ -963,9 +965,9 @@ export function extractInjuryType(summary: string): InjuryType {
   // Laceration
   if (
     lower.includes("laceration") ||
-    lower.includes("cut") ||
+    /\bcut\b/.test(lower) ||
     lower.includes("gash") ||
-    lower.includes("wound")
+    /\bwound\b/.test(lower)
   ) {
     return "laceration";
   }
@@ -1667,7 +1669,20 @@ export function generateRecoveryTimelineChartData(
   clinicalFlags: ClinicalEvidenceFlag[],
   certificates: MedicalCertificate[]
 ): RecoveryTimelineChartData {
-  const injuryDate = new Date(dateOfInjury);
+  let injuryDate = new Date(dateOfInjury);
+
+  // If certificates predate the recorded injury date, use the earliest certificate
+  // as the effective timeline start (common when Freshdesk injury date is inaccurate)
+  if (certificates.length > 0) {
+    const earliestCertDate = certificates.reduce((earliest, cert) => {
+      const d = new Date(cert.startDate);
+      return d < earliest ? d : earliest;
+    }, injuryDate);
+    if (earliestCertDate < injuryDate) {
+      injuryDate = earliestCertDate;
+    }
+  }
+
   const currentDate = new Date();
   const weeksElapsed = Math.round(
     (currentDate.getTime() - injuryDate.getTime()) / (7 * 24 * 60 * 60 * 1000)

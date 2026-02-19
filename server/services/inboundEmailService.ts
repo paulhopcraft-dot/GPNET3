@@ -21,6 +21,8 @@ export interface InboundEmailPayload {
     base64Data?: string;
   }>;
   source?: "sendgrid" | "demo" | "freshdesk" | "manual";
+  /** Optional simulated date for demo/test scenarios (ISO string or Date) */
+  receivedAt?: string | Date;
 }
 
 export interface ProcessResult {
@@ -48,7 +50,11 @@ export async function processInboundEmail(payload: InboundEmailPayload): Promise
     bodyHtml,
     attachments = [],
     source = "sendgrid",
+    receivedAt: receivedAtRaw,
   } = payload;
+
+  // Use provided receivedAt for demo scenarios, otherwise current time
+  const effectiveDate = receivedAtRaw ? new Date(receivedAtRaw) : new Date();
 
   // Idempotency check: skip if we already have this message
   if (messageId) {
@@ -85,7 +91,7 @@ export async function processInboundEmail(payload: InboundEmailPayload): Promise
     })),
     processingStatus: "received",
     source,
-    receivedAt: new Date(),
+    receivedAt: effectiveDate,
   };
 
   const savedEmail = await storage.createCaseEmail(emailData);
@@ -170,7 +176,7 @@ export async function processInboundEmail(payload: InboundEmailPayload): Promise
         organizationId,
         caseId,
         workerName,
-        timestamp: new Date(),
+        timestamp: effectiveDate,
         rawText: `From: ${fromName || fromEmail}\nSubject: ${subject}\n\n${bodyText}`,
         summary: `Email from ${fromName || fromEmail}: ${subject}`,
         nextSteps: null,
@@ -191,7 +197,7 @@ export async function processInboundEmail(payload: InboundEmailPayload): Promise
   // 8. If certificate detected, add a medical certificate record
   if (certificateDetected && caseId) {
     try {
-      await createCertificateFromEmail(caseId, subject, bodyText, fromName);
+      await createCertificateFromEmail(caseId, subject, bodyText, fromName, effectiveDate);
     } catch (err) {
       log.error("Failed to create certificate from email", {}, err);
     }
@@ -281,6 +287,53 @@ function isCertificateAttachment(filename: string, contentType: string): boolean
 }
 
 /**
+ * Parse a date from common formats: D/MM/YYYY, DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD
+ */
+function parseFlexibleDate(dateStr: string): Date | null {
+  // DD/MM/YYYY or D/MM/YYYY
+  const dmy = dateStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (dmy) {
+    return new Date(parseInt(dmy[3]), parseInt(dmy[2]) - 1, parseInt(dmy[1]));
+  }
+  // YYYY-MM-DD
+  const ymd = dateStr.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (ymd) {
+    return new Date(parseInt(ymd[1]), parseInt(ymd[2]) - 1, parseInt(ymd[3]));
+  }
+  return null;
+}
+
+/**
+ * Extract start and end dates from email body text.
+ * Looks for patterns like:
+ *   "Period: 7/08/2025 to 21/08/2025"
+ *   "Valid: 7/08/2025 to 21/08/2025"
+ *   "Valid From: ... Valid Until: ..."
+ */
+function extractCertificateDates(text: string): { startDate: Date | null; endDate: Date | null } {
+  // Pattern: "Period: DATE to DATE" or "Valid: DATE to DATE"
+  const periodMatch = text.match(/(?:period|valid)[:\s]+(\d{1,2}\/\d{1,2}\/\d{4})\s+to\s+(\d{1,2}\/\d{1,2}\/\d{4})/i);
+  if (periodMatch) {
+    return {
+      startDate: parseFlexibleDate(periodMatch[1]),
+      endDate: parseFlexibleDate(periodMatch[2]),
+    };
+  }
+
+  // Pattern: "Valid From: DATE" ... "Valid Until: DATE" (may be on separate lines)
+  const fromMatch = text.match(/valid\s*from[:\s]+(\d{1,2}\/\d{1,2}\/\d{4})/i);
+  const untilMatch = text.match(/valid\s*(?:until|to)[:\s]+(\d{1,2}\/\d{1,2}\/\d{4})/i);
+  if (fromMatch || untilMatch) {
+    return {
+      startDate: fromMatch ? parseFlexibleDate(fromMatch[1]) : null,
+      endDate: untilMatch ? parseFlexibleDate(untilMatch[1]) : null,
+    };
+  }
+
+  return { startDate: null, endDate: null };
+}
+
+/**
  * Create a basic medical certificate record from email content.
  * Extracts capacity, dates, and notes from the email body.
  */
@@ -289,35 +342,47 @@ async function createCertificateFromEmail(
   subject: string,
   bodyText: string | undefined,
   fromName: string | undefined,
+  effectiveDate: Date,
 ): Promise<void> {
   const text = `${subject} ${bodyText || ""}`.toLowerCase();
-  const now = new Date();
+  const fullText = `${subject} ${bodyText || ""}`;
 
   // Determine capacity from keywords
   let capacity = "unknown";
-  if (text.includes("unfit") || text.includes("unable to work")) {
+  if (text.includes("unfit") || text.includes("unable to work") || text.includes("no current work capacity")) {
     capacity = "unfit";
-  } else if (text.includes("partial") || text.includes("light duties") || text.includes("modified")) {
+  } else if (text.includes("partial") || text.includes("light duties") || text.includes("modified") || text.includes("suitable employment")) {
     capacity = "partial";
-  } else if (text.includes("fit for full") || text.includes("full duties") || text.includes("clearance")) {
+  } else if (text.includes("fit for full") || text.includes("full duties") || text.includes("clearance") || text.includes("pre-injury")) {
     capacity = "fit";
   }
 
-  // Extract duration (e.g., "2 weeks", "4 weeks", "6 weeks")
-  let endDate = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000); // Default 2 weeks
-  const durationMatch = text.match(/(\d+)\s*weeks?/i);
-  if (durationMatch) {
-    const weeks = parseInt(durationMatch[1]);
-    endDate = new Date(now.getTime() + weeks * 7 * 24 * 60 * 60 * 1000);
+  // Try to extract explicit dates from the email body
+  const parsed = extractCertificateDates(fullText);
+  const startDate = parsed.startDate || effectiveDate;
+  let endDate = parsed.endDate;
+
+  // If no explicit end date, compute from duration keywords or default 2 weeks
+  if (!endDate) {
+    const durationMatch = text.match(/(\d+)\s*weeks?/i);
+    if (durationMatch) {
+      const weeks = parseInt(durationMatch[1]);
+      endDate = new Date(startDate.getTime() + weeks * 7 * 24 * 60 * 60 * 1000);
+    } else {
+      endDate = new Date(startDate.getTime() + 14 * 24 * 60 * 60 * 1000);
+    }
   }
+
+  // Issue date = start date (most certificates are issued on start date)
+  const issueDate = parsed.startDate || effectiveDate;
 
   // Extract notes from body (first 500 chars)
   const notes = bodyText ? bodyText.substring(0, 500).trim() : subject;
 
   await storage.createCertificate({
     caseId,
-    issueDate: now,
-    startDate: now,
+    issueDate,
+    startDate,
     endDate,
     capacity,
     notes: `${fromName ? `Issued by: ${fromName}\n` : ""}${notes}`,
@@ -327,5 +392,5 @@ async function createCertificateFromEmail(
     treatingPractitioner: fromName || null,
   });
 
-  log.info("Certificate created from email", { caseId, capacity });
+  log.info("Certificate created from email", { caseId, capacity, startDate: startDate.toISOString(), endDate: endDate.toISOString() });
 }
