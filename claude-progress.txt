@@ -6,9 +6,13 @@
 - WSL is now PRIMARY dev environment (no more Windows)
 - Clawdbot auto-start on Windows login (VBS in Startup folder)
 - Created missing gateway start script for tmux chain
+- Updated features.json: marked `health-check-forms-implementation` as completed
+  (all 4 user stories already verified — prevention, injury, RTW, wellness forms done)
 
 ### IMMEDIATE NEXT STEP
-**Onboarding Course** - Walk through full RTW Coordinator workflow starting from initial injury notification. Claude leads, Paul corrects. This is the primary task.
+**Populate Financial/Risk/Contacts tabs** (HIGH priority) — these tabs are empty despite data existing in Summary tab. Wire them up to case data.
+
+After that: **Onboarding Course** - Walk through full RTW Coordinator workflow.
 
 ### Environment (CHANGED)
 - Primary dev: WSL Ubuntu-24.04 at ~/dev/gpnet3
@@ -19,11 +23,19 @@
 - C Drive: ~31.89 GB free
 - WSL lives on: D:\wsl\Ubuntu-24.04
 
-### Pending After Onboarding
-1. Fix clawdbot Telegram: `cp /mnt/c/Users/Paul/.clawdbot/clawdbot.json ~/.clawdbot/clawdbot.json`
-2. Set up clawdbot Discord
-3. Populate Financial/Risk/Contacts tabs (HIGH priority data gap)
-4. Natalie remote access (tunnel blocked by Cloudflare Warp)
+### Pending Tasks (Priority Order)
+1. **Financial/Risk/Contacts tabs** - empty tabs despite data in Summary (HIGH)
+2. Fix clawdbot Telegram: `cp /mnt/c/Users/Paul/.clawdbot/clawdbot.json ~/.clawdbot/clawdbot.json`
+3. Set up clawdbot Discord
+4. Onboarding Course: RTW Coordinator workflow walkthrough
+5. Natalie remote access (tunnel blocked by Cloudflare Warp)
+
+### Active Worktrees (may need cleanup)
+- C:/Dev/gpnet3-dashboard-fix [fix/dashboard-issues]
+- C:/Dev/gpnet3-summary-fix [fix/summary-improvements]
+- C:/Dev/gpnet3-testing [fix/testing-improvements]
+- C:/Dev/worktrees/missing-info-prompts [feature/missing-info-prompts]
+- C:/Dev/worktrees/presentations-work [feature/presentations-work]
 
 ### Credentials
 - Admin: admin@gpnet.local / ChangeMe123!
