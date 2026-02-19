@@ -1,119 +1,31 @@
-## Session 51 - February 11, 2026
+## Session 53 - 19 Feb 2026
 
 ### Completed
-- **Comprehensive RTW Form** (9-section)
-  - Created ComprehensiveRTWForm.tsx with 9 sections: Worker Details, Injury/Condition, Medical Status, Functional Capacity, Treatment & Recovery, Workplace Assessment, RTW Plan, Employer Input, Completion
-  - Progress indicator with clickable section navigation
-  - Conditional field rendering (surgery details, previous injury, alternative duties, employer/worker concerns)
-  - RTW risk score calculation based on functional restrictions, surgery, recovery timeline
-  - Submits to /api/pre-employment/assessments with assessmentType 'comprehensive_rtw'
-  - Route: /comprehensive-rtw-form, linked from Injury tab on Checks page
+- WSL backup tar deleted (24 GB reclaimed on D drive)
+- WSL gpnet3 synced to latest (commit 15d4666)
+- WSL is now PRIMARY dev environment (no more Windows)
+- Clawdbot auto-start on Windows login (VBS in Startup folder)
+- Created missing gateway start script for tmux chain
 
-- **General Wellness Form** (SF-36 style, 3-section)
-  - Created GeneralWellnessForm.tsx with 3 sections: General Health Status, Functional Limitations & Physical Activity, Mental Wellbeing & Work Satisfaction
-  - SF-36 standard health questions (10 functional limitation items, 9 mental wellbeing frequency items)
-  - Wellness score calculation based on self-rated health, limitations, pain, mental wellbeing, lifestyle
-  - Chronic conditions checklist, lifestyle factors (smoking, alcohol, sleep, diet, exercise)
-  - Work satisfaction and stress assessment
-  - Route: /wellness-form, linked from Wellness tab on Checks page
+### IMMEDIATE NEXT STEP
+**Onboarding Course** - Walk through full RTW Coordinator workflow starting from initial injury notification. Claude leads, Paul corrects. This is the primary task.
 
-- **Routes & Navigation Wiring**
-  - Added lazy imports for both forms in App.tsx
-  - Added ProtectedRoute wrappers with Suspense for both routes
-  - Added "New RTW Assessment" button on Injury tab in ChecksPage
-  - Added "New Wellness Assessment" button on Wellness tab in ChecksPage
+### Environment (CHANGED)
+- Primary dev: WSL Ubuntu-24.04 at ~/dev/gpnet3
+- Code path: /home/paul_clawdbot/dev/gpnet3
+- Branch: main (commit 15d4666)
+- Dev server: port 5000 (run `npm run dev` from WSL)
+- Clawdbot: port 18789 (auto-starts on Windows login)
+- C Drive: ~31.89 GB free
+- WSL lives on: D:\wsl\Ubuntu-24.04
 
-### Platform State
-- All sidebar navigation tabs: FUNCTIONAL
-- All case detail tabs (7 tabs): FUNCTIONAL
-- All 5 assessment forms: FUNCTIONAL (pre-employment, prevention, injury, RTW, wellness)
-- Intelligence engine: COMPILES, routes wired
-- Branch: main
+### Pending After Onboarding
+1. Fix clawdbot Telegram: `cp /mnt/c/Users/Paul/.clawdbot/clawdbot.json ~/.clawdbot/clawdbot.json`
+2. Set up clawdbot Discord
+3. Populate Financial/Risk/Contacts tabs (HIGH priority data gap)
+4. Natalie remote access (tunnel blocked by Cloudflare Warp)
 
----
-
-## Session 49 - February 6, 2026
-
-### Completed
-- **Prevention & Injury Form Submissions** (commit 4efd6ce)
-  - Wired up PreventionAssessmentForm.tsx to submit via fetchWithCsrf to /api/pre-employment/assessments
-  - Wired up InjuryAssessmentForm.tsx to submit via fetchWithCsrf to /api/pre-employment/assessments
-  - Added risk score calculations for both forms (pain-based for prevention, severity-based for injury)
-  - Both forms tested end-to-end with successful 201 responses
-
-- **Case Summary Markdown Rendering** (commit 1175215)
-  - Fixed raw markdown display on /summary/:id route in CaseSummaryPage.tsx
-  - Added ReactMarkdown + remarkGfm for proper rendering of headings, tables, lists, links, checkboxes
-  - Custom table/th/td components with Tailwind styling matching dark theme
-  - Verified all 7 GFM tables render correctly (Worker Details, Injury, Timeline, Status, Financial, Risk, Contacts)
-
-- **Comprehensive Testing of All Sidebar Tabs and Case Detail Tabs**
-  - Dashboard: Working
-  - Checks (/checks): Working
-  - Cases (list + detail): Working
-  - New Case (/employer/new-case): Working
-  - RTW Planner (/rtw-planner): Working - 19 worker cards, Update Status dialog functional
-  - Check-ins (/checkins): Working - 37 overdue cases
-  - Financials (/financials): Working - $355K estimate
-  - Predictions (/predictions): Working - ML predictions
-  - Risk (/risk): Working - risk dashboard
-  - Case Detail Summary tab: Working (markdown rendered)
-  - Case Detail Injury & Diagnosis tab: Working
-  - Case Detail Treatment & Recovery tab: Working (rich recovery dashboard, AI treatment plan)
-  - Case Detail Timeline tab: Working (has ~45 duplicate entries - data issue)
-  - Case Detail Financial tab: Working (empty state)
-  - Case Detail Risk tab: Working (empty state)
-  - Case Detail Contacts tab: Working (empty state with Add Contact button)
-  - Prevention form submission: Working (tested end-to-end)
-  - Injury form submission: Working (tested end-to-end)
-  - Pre-Employment form: Fixed last session (commit 390c2c7)
-
-### Known Issues (Not Blockers)
-1. Timeline tab shows ~45 duplicate "Discussion Note Added" entries - Freshdesk sync deduplication issue
-2. Treatment plan API returns 404 (/api/cases/:id/treatment-plan) - client-side fallback works
-3. Minor React warning about non-boolean attribute on Treatment & Recovery tab
-
-### In Progress
-- Comprehensive RTW Form (9-section) - pending implementation
-- General Wellness Form (SF-36 style) - pending implementation
-
-### Next Steps (Priority Order)
-1. Fix timeline duplicate entries (investigate Freshdesk sync deduplication)
-2. Implement Comprehensive RTW Form (9 sections)
-3. Implement General Wellness Form (3 sections)
-4. Add treatment plan API endpoint to eliminate 404
-5. Continue platform testing and polish
-
-### Commits This Session
-- `4efd6ce` - feat: wire up prevention and injury assessment form submissions (2 files, +97/-13)
-- `1175215` - fix: render AI case summary as formatted markdown with GFM table support (1 file, +28/-3)
-
-### Technical Notes
-- fetchWithCsrf requires explicit `Content-Type: application/json` header for POST requests
-- Reusing /api/pre-employment/assessments endpoint for all assessment types via assessmentType field
-- react-markdown (^10.1.0) + remark-gfm (^4.0.1) both already installed in project
-- ReactMarkdown with remarkGfm used in both EmployerCaseDetailView.tsx and now CaseSummaryPage.tsx
-- Dev server runs on port 5000, HMR picks up client changes automatically
-
-### Platform State
-- All sidebar navigation tabs: FUNCTIONAL
-- All case detail tabs (7 tabs): FUNCTIONAL
-- All 3 assessment forms: FUNCTIONAL (pre-employment, prevention, injury)
-- Branch: main (3 commits ahead of origin)
-
----
-
-# Previous Sessions Context (Preserved for Reference)
-
-## Session 48 - February 5, 2026
-
-### Completed
-- Comprehensive Health Checks System Implementation (6-tab interface)
-- Discord Integration System
-- Health Check Forms (Prevention + Injury assessment forms)
-- Technical Infrastructure Fixes
-
-## Session 2026-02-04 - SYSTEM TESTING & CUSTOMER VALIDATION READY
-- Platform verified ready for customer validation
-- Pre-employment lifecycle integration complete
-- Brand identity and marketing assets created
+### Credentials
+- Admin: admin@gpnet.local / ChangeMe123!
+- Employer: employer@symmetry.local / ChangeMe123!
+- Natalie: natalie@preventli.com / ChangeMe123!
