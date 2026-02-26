@@ -1,11 +1,11 @@
 /**
  * Medical Certificate Agent — Proactive Expiry Monitor + Reactive Processor
  *
- * Mode 1 (Proactive): Monitors expiry and emails worker/GP on schedule
+ * Mode 1 (Proactive): Monitors expiry, emails worker/GP on schedule
  * Mode 2 (Reactive): Processes inbound certificates from Freshdesk
  */
 
-import { runAgent } from "./base-agent";
+import { runAgent, type AgentTool } from "./base-agent";
 import { caseTools } from "./agent-tools/case-tools";
 import { certificateTools } from "./agent-tools/certificate-tools";
 import { emailTools } from "./agent-tools/email-tools";
@@ -17,14 +17,23 @@ import { createLogger } from "../lib/logger";
 
 const logger = createLogger("CertificateAgent");
 
-const CERT_TOOLS = [
-  ...caseTools,
-  ...certificateTools,
-  ...emailTools,
-  ...timelineTools,
+function findTool(arr: AgentTool[], name: string): AgentTool {
+  const t = arr.find((x) => x.name === name);
+  if (!t) throw new Error(`Tool not found: ${name}`);
+  return t;
+}
+
+/** Action tools Claude can request — write actions only */
+const ACTION_TOOLS: AgentTool[] = [
+  findTool(emailTools, "draft_email"),
+  findTool(emailTools, "send_email"),
+  findTool(timelineTools, "create_timeline_event"),
+  findTool(timelineTools, "schedule_followup"),
+  findTool(timelineTools, "notify_case_manager"),
+  findTool(timelineTools, "update_job_summary"),
 ];
 
-/** Mode 1: Proactive expiry monitoring for a specific case */
+/** Mode 1: Proactive expiry monitoring */
 export async function runCertificateExpiryAgent(
   jobId: string,
   caseId: string,
@@ -38,55 +47,50 @@ export async function runCertificateExpiryAgent(
     .where(eq(agentJobs.id, jobId));
 
   try {
+    // Pre-gather certificate status
+    const [workerCase, latestCert] = await Promise.all([
+      findTool(caseTools, "get_case").execute({ caseId }),
+      findTool(certificateTools, "get_latest_certificate").execute({ caseId }),
+    ]);
+
+    const agentContext = {
+      caseId,
+      jobId,
+      today: new Date().toDateString(),
+      triggerContext: context,
+      workerCase,
+      latestCert,
+    };
+
     const task = `
-You are the Certificate Agent for Preventli. You manage medical certificate expiry for a worker.
+You are the Certificate Agent for Preventli. Manage medical certificate expiry for this worker.
 
-Case ID: ${caseId}
-Job ID: ${jobId}
-Context: ${JSON.stringify(context)}
-Today: ${new Date().toDateString()}
+Based on the certificate data, take the appropriate action:
 
-Follow this expiry management workflow:
+If 5 days until expiry:
+- draft_email (certificate_chase, recipient: worker) then send_email
+- create_timeline_event: "5-day certificate expiry reminder sent to worker"
+- schedule_followup: 5 days from now, agentType: "certificate"
 
-1. Call get_latest_certificate to check expiry status
-2. Based on daysUntilExpiry, take the appropriate action:
+If 0 days (expiry today or passed, under 7 days overdue):
+- draft_email (certificate_chase, recipient: other [GP]) then send_email
+- create_timeline_event: "Certificate expired — GP notified"
+- schedule_followup: 7 days from now, agentType: "certificate"
 
-   If 5 days until expiry:
-   - draft_email (certificate_chase, recipient: worker) then send_email
-   - Reminder: "Your certificate expires [date], please see your GP for a renewal."
-   - create_timeline_event: "5-day certificate expiry reminder sent to worker"
-   - schedule_followup: 5 days from now with agentType: "certificate"
+If 7+ days overdue with no new cert:
+- notify_case_manager with priority "high": "Certificate overdue 7+ days, human follow-up required"
+- create_timeline_event: "Certificate overdue — escalated to case manager"
+- Set autoExecute: false on the notify_case_manager action
 
-   If 0 days (expiry today):
-   - draft_email (certificate_chase, recipient: GP/treating_gp) then send_email
-   - Message: "Worker's certificate has expired, please provide updated certificate."
-   - create_timeline_event: "Certificate expired — GP notified"
-   - schedule_followup: 7 days from now with agentType: "certificate"
-
-   If 7+ days overdue with no new cert:
-   - notify_case_manager with priority "high": "Certificate overdue 7+ days, human follow-up required"
-   - create_timeline_event: "Certificate overdue — escalated to case manager"
-
-3. Call update_job_summary with what you did
-
+At the end call update_job_summary.
 Only act on expiry. Do not make RTW decisions.
     `.trim();
 
-    const result = await runAgent(
-      task,
-      CERT_TOOLS,
-      jobId,
-      caseId,
-      "claude-3-5-haiku-20241022"
-    );
+    const result = await runAgent(task, agentContext, ACTION_TOOLS, jobId, caseId);
 
     await db
       .update(agentJobs)
-      .set({
-        status: "completed",
-        completedAt: new Date(),
-        summary: result.result,
-      })
+      .set({ status: "completed", completedAt: new Date(), summary: result.result })
       .where(eq(agentJobs.id, jobId));
 
     logger.info("Certificate expiry agent completed", { jobId, caseId, actionsCount: result.actionsCount });
@@ -104,7 +108,7 @@ Only act on expiry. Do not make RTW decisions.
   }
 }
 
-/** Mode 2: Process an inbound certificate already extracted by certificateService */
+/** Mode 2: Process an inbound certificate */
 export async function runCertificateInboundAgent(
   jobId: string,
   caseId: string,
@@ -118,39 +122,37 @@ export async function runCertificateInboundAgent(
     .where(eq(agentJobs.id, jobId));
 
   try {
+    const [workerCase, latestCert] = await Promise.all([
+      findTool(caseTools, "get_case").execute({ caseId }),
+      findTool(certificateTools, "get_latest_certificate").execute({ caseId }),
+    ]);
+
+    const agentContext = {
+      caseId,
+      jobId,
+      today: new Date().toDateString(),
+      inboundCertContext: context,
+      workerCase,
+      latestCert,
+    };
+
     const task = `
-You are the Certificate Agent for Preventli. A new certificate has been received for a worker.
+A new medical certificate has been received for this worker.
 
-Case ID: ${caseId}
-Job ID: ${jobId}
-Context: ${JSON.stringify(context)}
-Today: ${new Date().toDateString()}
+Review the certificate and:
+1. create_timeline_event: "New certificate received: [date range and capacity from the cert data]"
+2. If the certificate shows significantly reduced or changed capacity compared to previous,
+   notify_case_manager with the change details (set autoExecute: false)
+3. Call update_job_summary with what changed
 
-Steps:
-1. Call get_latest_certificate — confirm the new certificate is recorded
-2. Call get_capacity_trend via recovery tools if available, or compare to previous certificate
-3. Call create_timeline_event: "New certificate received: [date range, capacity]"
-4. Notify the case manager if the certificate shows significantly reduced or changed capacity
-5. Call update_job_summary with what changed
-
-Do not send emails for inbound certificates — just record and notify.
+Do not send emails for inbound certificates — just record and notify if significant.
     `.trim();
 
-    const result = await runAgent(
-      task,
-      CERT_TOOLS,
-      jobId,
-      caseId,
-      "claude-3-5-haiku-20241022"
-    );
+    const result = await runAgent(task, agentContext, ACTION_TOOLS, jobId, caseId);
 
     await db
       .update(agentJobs)
-      .set({
-        status: "completed",
-        completedAt: new Date(),
-        summary: result.result,
-      })
+      .set({ status: "completed", completedAt: new Date(), summary: result.result })
       .where(eq(agentJobs.id, jobId));
 
     logger.info("Certificate inbound agent completed", { jobId, caseId });
