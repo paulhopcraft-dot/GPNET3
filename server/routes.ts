@@ -40,6 +40,7 @@ import complianceDashboardRouter from "./routes/compliance-dashboard";
 import preEmploymentRoutes from "./routes/preEmployment";
 import memoryRoutes from "./routes/memory";
 import intelligenceRoutes from "./routes/intelligence";
+import agentRoutes from "./routes/agents";
 import type { RecoveryTimelineSummary } from "@shared/schema";
 import { evaluateClinicalEvidence } from "./services/clinicalEvidence";
 import { authorize, type AuthRequest } from "./middleware/auth";
@@ -138,6 +139,9 @@ export async function registerRoutes(app: Express): Promise<void> {
 
   // Intelligence API routes (JWT-protected) - 6-agent AI analysis
   app.use("/api/intelligence", intelligenceRoutes);
+
+  // Agentic System routes (JWT-protected) — coordinator, RTW, recovery, certificate agents
+  app.use("/api/agents", agentRoutes);
 
   // Inbound Email webhook registered in server/index.ts (before CSRF middleware)
 

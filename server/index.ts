@@ -8,6 +8,7 @@ import { TranscriptIngestionModule } from "./services/transcripts";
 import { NotificationScheduler } from "./services/notificationScheduler";
 import { syncScheduler } from "./services/syncScheduler";
 import { complianceScheduler } from "./services/complianceScheduler";
+import { agentScheduler } from "./agent-runner/triggers";
 import { storage } from "./storage";
 import { logger } from "./lib/logger";
 import {
@@ -135,6 +136,21 @@ const startServer = async () => {
     logger.compliance.info("Compliance scheduler disabled (set COMPLIANCE_CHECK_ENABLED=true to enable)");
   }
 
+  // Start agent scheduler if enabled
+  if (process.env.AGENTS_ENABLED === "true") {
+    const coordinatorTime = process.env.AGENT_COORDINATOR_TIME || "09:00";
+    const certExpiryTime = process.env.AGENT_CERT_EXPIRY_TIME || "08:00";
+    const toHourMin = (t: string) => { const [h, m] = t.split(":"); return `${m} ${h}`; };
+    agentScheduler.start(
+      `${toHourMin(coordinatorTime)} * * *`,
+      `${toHourMin(certExpiryTime)} * * *`,
+      true
+    );
+    logger.ai.info("Agent scheduler started", { coordinatorTime, certExpiryTime });
+  } else {
+    logger.ai.info("Agent scheduler disabled (set AGENTS_ENABLED=true to enable)");
+  }
+
   await registerRoutes(app);
 
   // CSRF error handler (must be after CSRF middleware and routes)
@@ -199,6 +215,11 @@ const gracefulShutdown = async () => {
     complianceScheduler.stop();
   } catch (err) {
     logger.compliance.error("Compliance scheduler shutdown error", {}, err);
+  }
+  try {
+    agentScheduler.stop();
+  } catch (err) {
+    logger.ai.error("Agent scheduler shutdown error", {}, err);
   }
   process.exit(0);
 };

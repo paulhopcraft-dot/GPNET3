@@ -2163,3 +2163,79 @@ export const insertEmailAttachmentSchema = createInsertSchema(emailAttachments).
   id: true,
   createdAt: true,
 });
+
+// =============================================================================
+// Agentic System — Agent Jobs & Actions
+// =============================================================================
+
+export type AgentType =
+  | "coordinator"
+  | "rtw"
+  | "recovery"
+  | "certificate";
+
+export type AgentJobStatus =
+  | "queued"
+  | "running"
+  | "completed"
+  | "failed";
+
+export type AgentTriggerSource =
+  | "cron"
+  | "webhook"
+  | "manual"
+  | "agent"; // triggered by another agent
+
+export type ApprovalStatus =
+  | "pending"
+  | "approved"
+  | "rejected";
+
+// One job = one agent run for one case
+export const agentJobs = pgTable("agent_jobs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull(),
+  caseId: varchar("case_id").references(() => workerCases.id, { onDelete: "cascade" }),
+  agentType: text("agent_type").notNull().$type<AgentType>(),
+  status: text("status").notNull().default("queued").$type<AgentJobStatus>(),
+  triggeredBy: text("triggered_by").notNull().$type<AgentTriggerSource>(),
+  triggeredByUserId: varchar("triggered_by_user_id"),
+  context: jsonb("context").$type<Record<string, unknown>>(), // task context passed to agent
+  summary: text("summary"),    // plain-English summary of what happened
+  error: text("error"),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type AgentJobDB = typeof agentJobs.$inferSelect;
+export type InsertAgentJob = typeof agentJobs.$inferInsert;
+
+export const insertAgentJobSchema = createInsertSchema(agentJobs).omit({
+  id: true,
+  createdAt: true,
+});
+
+// One action = one tool call made by an agent during a job
+export const agentActions = pgTable("agent_actions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  jobId: varchar("job_id").notNull().references(() => agentJobs.id, { onDelete: "cascade" }),
+  caseId: varchar("case_id").notNull(),
+  actionType: text("action_type").notNull(),   // tool name called
+  reasoning: text("reasoning"),                // WHY the agent called this tool
+  args: jsonb("args").$type<Record<string, unknown>>(),
+  result: jsonb("result").$type<Record<string, unknown>>(),
+  autoExecuted: boolean("auto_executed").default(true),
+  approvalStatus: text("approval_status").$type<ApprovalStatus>(), // null = auto, pending/approved/rejected for human-in-loop
+  approvedBy: varchar("approved_by"),
+  approvedAt: timestamp("approved_at"),
+  executedAt: timestamp("executed_at").defaultNow(),
+});
+
+export type AgentActionDB = typeof agentActions.$inferSelect;
+export type InsertAgentAction = typeof agentActions.$inferInsert;
+
+export const insertAgentActionSchema = createInsertSchema(agentActions).omit({
+  id: true,
+  executedAt: true,
+});
