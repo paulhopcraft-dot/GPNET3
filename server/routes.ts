@@ -48,6 +48,15 @@ import { logAuditEvent, AuditEventTypes, getRequestMetadata } from "./services/a
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
+// Company ID to name mapping for employer filtering
+const COMPANY_ID_TO_NAME: Record<string, string> = {
+  "empl-symmetry": "Symmetry Manufacturing",
+  "empl-core": "Core Industrial Solutions",
+  "empl-harbor": "Harbor Logistics",
+  "empl-apex": "Apex Labour Hire",
+  "empl-northwind": "Northwind Foods",
+};
+
 export async function registerRoutes(app: Express): Promise<void> {
   // Authentication routes
   app.use("/api/auth", authRoutes);
@@ -933,6 +942,12 @@ Example next steps based on case status:
     try {
       // Admin users can see all organizations' cases, others only see their own
       const organizationId = req.user!.role === 'admin' ? undefined : req.user!.organizationId;
+      
+      // Employer users only see their company's cases
+      let companyName: string | undefined;
+      if (req.user!.role === 'employer' && req.user!.companyId) {
+        companyName = COMPANY_ID_TO_NAME[req.user!.companyId];
+      }
 
       // Parse pagination params (defaults: page=1, limit=50, max limit=200)
       const page = Math.max(1, parseInt(req.query.page as string) || 1);
@@ -946,7 +961,7 @@ Example next steps based on case status:
         ...getRequestMetadata(req),
       });
 
-      const result = await storage.getGPNet2CasesPaginated(organizationId, page, limit);
+      const result = await storage.getGPNet2CasesPaginated(organizationId, page, limit, companyName);
       res.json(result);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch cases" });

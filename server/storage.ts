@@ -472,7 +472,7 @@ export interface PaginatedCasesResult {
 export interface IStorage {
   // Case methods - UPDATED for multi-tenant isolation
   getGPNet2Cases(organizationId: string): Promise<WorkerCase[]>;
-  getGPNet2CasesPaginated(organizationId: string | undefined, page: number, limit: number): Promise<PaginatedCasesResult>;
+  getGPNet2CasesPaginated(organizationId: string | undefined, page: number, limit: number, companyName?: string): Promise<PaginatedCasesResult>;
   getGPNet2CaseById(id: string, organizationId: string): Promise<WorkerCase | null>;
   getGPNet2CaseByIdAdmin(id: string): Promise<WorkerCase | null>; // Admin-only, no org filter
   syncWorkerCaseFromFreshdesk(caseData: Partial<WorkerCase>): Promise<void>;
@@ -772,20 +772,32 @@ class DbStorage implements IStorage {
     return casesWithAttachments;
   }
 
-  async getGPNet2CasesPaginated(organizationId: string | undefined, page: number, limit: number): Promise<PaginatedCasesResult> {
+  async getGPNet2CasesPaginated(organizationId: string | undefined, page: number, limit: number, companyName?: string): Promise<PaginatedCasesResult> {
     // Build where conditions - admin users (organizationId = undefined) see all cases
-    const conditions = organizationId
-      ? and(
-          eq(workerCases.organizationId, organizationId),
-          or(
-            eq(workerCases.caseStatus, "open"),
-            isNull(workerCases.caseStatus)
-          )
-        )
-      : or(
-          eq(workerCases.caseStatus, "open"),
-          isNull(workerCases.caseStatus)
-        );
+    // Employer users with companyName filter only see their company's cases
+    const baseConditions = or(
+      eq(workerCases.caseStatus, "open"),
+      isNull(workerCases.caseStatus)
+    );
+    
+    let conditions;
+    if (organizationId && companyName) {
+      // Employer: filter by org AND company name
+      conditions = and(
+        eq(workerCases.organizationId, organizationId),
+        eq(workerCases.company, companyName),
+        baseConditions
+      );
+    } else if (organizationId) {
+      // Regular user: filter by org only
+      conditions = and(
+        eq(workerCases.organizationId, organizationId),
+        baseConditions
+      );
+    } else {
+      // Admin: no org filter
+      conditions = baseConditions;
+    }
 
     // Get total count first
     const countResult = await db
