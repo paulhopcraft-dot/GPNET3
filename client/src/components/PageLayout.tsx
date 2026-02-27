@@ -27,6 +27,7 @@ const navItems = [
   { path: "/predictions", label: "Predictions", icon: "analytics" },
   { path: "/risk", label: "Risk", icon: "warning" },
   { path: "/audit", label: "Audit Log", icon: "history" },
+  { path: "/agents", label: "Agents", icon: "smart_toy" },
 ];
 
 export function PageLayout({ children, title, subtitle }: PageLayoutProps) {
@@ -41,7 +42,7 @@ export function PageLayout({ children, title, subtitle }: PageLayoutProps) {
     if (isEmployer) {
       // Hide Audit Log for employers and transform paths/labels
       items = navItems
-        .filter(item => item.path !== "/audit")
+        .filter(item => item.path !== "/audit" && item.path !== "/agents")
         .map(item => ({
           ...item,
           path: item.employerPath || item.path,
