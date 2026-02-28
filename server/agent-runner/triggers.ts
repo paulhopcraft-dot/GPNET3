@@ -66,7 +66,7 @@ export class AgentScheduler {
 
   private async runMorningBriefing(): Promise<{ jobsCreated: number }> {
     logger.info("Running morning briefing — coordinator agent");
-    let jobsCreated = 0;
+    const jobQueue: Array<{ id: string; orgId: string }> = [];
 
     try {
       const allOrgs = await db
@@ -87,29 +87,33 @@ export class AgentScheduler {
             })
             .returning();
 
-          setImmediate(() =>
-            runSpecialistAgent(job.id).catch((err) => {
-              logger.error("Morning briefing failed for org", { orgId: org.id, jobId: job.id }, err);
-            })
-          );
-
-          jobsCreated++;
+          jobQueue.push({ id: job.id, orgId: org.id });
         } catch (err) {
           logger.error("Failed to create coordinator job for org", { orgId: org.id }, err);
         }
       }
 
-      logger.info("Morning briefing scheduled", { jobsCreated });
+      logger.info("Morning briefing scheduled", { jobsCreated: jobQueue.length });
     } catch (err) {
       logger.error("Morning briefing trigger failed", {}, err);
     }
 
-    return { jobsCreated };
+    // Run sequentially in background — avoids parallel claude CLI subprocess contention
+    setImmediate(async () => {
+      for (const { id: jobId, orgId } of jobQueue) {
+        await runSpecialistAgent(jobId).catch((err) => {
+          logger.error("Morning briefing failed for org", { orgId, jobId }, err);
+        });
+      }
+    });
+
+    return { jobsCreated: jobQueue.length };
   }
 
   private async runCertExpiryCheck(): Promise<{ jobsCreated: number }> {
     logger.info("Running certificate expiry check");
     let jobsCreated = 0;
+    const certJobs: Array<{ id: string; caseId: string }> = [];
 
     try {
       // Get all active orgs, check expiry per org
@@ -156,12 +160,7 @@ export class AgentScheduler {
               })
               .returning();
 
-            setImmediate(() =>
-              runSpecialistAgent(job.id).catch((err) => {
-                logger.error("Cert expiry agent failed", { caseId: cert.caseId, jobId: job.id }, err);
-              })
-            );
-
+            certJobs.push({ id: job.id, caseId: cert.caseId });
             jobsCreated++;
           }
         } catch (err) {
@@ -173,6 +172,15 @@ export class AgentScheduler {
     } catch (err) {
       logger.error("Certificate expiry trigger failed", {}, err);
     }
+
+    // Run sequentially in background — avoids parallel claude CLI subprocess contention
+    setImmediate(async () => {
+      for (const { id: jobId, caseId } of certJobs) {
+        await runSpecialistAgent(jobId).catch((err) => {
+          logger.error("Cert expiry agent failed", { caseId, jobId }, err);
+        });
+      }
+    });
 
     return { jobsCreated };
   }

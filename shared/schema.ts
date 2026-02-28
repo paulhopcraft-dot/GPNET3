@@ -2220,7 +2220,7 @@ export const insertAgentJobSchema = createInsertSchema(agentJobs).omit({
 export const agentActions = pgTable("agent_actions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   jobId: varchar("job_id").notNull().references(() => agentJobs.id, { onDelete: "cascade" }),
-  caseId: varchar("case_id").notNull(),
+  caseId: varchar("case_id"),                  // nullable: coordinator actions have no case
   actionType: text("action_type").notNull(),   // tool name called
   reasoning: text("reasoning"),                // WHY the agent called this tool
   args: jsonb("args").$type<Record<string, unknown>>(),

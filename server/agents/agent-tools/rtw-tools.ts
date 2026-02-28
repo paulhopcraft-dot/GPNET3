@@ -19,7 +19,7 @@ export const getRTWPlanTool: AgentTool = {
     required: ["caseId"],
   },
   async execute({ caseId }) {
-    const workerCase = await storage.getCaseById(caseId as string);
+    const workerCase = await storage.getGPNet2CaseByIdAdmin(caseId as string);
     if (!workerCase) throw new Error(`Case not found: ${caseId}`);
 
     const [plan] = await db
@@ -54,7 +54,7 @@ export const generateRTWPlanTool: AgentTool = {
   },
   async execute({ caseId }) {
     const { recommendPlanType, filterDutiesForPlan } = await import("../../services/planGenerator");
-    const workerCase = await storage.getCaseById(caseId as string);
+    const workerCase = await storage.getGPNet2CaseByIdAdmin(caseId as string);
     if (!workerCase) throw new Error(`Case not found: ${caseId}`);
 
     // Get functional restrictions from the latest certificate
@@ -126,7 +126,7 @@ export const getSuitableDutiesTool: AgentTool = {
     required: ["caseId"],
   },
   async execute({ caseId }) {
-    const workerCase = await storage.getCaseById(caseId as string);
+    const workerCase = await storage.getGPNet2CaseByIdAdmin(caseId as string);
     if (!workerCase) throw new Error(`Case not found: ${caseId}`);
     const clinical = workerCase.clinicalStatusJson;
     return {

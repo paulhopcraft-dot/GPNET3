@@ -101,6 +101,19 @@ export const getPortfolioHealthTool: AgentTool = {
       (c) => c.complianceIndicator === "Very Low" || c.complianceIndicator === "Low"
     );
 
+    // De-duplicate cases across categories and cap at 10 to keep the prompt manageable
+    const seen = new Set<string>();
+    const allNeedingAction: Array<{ caseId: string; workerName: string; reason: string }> = [];
+    for (const c of expiringCerts) {
+      if (!seen.has(c.id)) { seen.add(c.id); allNeedingAction.push({ caseId: c.id, workerName: c.workerName, reason: "Certificate expiring" }); }
+    }
+    for (const c of highRisk) {
+      if (!seen.has(c.id)) { seen.add(c.id); allNeedingAction.push({ caseId: c.id, workerName: c.workerName, reason: "High risk" }); }
+    }
+    for (const c of noRTWPlan) {
+      if (!seen.has(c.id)) { seen.add(c.id); allNeedingAction.push({ caseId: c.id, workerName: c.workerName, reason: "No RTW plan" }); }
+    }
+
     return {
       totalActiveCases: cases.length,
       offWork: offWork.length,
@@ -108,11 +121,8 @@ export const getPortfolioHealthTool: AgentTool = {
       expiringCertificates: expiringCerts.length,
       highRisk: highRisk.length,
       lowCompliance: lowCompliance.length,
-      casesNeedingAction: [
-        ...noRTWPlan.map((c) => ({ caseId: c.id, workerName: c.workerName, reason: "No RTW plan" })),
-        ...expiringCerts.map((c) => ({ caseId: c.id, workerName: c.workerName, reason: "Certificate expiring" })),
-        ...highRisk.map((c) => ({ caseId: c.id, workerName: c.workerName, reason: "High risk" })),
-      ],
+      // Top 10 cases needing action (prioritised: expiring certs > high risk > no RTW plan)
+      casesNeedingAction: allNeedingAction.slice(0, 10),
     };
   },
 };

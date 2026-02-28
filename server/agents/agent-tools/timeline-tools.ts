@@ -22,7 +22,7 @@ export const createTimelineEventTool: AgentTool = {
     required: ["caseId", "event", "details"],
   },
   async execute({ caseId, event, details }) {
-    const workerCase = await storage.getCaseById(caseId as string);
+    const workerCase = await storage.getGPNet2CaseByIdAdmin(caseId as string);
     const organizationId = workerCase?.organizationId ?? "system";
 
     await logAuditEvent({
@@ -54,7 +54,7 @@ export const notifyCaseManagerTool: AgentTool = {
     required: ["caseId", "message", "priority"],
   },
   async execute({ caseId, message, priority }) {
-    const workerCase = await storage.getCaseById(caseId as string);
+    const workerCase = await storage.getGPNet2CaseByIdAdmin(caseId as string);
     if (!workerCase) throw new Error(`Case not found: ${caseId}`);
 
     await storage.createAction({
@@ -88,7 +88,7 @@ export const scheduleFollowupTool: AgentTool = {
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + (daysFromNow as number));
 
-    const workerCase = await storage.getCaseById(caseId as string);
+    const workerCase = await storage.getGPNet2CaseByIdAdmin(caseId as string);
     if (!workerCase) throw new Error(`Case not found: ${caseId}`);
 
     await storage.createAction({

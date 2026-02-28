@@ -11,13 +11,11 @@
  * 5. Each action is executed and persisted to agent_actions for the UI log
  */
 
-import { execFile } from "child_process";
-import { promisify } from "util";
+import { spawn } from "child_process";
 import { createLogger } from "../lib/logger";
 import { db } from "../db";
 import { agentActions } from "@shared/schema";
 
-const execFileAsync = promisify(execFile);
 const logger = createLogger("BaseAgent");
 
 export interface AgentTool {
@@ -52,17 +50,70 @@ interface ClaudeActionPlan {
 /**
  * Call the claude CLI subprocess with a prompt.
  * Uses Max plan OAuth — no ANTHROPIC_API_KEY needed.
+ *
+ * Uses spawn (not execFile) so we can:
+ * - Set stdin to 'ignore' (prevents the CLI blocking on stdin input)
+ * - Stream stdout as it arrives (avoids deadlock with large responses)
+ * - Run from /tmp (avoids loading project CLAUDE.md context)
  */
 async function callClaude(prompt: string): Promise<string> {
-  const { stdout } = await execFileAsync(
-    "claude",
-    ["-p", prompt, "--output-format", "text"],
-    {
-      timeout: 120_000,       // 2 minute timeout
-      maxBuffer: 10 * 1024 * 1024, // 10MB output buffer
-    }
-  );
-  return stdout.trim();
+  // Minimal clean env — strips inherited Claude Code session vars
+  // (CLAUDECODE, ANTHROPIC_API_KEY, CLAUDE_CODE_*) that cause auth issues.
+  const env = {
+    HOME: process.env.HOME ?? "/home/paul_clawdbot",
+    USER: process.env.USER ?? "paul_clawdbot",
+    PATH: process.env.PATH ?? "/usr/local/bin:/usr/bin:/bin",
+    LANG: process.env.LANG ?? "en_US.UTF-8",
+    TMPDIR: process.env.TMPDIR ?? "/tmp",
+  };
+
+  return new Promise((resolve, reject) => {
+    const proc = spawn(
+      "/usr/bin/claude",
+      [
+        "-p", prompt,
+        "--output-format", "text",
+        // Disable built-in tools — we only need a single LLM response, not agentic tool use.
+        "--allowedTools", "",
+      ],
+      {
+        env,
+        // /tmp — avoids claude CLI loading gpnet3 CLAUDE.md project context
+        cwd: "/tmp",
+        // stdin=ignore prevents the CLI blocking waiting for terminal/pipe input
+        stdio: ["ignore", "pipe", "pipe"],
+      }
+    );
+
+    let stdout = "";
+    let stderr = "";
+
+    proc.stdout?.on("data", (data: Buffer) => { stdout += data.toString(); });
+    proc.stderr?.on("data", (data: Buffer) => { stderr += data.toString(); });
+
+    const TIMEOUT_MS = 600_000; // 10 minutes
+    const timer = setTimeout(() => {
+      proc.kill("SIGTERM");
+      reject(new Error(`Claude CLI timed out after ${TIMEOUT_MS / 1000}s. Partial output: ${stdout.slice(0, 200)}`));
+    }, TIMEOUT_MS);
+
+    proc.on("close", (code: number | null, signal: NodeJS.Signals | null) => {
+      clearTimeout(timer);
+      if (code === 0) {
+        resolve(stdout.trim());
+      } else {
+        reject(new Error(
+          `Claude CLI exited ${signal ? `signal=${signal}` : `code=${code}`}. ` +
+          `stderr=${stderr.slice(0, 300) || "(empty)"} partial=${stdout.slice(0, 200) || "(empty)"}`
+        ));
+      }
+    });
+
+    proc.on("error", (err: Error) => {
+      clearTimeout(timer);
+      reject(new Error(`Claude CLI spawn failed: ${err.message}`));
+    });
+  });
 }
 
 /**
@@ -138,10 +189,10 @@ Rules:
   let rawResponse: string;
   try {
     rawResponse = await callClaude(prompt);
-  } catch (err) {
+  } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    logger.error("Claude CLI failed", { jobId, caseId, error: msg });
-    throw new Error(`Claude CLI subprocess failed: ${msg}`);
+    logger.error("Claude CLI failed", { jobId, caseId, error: msg.slice(0, 500) });
+    throw new Error(`Claude CLI subprocess failed: ${msg.slice(0, 400)}`);
   }
 
   let plan: ClaudeActionPlan;

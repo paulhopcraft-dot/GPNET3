@@ -20,7 +20,7 @@ export const getCapacityTrendTool: AgentTool = {
     required: ["caseId"],
   },
   async execute({ caseId }) {
-    const workerCase = await storage.getCaseById(caseId as string);
+    const workerCase = await storage.getGPNet2CaseByIdAdmin(caseId as string);
     if (!workerCase) throw new Error(`Case not found: ${caseId}`);
 
     const certs = await storage.getCertificatesByCase(caseId as string, workerCase.organizationId);
@@ -77,7 +77,7 @@ export const compareToBenchmarkTool: AgentTool = {
     required: ["caseId"],
   },
   async execute({ caseId }) {
-    const workerCase = await storage.getCaseById(caseId as string);
+    const workerCase = await storage.getGPNet2CaseByIdAdmin(caseId as string);
     if (!workerCase) throw new Error(`Case not found: ${caseId}`);
 
     const injuryDate = new Date(workerCase.dateOfInjury);

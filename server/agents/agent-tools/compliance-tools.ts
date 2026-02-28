@@ -17,13 +17,14 @@ export const checkComplianceTool: AgentTool = {
   async execute({ caseId }) {
     const { evaluateCase } = await import("../../services/complianceEngine");
     const report = await evaluateCase(caseId as string);
+    const violations = report.checks.filter((c) => c.status === "non_compliant");
     return {
-      overallScore: report.overallScore,
-      status: report.status,
-      criticalViolations: report.violations.filter((v) => v.severity === "critical").length,
-      highViolations: report.violations.filter((v) => v.severity === "high").length,
-      totalViolations: report.violations.length,
-      topFindings: report.violations.slice(0, 5).map((v) => ({
+      overallScore: report.complianceScore,
+      status: report.overallStatus,
+      criticalViolations: violations.filter((v) => v.severity === "critical").length,
+      highViolations: violations.filter((v) => v.severity === "high").length,
+      totalViolations: violations.length,
+      topFindings: violations.slice(0, 5).map((v) => ({
         ruleCode: v.ruleCode,
         severity: v.severity,
         finding: v.finding,
@@ -46,9 +47,10 @@ export const getComplianceViolationsTool: AgentTool = {
   async execute({ caseId }) {
     const { evaluateCase } = await import("../../services/complianceEngine");
     const report = await evaluateCase(caseId as string);
+    const violations = report.checks.filter((c) => c.status === "non_compliant");
     return {
-      violations: report.violations,
-      totalCount: report.violations.length,
+      violations,
+      totalCount: violations.length,
     };
   },
 };

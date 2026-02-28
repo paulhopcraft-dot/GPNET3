@@ -16,7 +16,7 @@ export const getCertificatesTool: AgentTool = {
     required: ["caseId"],
   },
   async execute({ caseId }) {
-    const workerCase = await storage.getCaseById(caseId as string);
+    const workerCase = await storage.getGPNet2CaseByIdAdmin(caseId as string);
     if (!workerCase) throw new Error(`Case not found: ${caseId}`);
     const certs = await storage.getCertificatesByCase(caseId as string, workerCase.organizationId);
     return {
@@ -50,7 +50,7 @@ export const getLatestCertificateTool: AgentTool = {
     required: ["caseId"],
   },
   async execute({ caseId }) {
-    const workerCase = await storage.getCaseById(caseId as string);
+    const workerCase = await storage.getGPNet2CaseByIdAdmin(caseId as string);
     if (!workerCase) throw new Error(`Case not found: ${caseId}`);
     const certs = await storage.getCertificatesByCase(caseId as string, workerCase.organizationId);
     if (!certs.length) return { certificate: null };

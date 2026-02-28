@@ -35,7 +35,7 @@ export const draftEmailTool: AgentTool = {
   },
   async execute({ caseId, emailType, recipient, recipientName, additionalContext }) {
     const { generateEmailDraft } = await import("../../services/emailDraftService");
-    const workerCase = await storage.getCaseById(caseId as string);
+    const workerCase = await storage.getGPNet2CaseByIdAdmin(caseId as string);
     if (!workerCase) throw new Error(`Case not found: ${caseId}`);
 
     const draft = await generateEmailDraft(

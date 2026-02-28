@@ -16,7 +16,7 @@ export const getCaseTool: AgentTool = {
     required: ["caseId"],
   },
   async execute({ caseId }) {
-    const workerCase = await storage.getCaseById(caseId as string);
+    const workerCase = await storage.getGPNet2CaseByIdAdmin(caseId as string);
     if (!workerCase) throw new Error(`Case not found: ${caseId}`);
     return {
       id: workerCase.id,
@@ -84,7 +84,7 @@ export const getTreatingPartiesTool: AgentTool = {
     required: ["caseId"],
   },
   async execute({ caseId }) {
-    const workerCase = await storage.getCaseById(caseId as string);
+    const workerCase = await storage.getGPNet2CaseByIdAdmin(caseId as string);
     if (!workerCase) throw new Error(`Case not found: ${caseId}`);
     const contacts = await storage.getCaseContacts(caseId as string, workerCase.organizationId);
     return { contacts };
@@ -102,7 +102,7 @@ export const getMedicalConstraintsTool: AgentTool = {
     required: ["caseId"],
   },
   async execute({ caseId }) {
-    const workerCase = await storage.getCaseById(caseId as string);
+    const workerCase = await storage.getGPNet2CaseByIdAdmin(caseId as string);
     if (!workerCase) throw new Error(`Case not found: ${caseId}`);
     const clinical = workerCase.clinicalStatusJson;
     return {
@@ -127,7 +127,7 @@ export const flagCaseForReviewTool: AgentTool = {
     required: ["caseId", "reason", "priority"],
   },
   async execute({ caseId, reason, priority }) {
-    const workerCase = await storage.getCaseById(caseId as string);
+    const workerCase = await storage.getGPNet2CaseByIdAdmin(caseId as string);
     if (!workerCase) throw new Error(`Case not found: ${caseId}`);
 
     await storage.createAction({

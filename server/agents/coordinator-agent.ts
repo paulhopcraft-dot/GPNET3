@@ -68,6 +68,8 @@ For cases needing immediate human attention (serious breach, non-attendance), ca
 At the end, call update_job_summary with a plain-English morning briefing.
 
 Be decisive. Trigger agents autonomously for routine cases. Only involve humans for judgment calls.
+
+IMPORTANT: Trigger at most 5 specialist agents per run. Pick the highest-priority cases from casesNeedingAction.
     `.trim();
 
     const result = await runAgent(task, context, ACTION_TOOLS, jobId, "");
