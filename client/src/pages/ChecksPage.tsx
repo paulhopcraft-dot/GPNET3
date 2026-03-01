@@ -124,7 +124,7 @@ export default function ChecksPage() {
                       <Link to="/pre-employment">View Dashboard</Link>
                     </Button>
                     <Button asChild>
-                      <Link to="/pre-employment-form">New Assessment</Link>
+                      <Link to="/assessments/new">New Assessment</Link>
                     </Button>
                   </div>
                 </div>
