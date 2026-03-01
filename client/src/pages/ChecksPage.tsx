@@ -34,11 +34,12 @@ interface Assessment {
 
 function clearanceBadgeClass(level?: string | null): string {
   if (!level) return "bg-gray-100 text-gray-700 border-gray-200";
-  const l = level.toUpperCase();
-  if (l === "CLEARED" || l.startsWith("CLEARED_")) return "bg-green-100 text-green-800 border-green-200";
+  const l = level.toUpperCase().replace(/-/g, "_");
+  if (l === "CLEARED" || l === "CLEARED_UNCONDITIONAL") return "bg-green-100 text-green-800 border-green-200";
+  if (l === "CLEARED_CONDITIONAL") return "bg-teal-100 text-teal-800 border-teal-200";
+  if (l === "CLEARED_WITH_RESTRICTIONS") return "bg-orange-100 text-orange-800 border-orange-200";
+  if (l === "NOT_CLEARED") return "bg-red-100 text-red-800 border-red-200";
   if (l === "REQUIRES_REVIEW" || l === "PENDING_REVIEW") return "bg-yellow-100 text-yellow-800 border-yellow-200";
-  if (l === "NOT_CLEARED" || l.startsWith("NOT_")) return "bg-red-100 text-red-800 border-red-200";
-  if (l.startsWith("CLEARED_WITH_RESTRICTIONS")) return "bg-orange-100 text-orange-800 border-orange-200";
   return "bg-gray-100 text-gray-700 border-gray-200";
 }
 
@@ -70,8 +71,8 @@ export default function ChecksPage() {
     pending: assessments.filter(a => a.status === "created" || a.status === "sent").length,
     completed: assessments.filter(a => a.status === "completed").length,
     cleared: assessments.filter(a => {
-      const l = (a.clearanceLevel ?? "").toUpperCase();
-      return l.startsWith("CLEARED") && !l.startsWith("CLEARED_WITH_RESTRICTIONS");
+      const l = (a.clearanceLevel ?? "").toUpperCase().replace(/-/g, "_");
+      return l.startsWith("CLEARED"); // includes conditional + with_restrictions
     }).length,
   };
 
