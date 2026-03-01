@@ -28,18 +28,25 @@
   - Start PostgreSQL: `sudo service postgresql start`
   - Then: `cd /mnt/d/dev/gpnet3 && npm run db:push`
 
-### Completed (Session 95 continuation)
-- **Assessment create form** (`d5032d2`) — replaced old worker self-assessment with employer-facing 3-step create flow at `/pre-employment-form`: form → created → send
-- **sentAt fix** — extended `updatePreEmploymentAssessmentStatus` to accept `sentAt?: Date`; now stamped on send
+### Completed (Session 95 — full end-to-end verified)
+- **Assessment create form** (`d5032d2`) — `NewAssessmentPage.tsx` at `/assessments/new`; `PreEmploymentForm.tsx` restored intact
+- **sentAt fix** — `updatePreEmploymentAssessmentStatus` now accepts `sentAt?: Date`; stamped on send
+- **db:push succeeded** (`880d288`) — all new tables and columns live in PostgreSQL
+- **JSON parse fix** — strip backtick code fences from AI response before JSON.parse (clearance was always requires_review)
+- **CSRF exemption** — `/api/public/` added to shouldSkipCsrf() so magic-link submissions work
+- **Dr. Alex booking triggers tuned** — now correctly fires SUGGEST_BOOKING for neuro symptoms, direct requests, worsening >3 days
+- **End-to-end tested** (3 workers, full flow):
+  - Emma Clarke (Forklift) → CLEARED ✓, employer email sent
+  - Tom Whitfield (Office) → CLEARED ✓, employer email sent
+  - Lisa Kowalski (Construction, epilepsy) → REQUIRES_REVIEW ✓, Jacinta alert with detailed flags
+- **Chat tested** — Dr. Alex responds correctly, suggestBooking:true fires on nerve symptoms / direct booking request
+- **Booking tested** — POST /api/bookings creates record, status:pending
 
 ### Next Steps
-1. **Run db:push** — apply all new schema changes (only remaining blocker)
-2. **End-to-end test checklist** (from plan):
-   - Create assessment → worker upserted, token generated
-   - Send → email logged, status → sent, sentAt set
-   - `/check/:token` loads without auth
-   - Submit → AI report generated, clearanceLevel set
-   - CLEARED → employer email; REQUIRES_REVIEW → Jacinta alert
+1. **Browser test** — open http://localhost:5173 (Vite frontend), log in, try the full flow in UI
+2. **Assessment list UI** — show sent/completed/clearanceLevel on ChecksPage or PreEmploymentPage (currently backend only)
+3. **Worker profile page** — verify /workers/:id loads with real assessment + booking data
+4. **Page won't load issue** — user reported this; frontend is on port 5173, backend on 5000; Vite proxies /api to 5000
 
 ### Key Notes
 - Dr. Alex soul: `config/DR_ALEX_SOUL.md` — edit file, restart server to apply (loaded once at startup)

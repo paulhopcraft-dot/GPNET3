@@ -1178,8 +1178,8 @@
       "description": "Self-service telehealth layer: magic-link health assessments, Dr. Alex chat widget, Book Telehealth modal, AI report generation, and normalized workers table",
       "priority": "high",
       "status": "completed",
-      "verified_at": "2026-03-01T00:00:00Z",
-      "last_updated": "2026-03-01T00:00:00Z",
+      "verified_at": "2026-03-01T04:15:00Z",
+      "last_updated": "2026-03-01T04:15:00Z",
       "userStories": [
         {
           "id": "workers-normalized-table",
