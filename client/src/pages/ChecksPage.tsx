@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { PageLayout } from "@/components/PageLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,12 +22,61 @@ import {
   TrendingUp
 } from "lucide-react";
 
+interface Assessment {
+  id: string;
+  candidateName: string;
+  positionTitle: string;
+  status: string;
+  clearanceLevel?: string | null;
+  sentAt?: string | null;
+  createdAt: string;
+}
+
+function clearanceBadgeClass(level?: string | null): string {
+  if (!level) return "bg-gray-100 text-gray-700 border-gray-200";
+  const l = level.toUpperCase();
+  if (l === "CLEARED" || l.startsWith("CLEARED_")) return "bg-green-100 text-green-800 border-green-200";
+  if (l === "REQUIRES_REVIEW" || l === "PENDING_REVIEW") return "bg-yellow-100 text-yellow-800 border-yellow-200";
+  if (l === "NOT_CLEARED" || l.startsWith("NOT_")) return "bg-red-100 text-red-800 border-red-200";
+  if (l.startsWith("CLEARED_WITH_RESTRICTIONS")) return "bg-orange-100 text-orange-800 border-orange-200";
+  return "bg-gray-100 text-gray-700 border-gray-200";
+}
+
+function statusBadgeClass(status: string): string {
+  switch (status) {
+    case "completed": return "bg-green-100 text-green-800 border-green-200";
+    case "sent": return "bg-blue-100 text-blue-800 border-blue-200";
+    case "created": return "bg-yellow-100 text-yellow-800 border-yellow-200";
+    default: return "bg-gray-100 text-gray-700 border-gray-200";
+  }
+}
+
+function formatDate(s?: string | null): string {
+  if (!s) return "—";
+  return new Date(s).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
+}
+
 export default function ChecksPage() {
   const [activeTab, setActiveTab] = useState("pre-employment");
 
-  // Mock data for each check type
+  const { data: assessmentsData, isLoading: assessmentsLoading } = useQuery<{ assessments: Assessment[] }>({
+    queryKey: ["assessments"],
+    queryFn: () => fetch("/api/assessments", { credentials: "include" }).then(r => r.json()),
+  });
+
+  const assessments = assessmentsData?.assessments ?? [];
+  const peStats = {
+    total: assessments.length,
+    pending: assessments.filter(a => a.status === "created" || a.status === "sent").length,
+    completed: assessments.filter(a => a.status === "completed").length,
+    cleared: assessments.filter(a => {
+      const l = (a.clearanceLevel ?? "").toUpperCase();
+      return l.startsWith("CLEARED") && !l.startsWith("CLEARED_WITH_RESTRICTIONS");
+    }).length,
+  };
+
+  // Mock data for other check types (not yet wired to real APIs)
   const checkStats = {
-    preEmployment: { total: 12, pending: 3, completed: 9, cleared: 8 },
     prevention: { total: 45, due: 7, completed: 38, overdue: 2 },
     injury: { total: 8, active: 3, resolved: 5, critical: 1 },
     wellness: { total: 67, scheduled: 12, completed: 55, flagged: 3 },
@@ -84,28 +134,28 @@ export default function ChecksPage() {
             <div className="grid gap-4 md:grid-cols-4">
               <StatCard
                 title="Total Assessments"
-                value={checkStats.preEmployment.total}
-                description="This month"
+                value={assessmentsLoading ? "…" : peStats.total}
+                description="All time"
                 icon={Users}
                 color="blue"
               />
               <StatCard
-                title="Pending Review"
-                value={checkStats.preEmployment.pending}
-                description="Awaiting clearance"
+                title="Awaiting Response"
+                value={assessmentsLoading ? "…" : peStats.pending}
+                description="Created or sent"
                 icon={Clock}
                 color="yellow"
               />
               <StatCard
                 title="Completed"
-                value={checkStats.preEmployment.completed}
-                description="Assessments finished"
+                value={assessmentsLoading ? "…" : peStats.completed}
+                description="Questionnaire submitted"
                 icon={CheckCircle}
                 color="green"
               />
               <StatCard
                 title="Cleared for Work"
-                value={checkStats.preEmployment.cleared}
+                value={assessmentsLoading ? "…" : peStats.cleared}
                 description="Ready to start"
                 icon={Shield}
                 color="green"
@@ -119,23 +169,49 @@ export default function ChecksPage() {
                     <CardTitle>Pre-Employment Health Assessments</CardTitle>
                     <CardDescription>Candidate health screening and clearance management</CardDescription>
                   </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" asChild>
-                      <Link to="/pre-employment">View Dashboard</Link>
-                    </Button>
-                    <Button asChild>
-                      <Link to="/assessments/new">New Assessment</Link>
-                    </Button>
-                  </div>
+                  <Button asChild>
+                    <Link to="/assessments/new">New Assessment</Link>
+                  </Button>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="text-sm text-muted-foreground">
-                  • Comprehensive health questionnaires<br/>
-                  • Risk assessment and scoring<br/>
-                  • Automated clearance determination<br/>
-                  • Medical restriction tracking
-                </div>
+                {assessmentsLoading ? (
+                  <p className="text-sm text-muted-foreground py-4">Loading assessments…</p>
+                ) : assessments.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <UserPlus className="w-10 h-10 mx-auto mb-3 text-gray-300" />
+                    <p className="text-sm">No assessments yet. Create one to get started.</p>
+                  </div>
+                ) : (
+                  <div className="divide-y">
+                    {assessments.slice(0, 10).map((a) => (
+                      <div key={a.id} className="py-3 flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm truncate">{a.candidateName}</p>
+                          <p className="text-xs text-muted-foreground truncate">{a.positionTitle}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {a.sentAt ? `Sent ${formatDate(a.sentAt)}` : `Created ${formatDate(a.createdAt)}`}
+                          </p>
+                        </div>
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          <Badge className={`text-xs border ${statusBadgeClass(a.status)}`}>
+                            {a.status}
+                          </Badge>
+                          {a.clearanceLevel && (
+                            <Badge className={`text-xs border ${clearanceBadgeClass(a.clearanceLevel)}`}>
+                              {a.clearanceLevel.replace(/_/g, " ")}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {assessments.length > 10 && (
+                      <p className="text-xs text-muted-foreground pt-3">
+                        +{assessments.length - 10} more assessments
+                      </p>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
