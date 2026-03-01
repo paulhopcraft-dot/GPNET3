@@ -395,23 +395,38 @@ Worker submits questionnaire → AI generates report automatically
 
 ## 8. Assessment Types
 
+### Already Built (ChecksPage.tsx)
+The UI already has 6 tabs:
+1. Pre-Employment ✅ (has form at /pre-employment-form)
+2. Prevention ✅ (has form at /prevention-assessment-form)
+3. Injury ✅ (has form at /injury-assessment-form)
+4. Wellness ✅ (has form at /wellness-form)
+5. Mental Health ✅ (has form at /mental-health-form)
+6. Exit ✅ (has form at /exit-health-check-form)
+
+### What's Missing (Phase 1 Focus: Pre-Employment)
+- Public questionnaire link (no login for worker)
+- Email sending to worker
+- AI report generation
+- PDF generation
+- Employer notification
+- Worker record creation
+
 ### Database Field
 ```sql
 assessment_type TEXT CHECK (assessment_type IN (
   'pre_employment',
-  'injury_prevention',
+  'injury',
+  'prevention',
   'mental_health',
-  'exit_assessment',
-  'general_wellbeing'
+  'wellness',
+  'exit'
 ));
 ```
 
 ### Phase 1 Scope
-- **Pre-Employment**: Fully functional
-- **Other types**: Framework in place (type selector, DB field)
-  - Can create assessments of any type
-  - Use generic questionnaire for now
-  - Type-specific questionnaires in future phase
+- **Pre-Employment**: Make it work end-to-end (the full workflow)
+- **Other types**: UI exists, backend workflow can reuse same pattern later
 
 ---
 
