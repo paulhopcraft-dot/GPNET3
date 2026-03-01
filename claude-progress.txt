@@ -1,3 +1,26 @@
+## Session 96 (continued) - 1 Mar 2026
+
+### Completed (continuation)
+- **Next-check recommendation engine** (`05cdd5f`) — `computeNextCheckDue()` in workers.ts
+  - 12m: cleared_unconditional, cleared_conditional
+  - 6m: cleared_with_restrictions (Rachel O'Brien → due 2026-09-01 ✓)
+  - N/A: not_cleared, requires_review
+  - recheckUrgency: overdue | due_soon | upcoming | not_applicable | pending
+- **Workers list enriched** — `/api/workers` now returns latestClearanceLevel, nextCheckDue, recheckUrgency per worker
+- **Assessments list** — now includes workerId (accessToken withheld from list)
+- **WorkerProfile.tsx enhanced** — RecheckBanner (green/amber/red), clearance badges, last completed date, "New Check" button
+- **ChecksPage.tsx** — assessment rows link to /workers/:workerId; "Attention Required" panel for overdue/due-soon
+- **WorkersListPage at /workers-list** (`ae6bfdc`) — searchable table, clearance badges, urgency filter, alert bar
+- **Sidebar nav** — "Health Checks" → /checks and "Workers" → /workers-list
+
+### Next Steps
+1. **Proactive AI suggestions in chat** — Dr. Alex aware of worker's check history, proactively suggests checks when case opened
+2. **Recovery timeline** — show check history timeline on worker profile
+3. **Notification cron** — daily run flags workers whose nextCheckDue < 60 days, creates notifications
+4. **Export** — CSV/PDF export of workers with check status for employer reporting
+
+---
+
 ## Session 96 - 1 Mar 2026
 
 ### Completed
