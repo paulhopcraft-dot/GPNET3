@@ -27,19 +27,19 @@
 - **`npm run db:push` still needed** — new tables (workers, telehealthBookings, caseDocuments) and preEmploymentAssessments columns not yet applied
   - Start PostgreSQL: `sudo service postgresql start`
   - Then: `cd /mnt/d/dev/gpnet3 && npm run db:push`
-- **Assessment sentAt not updated** — `updatePreEmploymentAssessmentStatus` doesn't set sentAt; needs a direct DB update added
-- **Assessment create UI not built** — backend `POST /api/assessments` exists but no employer-facing form (ChecksPage.tsx needs update)
+
+### Completed (Session 95 continuation)
+- **Assessment create form** (`d5032d2`) — replaced old worker self-assessment with employer-facing 3-step create flow at `/pre-employment-form`: form → created → send
+- **sentAt fix** — extended `updatePreEmploymentAssessmentStatus` to accept `sentAt?: Date`; now stamped on send
 
 ### Next Steps
-1. **Run db:push** — apply all new schema changes
+1. **Run db:push** — apply all new schema changes (only remaining blocker)
 2. **End-to-end test checklist** (from plan):
    - Create assessment → worker upserted, token generated
-   - Send → email logged, status → sent
+   - Send → email logged, status → sent, sentAt set
    - `/check/:token` loads without auth
    - Submit → AI report generated, clearanceLevel set
    - CLEARED → employer email; REQUIRES_REVIEW → Jacinta alert
-3. **Build assessment create form** — modify ChecksPage.tsx to add employer-facing "New Assessment" form
-4. **Fix sentAt** — add direct timestamp update in `assessments.ts` `/:id/send` route
 
 ### Key Notes
 - Dr. Alex soul: `config/DR_ALEX_SOUL.md` — edit file, restart server to apply (loaded once at startup)
