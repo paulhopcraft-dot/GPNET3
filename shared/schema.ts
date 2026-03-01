@@ -2337,3 +2337,20 @@ export const insertCaseDocumentSchema = createInsertSchema(caseDocuments).omit({
   id: true,
   uploadedAt: true,
 });
+
+// ============================================
+// CHAT MEMORY TABLE (Dr. Alex per-case/worker memory)
+// ============================================
+
+export const chatMemory = pgTable("chat_memory", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id"),
+  caseId: varchar("case_id"),       // nullable — set when context is a case
+  workerId: varchar("worker_id"),   // nullable — set when context is a worker profile
+  role: text("role").notNull(),     // "user" | "assistant"
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type ChatMemoryDB = typeof chatMemory.$inferSelect;
+export type InsertChatMemory = typeof chatMemory.$inferInsert;

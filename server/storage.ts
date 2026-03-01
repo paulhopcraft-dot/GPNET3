@@ -57,6 +57,8 @@ import type {
   TelehealthBookingStatus,
   CaseDocumentDB,
   InsertCaseDocument,
+  ChatMemoryDB,
+  InsertChatMemory,
 } from "@shared/schema";
 import { db } from "./db";
 import {
@@ -91,6 +93,7 @@ import {
   workers,
   telehealthBookings,
   caseDocuments,
+  chatMemory,
   type RTWPlanDB,
   type RTWPlanVersionDB,
   type RTWPlanDutyDB,
@@ -3809,6 +3812,36 @@ class DbStorage implements IStorage {
       .from(caseDocuments)
       .where(eq(caseDocuments.workerId, workerId))
       .orderBy(desc(caseDocuments.uploadedAt));
+  }
+
+  // ============================================================================
+  // CHAT MEMORY (Dr. Alex per-case/worker conversation history)
+  // ============================================================================
+
+  async getChatMemory(
+    { caseId, workerId }: { caseId?: string; workerId?: string },
+    limit = 8
+  ): Promise<ChatMemoryDB[]> {
+    let condition;
+    if (caseId) {
+      condition = eq(chatMemory.caseId, caseId);
+    } else if (workerId) {
+      condition = eq(chatMemory.workerId, workerId);
+    } else {
+      return [];
+    }
+    // Fetch most recent N, then reverse so they're oldest-first for the prompt
+    const rows = await db
+      .select()
+      .from(chatMemory)
+      .where(condition)
+      .orderBy(desc(chatMemory.createdAt))
+      .limit(limit);
+    return rows.reverse();
+  }
+
+  async saveChatMessage(data: InsertChatMemory): Promise<void> {
+    await db.insert(chatMemory).values(data);
   }
 }
 

@@ -49,14 +49,35 @@ router.post("/message", authorize(), async (req: AuthRequest, res: Response) => 
       return res.status(503).json({ error: "AI service not configured" });
     }
 
+    const orgId = req.user!.organizationId;
+    const memoryKey = context?.caseId
+      ? { caseId: context.caseId }
+      : context?.workerId
+      ? { workerId: context.workerId }
+      : null;
+
+    // Load conversation history for this case/worker (non-blocking on failure)
+    let memoryBlock = "";
+    if (memoryKey) {
+      try {
+        const pastMessages = await storage.getChatMemory(memoryKey, 8);
+        if (pastMessages.length > 0) {
+          const lines = pastMessages.map((m) =>
+            m.role === "user" ? `Clinician: ${m.content}` : `Dr. Alex: ${m.content}`
+          );
+          memoryBlock = `\n\n---\nPrevious conversation with this ${context?.caseId ? "case" : "worker"}:\n${lines.join("\n")}\n---`;
+        }
+      } catch {
+        // memory load failure is non-fatal
+      }
+    }
+
     // Build optional context block for case or worker pages
     let contextBlock = "";
     if (context?.caseId) {
       try {
-        const orgId = req.user!.organizationId;
         // Try org-scoped first; fall back to admin lookup (case is already visible to user)
         const workerCaseOrg = await storage.getGPNet2CaseById(context.caseId, orgId).catch(() => null);
-        const effectiveOrgId = workerCaseOrg?.organizationId ?? orgId;
         const workerCase = workerCaseOrg ?? await (storage as any).getGPNet2CaseByIdAdmin?.(context.caseId).catch(() => null);
         const resolvedOrgId = workerCase?.organizationId ?? orgId;
         const [certCompliance, rtwCompliance, caseActions] = await Promise.all([
@@ -161,7 +182,7 @@ router.post("/message", authorize(), async (req: AuthRequest, res: Response) => 
     const response = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 512,
-      system: SOUL + contextBlock,
+      system: SOUL + memoryBlock + contextBlock,
       messages: [{ role: "user", content: message }],
     });
 
@@ -171,6 +192,19 @@ router.post("/message", authorize(), async (req: AuthRequest, res: Response) => 
     // Detect booking suggestion signal from soul
     const suggestBooking = reply.includes("[SUGGEST_BOOKING]");
     reply = reply.replace("[SUGGEST_BOOKING]", "").trim();
+
+    // Persist conversation to memory (fire-and-forget — non-blocking)
+    if (memoryKey) {
+      const baseRecord = {
+        organizationId: orgId,
+        caseId: context?.caseId ?? null,
+        workerId: context?.workerId ?? null,
+      };
+      Promise.all([
+        storage.saveChatMessage({ ...baseRecord, role: "user", content: message }),
+        storage.saveChatMessage({ ...baseRecord, role: "assistant", content: reply }),
+      ]).catch((err) => logger.error("Failed to save chat memory:", undefined, err));
+    }
 
     res.json({ reply, sessionId, suggestBooking });
   } catch (error) {
