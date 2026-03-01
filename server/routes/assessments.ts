@@ -1,4 +1,5 @@
-import express, { type Response, type Router } from "express";
+import express, { type Request, type Response, type NextFunction, type Router } from "express";
+import multer from "multer";
 import { z } from "zod";
 import crypto from "crypto";
 import { storage } from "../storage";
@@ -26,7 +27,17 @@ const createAssessmentSchema = z.object({
  * Accepts multipart/form-data so the employer can attach a job description
  * file (PDF/DOC/DOCX) alongside the text fields.
  */
-router.post("/", authorize(), jdUpload.single("jobDescriptionFile"), async (req: AuthRequest, res: Response) => {
+/** Multer error handler — converts file-filter rejections from 500 → 400 */
+function uploadJd(req: Request, res: Response, next: NextFunction) {
+  jdUpload.single("jobDescriptionFile")(req, res, (err) => {
+    if (err instanceof multer.MulterError || err instanceof Error) {
+      return res.status(400).json({ error: err.message });
+    }
+    next(err);
+  });
+}
+
+router.post("/", authorize(), uploadJd, async (req: AuthRequest, res: Response) => {
   try {
     const organizationId = req.user!.organizationId;
     const userId = req.user!.id;

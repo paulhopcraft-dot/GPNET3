@@ -192,6 +192,7 @@ test.describe("@critical Pre-Employment Assessments", () => {
         candidateName: "Test Worker E2E",
         candidateEmail: "testworker.e2e@example.com",
         positionTitle: "Warehouse Operator",
+        jobDescription: "Manual handling up to 20kg, standing 8hrs/day",
       },
     });
 
@@ -341,6 +342,7 @@ test.describe("@critical Employer-Initiated Pre-Employment", () => {
         candidateName: "New Starter Via Employer",
         candidateEmail: "newstarter.employer@example.com",
         positionTitle: "Forklift Operator",
+        jobDescription: "Forklift operation, outdoor yard work, PPE required",
       },
     });
 
@@ -359,6 +361,7 @@ test.describe("@critical Employer-Initiated Pre-Employment", () => {
         candidateName: "Email Flow Test Worker",
         candidateEmail: "emailflow@example.com",
         positionTitle: "Admin Officer",
+        jobDescription: "Administrative duties, desk-based, light filing",
       },
     });
     expect(createRes.status()).toBe(201);
@@ -927,5 +930,141 @@ test.describe("@regression Edge Cases", () => {
     });
     // Should require responses
     expect([400, 422]).toContain(res.status());
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 10. JOB DESCRIPTION REQUIREMENT (text + file upload)
+// ─────────────────────────────────────────────────────────────────────────────
+
+test.describe("@critical Job Description Requirement", () => {
+  /** Auth headers without Content-Type so Playwright can set multipart boundary */
+  async function multipartHeaders(request: APIRequestContext) {
+    const { token, csrfToken } = await apiSession(request);
+    return {
+      "Authorization": `Bearer ${token}`,
+      "X-CSRF-Token": csrfToken,
+    };
+  }
+
+  const minCandidate = {
+    candidateName: "JD Test Candidate",
+    candidateEmail: "jdtest@example.com",
+    positionTitle: "Site Labourer",
+  };
+
+  test("rejects creation when neither text description nor file is provided", async ({ request }) => {
+    const { headers } = await apiSession(request);
+    const res = await request.post(`${BASE}/api/assessments`, {
+      headers,
+      data: minCandidate, // no jobDescription field, no file
+    });
+    expect(res.status()).toBe(400);
+    const json = await res.json();
+    expect(json.error).toMatch(/description|document/i);
+  });
+
+  test("accepts creation with text description only (multipart)", async ({ request }) => {
+    const hdrs = await multipartHeaders(request);
+    const res = await request.post(`${BASE}/api/assessments`, {
+      headers: hdrs,
+      multipart: {
+        ...minCandidate,
+        candidateEmail: "jdtest-text@example.com",
+        jobDescription: "Manual handling up to 25kg, outdoor environment",
+      },
+    });
+    expect(res.status()).toBe(201);
+    const json = await res.json();
+    const a = json.assessment ?? json;
+    expect(a).toHaveProperty("id");
+    expect(a.status).toBe("created");
+  });
+
+  test("accepts creation with PDF file attachment only (multipart)", async ({ request }) => {
+    const hdrs = await multipartHeaders(request);
+    const res = await request.post(`${BASE}/api/assessments`, {
+      headers: hdrs,
+      multipart: {
+        ...minCandidate,
+        candidateEmail: "jdtest-file@example.com",
+        jobDescriptionFile: {
+          name: "job-description.pdf",
+          mimeType: "application/pdf",
+          buffer: Buffer.from("%PDF-1.4 fake pdf content for testing"),
+        },
+      },
+    });
+    expect(res.status()).toBe(201);
+    const json = await res.json();
+    const a = json.assessment ?? json;
+    expect(a).toHaveProperty("id");
+    expect(a.status).toBe("created");
+  });
+
+  test("accepts creation with both text description and file (multipart)", async ({ request }) => {
+    const hdrs = await multipartHeaders(request);
+    const res = await request.post(`${BASE}/api/assessments`, {
+      headers: hdrs,
+      multipart: {
+        ...minCandidate,
+        candidateEmail: "jdtest-both@example.com",
+        jobDescription: "Role involves heavy lifting and outdoor work",
+        jobDescriptionFile: {
+          name: "full-jd.pdf",
+          mimeType: "application/pdf",
+          buffer: Buffer.from("%PDF-1.4 detailed job description document"),
+        },
+      },
+    });
+    expect(res.status()).toBe(201);
+    const json = await res.json();
+    const a = json.assessment ?? json;
+    expect(a).toHaveProperty("id");
+  });
+
+  test("rejects unsupported file type (e.g. image)", async ({ request }) => {
+    const hdrs = await multipartHeaders(request);
+    const res = await request.post(`${BASE}/api/assessments`, {
+      headers: hdrs,
+      multipart: {
+        ...minCandidate,
+        candidateEmail: "jdtest-badfile@example.com",
+        jobDescriptionFile: {
+          name: "photo.jpg",
+          mimeType: "image/jpeg",
+          buffer: Buffer.from("fake image data"),
+        },
+      },
+    });
+    // Multer file filter rejects unsupported types
+    expect(res.status()).toBe(400);
+  });
+
+  test("uploaded job description file is accessible at its URL", async ({ request }) => {
+    const hdrs = await multipartHeaders(request);
+
+    // Create with file
+    const createRes = await request.post(`${BASE}/api/assessments`, {
+      headers: hdrs,
+      multipart: {
+        ...minCandidate,
+        candidateEmail: "jdtest-url@example.com",
+        jobDescriptionFile: {
+          name: "roles.pdf",
+          mimeType: "application/pdf",
+          buffer: Buffer.from("%PDF-1.4 accessible file test"),
+        },
+      },
+    });
+    expect(createRes.status()).toBe(201);
+    const json = await createRes.json();
+    const a = json.assessment ?? json;
+    const fileUrl: string | undefined = a.jobDescriptionFileUrl;
+    expect(fileUrl).toBeTruthy();
+
+    // File should be served statically
+    const fileRes = await request.get(`${BASE}${fileUrl}`);
+    expect(fileRes.status()).toBe(200);
   });
 });
