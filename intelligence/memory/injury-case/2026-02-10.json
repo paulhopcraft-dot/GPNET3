@@ -1,0 +1,20 @@
+[
+  {
+    "id": "init_001",
+    "timestamp": "2026-02-10T06:26:00.000Z",
+    "context": "System initialization",
+    "content": "Injury Case Intelligence Agent initialized. Specializes in recovery patterns, treatment coordination, and clinical analysis. Ready to analyze musculoskeletal injuries, occupational health rehabilitation, and return-to-work planning.",
+    "tags": ["initialization", "injury-case", "system-start"],
+    "importance": 0.8,
+    "type": "learning"
+  },
+  {
+    "id": "baseline_001", 
+    "timestamp": "2026-02-10T06:26:00.000Z",
+    "context": "Baseline knowledge",
+    "content": "Victorian WorkSafe typical recovery timeframes: Back injuries 6-12 weeks, Psychological injuries 8-16 weeks, Fractures 4-8 weeks. Early intervention improves outcomes by 40-60%.",
+    "tags": ["baseline", "recovery-patterns", "worksafe", "timeframes"],
+    "importance": 0.9,
+    "type": "learning"
+  }
+]

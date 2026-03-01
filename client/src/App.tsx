@@ -66,6 +66,8 @@ const ExitHealthCheckForm = lazy(() => import("./pages/ExitHealthCheckForm"));
 const ExitProcessingPage = lazy(() => import("./pages/ExitProcessingPage"));
 const MarketingDocsPage = lazy(() => import("./pages/MarketingDocsPage"));
 const AgentJobsPage = lazy(() => import("./pages/AgentJobsPage"));
+const PublicQuestionnaire = lazy(() => import("./pages/PublicQuestionnaire"));
+const WorkerProfile = lazy(() => import("./pages/WorkerProfile"));
 
 // LogoutRedirect component - triggers logout and redirects to login
 function LogoutRedirect() {
@@ -114,6 +116,16 @@ export default function App() {
             <AuthProvider>
               <Suspense fallback={<PageLoader />}>
                 <Routes>
+                  {/* Public routes — no authentication required */}
+                  <Route
+                    path="/check/:token"
+                    element={
+                      <Suspense fallback={<PageLoader />}>
+                        <PublicQuestionnaire />
+                      </Suspense>
+                    }
+                  />
+
                   {/* Authentication routes - no lazy loading needed */}
                   <Route path="/login" element={<LoginPage />} />
                   <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -565,6 +577,18 @@ export default function App() {
                       }
                     />
                   </Route>
+
+                  {/* Worker Profile */}
+                  <Route
+                    path="/workers/:id"
+                    element={
+                      <ProtectedRoute>
+                        <Suspense fallback={<PageLoader />}>
+                          <WorkerProfile />
+                        </Suspense>
+                      </ProtectedRoute>
+                    }
+                  />
                 </Routes>
               </Suspense>
               <Toaster />

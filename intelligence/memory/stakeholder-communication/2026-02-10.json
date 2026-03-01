@@ -1,0 +1,20 @@
+[
+  {
+    "id": "init_001",
+    "timestamp": "2026-02-10T06:26:00.000Z",
+    "context": "System initialization",
+    "content": "Stakeholder Communication Intelligence Agent initialized. Specializes in multi-party coordination, communication optimization, and relationship management across all case stakeholders.",
+    "tags": ["initialization", "communication", "system-start"],
+    "importance": 0.8,
+    "type": "learning"
+  },
+  {
+    "id": "patterns_001",
+    "timestamp": "2026-02-10T06:26:00.000Z",
+    "context": "Communication patterns",
+    "content": "Effective communication frequency: Weekly updates for active cases, bi-weekly for stable cases. Email preferred by employers (85%), phone preferred by workers (70%). Response time expectations: 24-48 hours for non-urgent, 4 hours for urgent.",
+    "tags": ["communication", "frequency", "preferences", "response-times"],
+    "importance": 0.9,
+    "type": "learning"
+  }
+]

@@ -26,7 +26,12 @@ import adminInsurerRoutes from "./routes/admin/insurers";
 import adminRolesRoutes from "./routes/admin/roles";
 import adminDutiesRoutes from "./routes/admin/duties";
 import organizationRoutes from "./routes/organization";
-import caseChatRoutes from "./routes/caseChat";
+// caseChatRoutes removed — consolidated into unified chat at /api/chat/message
+import workerRoutes from "./routes/workers";
+import bookingRoutes from "./routes/bookings";
+import chatRoutes from "./routes/chat";
+import publicRoutes from "./routes/public";
+import assessmentRoutes from "./routes/assessments";
 import rtwRoutes from "./routes/rtw";
 import predictionRoutes from "./routes/predictions";
 import { registerTimelineRoutes } from "./routes/timeline";
@@ -84,9 +89,6 @@ export async function registerRoutes(app: Express): Promise<void> {
   // Smart Summary Engine v1 routes (JWT-protected)
   app.use("/api/cases", smartSummaryRoutes);
 
-  // Case Chat routes (JWT-protected, case ownership)
-  app.use("/api/cases", caseChatRoutes);
-
   // RTW Plan routes (JWT-protected, case ownership)
   app.use("/api/cases", rtwRoutes);
   app.use("/api/rtw", rtwRoutes);
@@ -127,6 +129,21 @@ export async function registerRoutes(app: Express): Promise<void> {
 
   // Pre-Employment Health Checks routes (JWT-protected)
   app.use("/api/pre-employment", preEmploymentRoutes);
+
+  // Assessments CRUD + send-to-worker (JWT-protected)
+  app.use("/api/assessments", assessmentRoutes);
+
+  // Workers (normalized worker records — JWT-protected)
+  app.use("/api/workers", workerRoutes);
+
+  // Telehealth Bookings (JWT-protected)
+  app.use("/api/bookings", bookingRoutes);
+
+  // Unified Health Assistant Chat (JWT-protected)
+  app.use("/api/chat", chatRoutes);
+
+  // Public questionnaire routes (no auth — worker magic link)
+  app.use("/api/public", publicRoutes);
 
   // Discord Integration routes (JWT-protected)
   app.use("/api/discord", discordRoutes);

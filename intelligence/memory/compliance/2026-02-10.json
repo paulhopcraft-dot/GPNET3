@@ -1,0 +1,20 @@
+[
+  {
+    "id": "init_001",
+    "timestamp": "2026-02-10T06:26:00.000Z",
+    "context": "System initialization",
+    "content": "Compliance Intelligence Agent initialized. Specializes in WorkSafe Victoria regulations, deadline management, and compliance monitoring. Ready to track regulatory requirements and prevent violations.",
+    "tags": ["initialization", "compliance", "system-start"],
+    "importance": 0.8,
+    "type": "learning"
+  },
+  {
+    "id": "regs_001",
+    "timestamp": "2026-02-10T06:26:00.000Z", 
+    "context": "Regulatory baseline",
+    "content": "Key WorkSafe deadlines: Initial claim report within 10 days of injury notification. Medical certificates typically valid for 28 days. Return-to-work plans required within 130 weeks for serious injuries.",
+    "tags": ["regulations", "deadlines", "worksafe", "compliance"],
+    "importance": 0.9,
+    "type": "learning"
+  }
+]

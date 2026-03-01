@@ -1,0 +1,20 @@
+[
+  {
+    "id": "init_001",
+    "timestamp": "2026-02-10T06:26:00.000Z",
+    "context": "System initialization",
+    "content": "Business Intelligence Agent initialized. Specializes in performance analytics, benchmarking, and strategic insights for healthcare platform optimization and growth.",
+    "tags": ["initialization", "business-intelligence", "system-start"],
+    "importance": 0.8,
+    "type": "learning"
+  },
+  {
+    "id": "kpis_001",
+    "timestamp": "2026-02-10T06:26:00.000Z",
+    "context": "Key performance indicators",
+    "content": "Preventli current metrics: 174 active cases, 15+ employers, $500/month + $50/case revenue model. Target KPIs: 85%+ customer retention, 90-day average case resolution, 80%+ return-to-work success rate.",
+    "tags": ["kpis", "performance", "revenue", "targets"],
+    "importance": 0.9,
+    "type": "learning"
+  }
+]

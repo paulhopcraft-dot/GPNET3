@@ -1,0 +1,20 @@
+[
+  {
+    "id": "init_001",
+    "timestamp": "2026-02-10T06:26:00.000Z",
+    "context": "System initialization", 
+    "content": "Risk Assessment Intelligence Agent initialized. Specializes in predictive analytics, cost forecasting, and comprehensive risk modeling across financial, medical, operational, and legal dimensions.",
+    "tags": ["initialization", "risk-assessment", "system-start"],
+    "importance": 0.8,
+    "type": "learning"
+  },
+  {
+    "id": "benchmarks_001",
+    "timestamp": "2026-02-10T06:26:00.000Z",
+    "context": "Industry benchmarks",
+    "content": "Victorian workers' compensation averages: Case resolution 90-120 days, average cost $15,000-25,000, litigation rate 15-20%, chronic development risk 25% for back injuries, 35% for psychological injuries.",
+    "tags": ["benchmarks", "risk-factors", "victoria", "costs"],
+    "importance": 0.9,
+    "type": "learning"
+  }
+]

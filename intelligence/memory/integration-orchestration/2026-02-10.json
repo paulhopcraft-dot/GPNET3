@@ -1,0 +1,20 @@
+[
+  {
+    "id": "init_001",
+    "timestamp": "2026-02-10T06:26:00.000Z",
+    "context": "System initialization",
+    "content": "Integration Orchestration Intelligence Agent initialized. Specializes in system connectivity, automation workflows, and integration management across the healthcare platform ecosystem.",
+    "tags": ["initialization", "integration", "system-start"],
+    "importance": 0.8,
+    "type": "learning"
+  },
+  {
+    "id": "architecture_001",
+    "timestamp": "2026-02-10T06:26:00.000Z",
+    "context": "System architecture",
+    "content": "Current integrations: PostgreSQL database (primary data store), Anthropic Claude API (AI analysis), Email services (notifications). Potential integrations: WorkSafe Victoria API, Medical provider EMRs, Employer HRIS systems.",
+    "tags": ["architecture", "integrations", "apis", "database"],
+    "importance": 0.9,
+    "type": "learning"
+  }
+]

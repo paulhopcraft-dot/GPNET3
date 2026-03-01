@@ -1,7 +1,11 @@
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { ThemeToggle } from "./theme-toggle";
+import { ChatWidget } from "./ChatWidget";
+import { BookingModal } from "./BookingModal";
+import { Button } from "./ui/button";
+import { Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface PageLayoutProps {
@@ -33,6 +37,11 @@ const navItems = [
 export function PageLayout({ children, title, subtitle }: PageLayoutProps) {
   const location = useLocation();
   const { user } = useAuth();
+  const [bookingOpen, setBookingOpen] = useState(false);
+
+  // Extract caseId from current URL for context-aware booking
+  const caseIdMatch = location.pathname.match(/\/cases\/([^/]+)/);
+  const caseContext = caseIdMatch ? { caseId: caseIdMatch[1] } : undefined;
 
   // Filter navigation items based on user role and transform for employers
   const getNavItems = () => {
@@ -95,7 +104,11 @@ export function PageLayout({ children, title, subtitle }: PageLayoutProps) {
               <p className="text-sm text-muted-foreground">{subtitle}</p>
             )}
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="sm" onClick={() => setBookingOpen(true)}>
+              <Phone className="w-4 h-4 mr-2" />
+              Book Telehealth
+            </Button>
             <ThemeToggle />
           </div>
         </header>
@@ -103,6 +116,16 @@ export function PageLayout({ children, title, subtitle }: PageLayoutProps) {
           {children}
         </div>
       </main>
+
+      {/* Telehealth Booking Modal */}
+      <BookingModal
+        open={bookingOpen}
+        onClose={() => setBookingOpen(false)}
+        caseContext={caseContext}
+      />
+
+      {/* Floating Health Assistant Chat Widget */}
+      <ChatWidget caseContext={caseContext} />
     </div>
   );
 }

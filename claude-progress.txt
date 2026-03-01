@@ -1,41 +1,103 @@
-## Session 53 - 19 Feb 2026
+## Session 91 - 26 Feb 2026
 
 ### Completed
-- WSL backup tar deleted (24 GB reclaimed on D drive)
-- WSL gpnet3 synced to latest (commit 15d4666)
-- WSL is now PRIMARY dev environment (no more Windows)
-- Clawdbot auto-start on Windows login (VBS in Startup folder)
-- Created missing gateway start script for tmux chain
-- Updated features.json: marked `health-check-forms-implementation` as completed
-  (all 4 user stories already verified — prevention, injury, RTW, wellness forms done)
+- **Preventli Agentic System — fully built and committed** (`a98e26e`)
+- **base-agent.ts** — Anthropic tool-use loop, persists every tool call to `agent_actions` table, 20-iteration safety limit
+- **4 specialist agents**: coordinator (morning briefing), RTW (full workflow), recovery (watchdog/predictor), certificate (expiry + inbound)
+- **8 tool modules** wrapping existing services: case, certificate, RTW, compliance, email, recovery, timeline, coordinator
+- **agent-runner/triggers.ts** — AgentScheduler with cron (9am briefing, 8am cert expiry) following existing node-cron pattern
+- **routes/agents.ts** — REST API: trigger, job status, action log, human-in-loop approve/reject
+- **schema.ts** — Added `agent_jobs` and `agent_actions` tables
+- **Human-in-loop tiers** — Tier 1 auto / Tier 2 approval queue / Tier 3 escalate-only
 
-### IMMEDIATE NEXT STEP
-**Populate Financial/Risk/Contacts tabs** (HIGH priority) — these tabs are empty despite data existing in Summary tab. Wire them up to case data.
+### Blockers
+- **DB migration pending** — `agent_jobs` and `agent_actions` tables not yet pushed to DB
+  - `npm run db:push` fails with ECONNREFUSED — local PostgreSQL not running
+  - Fix: `sudo service postgresql start` then `npm run db:push`, OR update DATABASE_URL in .env to Neon connection string
 
-After that: **Onboarding Course** - Walk through full RTW Coordinator workflow.
+### Key Storage Function Names (VERIFIED against storage.ts)
+- `getCertificatesByCase(caseId, organizationId)` — 2 params, orgId required
+- `getExpiringCertificates(organizationId, daysAhead)` — orgId FIRST
+- `createAction(InsertCaseAction)` — not `createCaseAction`
+- `getCaseContacts(caseId, organizationId)` — orgId required
+- `generateEmailDraft(storage, caseId, organizationId, request)` — storage is first arg
+- `sendEmail({to, subject, body, html?})` — no `toName` field
+- `logAuditEvent(...)` from `services/auditLogger` — not `storage.createAuditEvent`
+
+### RTW Plan Status Notes
+- `rtwPlans.status` is document approval: `draft/pending/approved/rejected/modification_requested`
+- NOT RTW workflow states — those live in `workerCases.clinicalStatusJson.rtwPlanStatus`
+
+### Model Used (UPDATED — Session 91 end)
+- Agents use **Claude CLI subprocess** (`claude -p "..."`) — Max plan OAuth, NO API KEY
+- base-agent.ts: `execFile("claude", ["-p", prompt, "--output-format", "text"])`
+- Each agent pre-gathers read context directly, passes only write tools to Claude CLI
+- Claude returns JSON action plan → agent executes write actions
+- Commit: `8d88476`
+
+### Next Steps
+1. **Run db:push** — start PostgreSQL and apply `agent_jobs` + `agent_actions` tables
+2. **End-to-end test** — trigger coordinator agent manually via `POST /api/agents/briefing` with a demo org
+3. **Agent action log UI** — client-side page showing plain-English reasoning per case (the demo "wow" moment)
+4. **RTW PDF generator** — Paul to provide sample RTW plan documents for PDF template
+5. **BullMQ queue** (Phase 4) — Redis + worker process for multi-tenant scale
+
+### Worktrees (prunable, can ignore)
+- feature/onboarding: /mnt/c/Dev/worktrees/onboarding
+- Several Windows-path worktrees marked prunable
+
+### Session 54 Notes (Previous)
+---
+## Session 54 - 19 Feb 2026
+
+### Completed
+- **WSL Clawdbot fully operational** — both Telegram (@Gomatego_bot) and Discord (@OpenClaw Bot) working
+- **IPv6 crash fix** — WSL had IPv6 enabled but unreachable, causing Node.js fetch crashes. Disabled via sysctl + /etc/sysctl.conf + startup script
+- **Migrated clawdbot config** — Ported from Windows (.clawdbot) + OpenClaw (.openclaw) configs to WSL .clawdbot/clawdbot.json
+- **Discord token recovered** — Found in old .openclaw/openclaw.json, wired into .clawdbot config
+- **Context pruning + compaction config** — Ported from openclaw: cache-ttl mode, memory flush, reserve tokens
+- **Preventli-web agent** — Configured and bound to Discord channel
+- **Session auto-reset** — 4 hour idle timeout configured
+- **Unified memory review** — Full audit completed (see findings below)
+
+### Unified Memory System Findings (CRITICAL)
+The memory-unified plugin is **fully built** but **not wired into clawdbot**:
+- **Plugin code**: /home/paul_clawdbot/dev/clawdbot/extensions/memory-unified/ (132K lines, 31 files)
+- **Config missing**: .clawdbot/clawdbot.json has NO plugins.slots section, only memory-core enabled
+- **What's needed**:
+  1. Compile memory-unified TypeScript extension
+  2. Add plugins.slots.memory = "memory-unified" to config
+  3. Add memory-unified to plugin entries with full config
+  4. Initialize databases in correct location
+  5. Sync memory files to consistent workspace
+- **Reference config**: .openclaw/openclaw.json has the correct wiring (plugins.slots.memory = "memory-unified")
+- **Databases**: memory-search-fts5.db (9.8MB active), memory-unified-analytics.db (94.8MB), but .openclaw/*.db empty
+
+### WSL Critical Fix (REMEMBER THIS)
+- **IPv6 must be disabled in WSL** — causes clawdbot gateway crashes
+- Fix: `sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1`
+- Persistent: Added to /etc/sysctl.conf and start-wsl-gateway.sh
+- Symptoms: "connect ENETUNREACH 2001:67c:4e8:f004::9:443" + "TypeError: fetch failed"
+
+### Known Issues
+- **Telegram context overflow** — Bot accumulates too much context, hits "prompt too large" error. Needs proper context windowing via memory-unified
+- **Bot self-restart crashes** — Config changes trigger SIGUSR1 restart → AbortError crash. commands.restart toggled between true/false during session
+- **Discord channels unresolved** — Some configured channel IDs don't exist in guilds (stale config)
 
 ### Environment
-- PRIMARY DEV: WSL Ubuntu-24.04 ONLY — NO Windows paths
-- Code path: /home/paul_clawdbot/dev/gpnet3 (~/dev/gpnet3)
-- Branch: main (commit 15d4666)
-- Dev server: port 5000 (run `npm run dev` from WSL)
-- Clawdbot: port 18789 (auto-starts on Windows login)
-- C Drive: ~31.89 GB free
-- WSL lives on: D:\wsl\Ubuntu-24.04
+- PRIMARY DEV: WSL Ubuntu-24.04 ONLY
+- Code path: ~/dev/gpnet3 (/home/paul_clawdbot/dev/gpnet3)
+- Clawdbot config: /home/paul_clawdbot/.clawdbot/clawdbot.json
+- Old openclaw config: /home/paul_clawdbot/.openclaw/openclaw.json (reference for memory-unified)
+- Clawdbot: port 18789 (auto-starts via tmux)
+- Branch: main
 
-### Pending Tasks (Priority Order)
-1. **Financial/Risk/Contacts tabs** - empty tabs despite data in Summary (HIGH)
-2. Fix clawdbot Telegram: `cp /mnt/c/Users/Paul/.clawdbot/clawdbot.json ~/.clawdbot/clawdbot.json`
-3. Set up clawdbot Discord
-4. Onboarding Course: RTW Coordinator workflow walkthrough
-5. Natalie remote access (tunnel blocked by Cloudflare Warp)
-
-### Active Worktrees (may need cleanup)
-- C:/Dev/gpnet3-dashboard-fix [fix/dashboard-issues]
-- C:/Dev/gpnet3-summary-fix [fix/summary-improvements]
-- C:/Dev/gpnet3-testing [fix/testing-improvements]
-- C:/Dev/worktrees/missing-info-prompts [feature/missing-info-prompts]
-- C:/Dev/worktrees/presentations-work [feature/presentations-work]
+### Next Session Priority
+1. **Wire up unified memory to clawdbot** (use /gsd for structured execution)
+   - Compile extension → install → wire config → init databases → verify
+2. **Financial/Risk/Contacts tabs** — empty tabs despite data in Summary (HIGH)
+3. **Onboarding Course** — RTW Coordinator workflow walkthrough
+4. **Sales Platform spec** — Product spec for Andrew's Sales Performance & Accountability Platform received (saved in conversation, needs to be filed)
 
 ### Credentials
 - Admin: admin@gpnet.local / ChangeMe123!

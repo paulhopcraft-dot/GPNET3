@@ -638,6 +638,7 @@ export interface GeneratedDocument {
 export const workerCases = pgTable("worker_cases", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   organizationId: varchar("organization_id").notNull(), // Added in migration 0003 - tenant isolation
+  workerId: varchar("worker_id"),                       // links to normalized workers table (nullable for existing cases)
   workerName: text("worker_name").notNull(),
   company: text("company").notNull(),
   dateOfInjury: timestamp("date_of_injury").notNull(),
@@ -1906,8 +1907,34 @@ export const insertRTWApprovalSchema = createInsertSchema(rtwApprovals).omit({
 // Pre-Employment Health Checks Module
 // =============================================================================
 
+// ============================================
+// WORKERS TABLE
+// Normalized worker identity — linked to cases, assessments, bookings
+// ============================================
+export const workers = pgTable("workers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").references(() => organizations.id),
+  name: text("name").notNull(),
+  email: text("email"),
+  phone: text("phone"),
+  dateOfBirth: timestamp("date_of_birth"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type WorkerDB = typeof workers.$inferSelect;
+export type InsertWorker = typeof workers.$inferInsert;
+
+export const insertWorkerSchema = createInsertSchema(workers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Pre-Employment Assessment Status Types
 export type PreEmploymentAssessmentStatus =
+  | "created"   // assessment created, not yet sent to worker
+  | "sent"      // questionnaire link emailed to worker
   | "pending"
   | "scheduled"
   | "in_progress"
@@ -1928,12 +1955,14 @@ export type PreEmploymentClearanceLevel =
   | "cleared_conditional"
   | "cleared_with_restrictions"
   | "not_cleared"
-  | "pending_review";
+  | "pending_review"
+  | "requires_review";   // AI-flagged: needs human review before employer notification
 
 // Pre-Employment Health Assessments
 export const preEmploymentAssessments = pgTable("pre_employment_assessments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   organizationId: varchar("organization_id").notNull().references(() => organizations.id),
+  workerId: varchar("worker_id").references(() => workers.id), // normalized worker record
 
   // Candidate Information
   candidateName: text("candidate_name").notNull(),
@@ -1966,6 +1995,15 @@ export const preEmploymentAssessments = pgTable("pre_employment_assessments", {
   reportUrl: text("report_url"),
   certificateUrl: text("certificate_url"),
   notes: text("notes"),
+
+  // Self-service workflow (magic link questionnaire)
+  accessToken: varchar("access_token", { length: 64 }).unique(), // magic link token for /check/:token
+  jobDescription: text("job_description"),               // role physical demands for AI analysis
+  questionnaireResponses: jsonb("questionnaire_responses").$type<Record<string, unknown> | null>(),
+  sentAt: timestamp("sent_at"),                          // when questionnaire link was emailed
+  employerNotifiedAt: timestamp("employer_notified_at"), // when report was sent to employer
+  reportJson: jsonb("report_json").$type<Record<string, unknown> | null>(), // AI-generated report
+  alertSent: boolean("alert_sent").default(false),       // flagged to jacinta@preventli.ai
 
   // Tracking
   createdBy: varchar("created_by").references(() => users.id),
@@ -2238,4 +2276,63 @@ export type InsertAgentAction = typeof agentActions.$inferInsert;
 export const insertAgentActionSchema = createInsertSchema(agentActions).omit({
   id: true,
   executedAt: true,
+});
+
+// ============================================
+// TELEHEALTH BOOKINGS TABLE
+// ============================================
+export type TelehealthServiceType = "pre_employment" | "injury" | "mental_health" | "exit" | "wellbeing";
+export type TelehealthAppointmentType = "video" | "face_to_face";
+export type TelehealthBookingStatus = "pending" | "confirmed" | "completed" | "cancelled";
+
+export const telehealthBookings = pgTable("telehealth_bookings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").references(() => organizations.id),
+  caseId: varchar("case_id"),               // nullable — booking may not be linked to a case
+  workerId: varchar("worker_id").references(() => workers.id),
+  workerName: text("worker_name").notNull(),
+  workerEmail: text("worker_email"),
+  employerName: text("employer_name"),
+  serviceType: text("service_type").$type<TelehealthServiceType>(),
+  appointmentType: text("appointment_type").notNull().$type<TelehealthAppointmentType>(),
+  employerNotes: text("employer_notes"),
+  requestReferral: boolean("request_referral").default(false),
+  status: text("status").notNull().default("pending").$type<TelehealthBookingStatus>(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type TelehealthBookingDB = typeof telehealthBookings.$inferSelect;
+export type InsertTelehealthBooking = typeof telehealthBookings.$inferInsert;
+
+export const insertTelehealthBookingSchema = createInsertSchema(telehealthBookings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// ============================================
+// CASE DOCUMENTS TABLE
+// ============================================
+export type DocumentSource = "email" | "portal_upload" | "freshdesk";
+
+export const caseDocuments = pgTable("case_documents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  caseId: varchar("case_id"),               // nullable — document may belong to worker not case
+  workerId: varchar("worker_id").references(() => workers.id),
+  documentType: text("document_type"),      // medical_certificate, physio_report, xray, etc.
+  fileUrl: text("file_url").notNull(),
+  fileName: text("file_name"),
+  source: text("source").$type<DocumentSource>(),
+  extractedData: jsonb("extracted_data").$type<Record<string, unknown> | null>(), // AI-extracted fields
+  notes: text("notes"),
+  uploadedAt: timestamp("uploaded_at").defaultNow(),
+});
+
+export type CaseDocumentDB = typeof caseDocuments.$inferSelect;
+export type InsertCaseDocument = typeof caseDocuments.$inferInsert;
+
+export const insertCaseDocumentSchema = createInsertSchema(caseDocuments).omit({
+  id: true,
+  uploadedAt: true,
 });

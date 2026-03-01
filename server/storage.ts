@@ -50,6 +50,13 @@ import type {
   InsertCaseEmail,
   EmailAttachmentDB,
   InsertEmailAttachment,
+  WorkerDB,
+  InsertWorker,
+  TelehealthBookingDB,
+  InsertTelehealthBooking,
+  TelehealthBookingStatus,
+  CaseDocumentDB,
+  InsertCaseDocument,
 } from "@shared/schema";
 import { db } from "./db";
 import {
@@ -81,6 +88,9 @@ import {
   preEmploymentHealthHistory,
   caseEmails,
   emailAttachments,
+  workers,
+  telehealthBookings,
+  caseDocuments,
   type RTWPlanDB,
   type RTWPlanVersionDB,
   type RTWPlanDutyDB,
@@ -625,6 +635,31 @@ export interface IStorage {
   getPreEmploymentHealthHistory(assessmentId: string): Promise<PreEmploymentHealthHistoryDB | null>;
   savePreEmploymentHealthHistory(data: InsertPreEmploymentHealthHistory): Promise<PreEmploymentHealthHistoryDB>;
   getPreEmploymentDashboardStats(organizationId: string): Promise<{ totalAssessments: number; pendingAssessments: number; completedAssessments: number; clearedCandidates: number; rejectedCandidates: number; assessmentsByType: Record<string, number>; clearanceLevelBreakdown: Record<string, number> }>;
+
+  // Self-service assessment workflow (magic link)
+  getAssessmentByToken(token: string): Promise<PreEmploymentAssessmentDB | null>;
+  updateAssessmentResponses(id: string, responses: Record<string, unknown>): Promise<void>;
+  updateAssessmentReport(id: string, reportJson: Record<string, unknown>, clearanceLevel: PreEmploymentClearanceLevel): Promise<void>;
+  markAssessmentEmployerNotified(id: string): Promise<void>;
+
+  // Workers
+  createWorker(data: InsertWorker): Promise<WorkerDB>;
+  getWorkerById(id: string): Promise<WorkerDB | null>;
+  getWorkerByEmail(email: string): Promise<WorkerDB | null>;
+  upsertWorkerByEmail(data: InsertWorker): Promise<WorkerDB>;
+  listWorkers(organizationId: string): Promise<WorkerDB[]>;
+  getWorkerProfile(id: string): Promise<{ worker: WorkerDB; assessments: PreEmploymentAssessmentDB[]; bookings: TelehealthBookingDB[] } | null>;
+
+  // Telehealth Bookings
+  createTelehealthBooking(data: InsertTelehealthBooking): Promise<TelehealthBookingDB>;
+  getTelehealthBooking(id: string): Promise<TelehealthBookingDB | null>;
+  listTelehealthBookings(organizationId: string): Promise<TelehealthBookingDB[]>;
+  updateTelehealthBookingStatus(id: string, status: TelehealthBookingStatus): Promise<TelehealthBookingDB>;
+
+  // Case Documents
+  createCaseDocument(data: InsertCaseDocument): Promise<CaseDocumentDB>;
+  getCaseDocuments(caseId: string): Promise<CaseDocumentDB[]>;
+  getWorkerDocuments(workerId: string): Promise<CaseDocumentDB[]>;
 
   // Inbound Email System - Direct email ingestion
   createCaseEmail(email: InsertCaseEmail): Promise<CaseEmailDB>;
@@ -3548,6 +3583,54 @@ class DbStorage implements IStorage {
   }
 
   // ============================================================================
+  // Self-service Assessment Workflow (magic link)
+  // ============================================================================
+
+  async getAssessmentByToken(token: string): Promise<PreEmploymentAssessmentDB | null> {
+    const [row] = await db
+      .select()
+      .from(preEmploymentAssessments)
+      .where(eq(preEmploymentAssessments.accessToken, token))
+      .limit(1);
+    return row ?? null;
+  }
+
+  async updateAssessmentResponses(id: string, responses: Record<string, unknown>): Promise<void> {
+    await db
+      .update(preEmploymentAssessments)
+      .set({
+        questionnaireResponses: responses,
+        status: "in_progress",
+        updatedAt: new Date(),
+      })
+      .where(eq(preEmploymentAssessments.id, id));
+  }
+
+  async updateAssessmentReport(
+    id: string,
+    reportJson: Record<string, unknown>,
+    clearanceLevel: PreEmploymentClearanceLevel,
+  ): Promise<void> {
+    await db
+      .update(preEmploymentAssessments)
+      .set({
+        reportJson,
+        clearanceLevel,
+        status: "completed",
+        completedDate: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(preEmploymentAssessments.id, id));
+  }
+
+  async markAssessmentEmployerNotified(id: string): Promise<void> {
+    await db
+      .update(preEmploymentAssessments)
+      .set({ employerNotifiedAt: new Date(), updatedAt: new Date() })
+      .where(eq(preEmploymentAssessments.id, id));
+  }
+
+  // ============================================================================
   // Inbound Email System
   // ============================================================================
 
@@ -3608,6 +3691,119 @@ class DbStorage implements IStorage {
       ))
       .limit(1);
     return row ?? null;
+  }
+
+  // ============================================================================
+  // WORKERS
+  // ============================================================================
+
+  async createWorker(data: InsertWorker): Promise<WorkerDB> {
+    const [created] = await db.insert(workers).values(data).returning();
+    return created;
+  }
+
+  async getWorkerById(id: string): Promise<WorkerDB | null> {
+    const [row] = await db.select().from(workers).where(eq(workers.id, id)).limit(1);
+    return row ?? null;
+  }
+
+  async getWorkerByEmail(email: string): Promise<WorkerDB | null> {
+    const [row] = await db.select().from(workers).where(eq(workers.email, email)).limit(1);
+    return row ?? null;
+  }
+
+  async upsertWorkerByEmail(data: InsertWorker): Promise<WorkerDB> {
+    if (!data.email) return this.createWorker(data);
+    const existing = await this.getWorkerByEmail(data.email);
+    if (existing) {
+      const [updated] = await db
+        .update(workers)
+        .set({ name: data.name, phone: data.phone, updatedAt: new Date() })
+        .where(eq(workers.id, existing.id))
+        .returning();
+      return updated;
+    }
+    return this.createWorker(data);
+  }
+
+  async listWorkers(organizationId: string): Promise<WorkerDB[]> {
+    return db.select().from(workers).where(eq(workers.organizationId, organizationId));
+  }
+
+  async getWorkerProfile(id: string): Promise<{
+    worker: WorkerDB;
+    assessments: import("@shared/schema").PreEmploymentAssessmentDB[];
+    bookings: TelehealthBookingDB[];
+  } | null> {
+    const worker = await this.getWorkerById(id);
+    if (!worker) return null;
+    const assessments = await db
+      .select()
+      .from(preEmploymentAssessments)
+      .where(eq(preEmploymentAssessments.workerId, id))
+      .orderBy(desc(preEmploymentAssessments.createdAt));
+    const bookingRows = await db
+      .select()
+      .from(telehealthBookings)
+      .where(eq(telehealthBookings.workerId, id))
+      .orderBy(desc(telehealthBookings.createdAt));
+    return { worker, assessments, bookings: bookingRows };
+  }
+
+  // ============================================================================
+  // TELEHEALTH BOOKINGS
+  // ============================================================================
+
+  async createTelehealthBooking(data: InsertTelehealthBooking): Promise<TelehealthBookingDB> {
+    const [created] = await db.insert(telehealthBookings).values(data).returning();
+    return created;
+  }
+
+  async getTelehealthBooking(id: string): Promise<TelehealthBookingDB | null> {
+    const [row] = await db.select().from(telehealthBookings).where(eq(telehealthBookings.id, id)).limit(1);
+    return row ?? null;
+  }
+
+  async listTelehealthBookings(organizationId: string): Promise<TelehealthBookingDB[]> {
+    return db
+      .select()
+      .from(telehealthBookings)
+      .where(eq(telehealthBookings.organizationId, organizationId))
+      .orderBy(desc(telehealthBookings.createdAt));
+  }
+
+  async updateTelehealthBookingStatus(id: string, status: TelehealthBookingStatus): Promise<TelehealthBookingDB> {
+    const [updated] = await db
+      .update(telehealthBookings)
+      .set({ status, updatedAt: new Date() })
+      .where(eq(telehealthBookings.id, id))
+      .returning();
+    return updated;
+  }
+
+  // ============================================================================
+  // CASE DOCUMENTS
+  // ============================================================================
+
+  async createCaseDocument(data: InsertCaseDocument): Promise<CaseDocumentDB> {
+    const [created] = await db.insert(caseDocuments).values(data).returning();
+    return created;
+  }
+
+  async getCaseDocuments(caseId: string): Promise<CaseDocumentDB[]> {
+    return db
+      .select()
+      .from(caseDocuments)
+      .where(eq(caseDocuments.caseId, caseId))
+      .orderBy(desc(caseDocuments.uploadedAt));
+  }
+
+  async getWorkerDocuments(workerId: string): Promise<CaseDocumentDB[]> {
+    return db
+      .select()
+      .from(caseDocuments)
+      .where(eq(caseDocuments.workerId, workerId))
+      .orderBy(desc(caseDocuments.uploadedAt));
   }
 }
 
