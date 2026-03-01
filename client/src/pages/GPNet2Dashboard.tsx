@@ -7,6 +7,7 @@ import { CaseDetailPanel } from "@/components/CaseDetailPanel";
 import { AIAssistant } from "@/components/ai-assistant";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { DashboardStats, type StatFilter } from "@/components/dashboard-stats";
 import { ActionQueueCard } from "@/components/ActionQueueCard";
 import { useToast } from "@/hooks/use-toast";
@@ -15,6 +16,30 @@ import { queryClient, fetchWithCsrf } from "@/lib/queryClient";
 import type { WorkerCase, PaginatedCasesResponse } from "@shared/schema";
 import { isLegitimateCase, getSurname } from "@shared/schema";
 import { Link } from "react-router-dom";
+
+interface WorkerSummary {
+  id: string;
+  name: string;
+  email: string | null;
+  latestAssessmentStatus: string | null;
+  latestClearanceLevel: string | null;
+  latestPositionTitle: string | null;
+  nextCheckDue: string | null;
+  recheckUrgency: "overdue" | "due_soon" | "upcoming" | "pending" | "not_applicable" | null;
+}
+
+const CLEARANCE_BADGE: Record<string, string> = {
+  cleared_unconditional: "bg-green-100 text-green-800",
+  cleared_conditional: "bg-teal-100 text-teal-800",
+  cleared_with_restrictions: "bg-orange-100 text-orange-800",
+  not_cleared: "bg-red-100 text-red-800",
+  requires_review: "bg-yellow-100 text-yellow-800",
+};
+
+function fmtDate(s: string | null | undefined) {
+  if (!s) return null;
+  return new Date(s).toLocaleDateString("en-AU", { day: "numeric", month: "short" });
+}
 
 export default function GPNet2Dashboard() {
   const { logout } = useAuth();
@@ -27,10 +52,16 @@ export default function GPNet2Dashboard() {
 
   const { data: paginatedData, isLoading } = useQuery<PaginatedCasesResponse>({
     queryKey: ["/api/gpnet2/cases?limit=200"],
-    refetchInterval: 120_000, // Refresh every 2 minutes
-    staleTime: 60_000, // Cache for 1 minute
+    refetchInterval: 120_000,
+    staleTime: 60_000,
   });
   const cases = paginatedData?.cases ?? [];
+
+  const { data: workersData } = useQuery<{ workers: WorkerSummary[] }>({
+    queryKey: ["workers-summary"],
+    queryFn: () => fetch("/api/workers", { credentials: "include" }).then(r => r.json()),
+    staleTime: 60_000,
+  });
 
 
   const syncMutation = useMutation({
@@ -142,6 +173,26 @@ export default function GPNet2Dashboard() {
       return surnameA.localeCompare(surnameB);
     });
   }, [cases, selectedCompany, searchQuery, statFilter]);
+
+  const allWorkers = workersData?.workers ?? [];
+
+  // Show workers when: search matches them, OR they are overdue/due_soon (always visible)
+  const filteredWorkers = useMemo(() => {
+    const overdueDueSoon = allWorkers.filter(
+      w => w.recheckUrgency === "overdue" || w.recheckUrgency === "due_soon"
+    );
+    if (!searchQuery) return overdueDueSoon;
+    const q = searchQuery.toLowerCase();
+    const matched = allWorkers.filter(
+      w => w.name.toLowerCase().includes(q) ||
+           w.email?.toLowerCase().includes(q) ||
+           w.latestPositionTitle?.toLowerCase().includes(q)
+    );
+    // Union: search matches + always-show overdue (deduped)
+    const ids = new Set(matched.map(w => w.id));
+    for (const w of overdueDueSoon) if (!ids.has(w.id)) matched.push(w);
+    return matched;
+  }, [allWorkers, searchQuery]);
 
   const availableCompanies = useMemo(() => {
     const companySet = new Set(
@@ -313,6 +364,51 @@ export default function GPNet2Dashboard() {
               <ThemeToggle className="hidden lg:block" />
             </div>
           </div>
+
+          {/* New Starters / Pre-Employment — shown when search matches workers or overdue */}
+          {filteredWorkers.length > 0 && (
+            <div className="mb-3 rounded-xl border border-border bg-card overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-2 bg-muted border-b border-border">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  New Starters · Pre-Employment ({filteredWorkers.length})
+                </span>
+                <Link to="/workers-list" className="text-xs text-primary hover:underline">View all</Link>
+              </div>
+              <div className="divide-y divide-border">
+                {filteredWorkers.map(w => {
+                  const urgency = w.recheckUrgency;
+                  const urgBadge =
+                    urgency === "overdue" ? "bg-red-100 text-red-800" :
+                    urgency === "due_soon" ? "bg-amber-100 text-amber-800" : null;
+                  return (
+                    <Link
+                      key={w.id}
+                      to={`/workers/${w.id}`}
+                      className="flex items-center gap-4 px-4 py-2.5 hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <span className="font-medium text-sm">{w.name}</span>
+                        <span className="text-xs text-muted-foreground ml-2">{w.latestPositionTitle ?? "—"}</span>
+                      </div>
+                      {w.latestClearanceLevel && (
+                        <Badge className={`text-xs shrink-0 ${CLEARANCE_BADGE[w.latestClearanceLevel] ?? "bg-gray-100 text-gray-600"}`}>
+                          {w.latestClearanceLevel.replace(/_/g, " ")}
+                        </Badge>
+                      )}
+                      {urgBadge && w.nextCheckDue && (
+                        <Badge className={`text-xs shrink-0 ${urgBadge}`}>
+                          {urgency === "overdue" ? "OVERDUE" : "due " + fmtDate(w.nextCheckDue)}
+                        </Badge>
+                      )}
+                      {!w.latestClearanceLevel && (
+                        <span className="text-xs text-muted-foreground shrink-0">no check yet</span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Main Content: Cases Table + Action Queue Sidebar */}
           <div className="flex-1 flex gap-4 min-h-0">
