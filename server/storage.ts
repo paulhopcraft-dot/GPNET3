@@ -629,7 +629,7 @@ export interface IStorage {
   getPreEmploymentAssessments(organizationId: string, filters?: { status?: PreEmploymentAssessmentStatus; assessmentType?: string; limit?: number; offset?: number }): Promise<PreEmploymentAssessmentDB[]>;
   createPreEmploymentAssessment(data: InsertPreEmploymentAssessment): Promise<PreEmploymentAssessmentDB>;
   getPreEmploymentAssessmentById(assessmentId: string, organizationId: string): Promise<PreEmploymentAssessmentDB | null>;
-  updatePreEmploymentAssessmentStatus(assessmentId: string, organizationId: string, updates: { status: PreEmploymentAssessmentStatus; clearanceLevel?: PreEmploymentClearanceLevel; completedDate?: string; notes?: string }): Promise<PreEmploymentAssessmentDB | null>;
+  updatePreEmploymentAssessmentStatus(assessmentId: string, organizationId: string, updates: { status: PreEmploymentAssessmentStatus; clearanceLevel?: PreEmploymentClearanceLevel; completedDate?: string; notes?: string; sentAt?: Date }): Promise<PreEmploymentAssessmentDB | null>;
   getPreEmploymentAssessmentComponents(assessmentId: string): Promise<PreEmploymentAssessmentComponentDB[]>;
   createPreEmploymentAssessmentComponent(data: InsertPreEmploymentAssessmentComponent): Promise<PreEmploymentAssessmentComponentDB>;
   getPreEmploymentHealthHistory(assessmentId: string): Promise<PreEmploymentHealthHistoryDB | null>;
@@ -3394,6 +3394,7 @@ class DbStorage implements IStorage {
       clearanceLevel?: PreEmploymentClearanceLevel;
       completedDate?: string;
       notes?: string;
+      sentAt?: Date;
     }
   ): Promise<PreEmploymentAssessmentDB | null> {
     const updateData: any = {
@@ -3411,6 +3412,10 @@ class DbStorage implements IStorage {
 
     if (updates.notes) {
       updateData.notes = updates.notes;
+    }
+
+    if (updates.sentAt) {
+      updateData.sentAt = updates.sentAt;
     }
 
     const [assessment] = await db.update(preEmploymentAssessments)

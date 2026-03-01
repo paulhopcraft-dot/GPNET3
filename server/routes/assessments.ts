@@ -104,12 +104,11 @@ If you have any questions, please contact us.
 — Preventli Health Team`,
     });
 
-    // Update sentAt and status
     await storage.updatePreEmploymentAssessmentStatus(id, organizationId, {
       status: "sent",
+      sentAt: new Date(),
     });
 
-    // Also update sentAt directly (the existing method only handles status fields)
     logger.info("Questionnaire link sent", { assessmentId: id, to: assessment.candidateEmail });
     res.json({ success: true, sentTo: assessment.candidateEmail });
   } catch (error) {
