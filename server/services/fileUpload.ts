@@ -4,11 +4,15 @@ import fs from "fs";
 import { randomUUID } from "crypto";
 import { logger } from "../lib/logger";
 
-// Ensure upload directory exists
+// Ensure upload directories exist
 const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "logos");
+const JD_UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "job-descriptions");
 
 if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+}
+if (!fs.existsSync(JD_UPLOAD_DIR)) {
+  fs.mkdirSync(JD_UPLOAD_DIR, { recursive: true });
 }
 
 // Configure storage
@@ -72,4 +76,47 @@ export function getFilenameFromUrl(url: string): string | null {
   if (!url) return null;
   const match = url.match(/\/uploads\/logos\/([^/]+)$/);
   return match ? match[1] : null;
+}
+
+// ─── Job Description Upload ───────────────────────────────────────────────────
+
+const jdStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    cb(null, JD_UPLOAD_DIR);
+  },
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const filename = `${randomUUID()}${ext}`;
+    cb(null, filename);
+  },
+});
+
+const jdFileFilter = (
+  _req: Express.Request,
+  file: Express.Multer.File,
+  cb: multer.FileFilterCallback
+) => {
+  const allowedTypes = [
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ];
+  const allowedExts = [".pdf", ".doc", ".docx"];
+  const ext = path.extname(file.originalname).toLowerCase();
+
+  if (allowedTypes.includes(file.mimetype) || allowedExts.includes(ext)) {
+    cb(null, true);
+  } else {
+    cb(new Error("Only PDF, DOC, or DOCX files are allowed for job descriptions."));
+  }
+};
+
+export const jdUpload = multer({
+  storage: jdStorage,
+  fileFilter: jdFileFilter,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
+});
+
+export function getJdFileUrl(filename: string): string {
+  return `/uploads/job-descriptions/${filename}`;
 }

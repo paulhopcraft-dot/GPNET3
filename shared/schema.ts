@@ -2000,6 +2000,7 @@ export const preEmploymentAssessments = pgTable("pre_employment_assessments", {
   // Self-service workflow (magic link questionnaire)
   accessToken: varchar("access_token", { length: 64 }).unique(), // magic link token for /check/:token
   jobDescription: text("job_description"),               // role physical demands for AI analysis
+  jobDescriptionFileUrl: text("job_description_file_url"), // uploaded JD attachment (PDF/Word)
   questionnaireResponses: jsonb("questionnaire_responses").$type<Record<string, unknown> | null>(),
   sentAt: timestamp("sent_at"),                          // when questionnaire link was emailed
   employerNotifiedAt: timestamp("employer_notified_at"), // when report was sent to employer

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageLayout } from "@/components/PageLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { UserPlus, Send, CheckCircle, ArrowLeft, Loader2 } from "lucide-react";
+import { UserPlus, Send, CheckCircle, ArrowLeft, Loader2, Paperclip, X } from "lucide-react";
 
 interface AssessmentDraft {
   id: string;
@@ -20,11 +20,13 @@ interface AssessmentDraft {
 
 export default function NewAssessmentPage() {
   const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<"form" | "created" | "sent">("form");
   const [assessment, setAssessment] = useState<AssessmentDraft | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [jdFile, setJdFile] = useState<File | null>(null);
 
   const [fields, setFields] = useState({
     candidateName: "",
@@ -38,16 +40,41 @@ export default function NewAssessmentPage() {
     setFields((prev) => ({ ...prev, [key]: value }));
   }
 
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    setJdFile(file);
+  }
+
+  function clearFile() {
+    setJdFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    // Require at least a text description or a file
+    if (!fields.jobDescription.trim() && !jdFile) {
+      setError("Please add a role description or attach a job description document.");
+      return;
+    }
+
     setSubmitting(true);
     try {
+      const formData = new FormData();
+      formData.append("candidateName", fields.candidateName);
+      formData.append("candidateEmail", fields.candidateEmail);
+      formData.append("positionTitle", fields.positionTitle);
+      if (fields.startDate) formData.append("startDate", fields.startDate);
+      if (fields.jobDescription.trim()) formData.append("jobDescription", fields.jobDescription);
+      if (jdFile) formData.append("jobDescriptionFile", jdFile);
+
       const res = await fetch("/api/assessments", {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(fields),
+        body: formData,
+        // No Content-Type header — browser sets multipart boundary automatically
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -56,8 +83,8 @@ export default function NewAssessmentPage() {
       const data = await res.json();
       setAssessment(data.assessment);
       setStep("created");
-    } catch (err: any) {
-      setError(err.message ?? "Something went wrong");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setSubmitting(false);
     }
@@ -78,11 +105,19 @@ export default function NewAssessmentPage() {
         throw new Error(body.error ?? `Request failed (${res.status})`);
       }
       setStep("sent");
-    } catch (err: any) {
-      setError(err.message ?? "Something went wrong");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setSending(false);
     }
+  }
+
+  function resetForm() {
+    setStep("form");
+    setAssessment(null);
+    setJdFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    setFields({ candidateName: "", candidateEmail: "", positionTitle: "", startDate: "", jobDescription: "" });
   }
 
   if (step === "sent") {
@@ -107,13 +142,7 @@ export default function NewAssessmentPage() {
                 <Button variant="outline" onClick={() => navigate("/checks")}>
                   Back to Checks
                 </Button>
-                <Button
-                  onClick={() => {
-                    setStep("form");
-                    setAssessment(null);
-                    setFields({ candidateName: "", candidateEmail: "", positionTitle: "", startDate: "", jobDescription: "" });
-                  }}
-                >
+                <Button onClick={resetForm}>
                   <UserPlus className="h-4 w-4 mr-2" />
                   New Assessment
                 </Button>
@@ -151,6 +180,15 @@ export default function NewAssessmentPage() {
                   <p className="text-muted-foreground">Position</p>
                   <p className="font-medium">{assessment.positionTitle}</p>
                 </div>
+                {jdFile && (
+                  <div className="col-span-2">
+                    <p className="text-muted-foreground">Job Description</p>
+                    <p className="font-medium flex items-center gap-1.5">
+                      <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
+                      {jdFile.name}
+                    </p>
+                  </div>
+                )}
               </div>
 
               {error && <p className="text-sm text-destructive">{error}</p>}
@@ -234,15 +272,70 @@ export default function NewAssessmentPage() {
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="jobDescription">Job Description / Physical Demands</Label>
-                <Textarea
-                  id="jobDescription"
-                  value={fields.jobDescription}
-                  onChange={(e) => set("jobDescription", e.target.value)}
-                  placeholder="Describe the role's physical requirements, lifting limits, environmental conditions, etc."
-                  rows={4}
-                />
+              {/* Job Description — text + file, at least one required */}
+              <div className="space-y-3 rounded-lg border p-4 bg-muted/30">
+                <div>
+                  <Label className="text-sm font-medium">
+                    Job Description / Physical Demands <span className="text-destructive">*</span>
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Provide a description of the role's physical requirements and/or attach the job description document.
+                    At least one is required.
+                  </p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="jobDescription" className="text-xs text-muted-foreground">
+                    Role description (text)
+                  </Label>
+                  <Textarea
+                    id="jobDescription"
+                    value={fields.jobDescription}
+                    onChange={(e) => set("jobDescription", e.target.value)}
+                    placeholder="E.g. Manual handling up to 20kg, standing 8hrs/day, outdoor work, forklift operation…"
+                    rows={3}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="jdFile" className="text-xs text-muted-foreground">
+                    Job description document (PDF, DOC, DOCX — max 10MB)
+                  </Label>
+                  {jdFile ? (
+                    <div className="flex items-center gap-2 text-sm border rounded-md px-3 py-2 bg-background">
+                      <Paperclip className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <span className="flex-1 truncate">{jdFile.name}</span>
+                      <button
+                        type="button"
+                        onClick={clearFile}
+                        className="text-muted-foreground hover:text-destructive transition-colors"
+                        aria-label="Remove file"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      <input
+                        ref={fileInputRef}
+                        id="jdFile"
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        onChange={handleFileChange}
+                        className="hidden"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <Paperclip className="h-4 w-4 mr-2" />
+                        Attach document
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {error && <p className="text-sm text-destructive">{error}</p>}

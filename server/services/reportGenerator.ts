@@ -79,6 +79,7 @@ Pre-Employment Health Assessment Report Request
 Candidate: ${assessment.candidateName}
 Position: ${assessment.positionTitle}
 ${assessment.jobDescription ? `Job Description:\n${assessment.jobDescription}` : ""}
+${assessment.jobDescriptionFileUrl ? `Job Description Document: ${assessment.jobDescriptionFileUrl} (attached by employer)` : ""}
 
 Questionnaire Responses:
 ${JSON.stringify(assessment.questionnaireResponses, null, 2)}

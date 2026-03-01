@@ -4,6 +4,7 @@ import crypto from "crypto";
 import { storage } from "../storage";
 import { authorize, type AuthRequest } from "../middleware/auth";
 import { sendEmail } from "../services/emailService";
+import { jdUpload, getJdFileUrl } from "../services/fileUpload";
 import { createLogger } from "../lib/logger";
 
 const logger = createLogger("AssessmentsRoutes");
@@ -21,13 +22,27 @@ const createAssessmentSchema = z.object({
  * @route POST /api/assessments
  * @desc Create a new pre-employment assessment, upsert worker record
  * @access Private
+ *
+ * Accepts multipart/form-data so the employer can attach a job description
+ * file (PDF/DOC/DOCX) alongside the text fields.
  */
-router.post("/", authorize(), async (req: AuthRequest, res: Response) => {
+router.post("/", authorize(), jdUpload.single("jobDescriptionFile"), async (req: AuthRequest, res: Response) => {
   try {
     const organizationId = req.user!.organizationId;
     const userId = req.user!.id;
 
     const body = createAssessmentSchema.parse(req.body);
+
+    // Require at least a text description OR a file attachment
+    const hasText = !!(body.jobDescription?.trim());
+    const hasFile = !!req.file;
+    if (!hasText && !hasFile) {
+      return res.status(400).json({
+        error: "Please provide a role description or attach a job description document.",
+      });
+    }
+
+    const jobDescriptionFileUrl = hasFile ? getJdFileUrl(req.file!.filename) : undefined;
 
     // Upsert worker record
     const worker = await storage.upsertWorkerByEmail({
@@ -50,6 +65,7 @@ router.post("/", authorize(), async (req: AuthRequest, res: Response) => {
       status: "created",
       accessToken,
       jobDescription: body.jobDescription,
+      jobDescriptionFileUrl,
       createdBy: userId,
     } as Parameters<typeof storage.createPreEmploymentAssessment>[0]);
 
