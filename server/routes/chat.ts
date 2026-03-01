@@ -5,6 +5,8 @@ import { join } from "path";
 import { authorize, type AuthRequest } from "../middleware/auth";
 import { storage } from "../storage";
 import { createLogger } from "../lib/logger";
+import { getCaseCompliance } from "../services/certificateCompliance";
+import { getCaseRTWCompliance } from "../services/rtwCompliance";
 
 const logger = createLogger("ChatRoutes");
 const router: Router = express.Router();
@@ -51,9 +53,60 @@ router.post("/message", authorize(), async (req: AuthRequest, res: Response) => 
     let contextBlock = "";
     if (context?.caseId) {
       try {
-        const workerCase = await storage.getGPNet2CaseById(context.caseId, req.user!.organizationId);
+        const orgId = req.user!.organizationId;
+        // Try org-scoped first; fall back to admin lookup (case is already visible to user)
+        const workerCaseOrg = await storage.getGPNet2CaseById(context.caseId, orgId).catch(() => null);
+        const effectiveOrgId = workerCaseOrg?.organizationId ?? orgId;
+        const workerCase = workerCaseOrg ?? await (storage as any).getGPNet2CaseByIdAdmin?.(context.caseId).catch(() => null);
+        const resolvedOrgId = workerCase?.organizationId ?? orgId;
+        const [certCompliance, rtwCompliance, caseActions] = await Promise.all([
+          getCaseCompliance(storage, context.caseId, resolvedOrgId).catch(() => null),
+          getCaseRTWCompliance(storage, context.caseId, resolvedOrgId).catch(() => null),
+          storage.getActionsByCase(context.caseId, resolvedOrgId).catch(() => []),
+        ]);
+
         if (workerCase) {
-          contextBlock = `\n\n---\nCurrent case context (use this to personalise your response):\n- Worker: ${workerCase.workerName}\n- Company: ${workerCase.company}\n- Work status: ${workerCase.workStatus}\n- Summary: ${workerCase.summary}`;
+          // Certificate status line
+          let certLine = "\n- Certificate: unknown";
+          if (certCompliance) {
+            if (certCompliance.status === "compliant") {
+              certLine = `\n- Certificate: valid (expires in ${certCompliance.daysUntilExpiry ?? "?"} days)`;
+            } else if (certCompliance.status === "certificate_expiring_soon") {
+              certLine = `\n- Certificate: EXPIRING SOON in ${certCompliance.daysUntilExpiry} days — suggest chasing renewal`;
+            } else if (certCompliance.status === "certificate_expired") {
+              certLine = `\n- Certificate: EXPIRED ${certCompliance.daysSinceExpiry} day${certCompliance.daysSinceExpiry !== 1 ? "s" : ""} ago — urgent action needed`;
+            } else if (certCompliance.status === "no_certificate") {
+              certLine = "\n- Certificate: none on file — may need to request one";
+            }
+          }
+
+          // RTW status line
+          let rtwLine = "";
+          if (rtwCompliance && rtwCompliance.status !== "no_plan") {
+            if (rtwCompliance.status === "plan_expired") {
+              rtwLine = `\n- RTW plan: EXPIRED ${rtwCompliance.daysSinceExpiry ?? "?"} days ago — needs immediate update`;
+            } else if (rtwCompliance.status === "plan_expiring_soon") {
+              rtwLine = `\n- RTW plan: expiring in ${rtwCompliance.daysUntilExpiry ?? "?"} days — plan review needed`;
+            } else if (rtwCompliance.status === "plan_compliant") {
+              rtwLine = `\n- RTW plan: active (${rtwCompliance.daysUntilExpiry ?? "?"} days remaining)`;
+            }
+          } else {
+            rtwLine = `\n- RTW plan: ${workerCase.rtwPlanStatus ?? "not started"}`;
+          }
+
+          // Overdue actions
+          const overdueActions = caseActions.filter(a => {
+            if (a.status === "done") return false;
+            if (!a.dueDate) return false;
+            return new Date(a.dueDate) < new Date();
+          });
+          const actionLine = overdueActions.length > 0
+            ? `\n- Overdue actions: ${overdueActions.length} (${overdueActions.map(a => a.type.replace(/_/g, " ")).join(", ")})`
+            : caseActions.filter(a => a.status !== "done").length > 0
+            ? `\n- Open actions: ${caseActions.filter(a => a.status !== "done").length} pending`
+            : "";
+
+          contextBlock = `\n\n---\n⚠ CONTEXT MODE: You are now assisting a Preventli CLINICIAN or ADMIN, NOT a patient. Override your "lead with a question" rule — instead, directly summarise the case status below and highlight any urgent issues. Do NOT ask who they are. Do NOT ask for more context. Jump straight to what matters.\n\nCase on screen:\n- Worker: ${workerCase.workerName}\n- Company: ${workerCase.company}\n- Work status: ${workerCase.workStatus}${certLine}${rtwLine}${actionLine}\n- Summary: ${workerCase.summary ?? "no summary on file"}\n\nIf the certificate is expired or expiring, flag it first. If actions are overdue, say so. If a telehealth consult would help resolve something, end with [SUGGEST_BOOKING].`;
         }
       } catch {
         // context load failure is non-fatal
@@ -96,7 +149,7 @@ router.post("/message", authorize(), async (req: AuthRequest, res: Response) => 
             ? `\n- Clearance status: ${latest.clearanceLevel.replace(/_/g, " ")} (${latestAssessment?.positionTitle ?? "no role on file"})`
             : "\n- Clearance status: no completed assessment on file";
 
-          contextBlock = `\n\n---\nWorker context (use this to personalise your response):\n- Name: ${worker.name}\n- Email: ${worker.email ?? "not on file"}${clearanceLine}${recheckLine}\n- Total assessments: ${assessments.length}\n\nIMPORTANT: If the worker's health check is overdue or due soon, proactively bring this up and offer to help schedule one. End with [SUGGEST_BOOKING] if a booking is warranted.`;
+          contextBlock = `\n\n---\n⚠ CONTEXT MODE: You are assisting a Preventli CLINICIAN or ADMIN viewing this worker's profile. Override your "lead with a question" rule — summarise the worker's check status directly and highlight anything urgent. Do NOT ask who they are.\n\nWorker on screen:\n- Name: ${worker.name}\n- Email: ${worker.email ?? "not on file"}${clearanceLine}${recheckLine}\n- Total assessments completed: ${assessments.length}\n\nIf the health check is overdue or due soon, say so directly and recommend scheduling one immediately. End with [SUGGEST_BOOKING] if a booking would help.`;
         }
       } catch {
         // context load failure is non-fatal
