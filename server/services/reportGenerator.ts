@@ -44,13 +44,15 @@ Analyze pre-employment health questionnaire responses against the job descriptio
 Return a structured JSON report only — no prose, no markdown fences.`,
     });
 
-    const text = response.content[0].type === "text" ? response.content[0].text : "{}";
+    const rawText = response.content[0].type === "text" ? response.content[0].text : "{}";
+    // Strip markdown code fences if the model wrapped the JSON
+    const text = rawText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
     let report: Record<string, unknown>;
     try {
       report = JSON.parse(text);
     } catch {
       logger.error("generateReport: failed to parse AI response as JSON", { assessmentId: assessment.id, text });
-      report = { error: "Could not parse AI output", raw: text };
+      report = { error: "Could not parse AI output", raw: rawText };
     }
 
     const clearanceLevel = extractClearance(report);

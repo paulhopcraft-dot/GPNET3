@@ -159,6 +159,7 @@ export function shouldSkipCsrf(path: string): boolean {
     "/health",
     "/api/csrf-token", // CSRF token endpoint itself
     "/api/gpnet2/cases", // Dashboard data endpoint
+    "/api/public/", // Magic-link questionnaire — no auth, no CSRF
   ];
 
   return skipPaths.some((skipPath) => path.startsWith(skipPath));
