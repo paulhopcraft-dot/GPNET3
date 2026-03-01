@@ -1030,7 +1030,7 @@
           "id": "unified-checks-navigation",
           "story": "As a user, I can access all health check types through a unified navigation button so that employee health management is centralized",
           "acceptanceCriteria": [
-            "🩺 Checks button visible in sidebar navigation",
+            "\ud83e\ude7a Checks button visible in sidebar navigation",
             "6 health check tabs: Pre-Employment, Prevention, Injury, Wellness, Mental Health, Exit",
             "Professional statistics cards for each check type",
             "Seamless integration with existing navigation structure"
@@ -1279,11 +1279,25 @@
       ],
       "businessImpact": [
         "Workers can complete health checks without creating an account",
-        "Employers get automated clearance emails — no manual follow-up",
+        "Employers get automated clearance emails \u2014 no manual follow-up",
         "Dr. Alex provides 24/7 health guidance and triages to telehealth when needed",
         "Jacinta alerted instantly for complex or flagged assessments",
         "Full worker history in one normalized data model"
       ]
+    },
+    {
+      "id": "assessment-list-ui",
+      "name": "Assessment List UI \u2014 Live Data",
+      "description": "ChecksPage pre-employment tab wired to /api/assessments \u2014 real stats, assessment list, clearance badges",
+      "priority": "high",
+      "status": "completed",
+      "verified_at": "2026-03-01T05:30:00Z",
+      "passes": true,
+      "commits": [
+        "776d6dd",
+        "4e24662"
+      ],
+      "notes": "Tested end-to-end: 4 clearance levels (unconditional, conditional, with_restrictions, not_cleared), edge cases (double submit 410, invalid token 404, missing responses 400)"
     }
   ],
   "ralphConfig": {
@@ -1324,7 +1338,7 @@
     "curl http://localhost:5000"
   ],
   "acceptance": {
-    "endToEndTest": "User can navigate to 🩺 Checks tab and access comprehensive 6-tab health check system covering complete employee lifecycle",
+    "endToEndTest": "User can navigate to \ud83e\ude7a Checks tab and access comprehensive 6-tab health check system covering complete employee lifecycle",
     "performanceTargets": {
       "initialLoad": "< 3 seconds",
       "chartAnimation": "< 1 second",
@@ -1333,7 +1347,12 @@
     "browserSupport": "Chrome 90+, Firefox 88+, Safari 14+, Edge 90+",
     "compatibilityFallbacks": {
       "backdropFilter": {
-        "unsupportedBrowsers": ["IE", "Chrome < 76", "Firefox < 70", "Safari < 9"],
+        "unsupportedBrowsers": [
+          "IE",
+          "Chrome < 76",
+          "Firefox < 70",
+          "Safari < 9"
+        ],
         "fallbackStrategy": "Opaque background with rgba(255, 255, 255, 0.15) and subtle border",
         "detectionMethod": "CSS.supports('backdrop-filter', 'blur(1px)')",
         "gracefulDegradation": "Maintain visual hierarchy without glass effect"

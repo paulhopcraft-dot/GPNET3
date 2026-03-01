@@ -1,3 +1,33 @@
+## Session 96 - 1 Mar 2026
+
+### Completed
+- **ChecksPage assessment list UI** (`776d6dd`) — pre-employment tab wired to `/api/assessments`
+  - Real stat cards: Total / Awaiting Response / Completed / Cleared for Work
+  - Live assessment list with candidateName, positionTitle, sentAt date, status badge, clearanceLevel badge
+  - Badge colors: unconditional=green, conditional=teal, with_restrictions=orange, not_cleared=red, requires_review=yellow
+- **Badge + stat bug fixes** (`4e24662`) — cleared_with_restrictions badge ordering fixed; cleared stat now includes all CLEARED_* variants
+
+### Tested End-to-End (10 real assessments in DB)
+| Candidate | Role | Clearance |
+|---|---|---|
+| Marcus Webb | Forklift Operator | cleared_unconditional ✓ |
+| Derek Huang | Crane Operator | not_cleared (epilepsy + seizures) ✓ |
+| Priya Sharma | Admin Officer | cleared_conditional (diabetes) ✓ |
+| Rachel O'Brien | Delivery Driver | cleared_with_restrictions (knee OA) ✓ |
+
+### Edge Cases Verified
+- Double submit → 410 ✓
+- Invalid token → 404 ✓
+- Missing responses → 400 ✓
+- AI report generates in ~6s ✓
+
+### Next Steps
+1. **Worker profile page** — verify /workers/:id loads with real assessment + booking data
+2. **Assessment send fix** — CSRF not included on send button in NewAssessmentPage (needs fetch with csrfToken header for non-browser-form POST)
+3. **Browser test** — open http://localhost:5173, log in, create + send assessment via UI
+
+---
+
 ## Session 95 - 1 Mar 2026
 
 ### Completed
