@@ -24,12 +24,24 @@ import {
 
 interface Assessment {
   id: string;
+  workerId?: string | null;
   candidateName: string;
   positionTitle: string;
   status: string;
   clearanceLevel?: string | null;
   sentAt?: string | null;
   createdAt: string;
+}
+
+interface WorkerSummary {
+  id: string;
+  name: string;
+  email: string | null;
+  latestAssessmentStatus: string | null;
+  latestClearanceLevel: string | null;
+  latestPositionTitle: string | null;
+  nextCheckDue: string | null;
+  recheckUrgency: "overdue" | "due_soon" | "upcoming" | "pending" | "not_applicable" | null;
 }
 
 function clearanceBadgeClass(level?: string | null): string {
@@ -65,7 +77,18 @@ export default function ChecksPage() {
     queryFn: () => fetch("/api/assessments", { credentials: "include" }).then(r => r.json()),
   });
 
+  const { data: workersData } = useQuery<{ workers: WorkerSummary[] }>({
+    queryKey: ["workers-summary"],
+    queryFn: () => fetch("/api/workers", { credentials: "include" }).then(r => r.json()),
+  });
+
   const assessments = assessmentsData?.assessments ?? [];
+  const workers = workersData?.workers ?? [];
+
+  const overdueWorkers = workers.filter(w => w.recheckUrgency === "overdue");
+  const dueSoonWorkers = workers.filter(w => w.recheckUrgency === "due_soon");
+  const attentionCount = overdueWorkers.length + dueSoonWorkers.length;
+
   const peStats = {
     total: assessments.length,
     pending: assessments.filter(a => a.status === "created" || a.status === "sent").length,
@@ -163,6 +186,40 @@ export default function ChecksPage() {
               />
             </div>
 
+            {/* Attention Required — overdue / due soon */}
+            {attentionCount > 0 && (
+              <Card className="border-amber-300 bg-amber-50">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2 text-amber-900">
+                    <AlertTriangle className="h-4 w-4 text-amber-600" />
+                    Attention Required ({attentionCount})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="divide-y divide-amber-200">
+                    {[...overdueWorkers.map(w => ({ ...w, urgencyLabel: "OVERDUE", urgencyClass: "bg-red-100 text-red-800 border-red-200" })),
+                      ...dueSoonWorkers.map(w => ({ ...w, urgencyLabel: "Due soon", urgencyClass: "bg-amber-100 text-amber-800 border-amber-200" }))
+                    ].map((w) => (
+                      <div key={w.id} className="py-2.5 flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <Link to={`/workers/${w.id}`} className="font-medium text-sm text-amber-900 hover:underline">
+                            {w.name}
+                          </Link>
+                          <p className="text-xs text-amber-700">{w.latestPositionTitle ?? "—"}</p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Badge className={`text-xs border ${w.urgencyClass}`}>{w.urgencyLabel}</Badge>
+                          <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
+                            <Link to="/assessments/new">Schedule</Link>
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -185,30 +242,39 @@ export default function ChecksPage() {
                   </div>
                 ) : (
                   <div className="divide-y">
-                    {assessments.slice(0, 10).map((a) => (
-                      <div key={a.id} className="py-3 flex items-start justify-between gap-4">
-                        <div className="min-w-0">
-                          <p className="font-medium text-sm truncate">{a.candidateName}</p>
-                          <p className="text-xs text-muted-foreground truncate">{a.positionTitle}</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {a.sentAt ? `Sent ${formatDate(a.sentAt)}` : `Created ${formatDate(a.createdAt)}`}
-                          </p>
-                        </div>
-                        <div className="flex flex-col items-end gap-1 shrink-0">
-                          <Badge className={`text-xs border ${statusBadgeClass(a.status)}`}>
-                            {a.status}
-                          </Badge>
-                          {a.clearanceLevel && (
-                            <Badge className={`text-xs border ${clearanceBadgeClass(a.clearanceLevel)}`}>
-                              {a.clearanceLevel.replace(/_/g, " ")}
+                    {assessments.slice(0, 20).map((a) => {
+                      const row = (
+                        <div className="py-3 flex items-start justify-between gap-4">
+                          <div className="min-w-0">
+                            <p className="font-medium text-sm truncate">{a.candidateName}</p>
+                            <p className="text-xs text-muted-foreground truncate">{a.positionTitle}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {a.sentAt ? `Sent ${formatDate(a.sentAt)}` : `Created ${formatDate(a.createdAt)}`}
+                            </p>
+                          </div>
+                          <div className="flex flex-col items-end gap-1 shrink-0">
+                            <Badge className={`text-xs border ${statusBadgeClass(a.status)}`}>
+                              {a.status}
                             </Badge>
-                          )}
+                            {a.clearanceLevel && (
+                              <Badge className={`text-xs border ${clearanceBadgeClass(a.clearanceLevel)}`}>
+                                {a.clearanceLevel.replace(/_/g, " ")}
+                              </Badge>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                    {assessments.length > 10 && (
+                      );
+                      return a.workerId ? (
+                        <Link key={a.id} to={`/workers/${a.workerId}`} className="block hover:bg-muted/40 transition-colors rounded">
+                          {row}
+                        </Link>
+                      ) : (
+                        <div key={a.id}>{row}</div>
+                      );
+                    })}
+                    {assessments.length > 20 && (
                       <p className="text-xs text-muted-foreground pt-3">
-                        +{assessments.length - 10} more assessments
+                        +{assessments.length - 20} more assessments
                       </p>
                     )}
                   </div>

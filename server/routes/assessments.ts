@@ -125,7 +125,19 @@ If you have any questions, please contact us.
 router.get("/", authorize(), async (req: AuthRequest, res: Response) => {
   try {
     const organizationId = req.user!.organizationId;
-    const assessments = await storage.getPreEmploymentAssessments(organizationId);
+    const all = await storage.getPreEmploymentAssessments(organizationId);
+    // Return only the fields the UI needs (exclude sensitive internals like accessToken)
+    const assessments = all.map(a => ({
+      id: a.id,
+      workerId: a.workerId,
+      candidateName: a.candidateName,
+      positionTitle: a.positionTitle,
+      assessmentType: a.assessmentType,
+      status: a.status,
+      clearanceLevel: a.clearanceLevel,
+      sentAt: a.sentAt,
+      createdAt: a.createdAt,
+    }));
     res.json({ assessments });
   } catch (error) {
     logger.error("Error listing assessments:", undefined, error);
