@@ -1,3 +1,54 @@
+## Session 95 - 1 Mar 2026
+
+### Completed
+- **Telehealth Platform — fully built and committed** (`1c220a6`)
+- **Normalized `workers` table** — FK target for cases, assessments, and bookings; `upsertWorkerByEmail()` used at assessment create
+- **`telehealthBookings` table** — service_type, appointment_type, status, notes, referral flag
+- **`caseDocuments` table** — links docs to cases/workers with source and extractedData JSONB
+- **`workerId` FK on `workerCases`** — links existing cases to normalized worker records
+- **`preEmploymentAssessments` extended** — added `workerId`, `accessToken`, `jobDescription`, `questionnaireResponses`, `sentAt`, `employerNotifiedAt`, `reportJson`, `alertSent`
+- **Workers API** (`server/routes/workers.ts`) — GET list, GET/:id profile, POST upsert
+- **Bookings API** (`server/routes/bookings.ts`) — GET list, POST create, PATCH status
+- **Assessments API** (`server/routes/assessments.ts`) — POST create (upserts worker, generates token), POST/:id/send (emails magic link), GET list, GET/:id
+- **Public routes** (`server/routes/public.ts`) — no-auth GET/POST `/api/public/check/:token` for magic link questionnaire
+- **Chat API** (`server/routes/chat.ts`) — unified Dr. Alex endpoint, loads soul from `config/DR_ALEX_SOUL.md`, optional case context, SUGGEST_BOOKING signal
+- **`config/DR_ALEX_SOUL.md`** — Dr. Alex persona (GP-style, warm, triage-aware); edit file + restart server to update
+- **`ChatWidget.tsx`** — floating "Talk with a Doctor" FAB bottom-right, all authenticated pages; lazy-imports BookingModal
+- **`BookingModal.tsx`** — context-aware booking form (auto-fills on case pages, manual elsewhere); 5 service types, video/f2f
+- **`PublicQuestionnaire.tsx`** — no-auth `/check/:token` page; 8-step questionnaire, handles invalid/expired tokens
+- **`WorkerProfile.tsx`** — `/workers/:id` full worker history: assessments, cases, bookings
+- **`reportGenerator.ts`** — Claude Haiku generates structured clearance report; auto-emails employer (CLEARED) or alerts jacinta@preventli.ai (REQUIRES_REVIEW/NOT_CLEARED)
+- **`PageLayout.tsx`** — added "Book Telehealth" header button + ChatWidget on all pages
+- **App.tsx** — added `/check/:token` public route and `/workers/:id` protected route
+- **Removed `caseChat.ts`** — consolidated into unified chat widget
+- **features.json + domain_memory.json updated** — F025–F030 marked complete
+
+### Blockers
+- **`npm run db:push` still needed** — new tables (workers, telehealthBookings, caseDocuments) and preEmploymentAssessments columns not yet applied
+  - Start PostgreSQL: `sudo service postgresql start`
+  - Then: `cd /mnt/d/dev/gpnet3 && npm run db:push`
+- **Assessment sentAt not updated** — `updatePreEmploymentAssessmentStatus` doesn't set sentAt; needs a direct DB update added
+- **Assessment create UI not built** — backend `POST /api/assessments` exists but no employer-facing form (ChecksPage.tsx needs update)
+
+### Next Steps
+1. **Run db:push** — apply all new schema changes
+2. **End-to-end test checklist** (from plan):
+   - Create assessment → worker upserted, token generated
+   - Send → email logged, status → sent
+   - `/check/:token` loads without auth
+   - Submit → AI report generated, clearanceLevel set
+   - CLEARED → employer email; REQUIRES_REVIEW → Jacinta alert
+3. **Build assessment create form** — modify ChecksPage.tsx to add employer-facing "New Assessment" form
+4. **Fix sentAt** — add direct timestamp update in `assessments.ts` `/:id/send` route
+
+### Key Notes
+- Dr. Alex soul: `config/DR_ALEX_SOUL.md` — edit file, restart server to apply (loaded once at startup)
+- Magic link pattern: `crypto.randomBytes(32).toString('hex')` → `accessToken` on assessment
+- AI persona model: `claude-haiku-4-5-20251001`
+- `SUGGEST_BOOKING` stripped from AI reply text, returned as `suggestBooking: true` in JSON
+
+---
+
 ## Session 91 - 26 Feb 2026
 
 ### Completed

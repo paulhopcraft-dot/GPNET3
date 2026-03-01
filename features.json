@@ -1171,6 +1171,119 @@
         "Professional compliance documentation",
         "Streamlined health management workflows"
       ]
+    },
+    {
+      "id": "telehealth-platform",
+      "name": "Preventli Telehealth Platform",
+      "description": "Self-service telehealth layer: magic-link health assessments, Dr. Alex chat widget, Book Telehealth modal, AI report generation, and normalized workers table",
+      "priority": "high",
+      "status": "completed",
+      "verified_at": "2026-03-01T00:00:00Z",
+      "last_updated": "2026-03-01T00:00:00Z",
+      "userStories": [
+        {
+          "id": "workers-normalized-table",
+          "story": "As a developer, normalized workers table links cases, assessments, and bookings via FK",
+          "status": "completed",
+          "passes": true,
+          "verified_at": "2026-03-01T00:00:00Z"
+        },
+        {
+          "id": "telehealth-bookings-table",
+          "story": "As a clinician, I can create telehealth bookings (video/face-to-face) for any service type",
+          "status": "completed",
+          "passes": true,
+          "verified_at": "2026-03-01T00:00:00Z"
+        },
+        {
+          "id": "dr-alex-chat-widget",
+          "story": "As a user, a floating 'Talk with a Doctor' chat widget is visible on every authenticated page",
+          "status": "completed",
+          "passes": true,
+          "verified_at": "2026-03-01T00:00:00Z"
+        },
+        {
+          "id": "chat-api-endpoint",
+          "story": "As a user, messages go to Dr. Alex (loaded from DR_ALEX_SOUL.md) with optional case context",
+          "status": "completed",
+          "passes": true,
+          "verified_at": "2026-03-01T00:00:00Z"
+        },
+        {
+          "id": "booking-modal",
+          "story": "As a user, Book Telehealth header button opens a context-aware booking form (auto-fills on case pages)",
+          "status": "completed",
+          "passes": true,
+          "verified_at": "2026-03-01T00:00:00Z"
+        },
+        {
+          "id": "booking-inline-chat",
+          "story": "As a user, when Dr. Alex suggests seeing a doctor, a Book Telehealth button appears inline in chat",
+          "status": "completed",
+          "passes": true,
+          "verified_at": "2026-03-01T00:00:00Z"
+        },
+        {
+          "id": "public-questionnaire",
+          "story": "As a worker, I receive a magic link and complete my health questionnaire without logging in",
+          "status": "completed",
+          "passes": true,
+          "verified_at": "2026-03-01T00:00:00Z"
+        },
+        {
+          "id": "assessment-create-send",
+          "story": "As an employer, I create a pre-employment assessment and send the magic link email to the worker",
+          "status": "completed",
+          "passes": true,
+          "verified_at": "2026-03-01T00:00:00Z"
+        },
+        {
+          "id": "ai-report-generation",
+          "story": "As a clinician, AI generates a structured clearance report after questionnaire submission",
+          "status": "completed",
+          "passes": true,
+          "verified_at": "2026-03-01T00:00:00Z"
+        },
+        {
+          "id": "employer-auto-notification",
+          "story": "As an employer, I receive an auto-email when a worker is CLEARED or CLEARED_WITH_CONDITIONS",
+          "status": "completed",
+          "passes": true,
+          "verified_at": "2026-03-01T00:00:00Z"
+        },
+        {
+          "id": "alert-jacinta",
+          "story": "As Jacinta, I receive an alert email when AI flags a worker as REQUIRES_REVIEW or NOT_CLEARED",
+          "status": "completed",
+          "passes": true,
+          "verified_at": "2026-03-01T00:00:00Z"
+        },
+        {
+          "id": "worker-profile-page",
+          "story": "As a case manager, I can view a worker's full history: assessments, cases, and bookings on one page",
+          "status": "completed",
+          "passes": true,
+          "verified_at": "2026-03-01T00:00:00Z"
+        }
+      ],
+      "technicalNotes": [
+        "Workers table: normalized FK target for cases, assessments, and bookings",
+        "Magic link: crypto.randomBytes(32).toString('hex') stored as accessToken",
+        "Public routes (/api/public/*) have no authorize() middleware",
+        "Dr. Alex soul loaded from config/DR_ALEX_SOUL.md at server startup via readFileSync",
+        "SUGGEST_BOOKING signal stripped from AI response text, returned as suggestBooking: true flag",
+        "ChatWidget lazy-imports BookingModal to avoid circular dependency",
+        "reportGenerator accepts full assessment object (not ID) to avoid empty orgId lookup",
+        "Alert emails sent to jacinta@preventli.ai via existing sendEmail() from emailService.ts",
+        "Claude model: claude-haiku-4-5-20251001"
+      ],
+      "businessImpact": [
+        "Workers can complete health checks without creating an account",
+        "Employers get automated clearance emails — no manual follow-up",
+        "Dr. Alex provides 24/7 health guidance and triages to telehealth when needed",
+        "Jacinta alerted instantly for complex or flagged assessments",
+        "Full worker history in one normalized data model"
+      ]
     }
   ],
   "ralphConfig": {
