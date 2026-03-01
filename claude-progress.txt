@@ -1,3 +1,37 @@
+## Session 97 - 1 Mar 2026
+
+### Completed
+- **Dr. Alex conversation memory** (`fce7124`) — `chat_memory` table + `getChatMemory()` / `saveChatMessage()` in storage.ts
+  - Scoped per case (caseId) or worker profile (workerId)
+  - Loads last 8 messages before Claude call — injected as "Previous conversation" block in system prompt
+  - Fire-and-forget save after each exchange (non-blocking)
+  - Verified end-to-end: 2-message exchange → 4 DB rows written → second message correctly references first
+- **Comprehensive E2E test suite** (`9b113f9`, `6119c86`) — 53 tests, 50 pass, 3 data-conditional skips, 0 fail
+  - @smoke: Authentication + page load smoke (11 tests)
+  - @critical: Workers, Pre-Employment, Employer-Initiated, Dr. Alex Chat, Telehealth Bookings, Case Compliance (32 tests)
+  - @regression: Notifications, Agents, Edge Cases (10 tests)
+  - Fixed 4 rounds of failures (API response shapes, field names, selectors, endpoint paths)
+- **Marketing content** — wrote website copy for Dr. Alex, telehealth booking, and pre-employment automation features
+
+### Key API Shape Discoveries (for future sessions)
+- Cases: `{ cases:[...], total, page, limit, hasMore }`
+- Booking create/update: `{ booking:{...} }`; list: `{ bookings:[...] }`
+- Workers: `{ workers:[...] }`; assessments: `{ assessments:[...] }`
+- Assessment create status: `"created"` (not `"pending"`)
+- Assessment field names: `candidateName` / `candidateEmail` (not workerName/workerEmail)
+- `accessToken` returned on CREATE, not on SEND (send returns `{ success, sentTo }`)
+- Public check submission body: `{ responses: Record<string,unknown> }`
+- ChatWidget scope: PageLayout pages ONLY — not on GPNet2Dashboard (route `/`)
+- Notifications endpoint: `/api/notifications/recent`
+
+### Next Steps
+1. **Assessment create UI for employers** — backend exists (`POST /api/assessments`), but NewAssessmentPage form not yet wired for employer role
+2. **Export** — CSV/PDF of all workers with check status for employer reporting
+3. **Recovery timeline** — show injury recovery history on case pages (parallel to check timeline)
+4. **Workers list pre-fill** — "/assessments/new?workerId=X" pre-fills name/email from worker profile
+
+---
+
 ## Session 96 (continued, part 2) - 1 Mar 2026
 
 ### Completed
