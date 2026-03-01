@@ -1052,9 +1052,19 @@ export class FreshdeskService {
         primaryTicket.custom_fields?.cf_url ||
         undefined;
 
+      // Map company name to organization ID
+      // Symmetry cases go to org-alpha, Acme Test Corp to org-test, all others to default
+      let organizationId = 'default';
+      if (companyName.toLowerCase().includes('symmetry')) {
+        organizationId = 'org-alpha';
+      } else if (companyName.toLowerCase().includes('acme test')) {
+        organizationId = 'org-test';
+      }
+
       // Build the case object first so we can validate it
       const caseData = {
         id: ticketIds[0], // Use first (most recent) ticket ID as primary ID
+        organizationId,
         workerName: displayName,
         company: companyName,
         dateOfInjury: dateOfInjury.toISOString().split('T')[0],

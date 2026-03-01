@@ -1,135 +1,291 @@
-import { storage } from "../storage";
-import { createLogger } from "../lib/logger";
+/**
+ * Email Matching Service
+ * Matches incoming emails to existing worker cases
+ */
 
-const log = createLogger("EmailMatcher");
+import { db } from '../db';
+import { sql } from 'drizzle-orm';
 
 export interface MatchResult {
-  caseId: string | null;
-  organizationId: string | null;
-  method: "thread" | "claim_number" | "sender_email" | "worker_name" | "new_case" | "none";
-  confidence: number;
+  status: 'confident' | 'uncertain' | 'no_match';
+  matches: {
+    caseId: string;
+    workerName: string;
+    employer: string;
+    confidence: number;
+    matchReasons: string[];
+  }[];
+  suggestedAction: 'auto_attach' | 'review_required' | 'create_new' | 'alert_admin';
+  alertMessage?: string;
+}
+
+export interface EmailContext {
+  from: string;
+  subject: string;
+  body: string;
+  extractedNames?: string[];
+  extractedEmployer?: string;
+  referenceNumbers?: string[];
 }
 
 /**
- * Match an inbound email to an existing worker case.
- * Priority order: thread → claim number → sender email → worker name → no match
+ * Attempt to match an incoming email to existing cases
  */
-export async function matchEmailToCase(email: {
-  messageId?: string | null;
-  inReplyTo?: string | null;
-  fromEmail: string;
-  fromName?: string | null;
-  subject: string;
-  bodyText?: string | null;
-}): Promise<MatchResult> {
-  // 1. Thread match via In-Reply-To header
-  if (email.inReplyTo) {
-    const parentEmail = await storage.getCaseEmailByMessageId(email.inReplyTo);
-    if (parentEmail?.caseId && parentEmail?.organizationId) {
-      log.info("Matched by thread", { inReplyTo: email.inReplyTo, caseId: parentEmail.caseId });
-      return {
-        caseId: parentEmail.caseId,
-        organizationId: parentEmail.organizationId,
-        method: "thread",
-        confidence: 1.0,
-      };
+export async function matchEmailToCase(email: EmailContext): Promise<MatchResult> {
+  const matches: MatchResult['matches'] = [];
+  
+  // Extract potential identifiers from email
+  const workerNames = extractWorkerNames(email);
+  const employerName = extractEmployerName(email);
+  const ticketRefs = extractTicketReferences(email);
+
+  // Strategy 1: Direct ticket reference match (highest confidence)
+  if (ticketRefs.length > 0) {
+    for (const ref of ticketRefs) {
+      const result = await db.execute(sql`
+        SELECT id, worker_name, company FROM worker_cases 
+        WHERE id LIKE ${'%' + ref + '%'}
+      `);
+      
+      for (const c of result.rows as any[]) {
+        matches.push({
+          caseId: c.id,
+          workerName: c.worker_name || '',
+          employer: c.company || '',
+          confidence: 0.95,
+          matchReasons: [`Ticket reference "FD-${ref}" found in email`],
+        });
+      }
     }
   }
 
-  // 2. Claim number from subject (e.g., "08260050789" or "Claim #08260050789")
-  const claimNumberMatch = email.subject.match(/\b(0\d{10})\b/);
-  if (claimNumberMatch) {
-    const claimNumber = claimNumberMatch[1];
-    // Search for this claim number in case summaries or ticket IDs
-    // For now, look in subject/summary fields - in future could search a claim_numbers table
-    log.debug("Found claim number in subject", { claimNumber });
+  // Strategy 2: Worker name match
+  for (const name of workerNames) {
+    const nameParts = name.toLowerCase().split(' ');
+    const firstName = nameParts[0];
+    const lastName = nameParts[nameParts.length - 1];
+
+    const result = await db.execute(sql`
+      SELECT id, worker_name, company FROM worker_cases 
+      WHERE LOWER(worker_name) LIKE ${'%' + firstName + '%'}
+      AND LOWER(worker_name) LIKE ${'%' + lastName + '%'}
+    `);
+
+    for (const c of result.rows as any[]) {
+      // Check if already added
+      if (matches.some(m => m.caseId === c.id)) continue;
+      
+      const reasons = [`Worker name match: "${name}"`];
+      let confidence = 0.7;
+
+      if (employerName && c.company?.toLowerCase().includes(employerName.toLowerCase())) {
+        reasons.push(`Employer match: "${employerName}"`);
+        confidence += 0.15;
+      }
+
+      // Check email domain
+      const emailDomain = email.from.split('@')[1];
+      if (emailDomain && c.company?.toLowerCase().includes(emailDomain.split('.')[0])) {
+        reasons.push(`Email domain matches employer`);
+        confidence += 0.1;
+      }
+
+      matches.push({
+        caseId: c.id,
+        workerName: c.worker_name || '',
+        employer: c.company || '',
+        confidence: Math.min(confidence, 0.95),
+        matchReasons: reasons,
+      });
+    }
   }
 
-  // 3. Sender email → case_contacts lookup
-  const contactMatch = await storage.findCaseContactByEmail(email.fromEmail);
-  if (contactMatch) {
-    log.info("Matched by sender email via contacts", { email: email.fromEmail, caseId: contactMatch.caseId });
+  // Sort by confidence
+  matches.sort((a, b) => b.confidence - a.confidence);
+
+  // Determine result status and suggested action
+  if (matches.length === 0) {
     return {
-      caseId: contactMatch.caseId,
-      organizationId: contactMatch.organizationId,
-      method: "sender_email",
-      confidence: 0.9,
+      status: 'no_match',
+      matches: [],
+      suggestedAction: 'alert_admin',
+      alertMessage: `No matching case found for email from ${email.from}. Subject: "${email.subject}"`,
     };
   }
 
-  // 4. Worker name extraction from subject
-  const workerName = extractWorkerNameFromSubject(email.subject);
-  if (workerName) {
-    const caseMatch = await storage.findCaseByWorkerName(workerName);
-    if (caseMatch && caseMatch.confidence > 0.7) {
-      log.info("Matched by worker name", { workerName, caseId: caseMatch.caseId, confidence: caseMatch.confidence });
-      return {
-        caseId: caseMatch.caseId,
-        organizationId: caseMatch.organizationId,
-        method: "worker_name",
-        confidence: caseMatch.confidence * 0.8, // Discount slightly for name-only match
-      };
-    }
+  if (matches.length === 1 && matches[0].confidence >= 0.85) {
+    return {
+      status: 'confident',
+      matches,
+      suggestedAction: 'auto_attach',
+    };
   }
 
-  // 5. No match
-  log.info("No case match found", { subject: email.subject, from: email.fromEmail });
-  return { caseId: null, organizationId: null, method: "none", confidence: 0 };
+  if (matches.length === 1 && matches[0].confidence >= 0.6) {
+    return {
+      status: 'uncertain',
+      matches,
+      suggestedAction: 'review_required',
+      alertMessage: `Possible match found (${(matches[0].confidence * 100).toFixed(0)}% confidence) for ${matches[0].workerName}. Please verify.`,
+    };
+  }
+
+  if (matches.length > 1) {
+    return {
+      status: 'uncertain',
+      matches: matches.slice(0, 5), // Top 5 matches
+      suggestedAction: 'review_required',
+      alertMessage: `Multiple possible matches (${matches.length}) found. Top match: ${matches[0].workerName} at ${matches[0].employer}`,
+    };
+  }
+
+  return {
+    status: 'no_match',
+    matches,
+    suggestedAction: 'create_new',
+    alertMessage: `Low confidence matches only. Consider creating new case.`,
+  };
 }
 
-/**
- * Extract worker name from common email subject patterns:
- * - "Injury Report: Sarah Mitchell - Broken Arm"
- * - "Medical Certificate - Sarah Mitchell"
- * - "RE: Sarah Mitchell - Weekly Update"
- * - "Updated Certificate - Sarah Mitchell"
- */
-function extractWorkerNameFromSubject(subject: string): string | null {
-  // Strip RE:/FW: prefixes
-  const cleaned = subject.replace(/^(RE|FW|Fwd):\s*/gi, "").trim();
-
-  // Pattern: "Something - Name - Something" or "Something: Name - Something"
+// Helper: Extract worker names from email
+function extractWorkerNames(email: EmailContext): string[] {
+  if (email.extractedNames?.length) return email.extractedNames;
+  
+  const names: string[] = [];
+  const text = `${email.subject} ${email.body}`;
+  
+  // Pattern: "Worker: Name" or "Employee: Name" or "Re: Name -"
   const patterns = [
-    // "Injury Report: First Last - Description" or "Stress Claim - First Last"
-    /(?:Injury Report|Medical Certificate|Certificate|Assessment Report|ED Report|MRI Report|Rehab Program|Progress Report|Updated Certificate|Final Certificate|Stress Claim)[\s:\-–]+([A-Z][a-z]+\s+[A-Z][a-z]+)/i,
-    // "RE: First Last - Description"
-    /^([A-Z][a-z]+\s+[A-Z][a-z]+)\s*[-–]/,
-    // "Something - First Last" (at end)
-    /[-–]\s*([A-Z][a-z]+\s+[A-Z][a-z]+)\s*$/,
-    // "Something - First Last - Something"
-    /[-–]\s*([A-Z][a-z]+\s+[A-Z][a-z]+)\s*[-–]/,
+    /(?:worker|employee|patient|client)[:\s]+([A-Z][a-z]+ [A-Z][a-z]+)/gi,
+    /(?:regarding|re:|about)[:\s]+([A-Z][a-z]+ [A-Z][a-z]+)/gi,
+    /([A-Z][a-z]+ [A-Z][a-z]+)(?:'s|'s)?\s+(?:injury|claim|case|workcover)/gi,
+    /FD-\d+\s*-\s*([A-Z][a-z]+ [A-Z][a-z]+)/gi,
   ];
 
   for (const pattern of patterns) {
-    const match = cleaned.match(pattern);
-    if (match) {
-      const name = match[1].trim();
-      // Validate it looks like a real name (2+ chars per word, no numbers)
-      const parts = name.split(/\s+/);
-      if (parts.length >= 2 && parts.every(p => p.length >= 2 && /^[A-Za-z]+$/.test(p))) {
-        return name;
+    const matches = text.matchAll(pattern);
+    for (const match of matches) {
+      if (match[1] && !names.includes(match[1])) {
+        names.push(match[1]);
       }
+    }
+  }
+
+  return names;
+}
+
+// Helper: Extract employer name from email
+function extractEmployerName(email: EmailContext): string | null {
+  if (email.extractedEmployer) return email.extractedEmployer;
+  
+  const text = `${email.subject} ${email.body}`;
+  
+  // Pattern: "Company: Name" or "Employer: Name"
+  const patterns = [
+    /(?:company|employer|organisation|organization)[:\s]+([A-Z][a-zA-Z\s&]+?)(?:\.|,|\n|$)/gi,
+    /(?:from|at)\s+([A-Z][a-zA-Z\s&]+?)(?:\s+HR|\s+Ltd|\s+Pty|\.|\n)/gi,
+  ];
+
+  for (const pattern of patterns) {
+    const match = pattern.exec(text);
+    if (match?.[1]) {
+      return match[1].trim();
     }
   }
 
   return null;
 }
 
+// Helper: Extract ticket reference numbers
+function extractTicketReferences(email: EmailContext): string[] {
+  const refs: string[] = [];
+  const text = `${email.subject} ${email.body}`;
+  
+  // Freshdesk ID pattern
+  const fdPattern = /FD-(\d+)/gi;
+  const matches = text.matchAll(fdPattern);
+  for (const match of matches) {
+    if (!refs.includes(match[1])) {
+      refs.push(match[1]);
+    }
+  }
+
+  // Case reference pattern
+  const casePattern = /(?:case|ref|ticket)[#:\s]+(\d+)/gi;
+  const caseMatches = text.matchAll(casePattern);
+  for (const match of caseMatches) {
+    if (!refs.includes(match[1])) {
+      refs.push(match[1]);
+    }
+  }
+
+  return refs;
+}
+
 /**
- * Detect if an email body contains medical certificate content.
- * Simple heuristic based on keywords.
+ * Test the matcher with sample scenarios
  */
-export function detectsCertificateContent(subject: string, bodyText?: string | null): boolean {
-  const text = `${subject} ${bodyText || ""}`.toLowerCase();
-  const certKeywords = [
-    "medical certificate",
-    "certificate of capacity",
-    "fitness for duty",
-    "unfit for work",
-    "fit for work",
-    "partial capacity",
-    "clearance certificate",
-    "work capacity certificate",
+export async function testEmailMatcher(): Promise<void> {
+  console.log('═══════════════════════════════════════════════════════════════');
+  console.log('  EMAIL MATCHING TEST SCENARIOS');
+  console.log('═══════════════════════════════════════════════════════════════\n');
+
+  const testEmails: EmailContext[] = [
+    // Scenario 1: Clear ticket reference
+    {
+      from: 'hr@buildright.com.au',
+      subject: 'Re: FD-47135 - Daniel Young RTW Update',
+      body: 'Please find attached the updated capacity certificate for Daniel.',
+    },
+    // Scenario 2: Worker name + employer (confident)
+    {
+      from: 'hr@metrotransport.com.au',
+      subject: 'Chloe Harris - Return to Work Plan',
+      body: 'Hi, attaching the RTW plan for Chloe Harris at Metro Transport Services.',
+    },
+    // Scenario 3: Partial match (uncertain)
+    {
+      from: 'someone@email.com',
+      subject: 'Update on Emma',
+      body: 'Just checking in about Emma Lewis injury case. Any updates?',
+    },
+    // Scenario 4: No match (new case)
+    {
+      from: 'newcompany@example.com',
+      subject: 'New Injury Report - John Doe',
+      body: 'We have a new injury to report for John Doe at New Company Pty Ltd.',
+    },
+    // Scenario 5: Multiple possible matches (common name)
+    {
+      from: 'info@company.com',
+      subject: 'Sarah Update',
+      body: 'Update regarding Sarah\'s workcover claim.',
+    },
   ];
-  return certKeywords.some(kw => text.includes(kw));
+
+  for (let i = 0; i < testEmails.length; i++) {
+    const email = testEmails[i];
+    console.log(`📧 Scenario ${i + 1}: ${email.subject}`);
+    console.log(`   From: ${email.from}`);
+    
+    const result = await matchEmailToCase(email);
+    
+    console.log(`\n   Status: ${result.status.toUpperCase()}`);
+    console.log(`   Action: ${result.suggestedAction}`);
+    
+    if (result.matches.length > 0) {
+      console.log(`   Matches (${result.matches.length}):`);
+      for (const m of result.matches.slice(0, 3)) {
+        console.log(`     - ${m.workerName} @ ${m.employer} (${(m.confidence * 100).toFixed(0)}%)`);
+        console.log(`       Reasons: ${m.matchReasons.join(', ')}`);
+      }
+    }
+    
+    if (result.alertMessage) {
+      console.log(`   ⚠️  Alert: ${result.alertMessage}`);
+    }
+    console.log('');
+  }
+
+  console.log('═══════════════════════════════════════════════════════════════\n');
 }

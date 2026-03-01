@@ -1,0 +1,1722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Preventli — WorkCover made manageable</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ink: #0a0f1e;
+      --ink-2: #111827;
+      --ink-3: #1c2540;
+      --surface: #141b2d;
+      --surface-2: #1a2236;
+      --border: rgba(255,255,255,0.08);
+      --border-2: rgba(255,255,255,0.12);
+      --green: #0eb87f;
+      --green-dim: rgba(14,184,127,0.12);
+      --green-glow: rgba(14,184,127,0.25);
+      --amber: #f59e0b;
+      --amber-dim: rgba(245,158,11,0.12);
+      --blue: #3b82f6;
+      --blue-dim: rgba(59,130,246,0.12);
+      --red: #ef4444;
+      --red-dim: rgba(239,68,68,0.10);
+      --text: #e8edf5;
+      --text-2: #8b95a8;
+      --text-3: #5a6478;
+      --white: #ffffff;
+      --radius: 12px;
+      --radius-lg: 20px;
+      --radius-sm: 8px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--ink);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 40px;
+      height: 64px;
+      background: rgba(10,15,30,0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 18px;
+      color: var(--white);
+      text-decoration: none;
+    }
+
+    .nav-logo-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--green);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .nav-logo-icon svg { width: 18px; height: 18px; }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-2);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--white); }
+
+    .nav-cta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      border: none;
+      transition: all 0.2s;
+    }
+
+    .btn-ghost {
+      color: var(--text-2);
+      background: transparent;
+    }
+
+    .btn-ghost:hover { color: var(--white); }
+
+    .btn-primary {
+      background: var(--green);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: #0ca872;
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px var(--green-glow);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--white);
+      border: 1px solid var(--border-2);
+    }
+
+    .btn-outline:hover {
+      border-color: var(--green);
+      color: var(--green);
+    }
+
+    .btn-lg {
+      padding: 14px 28px;
+      font-size: 15px;
+      border-radius: var(--radius);
+    }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 120px 40px 80px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% -10%, rgba(14,184,127,0.18) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 40% at 80% 80%, rgba(59,130,246,0.08) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    .hero-grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%);
+      pointer-events: none;
+    }
+
+    .hero-inner {
+      max-width: 860px;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      background: var(--green-dim);
+      border: 1px solid rgba(14,184,127,0.3);
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--green);
+      margin-bottom: 32px;
+    }
+
+    .hero-badge-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    .hero-h1 {
+      font-size: clamp(40px, 6vw, 72px);
+      font-weight: 900;
+      line-height: 1.08;
+      letter-spacing: -0.03em;
+      color: var(--white);
+      margin-bottom: 24px;
+    }
+
+    .hero-h1 .accent { color: var(--green); }
+
+    .hero-sub {
+      font-size: clamp(16px, 2vw, 20px);
+      color: var(--text-2);
+      max-width: 600px;
+      margin: 0 auto 40px;
+      line-height: 1.6;
+      font-weight: 400;
+    }
+
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 64px;
+    }
+
+    .hero-social-proof {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    .social-proof-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-3);
+      font-weight: 500;
+    }
+
+    .social-proof-item svg {
+      color: var(--green);
+      flex-shrink: 0;
+    }
+
+    /* ── DASHBOARD MOCKUP ── */
+    .mockup-section {
+      padding: 0 40px 80px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .mockup-wrap {
+      width: 100%;
+      max-width: 1100px;
+      position: relative;
+    }
+
+    .mockup-glow {
+      position: absolute;
+      inset: -40px;
+      background: radial-gradient(ellipse 70% 50% at 50% 50%, rgba(14,184,127,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .mockup-frame {
+      background: var(--surface);
+      border: 1px solid var(--border-2);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow:
+        0 0 0 1px var(--border),
+        0 40px 80px rgba(0,0,0,0.6),
+        0 0 120px rgba(14,184,127,0.06);
+    }
+
+    .mockup-topbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 20px;
+      background: var(--ink-2);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .topbar-dots {
+      display: flex;
+      gap: 6px;
+    }
+
+    .topbar-dots span {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    .dot-red { background: #ef4444; }
+    .dot-amber { background: #f59e0b; }
+    .dot-green { background: #22c55e; }
+
+    .topbar-url {
+      flex: 1;
+      background: var(--ink-3);
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-3);
+      border: 1px solid var(--border);
+    }
+
+    .mockup-body {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      min-height: 480px;
+    }
+
+    .mockup-sidebar {
+      background: var(--ink-2);
+      border-right: 1px solid var(--border);
+      padding: 20px 0;
+    }
+
+    .sidebar-logo {
+      padding: 0 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--white);
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 12px;
+    }
+
+    .sidebar-logo-icon {
+      width: 24px;
+      height: 24px;
+      background: var(--green);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+    }
+
+    .sidebar-section {
+      padding: 8px 12px 4px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-3);
+    }
+
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 16px;
+      font-size: 13px;
+      color: var(--text-2);
+      cursor: pointer;
+      border-radius: 0;
+    }
+
+    .sidebar-item.active {
+      background: var(--green-dim);
+      color: var(--green);
+      border-right: 2px solid var(--green);
+    }
+
+    .sidebar-item-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-3);
+      flex-shrink: 0;
+    }
+
+    .sidebar-item.active .sidebar-item-dot { background: var(--green); }
+
+    .sidebar-badge {
+      margin-left: auto;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: var(--amber-dim);
+      color: var(--amber);
+    }
+
+    .sidebar-badge.green {
+      background: var(--green-dim);
+      color: var(--green);
+    }
+
+    .sidebar-badge.red {
+      background: var(--red-dim);
+      color: var(--red);
+    }
+
+    .mockup-main {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .dash-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+    }
+
+    .dash-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--white);
+    }
+
+    .dash-sub {
+      font-size: 12px;
+      color: var(--text-3);
+      margin-top: 2px;
+    }
+
+    .dash-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .dash-btn {
+      padding: 7px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid var(--border-2);
+      background: var(--surface-2);
+      color: var(--text-2);
+      cursor: pointer;
+    }
+
+    .dash-btn.primary {
+      background: var(--green);
+      color: white;
+      border-color: var(--green);
+    }
+
+    .dash-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .stat-card {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--text-3);
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+
+    .stat-value {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--white);
+      line-height: 1;
+    }
+
+    .stat-delta {
+      font-size: 11px;
+      margin-top: 4px;
+      font-weight: 600;
+    }
+
+    .stat-delta.up { color: var(--green); }
+    .stat-delta.down { color: var(--red); }
+    .stat-delta.neutral { color: var(--text-3); }
+
+    .dash-cases {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+
+    .cases-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .cases-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--white);
+    }
+
+    .cases-filter {
+      display: flex;
+      gap: 6px;
+    }
+
+    .filter-pill {
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      background: var(--green-dim);
+      color: var(--green);
+      border: 1px solid rgba(14,184,127,0.2);
+    }
+
+    .filter-pill.muted {
+      background: transparent;
+      color: var(--text-3);
+      border-color: transparent;
+    }
+
+    table { width: 100%; border-collapse: collapse; }
+
+    th {
+      padding: 8px 16px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    td {
+      padding: 10px 16px;
+      font-size: 12px;
+      color: var(--text-2);
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+
+    tr:last-child td { border-bottom: none; }
+
+    .worker-name {
+      font-weight: 600;
+      color: var(--white);
+      font-size: 13px;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .status-pill-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+    }
+
+    .status-active { background: var(--green-dim); color: var(--green); }
+    .status-active .status-pill-dot { background: var(--green); }
+    .status-review { background: var(--amber-dim); color: var(--amber); }
+    .status-review .status-pill-dot { background: var(--amber); }
+    .status-closed { background: rgba(255,255,255,0.06); color: var(--text-3); }
+    .status-closed .status-pill-dot { background: var(--text-3); }
+
+    .ai-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      background: var(--blue-dim);
+      color: var(--blue);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .ai-insight-bar {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--green);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .ai-icon {
+      width: 28px;
+      height: 28px;
+      background: var(--green-dim);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 14px;
+    }
+
+    .ai-text { flex: 1; }
+
+    .ai-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--green);
+      margin-bottom: 2px;
+    }
+
+    .ai-body { font-size: 12px; color: var(--text-2); line-height: 1.5; }
+
+    /* ── PROBLEM SECTION ── */
+    .section {
+      padding: 100px 40px;
+    }
+
+    .section-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .section-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--green);
+      margin-bottom: 16px;
+    }
+
+    .section-label-line {
+      width: 24px;
+      height: 1px;
+      background: var(--green);
+    }
+
+    .section-h2 {
+      font-size: clamp(28px, 4vw, 48px);
+      font-weight: 800;
+      color: var(--white);
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      margin-bottom: 20px;
+    }
+
+    .section-p {
+      font-size: 17px;
+      color: var(--text-2);
+      max-width: 600px;
+      line-height: 1.7;
+    }
+
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border-2) 30%, var(--border-2) 70%, transparent);
+      margin: 0 40px;
+    }
+
+    /* ── PAIN POINTS ── */
+    .pain-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      margin-top: 64px;
+      align-items: start;
+    }
+
+    .pain-list { display: flex; flex-direction: column; gap: 24px; }
+
+    .pain-item {
+      display: flex;
+      gap: 20px;
+      padding: 24px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      transition: border-color 0.2s;
+    }
+
+    .pain-item:hover { border-color: var(--border-2); }
+
+    .pain-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .pain-icon.red { background: var(--red-dim); }
+    .pain-icon.amber { background: var(--amber-dim); }
+    .pain-icon.blue { background: var(--blue-dim); }
+
+    .pain-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--white);
+      margin-bottom: 6px;
+    }
+
+    .pain-body {
+      font-size: 14px;
+      color: var(--text-2);
+      line-height: 1.6;
+    }
+
+    .pain-quote-col { display: flex; flex-direction: column; gap: 24px; }
+
+    .quote-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      position: relative;
+    }
+
+    .quote-card::before {
+      content: '"';
+      position: absolute;
+      top: 16px;
+      left: 24px;
+      font-size: 60px;
+      color: var(--text-3);
+      font-family: Georgia, serif;
+      line-height: 1;
+      opacity: 0.4;
+    }
+
+    .quote-text {
+      font-size: 15px;
+      color: var(--text);
+      line-height: 1.7;
+      font-style: italic;
+      padding-top: 20px;
+      margin-bottom: 20px;
+    }
+
+    .quote-author {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .quote-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: white;
+    }
+
+    .quote-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--white);
+    }
+
+    .quote-role {
+      font-size: 12px;
+      color: var(--text-3);
+    }
+
+    .stat-callout {
+      background: linear-gradient(135deg, var(--green-dim), rgba(59,130,246,0.08));
+      border: 1px solid rgba(14,184,127,0.2);
+      border-radius: var(--radius);
+      padding: 28px;
+      text-align: center;
+    }
+
+    .stat-callout-num {
+      font-size: 52px;
+      font-weight: 900;
+      color: var(--green);
+      letter-spacing: -0.03em;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .stat-callout-text {
+      font-size: 14px;
+      color: var(--text-2);
+      line-height: 1.5;
+    }
+
+    /* ── FEATURES ── */
+    .features-section {
+      background: var(--surface);
+      padding: 100px 40px;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .features-header {
+      text-align: center;
+      max-width: 680px;
+      margin: 0 auto 64px;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+      max-width: 1100px;
+      margin: 0 auto;
+      background: var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .feature-card {
+      background: var(--ink-2);
+      padding: 36px 32px;
+      transition: background 0.2s;
+    }
+
+    .feature-card:hover { background: var(--surface-2); }
+
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: var(--green-dim);
+      border: 1px solid rgba(14,184,127,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      margin-bottom: 20px;
+    }
+
+    .feature-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--white);
+      margin-bottom: 10px;
+      line-height: 1.3;
+    }
+
+    .feature-body {
+      font-size: 14px;
+      color: var(--text-2);
+      line-height: 1.65;
+    }
+
+    .feature-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 14px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--green);
+    }
+
+    /* ── ROI / COST SECTION ── */
+    .roi-section { padding: 100px 40px; }
+
+    .roi-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 64px;
+      align-items: center;
+    }
+
+    .roi-copy { }
+
+    .cost-compare {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .compare-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .compare-card.highlight {
+      border-color: var(--green);
+      background: linear-gradient(135deg, rgba(14,184,127,0.06), var(--surface));
+    }
+
+    .compare-card.highlight::before {
+      content: 'Preventli';
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--green);
+      background: var(--green-dim);
+      padding: 3px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(14,184,127,0.3);
+    }
+
+    .compare-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-3);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 12px;
+    }
+
+    .compare-price {
+      font-size: 36px;
+      font-weight: 900;
+      color: var(--white);
+      letter-spacing: -0.02em;
+      line-height: 1;
+    }
+
+    .compare-price .per {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-3);
+      margin-left: 4px;
+    }
+
+    .compare-price.green { color: var(--green); }
+
+    .compare-notes {
+      margin-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .compare-note {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-2);
+    }
+
+    .compare-note .check { color: var(--green); font-size: 14px; }
+    .compare-note .cross { color: var(--red); font-size: 14px; }
+
+    .roi-callout {
+      background: var(--green-dim);
+      border: 1px solid rgba(14,184,127,0.25);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-top: 8px;
+    }
+
+    .roi-callout-icon { font-size: 28px; }
+
+    .roi-callout-text {
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.55;
+    }
+
+    .roi-callout-text strong { color: var(--green); font-weight: 700; }
+
+    /* ── WHO IT'S FOR ── */
+    .who-section {
+      background: var(--surface);
+      padding: 100px 40px;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .who-header {
+      text-align: center;
+      max-width: 600px;
+      margin: 0 auto 64px;
+    }
+
+    .who-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .who-card {
+      background: var(--ink-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 24px;
+      text-align: center;
+      transition: all 0.2s;
+    }
+
+    .who-card:hover {
+      border-color: var(--green);
+      transform: translateY(-4px);
+    }
+
+    .who-emoji { font-size: 36px; margin-bottom: 14px; display: block; }
+
+    .who-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--white);
+      margin-bottom: 8px;
+    }
+
+    .who-body {
+      font-size: 13px;
+      color: var(--text-2);
+      line-height: 1.6;
+    }
+
+    /* ── CTA ── */
+    .cta-section {
+      padding: 120px 40px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta-bg {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 60% 80% at 50% 50%, rgba(14,184,127,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .cta-inner {
+      max-width: 700px;
+      margin: 0 auto;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .cta-h2 {
+      font-size: clamp(32px, 5vw, 56px);
+      font-weight: 900;
+      color: var(--white);
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      margin-bottom: 20px;
+    }
+
+    .cta-sub {
+      font-size: 17px;
+      color: var(--text-2);
+      margin-bottom: 40px;
+      line-height: 1.6;
+    }
+
+    .cta-form {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .cta-input {
+      padding: 14px 20px;
+      border-radius: var(--radius);
+      background: var(--surface);
+      border: 1px solid var(--border-2);
+      color: var(--white);
+      font-size: 15px;
+      font-family: inherit;
+      width: 280px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .cta-input:focus { border-color: var(--green); }
+    .cta-input::placeholder { color: var(--text-3); }
+
+    .cta-note {
+      font-size: 13px;
+      color: var(--text-3);
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    .footer-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 16px;
+      color: var(--white);
+    }
+
+    .footer-brand-icon {
+      width: 28px;
+      height: 28px;
+      background: var(--green);
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .footer-brand-icon svg { width: 16px; height: 16px; }
+
+    .footer-links {
+      display: flex;
+      gap: 24px;
+      list-style: none;
+    }
+
+    .footer-links a {
+      color: var(--text-3);
+      text-decoration: none;
+      font-size: 13px;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover { color: var(--text-2); }
+
+    .footer-copy {
+      font-size: 13px;
+      color: var(--text-3);
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      nav { padding: 0 20px; }
+      .nav-links { display: none; }
+      .hero { padding: 100px 20px 60px; }
+      .section, .features-section, .roi-section, .who-section, .cta-section { padding: 60px 20px; }
+      .pain-grid { grid-template-columns: 1fr; gap: 32px; }
+      .features-grid { grid-template-columns: 1fr; }
+      .roi-inner { grid-template-columns: 1fr; gap: 40px; }
+      .who-grid { grid-template-columns: 1fr 1fr; }
+      .mockup-section { padding: 0 20px 60px; }
+      .mockup-body { grid-template-columns: 1fr; }
+      .mockup-sidebar { display: none; }
+      .dash-stats { grid-template-columns: 1fr 1fr; }
+      footer { flex-direction: column; align-items: flex-start; padding: 30px 20px; }
+    }
+
+    @media (max-width: 600px) {
+      .who-grid { grid-template-columns: 1fr; }
+      .cta-form { flex-direction: column; align-items: center; }
+      .cta-input { width: 100%; max-width: 320px; }
+      .hero-actions { flex-direction: column; align-items: center; }
+    }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .fade-up {
+      animation: fadeUp 0.6s ease both;
+    }
+
+    .delay-1 { animation-delay: 0.1s; }
+    .delay-2 { animation-delay: 0.2s; }
+    .delay-3 { animation-delay: 0.3s; }
+    .delay-4 { animation-delay: 0.4s; }
+    .delay-5 { animation-delay: 0.5s; }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <a href="#" class="nav-logo">
+      <div class="nav-logo-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+          <path d="M2 17l10 5 10-5"/>
+          <path d="M2 12l10 5 10-5"/>
+        </svg>
+      </div>
+      Preventli
+    </a>
+
+    <ul class="nav-links">
+      <li><a href="#problem">The Problem</a></li>
+      <li><a href="#features">How It Works</a></li>
+      <li><a href="#roi">Pricing</a></li>
+      <li><a href="#who">Who It's For</a></li>
+    </ul>
+
+    <div class="nav-cta">
+      <a href="#" class="btn btn-ghost">Sign in</a>
+      <a href="#cta" class="btn btn-primary">Get Early Access</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-grid"></div>
+    <div class="hero-inner">
+      <div class="hero-badge fade-up">
+        <span class="hero-badge-dot"></span>
+        Now available for Australian employers
+      </div>
+      <h1 class="hero-h1 fade-up delay-1">
+        Your WorkCover consultant —<br>
+        <span class="accent">without the hourly rate</span>
+      </h1>
+      <p class="hero-sub fade-up delay-2">
+        Most small businesses navigate WorkCover alone — no dedicated coordinator, no consultant on retainer. One wrong step costs tens of thousands. Preventli is the expert guide you never had.
+      </p>
+      <div class="hero-actions fade-up delay-3">
+        <a href="#cta" class="btn btn-primary btn-lg">Get Early Access — It's Free</a>
+        <a href="#features" class="btn btn-outline btn-lg">See How It Works</a>
+      </div>
+      <div class="hero-social-proof fade-up delay-4">
+        <div class="social-proof-item">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          No WorkCover expertise required
+        </div>
+        <div class="social-proof-item">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          Australian legislation built in
+        </div>
+        <div class="social-proof-item">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          Fraction of consultant cost
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DASHBOARD MOCKUP -->
+  <div class="mockup-section">
+    <div class="mockup-wrap">
+      <div class="mockup-glow"></div>
+      <div class="mockup-frame">
+        <!-- Browser chrome -->
+        <div class="mockup-topbar">
+          <div class="topbar-dots">
+            <span class="dot-red"></span>
+            <span class="dot-amber"></span>
+            <span class="dot-green"></span>
+          </div>
+          <div class="topbar-url">app.preventli.com.au/dashboard</div>
+        </div>
+
+        <div class="mockup-body">
+          <!-- Sidebar -->
+          <div class="mockup-sidebar">
+            <div class="sidebar-logo">
+              <div class="sidebar-logo-icon">🛡️</div>
+              Preventli
+            </div>
+            <div class="sidebar-section">Cases</div>
+            <div class="sidebar-item active">
+              <span class="sidebar-item-dot"></span>
+              Active Claims
+              <span class="sidebar-badge red">3</span>
+            </div>
+            <div class="sidebar-item">
+              <span class="sidebar-item-dot"></span>
+              Return to Work
+              <span class="sidebar-badge">2</span>
+            </div>
+            <div class="sidebar-item">
+              <span class="sidebar-item-dot"></span>
+              Closed Cases
+              <span class="sidebar-badge green">12</span>
+            </div>
+            <div class="sidebar-section">Compliance</div>
+            <div class="sidebar-item">
+              <span class="sidebar-item-dot"></span>
+              RTW Plans
+            </div>
+            <div class="sidebar-item">
+              <span class="sidebar-item-dot"></span>
+              Obligations
+            </div>
+            <div class="sidebar-item">
+              <span class="sidebar-item-dot"></span>
+              AI Guidance
+            </div>
+            <div class="sidebar-section">Reporting</div>
+            <div class="sidebar-item">
+              <span class="sidebar-item-dot"></span>
+              Insights
+            </div>
+          </div>
+
+          <!-- Main content -->
+          <div class="mockup-main">
+            <div class="dash-header">
+              <div>
+                <div class="dash-title">Active Claims</div>
+                <div class="dash-sub">3 open · Last updated 2 hours ago</div>
+              </div>
+              <div class="dash-actions">
+                <div class="dash-btn">Export</div>
+                <div class="dash-btn primary">+ New Case</div>
+              </div>
+            </div>
+
+            <div class="dash-stats">
+              <div class="stat-card">
+                <div class="stat-label">Active Claims</div>
+                <div class="stat-value">3</div>
+                <div class="stat-delta neutral">↔ Same as last month</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">Avg Days Open</div>
+                <div class="stat-value">28</div>
+                <div class="stat-delta up">↓ 12 days faster</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">RTW On Track</div>
+                <div class="stat-value">2/3</div>
+                <div class="stat-delta up">↑ On plan</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">Est. Cost Saving</div>
+                <div class="stat-value">$14k</div>
+                <div class="stat-delta up">↑ This quarter</div>
+              </div>
+            </div>
+
+            <div class="ai-insight-bar">
+              <div class="ai-icon">✦</div>
+              <div class="ai-text">
+                <div class="ai-label">AI Compliance Insight</div>
+                <div class="ai-body">Sarah M. is approaching the 13-week threshold under Vic WorkCover. A suitable duties offer should be documented now to meet employer obligations — see RTW plan for recommended next steps.</div>
+              </div>
+              <span class="ai-chip">✦ AI</span>
+            </div>
+
+            <div class="dash-cases">
+              <div class="cases-header">
+                <div class="cases-title">Workers</div>
+                <div class="cases-filter">
+                  <span class="filter-pill">Active</span>
+                  <span class="filter-pill muted">All</span>
+                  <span class="filter-pill muted">Review</span>
+                </div>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Worker</th>
+                    <th>Injury</th>
+                    <th>Status</th>
+                    <th>RTW Date</th>
+                    <th>Last Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <div class="worker-name">Sarah Mitchell</div>
+                      <div style="font-size:11px;color:var(--text-3)">Site supervisor</div>
+                    </td>
+                    <td>Lumbar strain</td>
+                    <td><span class="status-pill status-review"><span class="status-pill-dot"></span>Needs Review</span></td>
+                    <td>Mar 12, 2025</td>
+                    <td><span class="ai-chip">✦ AI alert</span></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="worker-name">James Kowalski</div>
+                      <div style="font-size:11px;color:var(--text-3)">Warehouse operator</div>
+                    </td>
+                    <td>Shoulder (rotator cuff)</td>
+                    <td><span class="status-pill status-active"><span class="status-pill-dot"></span>Active RTW</span></td>
+                    <td>Apr 3, 2025</td>
+                    <td>RTW plan updated</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="worker-name">Maria Nguyen</div>
+                      <div style="font-size:11px;color:var(--text-3)">Registered nurse</div>
+                    </td>
+                    <td>Needle-stick incident</td>
+                    <td><span class="status-pill status-active"><span class="status-pill-dot"></span>On Track</span></td>
+                    <td>Feb 28, 2025</td>
+                    <td>Med cert received</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROBLEM SECTION -->
+  <section class="section" id="problem">
+    <div class="section-inner">
+      <div class="section-label">
+        <span class="section-label-line"></span>
+        The Problem
+      </div>
+      <h2 class="section-h2">WorkCover is complex.<br>Most businesses handle it alone.</h2>
+      <p class="section-p">Large companies have dedicated return-to-work coordinators. Everyone else wings it — and one missed obligation can turn a minor claim into a six-figure liability.</p>
+
+      <div class="pain-grid">
+        <div class="pain-list">
+          <div class="pain-item">
+            <div class="pain-icon red">⚠️</div>
+            <div>
+              <div class="pain-title">The legislation keeps changing</div>
+              <div class="pain-body">WorkCover obligations differ by state, and they change. Most employers find out they've breached something only after the insurer flags it — by which point it's already expensive.</div>
+            </div>
+          </div>
+          <div class="pain-item">
+            <div class="pain-icon amber">📋</div>
+            <div>
+              <div class="pain-title">RTW plans are a minefield</div>
+              <div class="pain-body">Return-to-work plans have strict timelines and requirements. Get one step wrong and you're exposed. Most SMBs don't know where to start, let alone how to stay compliant through recovery.</div>
+            </div>
+          </div>
+          <div class="pain-item">
+            <div class="pain-icon blue">💸</div>
+            <div>
+              <div class="pain-title">Consultants cost $150–$300/hr</div>
+              <div class="pain-body">When you do call a WorkCover consultant, the meter starts the moment you pick up the phone. For businesses with 1–2 claims a year, it's hard to justify — so most just don't get help.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pain-quote-col">
+          <div class="quote-card">
+            <div class="quote-text">We had no idea we were supposed to make a suitable duties offer by week four. By the time our insurer told us, we were already in breach. That claim cost us way more than it should have.</div>
+            <div class="quote-author">
+              <div class="quote-avatar" style="background: #7c3aed;">DL</div>
+              <div>
+                <div class="quote-name">David L.</div>
+                <div class="quote-role">Operations Manager · 45-person construction firm</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="stat-callout">
+            <div class="stat-callout-num">74%</div>
+            <div class="stat-callout-text">of WorkCover disputes involve employer non-compliance with RTW obligations — almost all preventable with the right guidance at the right time.</div>
+          </div>
+
+          <div class="quote-card">
+            <div class="quote-text">I'd spend hours on the phone with our insurer trying to understand what we needed to do. Half the time they couldn't even give me a straight answer. I just needed someone to tell me: here's the next step.</div>
+            <div class="quote-author">
+              <div class="quote-avatar" style="background: #0284c7;">KP</div>
+              <div>
+                <div class="quote-name">Karen P.</div>
+                <div class="quote-role">HR Manager · 80-person aged care provider</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- FEATURES -->
+  <section class="features-section" id="features">
+    <div class="features-header section-inner">
+      <div class="section-label" style="justify-content:center;">
+        <span class="section-label-line"></span>
+        How It Works
+        <span class="section-label-line"></span>
+      </div>
+      <h2 class="section-h2" style="text-align:center;">Expert guidance,<br>built into every step</h2>
+      <p class="section-p" style="margin:0 auto;text-align:center;">Preventli doesn't just store your claims — it tells you what to do next, flags risks before they become problems, and keeps you compliant without needing a law degree.</p>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">⚖️</div>
+        <div class="feature-title">State-by-state legislation, always current</div>
+        <div class="feature-body">WorkCover rules differ across VIC, NSW, QLD, WA and more. Preventli applies the right rules to every case based on jurisdiction — automatically updated when legislation changes.</div>
+        <div class="feature-tag">✦ AI-powered</div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🗓️</div>
+        <div class="feature-title">RTW timeline tracking with automatic alerts</div>
+        <div class="feature-body">Never miss a deadline. Preventli tracks every statutory milestone — suitable duties offers, medical cert deadlines, insurer reporting windows — and tells you what action is due, and when.</div>
+        <div class="feature-tag">✦ Smart alerts</div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">✦</div>
+        <div class="feature-title">AI compliance guidance on demand</div>
+        <div class="feature-body">Ask anything about your claim — "do I need to offer suitable duties?", "what are my obligations at 13 weeks?" — and get an answer grounded in current legislation, not generic advice.</div>
+        <div class="feature-tag">✦ Powered by Claude</div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">📄</div>
+        <div class="feature-title">RTW plan builder with prompts</div>
+        <div class="feature-body">Build compliant return-to-work plans in minutes, not hours. Preventli guides you through each required section with plain-English prompts, so nothing gets missed.</div>
+        <div class="feature-tag">✦ Template-guided</div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🏥</div>
+        <div class="feature-title">Medical & treating team coordination</div>
+        <div class="feature-body">Track medical certificates, treating practitioners, and capacity updates in one place. Know exactly where each worker is in their recovery — without chasing paperwork.</div>
+        <div class="feature-tag">✦ Case management</div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <div class="feature-title">Claim cost visibility and early intervention</div>
+        <div class="feature-body">See which claims are trending toward dispute or long-tail costs before they get there. Early intervention signals let you act before premiums spike.</div>
+        <div class="feature-tag">✦ Predictive insights</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ROI SECTION -->
+  <section class="roi-section" id="roi">
+    <div class="roi-inner section-inner" style="max-width:1100px;">
+      <div class="roi-copy">
+        <div class="section-label">
+          <span class="section-label-line"></span>
+          The Numbers
+        </div>
+        <h2 class="section-h2">One avoided claim pays for years of Preventli</h2>
+        <p class="section-p" style="margin-bottom:32px;">The ROI on WorkCover management software isn't complicated. A single disputed claim can cost $30,000–$80,000 in legal fees, insurer costs, and premium increases alone. Preventli helps you avoid that — for less than the cost of a one-hour consultation.</p>
+        <div class="roi-callout">
+          <div class="roi-callout-icon">💡</div>
+          <div class="roi-callout-text">
+            Businesses that actively manage WorkCover claims resolve them <strong>40% faster on average</strong> — significantly reducing premium exposure and lost-time injury duration.
+          </div>
+        </div>
+      </div>
+
+      <div class="cost-compare">
+        <div class="compare-card">
+          <div class="compare-label">WorkCover Consultant</div>
+          <div class="compare-price">$200<span class="per">/ hr avg.</span></div>
+          <div class="compare-notes">
+            <div class="compare-note"><span class="cross">✗</span> Clock starts when you call</div>
+            <div class="compare-note"><span class="cross">✗</span> Only available during business hours</div>
+            <div class="compare-note"><span class="cross">✗</span> No ongoing claim visibility</div>
+            <div class="compare-note"><span class="cross">✗</span> $1,500–$5,000/claim for full support</div>
+          </div>
+        </div>
+
+        <div class="compare-card highlight">
+          <div class="compare-label">Preventli</div>
+          <div class="compare-price green">$99<span class="per">/ month</span></div>
+          <div class="compare-notes">
+            <div class="compare-note"><span class="check">✓</span> Unlimited claims, always on</div>
+            <div class="compare-note"><span class="check">✓</span> AI guidance available 24/7</div>
+            <div class="compare-note"><span class="check">✓</span> Full claim history and audit trail</div>
+            <div class="compare-note"><span class="check">✓</span> Proactive alerts — no missed deadlines</div>
+          </div>
+        </div>
+
+        <div class="roi-callout">
+          <div class="roi-callout-icon">🧮</div>
+          <div class="roi-callout-text">
+            At $99/month, a full year of Preventli costs less than <strong>a single hour of dispute management</strong> with a consultant — and you avoid the dispute entirely.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHO IT'S FOR -->
+  <section class="who-section" id="who">
+    <div class="who-header section-inner">
+      <div class="section-label" style="justify-content:center;">
+        <span class="section-label-line"></span>
+        Who It's For
+        <span class="section-label-line"></span>
+      </div>
+      <h2 class="section-h2" style="text-align:center;">Built for the businesses<br>navigating WorkCover alone</h2>
+    </div>
+
+    <div class="who-grid">
+      <div class="who-card">
+        <span class="who-emoji">🏗️</span>
+        <div class="who-title">Construction & Trades</div>
+        <div class="who-body">High injury rates, manual labour risks, and complex RTW for physical roles. Preventli keeps you compliant when workers can't go back to full duties straight away.</div>
+      </div>
+      <div class="who-card">
+        <span class="who-emoji">🏭</span>
+        <div class="who-title">Manufacturing & Warehousing</div>
+        <div class="who-body">Repetitive strain, machinery incidents, and high-frequency claims. Track every case without a dedicated coordinator eating up HR budget.</div>
+      </div>
+      <div class="who-card">
+        <span class="who-emoji">🏥</span>
+        <div class="who-title">Healthcare & Aged Care</div>
+        <div class="who-body">Manual handling injuries, exposure incidents, and emotionally complex claims. Get clear guidance on every obligation without second-guessing the rules.</div>
+      </div>
+      <div class="who-card">
+        <span class="who-emoji">👷</span>
+        <div class="who-title">Labour Hire & Staffing</div>
+        <div class="who-body">Multi-site, multi-employer WorkCover complexity made manageable. Know which obligations sit with you versus the host employer — for every single claim.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-section" id="cta">
+    <div class="cta-bg"></div>
+    <div class="cta-inner">
+      <div class="hero-badge" style="margin-bottom:28px;justify-content:center;">
+        <span class="hero-badge-dot"></span>
+        Early access — no credit card required
+      </div>
+      <h2 class="cta-h2">Stop guessing.<br>Start managing.</h2>
+      <p class="cta-sub">Join the waitlist and get early access to Preventli. We'll let you know the moment your spot is ready — and we'll never send you rubbish.</p>
+      <div class="cta-form">
+        <input class="cta-input" type="email" placeholder="Work email address" />
+        <a href="#" class="btn btn-primary btn-lg">Get Early Access</a>
+      </div>
+      <div class="cta-note">Free during early access. No spam. Unsubscribe any time.</div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-brand">
+      <div class="footer-brand-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+          <path d="M2 17l10 5 10-5"/>
+          <path d="M2 12l10 5 10-5"/>
+        </svg>
+      </div>
+      Preventli
+    </div>
+
+    <ul class="footer-links">
+      <li><a href="#">Privacy Policy</a></li>
+      <li><a href="#">Terms of Service</a></li>
+      <li><a href="#">Contact</a></li>
+    </ul>
+
+    <div class="footer-copy">© 2025 Preventli. All rights reserved.</div>
+  </footer>
+
+</body>
+</html>
