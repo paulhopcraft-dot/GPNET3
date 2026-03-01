@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Building2, FileText, Settings, HelpCircle, Monitor, Heart, UserPlus } from "lucide-react";
+import { LayoutDashboard, Users, Building2, FileText, Settings, HelpCircle, Monitor, Heart, UserPlus, ShieldCheck } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -33,8 +33,13 @@ const menuItems = [
     icon: Heart,
   },
   {
-    title: "Health Assessment",
-    url: "/pre-employment-form",
+    title: "Health Checks",
+    url: "/checks",
+    icon: ShieldCheck,
+  },
+  {
+    title: "Workers",
+    url: "/workers-list",
     icon: UserPlus,
   },
   {

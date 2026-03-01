@@ -68,6 +68,7 @@ const MarketingDocsPage = lazy(() => import("./pages/MarketingDocsPage"));
 const AgentJobsPage = lazy(() => import("./pages/AgentJobsPage"));
 const PublicQuestionnaire = lazy(() => import("./pages/PublicQuestionnaire"));
 const WorkerProfile = lazy(() => import("./pages/WorkerProfile"));
+const WorkersListPage = lazy(() => import("./pages/WorkersListPage"));
 const NewAssessmentPage = lazy(() => import("./pages/NewAssessmentPage"));
 
 // LogoutRedirect component - triggers logout and redirects to login
@@ -578,6 +579,18 @@ export default function App() {
                       }
                     />
                   </Route>
+
+                  {/* Workers List — searchable table of all workers */}
+                  <Route
+                    path="/workers-list"
+                    element={
+                      <ProtectedRoute>
+                        <Suspense fallback={<PageLoader />}>
+                          <WorkersListPage />
+                        </Suspense>
+                      </ProtectedRoute>
+                    }
+                  />
 
                   {/* Worker Profile */}
                   <Route
