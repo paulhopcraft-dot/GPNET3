@@ -763,7 +763,7 @@ test.describe("@regression Notifications", () => {
   test("API: notifications endpoint returns list", async ({ request }) => {
     const { headers } = await apiSession(request);
 
-    const res = await request.get(`${BASE}/api/notifications`, { headers });
+    const res = await request.get(`${BASE}/api/notifications/recent`, { headers });
     expect(res.status()).toBe(200);
     const json = await res.json();
     const list = Array.isArray(json) ? json : json.data ?? [];
@@ -773,7 +773,7 @@ test.describe("@regression Notifications", () => {
   test("API: notifications include health_check_due type when applicable", async ({ request }) => {
     const { headers } = await apiSession(request);
 
-    const res = await request.get(`${BASE}/api/notifications`, { headers });
+    const res = await request.get(`${BASE}/api/notifications/recent`, { headers });
     const json = await res.json();
     const list = Array.isArray(json) ? json : json.data ?? [];
 
