@@ -20,6 +20,8 @@ function createMockStorage(): IStorage {
     notificationExistsByDedupeKey: vi.fn(async (key: string) => dedupeKeys.has(key)),
     getOverdueActions: vi.fn(async () => []),
     getCaseCompliance: vi.fn(async () => ({ status: "compliant" })),
+    listWorkers: vi.fn(async () => []),
+    getCertificatesByCase: vi.fn(async () => []),
     // Add other required methods as stubs
   } as any;
 }
