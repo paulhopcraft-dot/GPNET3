@@ -1406,7 +1406,8 @@ export type NotificationType =
   | "weekly_digest"
   | "check_in_follow_up"
   | "rtw_plan_expiring"     // RTW plan expires in 7/3/1 days
-  | "rtw_plan_expired";     // RTW plan has expired
+  | "rtw_plan_expired"      // RTW plan has expired
+  | "health_check_due";     // Pre-employment health check overdue or due within 60 days
 
 export type NotificationPriority = "low" | "medium" | "high" | "critical";
 export type NotificationStatus = "pending" | "sent" | "failed" | "skipped";

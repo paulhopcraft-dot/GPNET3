@@ -240,6 +240,18 @@ Immediate action required to review and update the RTW plan.
 View case: {{caseUrl}}
 `,
   },
+
+  health_check_due: {
+    subject: "Health check required: {{workerName}}",
+    body: `A health check is required for {{workerName}}.
+
+Status: {{urgencyLabel}}
+Due date: {{dueDate}}
+Last clearance: {{clearanceLevel}}
+
+Schedule a new check: {{workerUrl}}
+`,
+  },
 };
 
 // =====================================================
@@ -716,6 +728,104 @@ async function generateCheckInNotifications(
   return created;
 }
 
+// Months between health checks per clearance outcome (mirrors workers.ts)
+const HEALTH_RECHECK_MONTHS: Record<string, number> = {
+  cleared_unconditional: 12,
+  cleared_conditional: 12,
+  cleared_with_restrictions: 6,
+};
+
+/**
+ * Generate health check due/overdue notifications for workers in an organization.
+ * Fires when recheckUrgency is "overdue" or "due_soon" (within 60 days).
+ */
+async function generateHealthCheckNotifications(
+  storage: IStorage,
+  recipientEmail: string,
+  organizationId: string,
+): Promise<number> {
+  let created = 0;
+  const now = new Date();
+
+  const workerRows = await storage.listWorkers(organizationId);
+
+  for (const worker of workerRows) {
+    try {
+      const profile = await storage.getWorkerProfile(worker.id);
+      if (!profile) continue;
+
+      const completed = profile.assessments.filter(
+        (a) => a.status === "completed" && a.clearanceLevel,
+      );
+      if (completed.length === 0) continue;
+
+      const latest = completed[0];
+      const clearance = latest.clearanceLevel!;
+      const months = HEALTH_RECHECK_MONTHS[clearance];
+      if (!months) continue; // not_cleared / requires_review — no time-based recheck
+
+      const rawDate = latest.updatedAt ?? latest.createdAt;
+      if (!rawDate) continue;
+      const due = new Date(rawDate);
+      due.setMonth(due.getMonth() + months);
+
+      const daysUntil = Math.round((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+      let urgency: "overdue" | "due_soon";
+      if (daysUntil <= 0) urgency = "overdue";
+      else if (daysUntil <= 60) urgency = "due_soon";
+      else continue; // upcoming — no notification yet
+
+      // Dedupe: one notification per worker per check-cycle (identified by YYYY-MM of due date) per urgency
+      const dueDateBucket = due.toISOString().slice(0, 7); // YYYY-MM
+      const dedupeKey = `health_check:${worker.id}:${dueDateBucket}:${urgency}`;
+
+      const exists = await storage.notificationExistsByDedupeKey(dedupeKey);
+      if (exists) continue;
+
+      const dueStr = due.toLocaleDateString("en-AU");
+      const urgencyLabel = urgency === "overdue"
+        ? `Overdue by ${Math.abs(daysUntil)} day${Math.abs(daysUntil) !== 1 ? "s" : ""}`
+        : `Due in ${daysUntil} day${daysUntil !== 1 ? "s" : ""} (within 60-day window)`;
+
+      const { subject, body } = buildNotificationContent("health_check_due", {
+        workerName: worker.name,
+        urgencyLabel,
+        dueDate: dueStr,
+        clearanceLevel: clearance.replace(/_/g, " "),
+        workerUrl: `${APP_URL}/workers/${worker.id}`,
+      });
+
+      const notification: InsertNotification = {
+        organizationId,
+        type: "health_check_due",
+        priority: urgency === "overdue" ? "high" : "medium",
+        caseId: undefined, // health checks are not linked to a case
+        recipientEmail,
+        recipientName: null,
+        subject,
+        body,
+        status: "pending",
+        dedupeKey,
+        metadata: {
+          workerName: worker.name,
+          workerId: worker.id,
+          daysUntil,
+          clearanceLevel: clearance,
+          urgency,
+        },
+      };
+
+      await storage.createNotification(notification);
+      created++;
+    } catch (error) {
+      logger.notification.error(`Error processing health check for worker ${worker.id}`, {}, error);
+    }
+  }
+
+  return created;
+}
+
 /**
  * Generate all pending notifications for a specific organization
  * @param storage - Storage interface
@@ -749,6 +859,11 @@ export async function generatePendingNotifications(storage: IStorage, organizati
     const checkInCount = await generateCheckInNotifications(storage, recipientEmail, organizationId);
     logger.notification.info(`Generated check-in notifications`, { count: checkInCount });
     total += checkInCount;
+
+    // Generate health check due/overdue notifications
+    const healthCheckCount = await generateHealthCheckNotifications(storage, recipientEmail, organizationId);
+    logger.notification.info(`Generated health check notifications`, { count: healthCheckCount });
+    total += healthCheckCount;
 
     logger.notification.info(`Total notifications generated`, { total });
   } catch (error) {

@@ -39,9 +39,14 @@ export function PageLayout({ children, title, subtitle }: PageLayoutProps) {
   const { user } = useAuth();
   const [bookingOpen, setBookingOpen] = useState(false);
 
-  // Extract caseId from current URL for context-aware booking
+  // Extract caseId or workerId from current URL for context-aware chat
   const caseIdMatch = location.pathname.match(/\/cases\/([^/]+)/);
-  const caseContext = caseIdMatch ? { caseId: caseIdMatch[1] } : undefined;
+  const workerIdMatch = location.pathname.match(/\/workers\/([^/]+)/);
+  const caseContext = caseIdMatch
+    ? { caseId: caseIdMatch[1] }
+    : workerIdMatch
+    ? { workerId: workerIdMatch[1] }
+    : undefined;
 
   // Filter navigation items based on user role and transform for employers
   const getNavItems = () => {

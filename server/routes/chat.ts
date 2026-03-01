@@ -47,13 +47,56 @@ router.post("/message", authorize(), async (req: AuthRequest, res: Response) => 
       return res.status(503).json({ error: "AI service not configured" });
     }
 
-    // Build optional case context if user is on a case page
+    // Build optional context block for case or worker pages
     let contextBlock = "";
     if (context?.caseId) {
       try {
         const workerCase = await storage.getGPNet2CaseById(context.caseId, req.user!.organizationId);
         if (workerCase) {
           contextBlock = `\n\n---\nCurrent case context (use this to personalise your response):\n- Worker: ${workerCase.workerName}\n- Company: ${workerCase.company}\n- Work status: ${workerCase.workStatus}\n- Summary: ${workerCase.summary}`;
+        }
+      } catch {
+        // context load failure is non-fatal
+      }
+    } else if (context?.workerId) {
+      try {
+        const profile = await storage.getWorkerProfile(context.workerId);
+        if (profile) {
+          const { worker, assessments } = profile;
+
+          // Compute recheck status inline
+          const RECHECK_MONTHS: Record<string, number> = {
+            cleared_unconditional: 12,
+            cleared_conditional: 12,
+            cleared_with_restrictions: 6,
+          };
+          const completed = assessments.filter((a) => a.status === "completed" && a.clearanceLevel);
+          const latest = completed[0] ?? null;
+
+          let recheckLine = "";
+          if (latest) {
+            const months = RECHECK_MONTHS[latest.clearanceLevel!];
+            if (months) {
+              const completedAt = latest.updatedAt ?? latest.createdAt;
+              const due = completedAt ? new Date(completedAt) : new Date();
+              due.setMonth(due.getMonth() + months);
+              const daysUntil = Math.round((due.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+              if (daysUntil <= 0) {
+                recheckLine = `\n- Next health check: OVERDUE by ${Math.abs(daysUntil)} days — proactively suggest scheduling a new check`;
+              } else if (daysUntil <= 60) {
+                recheckLine = `\n- Next health check: due in ${daysUntil} days (${due.toLocaleDateString("en-AU")}) — mention this and offer to help book`;
+              } else {
+                recheckLine = `\n- Next health check: due ${due.toLocaleDateString("en-AU")} (${daysUntil} days away)`;
+              }
+            }
+          }
+
+          const latestAssessment = assessments[0] ?? null;
+          const clearanceLine = latest?.clearanceLevel
+            ? `\n- Clearance status: ${latest.clearanceLevel.replace(/_/g, " ")} (${latestAssessment?.positionTitle ?? "no role on file"})`
+            : "\n- Clearance status: no completed assessment on file";
+
+          contextBlock = `\n\n---\nWorker context (use this to personalise your response):\n- Name: ${worker.name}\n- Email: ${worker.email ?? "not on file"}${clearanceLine}${recheckLine}\n- Total assessments: ${assessments.length}\n\nIMPORTANT: If the worker's health check is overdue or due soon, proactively bring this up and offer to help schedule one. End with [SUGGEST_BOOKING] if a booking is warranted.`;
         }
       } catch {
         // context load failure is non-fatal
