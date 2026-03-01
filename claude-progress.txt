@@ -1,3 +1,28 @@
+## Session 96 (continued, part 2) - 1 Mar 2026
+
+### Completed
+- **Health check notification cron** (`cccb485`) — `generateHealthCheckNotifications()` in notificationService.ts
+  - Fires hourly for overdue/due_soon workers (≤60 days until next check)
+  - Dedupe key: `health_check:{workerId}:{YYYY-MM}:{urgency}` — one per cycle per urgency
+  - Enable with `ENABLE_NOTIFICATIONS=true` in .env
+- **Dr. Alex worker context** (`cccb485`) — chat.ts + PageLayout.tsx
+  - `/workers/:id` URL → workerId extracted, passed to ChatWidget
+  - Dr. Alex loads worker profile, clearance level, daysUntil next check
+  - Overdue → proactively raises check + fires SUGGEST_BOOKING
+  - Due soon → mentions upcoming date, offers to help book
+- **Visual check history timeline** — WorkerProfile.tsx rewrite
+  - Vertical timeline: each completed check as dated node, colour-coded by clearance
+  - Each node: position, clearance badge, projected next-check date arrow
+  - Future node: overdue = red "Schedule Now" CTA; due_soon = amber "Book Now"; upcoming = muted
+  - Aggressive overdue banner: days overdue count + employer liability language
+  - Due-soon banner: days remaining + "checks take 1–2 weeks" urgency
+  - Stat strip at top: total checks / current clearance / next check date
+
+### Next Steps
+1. **Export** — CSV/PDF of workers + check status for employer reporting
+2. **Assessment create pre-filled for worker** — /assessments/new?workerId=X pre-fills name/email
+3. **Recovery timeline** (for injury cases) — parallel to check timeline on case pages
+
 ## Session 96 (continued) - 1 Mar 2026
 
 ### Completed (continuation)
