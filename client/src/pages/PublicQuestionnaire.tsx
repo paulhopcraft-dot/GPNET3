@@ -74,7 +74,13 @@ export default function PublicQuestionnaire() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
         <div className="bg-white rounded-xl shadow p-8 max-w-md w-full text-center">
-          <div className="text-4xl mb-4">⚠️</div>
+          <div className="mb-4 flex justify-center">
+            <div className="h-14 w-14 rounded-full bg-yellow-100 flex items-center justify-center">
+              <svg className="h-7 w-7 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+              </svg>
+            </div>
+          </div>
           <h1 className="text-xl font-bold text-gray-900 mb-2">Unable to Load Assessment</h1>
           <p className="text-gray-600">{error}</p>
         </div>
@@ -86,7 +92,13 @@ export default function PublicQuestionnaire() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
         <div className="bg-white rounded-xl shadow p-8 max-w-md w-full text-center">
-          <div className="text-5xl mb-4">✅</div>
+          <div className="mb-4 flex justify-center">
+            <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center">
+              <svg className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+          </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Thank You!</h1>
           <p className="text-gray-600">
             Your health questionnaire has been submitted. Our team will review your responses and
