@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { getCsrfToken } from "@/lib/queryClient";
 import { PageLayout } from "@/components/PageLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -70,9 +71,11 @@ export default function NewAssessmentPage() {
       if (fields.jobDescription.trim()) formData.append("jobDescription", fields.jobDescription);
       if (jdFile) formData.append("jobDescriptionFile", jdFile);
 
+      const csrfToken = await getCsrfToken();
       const res = await fetch("/api/assessments", {
         method: "POST",
         credentials: "include",
+        headers: { "X-CSRF-Token": csrfToken },
         body: formData,
         // No Content-Type header — browser sets multipart boundary automatically
       });
@@ -95,10 +98,11 @@ export default function NewAssessmentPage() {
     setError(null);
     setSending(true);
     try {
+      const csrfToken = await getCsrfToken();
       const res = await fetch(`/api/assessments/${assessment.id}/send`, {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
