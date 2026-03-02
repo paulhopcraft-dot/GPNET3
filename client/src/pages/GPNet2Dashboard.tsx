@@ -4,7 +4,7 @@ import { CompanyNav } from "@/components/CompanyNav";
 import { SearchBar } from "@/components/SearchBar";
 import { CasesTable } from "@/components/CasesTable";
 import { CaseDetailPanel } from "@/components/CaseDetailPanel";
-import { AIAssistant } from "@/components/ai-assistant";
+import { ChatWidget } from "@/components/ChatWidget";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -434,7 +434,7 @@ export default function GPNet2Dashboard() {
         )}
       </main>
       
-      <AIAssistant />
+      <ChatWidget caseContext={selectedCaseId ? { caseId: selectedCaseId } : undefined} />
     </div>
   );
 }
