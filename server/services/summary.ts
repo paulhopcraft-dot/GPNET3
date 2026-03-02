@@ -1,221 +1,14 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { callClaude } from "../lib/claude-cli";
 import { storage } from "../storage";
 import type { WorkerCase, CaseDiscussionNote, TranscriptInsight } from "@shared/schema";
 import { FreshdeskService } from "./freshdesk";
 
 export class SummaryService {
-  private anthropic: Anthropic | null = null;
   private freshdeskService: FreshdeskService;
-  public model = "claude-sonnet-4-20250514"; // Better quality for detailed summaries
+  public model = "claude-cli"; // Uses Max plan OAuth via CLI
 
   constructor() {
-    // Don't initialize here - do it lazily in getAnthropic()
     this.freshdeskService = new FreshdeskService();
-  }
-
-  private getAnthropic(): Anthropic {
-    // Lazy initialization - check env every time to get latest value
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      throw new Error("ANTHROPIC_API_KEY environment variable is not configured");
-    }
-    // Always create a fresh instance with current env value
-    return new Anthropic({ apiKey });
-  }
-
-  private ensureConfigured(): void {
-    if (!process.env.ANTHROPIC_API_KEY) {
-      throw new Error("ANTHROPIC_API_KEY environment variable is not configured");
-    }
-  }
-
-  private getMockSummary(workerCase: WorkerCase): {
-    summary: string;
-    workStatusClassification: string;
-    actionItems: Array<{ type: string; description: string; priority: number }>;
-  } {
-    const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-    const yesterday = new Date(Date.now() - 86400000).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-
-    const mockSummary = `## Case Finalized - Worker Employed at IKON
-
-**${workerCase.workerName} has obtained full-time employment as a cleaner at IKON Services.** The WorkCover claim has been finalized and closed for weekly payments.
-
----
-
-### Current Status
-
-| Status | Details |
-|--------|---------|
-| **Claim Status** | FINALIZED - Closed for weekly payments |
-| **Employment** | Full-time cleaner at IKON Services (commenced 8 December 2025) |
-| **Work Capacity** | Full duties - no restrictions |
-| **Certificate Required** | None - claim is closed |
-
----
-
-## Latest Update (${today})
-
-**Recent Welfare Contact (${yesterday}):**
-- ${workerCase.workerName} reported intermittent symptoms (finger stiffness/locking ~4/10, worse in cold weather)
-- Symptoms improving - some days with no symptoms at all
-- Managing duties without issue
-- Physio appointment scheduled for Saturday 11 January
-- Asked to discuss clearance certificate with physio
-
-**Outstanding Items:**
-1. Formal clearance certificate not yet obtained
-2. Wage top-up query ($238 shortfall for first fortnight) - Saurav to process
-3. 3-month stability period target: 8 March 2026
-
-**Next Action:** Follow up with ${workerCase.workerName} after Saturday physio re: symptoms and clearance certificate
-
----
-
-## Worker Details
-
-| Field | Value |
-|-------|-------|
-| Name | ${workerCase.workerName} |
-| DOB | 7 July 1996 (Age 28) |
-| Claim Number | ${workerCase.id} |
-| Employer | ${workerCase.company} |
-| Pre-Injury Role | Labour (Pact Reuse, VIP Steel Laverton) |
-| Pre-Injury Rate | $35.91/hr (37.5 hrs/week = $1,346.63/week) |
-
----
-
-## Injury Details
-
-| Field | Value |
-|-------|-------|
-| Injury | Soft tissue injury - palmar tenosynovitis/trigger finger (3rd & 4th digits, right hand) |
-| Date of Onset | ~December 2024 (reported 17 March 2025) |
-| Mechanism | Repetitive use of vibration cutting machine |
-| Treating GP | Dr. Caesar Tan |
-| Physiotherapist | Andrew Coulter (Hobsons Bay Medical) |
-| ORP | Jordan Pankiw (AMS Consulting) |
-| Case Manager | Niko Datuin (DXC) |
-
----
-
-## Claim Timeline
-
-| Date | Event |
-|------|-------|
-| 17 Mar 2025 | Injury reported via QR code notification |
-| 19 Mar 2025 | Initial physio appointment |
-| 21 Mar 2025 | GP consultation |
-| 25 Mar 2025 | WorkCover claim lodged; Symmetry disputed liability |
-| 22 Apr 2025 | **Claim accepted** by DXC |
-| 17 Jun 2025 | ORP (Jordan Pankiw) engaged |
-| 14 Jul 2025 | RTW commencement notification issued |
-| 1 Sep 2025 | Commenced suitable duties at Sunshine Hospital (food services) |
-| 19 Sep 2025 | Exacerbation - removed from hospital duties (restrictions upgraded to "Cannot" for hand use) |
-| Oct-Nov 2025 | Off work; job search program commenced |
-| 18 Nov 2025 | Job search KPIs set (30 applications/day) |
-| 25 Nov 2025 | Interview secured with IKON Services |
-| 4 Dec 2025 | Induction at IKON |
-| **8 Dec 2025** | **Commenced full-time employment as cleaner at IKON** |
-| 9 Dec 2025 | DXC confirmed claim finalised for weekly payments |
-| 10 Dec 2025 | DXC confirmed 3-month stability period required |
-| ${yesterday} | Welfare check - symptoms intermittent, managing duties |
-
----
-
-## Current Status
-
-| Category | Status |
-|----------|--------|
-| **Claim Status** | Finalised/Closed for weekly payments |
-| **Employment** | Full-time cleaner at IKON Services |
-| **Hours** | Mon-Fri, 8am-4pm (37 hrs/week) |
-| **Current Rate** | $32.31/hr (casual loading incl.) = $1,211.62/week |
-| **Certificate of Capacity** | None current (expired) |
-| **Restrictions** | None imposed by insurer |
-| **Symptoms** | Intermittent - finger stiffness/locking in cold weather (~4/10), improving during day |
-| **Treatment** | Ongoing physio (Saturday appointments) |
-| **Wage Entitlement** | $1,074/week (PIAWE after step-down) |
-
----
-
-## Financial Summary
-
-| Item | Amount |
-|------|--------|
-| Pre-injury weekly earnings | $1,346.63 |
-| Current weekly earnings (IKON) | $1,211.62 |
-| Weekly shortfall | $135.01 |
-| PIAWE entitlement | $1,074/week |
-| Top-up required if below PIAWE | Yes - Symmetry to pay difference |
-
-${workerCase.workerName} queried $238 shortfall for first fortnight (earned $1,910 vs $2,148 entitlement). Saurav confirmed Symmetry will process top-ups based on payslips.
-
----
-
-## Risk Register
-
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| Symptom exacerbation leading to claim reopening | Medium | High | Welfare monitoring, physio continuation |
-| Worker disengages from new role (long commute, difficult manager) | Medium | High | Regular check-ins, early intervention |
-| No formal clearance obtained | Medium | Low | Request clearance from physio/GP |
-| Employer liability if employment ends due to injury | Low | High | Monitor 3-month stability period |
-
----
-
-## Key Contacts
-
-| Role | Name | Contact |
-|------|------|---------|
-| Worker | ${workerCase.workerName} | andresgutini77@gmail.com / 0473 208 394 |
-| Employer Contact | Saurav Kansakar (CFO) | SauravK@symmetryhr.com.au / 03 9566 2416 |
-| Employer Contact | Michelle Clarkson | MichelleC@symmetryhr.com.au |
-| DXC Case Manager | Niko Datuin | lorenznikolay.datuin@dxc.com / 03 9947 6289 |
-| ORP | Jordan Pankiw (AMS) | jpankiw@amsconsulting.com.au / 0412 251 372 |
-| Physio | Andrew Coulter | Hobsons Bay Medical |
-| GP | Dr. Caesar Tan | - |
-| GPNet Contact | Jacinta Bailey | jacinta.bailey@gpnet.au |
-
----
-
-## Notes
-
-- ${workerCase.workerName} needs to sustain employment for ~3 months for claim to be considered stable from WorkCover perspective (target: 8 March 2026)
-- If ${workerCase.workerName}'s employment ends due to accepted injury, claim may be reopened and weekly payments reinstated (subject to review of medical evidence)
-- ${workerCase.workerName} retains entitlement to reasonable medical and like expenses regardless of employment status
-- Long commute noted as concern (2 trains, 1 bus, 25-min walk from Sunshine to worksite)
-- Previous host employers declined to have ${workerCase.workerName} back (Pact/VIP Steel, Sunshine Hospital, Clayton office)
-- Worker reported manager "yells at people" - someone quit due to this; monitor for disengagement risk`;
-
-    const actionItems = [
-      {
-        type: 'follow_up',
-        description: `Follow up with ${workerCase.workerName} regarding current symptoms and treatment plan`,
-        priority: 1,
-      },
-      {
-        type: 'chase_certificate',
-        description: 'Request updated medical certificate if current one expires within 7 days',
-        priority: 1,
-      },
-      {
-        type: 'follow_up',
-        description: 'Conduct welfare check-in',
-        priority: 2,
-      },
-      {
-        type: 'review_case',
-        description: 'Liaise with employer regarding suitable duties options',
-        priority: 2,
-      },
-    ];
-
-    return {
-      summary: mockSummary,
-      workStatusClassification: 'Off Work',
-      actionItems,
-    };
   }
 
   private async syncLatestConversations(workerCase: WorkerCase): Promise<void> {
@@ -268,42 +61,12 @@ ${workerCase.workerName} queried $238 shortfall for first fortnight (earned $1,9
     workStatusClassification: string;
     actionItems: Array<{ type: string; description: string; priority: number }>;
   }> {
-    // TEMPORARY: Use mock data if Anthropic API key is not working
-    const useMockData = false; // Set to false when API key is working
-
-    if (useMockData) {
-      return this.getMockSummary(workerCase);
-    }
-
-    this.ensureConfigured();
-    console.log(`🤖 SummaryService: Using model ${this.model} for case ${workerCase.id}`);
+    console.log(`🤖 SummaryService: Using Claude CLI for case ${workerCase.id}`);
     const systemPrompt = this.buildSystemPrompt();
     const userPrompt = await this.buildUserPrompt(workerCase);
 
-    const response = await this.getAnthropic().messages.create(
-      {
-        model: this.model,
-        max_tokens: 4096,
-        system: systemPrompt,
-        messages: [
-          {
-            role: "user",
-            content: userPrompt,
-          },
-        ],
-      },
-      {
-        timeout: 60000, // 60 second timeout
-      }
-    );
-
-    const textContent = response.content.find((block) => block.type === "text");
-    if (!textContent || textContent.type !== "text") {
-      throw new Error("No text content in AI response");
-    }
-
-    // Extract work status classification from the response
-    const fullText = textContent.text;
+    // Call Claude CLI — Max plan OAuth, no API key needed
+    const fullText = await callClaude(`${systemPrompt}\n\n---\n\n${userPrompt}`, 120_000);
     const workStatusMatch = fullText.match(/Work Status Classification:\s*(.+?)(?:\n|$)/);
     const workStatusClassification = workStatusMatch ? workStatusMatch[1].trim() : "N/A";
 

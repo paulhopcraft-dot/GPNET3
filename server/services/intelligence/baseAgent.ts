@@ -3,7 +3,7 @@
  * Foundation class for all 6 specialist subagents in the Preventli Intelligence Platform
  */
 
-import Anthropic from "@anthropic-ai/sdk";
+import { callClaude } from "../../lib/claude-cli";
 import { createLogger } from "../../lib/logger";
 import { storage } from "../../storage";
 import fs from "fs/promises";
@@ -32,16 +32,12 @@ export interface AgentResponse {
 }
 
 export abstract class BaseHealthcareAgent {
-  protected anthropic: Anthropic;
   protected agentId: string;
   protected memoryPath: string;
   protected logger: any;
-  
+
   constructor(agentId: string) {
     this.agentId = agentId;
-    this.anthropic = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY,
-    });
     this.memoryPath = path.join(process.cwd(), 'intelligence', 'memory', this.agentId);
     this.logger = createLogger(`Agent:${agentId}`);
     this.ensureMemoryDirectory();
@@ -117,21 +113,12 @@ export abstract class BaseHealthcareAgent {
     }
   }
 
-  protected async callAnthropic(prompt: string, context?: any): Promise<string> {
+  protected async callAnthropic(prompt: string, _context?: any): Promise<string> {
     try {
-      const response = await this.anthropic.messages.create({
-        model: "claude-3-sonnet-20240229",
-        max_tokens: 4000,
-        temperature: 0.1, // Lower temperature for healthcare consistency
-        messages: [{
-          role: "user",
-          content: this.buildSystemPrompt() + "\n\n" + prompt
-        }]
-      });
-
-      return response.content[0].type === 'text' ? response.content[0].text : '';
+      // Claude CLI — Max plan OAuth, no API key needed
+      return await callClaude(this.buildSystemPrompt() + "\n\n" + prompt);
     } catch (error) {
-      this.logger.error(`Anthropic API call failed for ${this.agentId}`, {}, error);
+      this.logger.error(`Claude CLI call failed for ${this.agentId}`, {}, error);
       throw error;
     }
   }

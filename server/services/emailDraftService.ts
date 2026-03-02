@@ -6,7 +6,7 @@
  * to generate professional emails for various scenarios.
  */
 
-import Anthropic from "@anthropic-ai/sdk";
+import { callClaude } from "../lib/claude-cli";
 import type { IStorage } from "../storage";
 import { fetchCaseContext, CaseContext } from "./smartSummary";
 import type {
@@ -306,38 +306,17 @@ export async function generateEmailDraft(
   request: EmailDraftRequest,
   userId: string
 ): Promise<EmailDraft> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    throw new Error("ANTHROPIC_API_KEY environment variable is not configured");
-  }
-
-  const anthropic = new Anthropic({ apiKey });
-
   // Fetch case context (reusing from smartSummary)
   const context = await fetchCaseContext(storage, caseId, organizationId);
 
   // Build the prompt
   const prompt = buildEmailPrompt(context, request);
 
-  // Call the AI
-  const response = await anthropic.messages.create({
-    model: MODEL,
-    max_tokens: 2048,
-    messages: [
-      {
-        role: "user",
-        content: prompt,
-      },
-    ],
-  });
-
-  const textContent = response.content.find((block) => block.type === "text");
-  if (!textContent || textContent.type !== "text") {
-    throw new Error("No text content in AI response");
-  }
+  // Call Claude CLI — Max plan OAuth, no API key needed
+  const responseText = await callClaude(prompt);
 
   // Parse the response
-  const { subject, body } = parseEmailResponse(textContent.text);
+  const { subject, body } = parseEmailResponse(responseText);
 
   // Save to database
   const draftInput: InsertEmailDraft = {

@@ -5,7 +5,7 @@
  * from unstructured text (emails, conversations, attachments).
  */
 
-import Anthropic from "@anthropic-ai/sdk";
+import { callClaude } from "../lib/claude-cli";
 import { logger } from "../lib/logger";
 
 export interface AIExtractionResult {
@@ -23,28 +23,7 @@ interface ClaudeResponse {
 }
 
 export class AIInjuryDateService {
-  private anthropic: Anthropic | null = null;
-  public model = "claude-3-haiku-20240307"; // Fast, cost-effective for extraction
-
-  constructor() {
-    // Lazy initialization in getAnthropic()
-  }
-
-  private getAnthropic(): Anthropic {
-    // Lazy initialization - check env every time to get latest value
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      throw new Error("ANTHROPIC_API_KEY environment variable is not configured");
-    }
-    // Always create a fresh instance with current env value
-    return new Anthropic({ apiKey });
-  }
-
-  private ensureConfigured(): void {
-    if (!process.env.ANTHROPIC_API_KEY) {
-      throw new Error("ANTHROPIC_API_KEY environment variable is not configured");
-    }
-  }
+  public model = "claude-cli"; // Uses Max plan OAuth via CLI
 
   /**
    * Extract injury date from complex text using Claude AI
@@ -55,23 +34,10 @@ export class AIInjuryDateService {
     workerName?: string,
     company?: string
   ): Promise<AIExtractionResult> {
-    this.ensureConfigured();
-
     try {
       const prompt = this.buildExtractionPrompt(text, ticketCreatedDate, workerName, company);
 
-      const anthropic = this.getAnthropic();
-      const response = await anthropic.messages.create({
-        model: this.model,
-        max_tokens: 300,
-        temperature: 0.1, // Low temperature for consistent extraction
-        messages: [{
-          role: "user",
-          content: prompt
-        }]
-      });
-
-      const responseText = response.content[0]?.type === "text" ? response.content[0].text : "";
+      const responseText = await callClaude(prompt, 30_000);
       const parsedResult = this.parseAIResponse(responseText);
 
       logger.ai.info('AI injury date extraction completed', {

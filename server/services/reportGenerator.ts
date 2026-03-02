@@ -3,7 +3,7 @@
  * Triggered after a worker submits their pre-employment questionnaire.
  * Uses Claude to analyze responses against job description and generate a clearance report.
  */
-import Anthropic from "@anthropic-ai/sdk";
+import { callClaude } from "../lib/claude-cli";
 import { storage } from "../storage";
 import { type PreEmploymentClearanceLevel, type PreEmploymentAssessmentDB } from "@shared/schema";
 import { sendEmail } from "./emailService";
@@ -25,26 +25,14 @@ const CLEARANCE_VALUES: PreEmploymentClearanceLevel[] = [
  * Called async (fire-and-forget) after worker questionnaire submission.
  */
 export async function generateReport(assessment: PreEmploymentAssessmentDB): Promise<void> {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    logger.error("generateReport: ANTHROPIC_API_KEY not set");
-    return;
-  }
-
-  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
   const prompt = buildReportPrompt(assessment);
 
   try {
-    const response = await anthropic.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 2048,
-      messages: [{ role: "user", content: prompt }],
-      system: `You are a workplace health assessment specialist.
+    const systemContext = `You are a workplace health assessment specialist.
 Analyze pre-employment health questionnaire responses against the job description provided.
-Return a structured JSON report only — no prose, no markdown fences.`,
-    });
+Return a structured JSON report only — no prose, no markdown fences.`;
 
-    const rawText = response.content[0].type === "text" ? response.content[0].text : "{}";
+    const rawText = await callClaude(`${systemContext}\n\n${prompt}`);
     // Strip markdown code fences if the model wrapped the JSON
     const text = rawText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
     let report: Record<string, unknown>;
@@ -52,7 +40,7 @@ Return a structured JSON report only — no prose, no markdown fences.`,
       report = JSON.parse(text);
     } catch {
       logger.error("generateReport: failed to parse AI response as JSON", { assessmentId: assessment.id, text });
-      report = { error: "Could not parse AI output", raw: rawText };
+      throw new Error("AI response was not valid JSON — cannot generate report");
     }
 
     const clearanceLevel = extractClearance(report);

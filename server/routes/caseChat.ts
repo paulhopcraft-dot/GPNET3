@@ -1,9 +1,9 @@
 import { Router, type Response } from "express";
-import Anthropic from "@anthropic-ai/sdk";
 import { authorize, type AuthRequest } from "../middleware/auth";
 import { requireCaseOwnership } from "../middleware/caseOwnership";
 import { storage } from "../storage";
 import { logger } from "../lib/logger";
+import { callClaude } from "../lib/claude-cli";
 
 const router = Router();
 
@@ -26,13 +26,6 @@ router.post("/:id/chat", async (req: AuthRequest, res: Response) => {
       });
     }
 
-    if (!process.env.ANTHROPIC_API_KEY) {
-      return res.status(503).json({
-        error: "Service Unavailable",
-        message: "AI service is not configured",
-      });
-    }
-
     // Gather all case context
     const [certificates, timeline, discussionNotes] = await Promise.all([
       storage.getCaseRecoveryTimeline(workerCase.id, workerCase.organizationId).catch(() => []),
@@ -43,38 +36,25 @@ router.post("/:id/chat", async (req: AuthRequest, res: Response) => {
     // Build case context for the AI
     const caseContext = buildCaseContext(workerCase, certificates, timeline, discussionNotes);
 
-    // Call Claude
-    const anthropic = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY,
-    });
-
-    const response = await anthropic.messages.create({
-      model: "claude-3-haiku-20240307",
-      max_tokens: 1024,
-      system: `You are a case management assistant for GPNet, a workers compensation case management system. You help users understand and query specific worker cases.
+    // Call Claude CLI — Max plan OAuth, no API key needed
+    const prompt = `You are a case management assistant for GPNet, a workers compensation case management system. You help users understand and query specific worker cases.
 
 You have access to the following case data. Answer questions accurately based on this data. If the information is not available, say so clearly.
 
 Be concise but thorough. Format dates in a readable format (e.g., "15 January 2025"). Use bullet points for lists when appropriate.
 
-${caseContext}`,
-      messages: [
-        {
-          role: "user",
-          content: message,
-        },
-      ],
-    });
+${caseContext}
 
-    const content = response.content[0];
-    const responseText = content.type === "text" ? content.text : "";
+---
+User question: ${message}`;
+
+    const responseText = await callClaude(prompt);
 
     res.json({
       success: true,
       data: {
         response: responseText,
-        model: response.model,
-        usage: response.usage,
+        model: "claude-cli",
       },
     });
   } catch (error) {

@@ -1,17 +1,14 @@
 import type { WorkerCase } from "@shared/schema";
 import { storage } from "../storage";
-import { SummaryService } from "./summary";
 import { LlamaSummaryService } from "./llamaSummary";
 import { TemplateSummaryService } from "./templateSummary";
 import { logger } from "../lib/logger";
 
 export class HybridSummaryService {
-  private anthropicService: SummaryService;
   private llamaService: LlamaSummaryService;
   private templateService: TemplateSummaryService;
 
   constructor() {
-    this.anthropicService = new SummaryService();
     this.llamaService = new LlamaSummaryService();
     this.templateService = new TemplateSummaryService();
   }
@@ -35,7 +32,7 @@ export class HybridSummaryService {
     }
 
     // PRD Story 4: Check if cached summary needs refresh based on model or force parameter
-    const currentModel = "claude-sonnet-4-20250514"; // Current enhanced model
+    const currentModel = "claude-cli"; // Claude CLI via Max plan OAuth
     const needsRefresh = force || await storage.needsSummaryRefresh(caseId, workerCase.organizationId, currentModel);
 
     if (!needsRefresh && workerCase.aiSummary) {
@@ -53,9 +50,8 @@ export class HybridSummaryService {
 
 
 
-    // Try services in priority order
+    // Try services in priority order: Llama → Template
     const services = [
-      { name: "Anthropic (Sonnet 4)", service: this.anthropicService },
       { name: "Local Llama", service: this.llamaService },
       { name: "Template", service: this.templateService },
     ];
@@ -102,11 +98,6 @@ export class HybridSummaryService {
         const errorMessage = error instanceof Error ? error.message : String(error);
         logger.api.warn(`${name} failed: ${errorMessage}`);
 
-        // For Anthropic errors, log the specific error type
-        if (name === "Anthropic (Sonnet 4)" && errorMessage.includes("credit balance")) {
-          logger.api.warn("Anthropic credits exhausted, trying fallback services...");
-        }
-
         // Continue to next service
         continue;
       }
@@ -120,26 +111,15 @@ export class HybridSummaryService {
    * Get service health status
    */
   async getServiceStatus(): Promise<{
-    anthropic: boolean;
     llama: boolean;
     template: boolean;
     recommended: string;
   }> {
     const status = {
-      anthropic: false,
       llama: false,
       template: true, // Template is always available
       recommended: "template" as string,
     };
-
-    // Check Anthropic
-    try {
-      // Quick test call (won't actually generate)
-      const anthropic = (this.anthropicService as any).getAnthropic();
-      status.anthropic = !!anthropic;
-    } catch {
-      status.anthropic = false;
-    }
 
     // Check Llama
     try {
@@ -149,9 +129,7 @@ export class HybridSummaryService {
     }
 
     // Determine recommendation
-    if (status.anthropic) {
-      status.recommended = "anthropic";
-    } else if (status.llama) {
+    if (status.llama) {
       status.recommended = "llama";
     } else {
       status.recommended = "template";

@@ -7,7 +7,7 @@
  * Follows existing pattern from certificateService.ts for Claude API integration.
  */
 
-import Anthropic from "@anthropic-ai/sdk";
+import { callClaude } from "../lib/claude-cli";
 import type {
   FunctionalRestrictions,
   FunctionalRestrictionsExtracted,
@@ -339,43 +339,12 @@ export async function extractFunctionalRestrictions(
   }
 
   // For "partial" capacity or cases with actual data, use LLM extraction
-  if (!process.env.ANTHROPIC_API_KEY) {
-    logger.certificate.error("ANTHROPIC_API_KEY not set - cannot extract restrictions");
-    return {
-      restrictions: {
-        ...DEFAULT_NOT_ASSESSED,
-        extractedAt: new Date().toISOString(),
-        extractionConfidence: 0.1,
-      },
-      maxWorkHoursPerDay: null,
-      maxWorkDaysPerWeek: null,
-      confidence: 0.1,
-      requiresReview: true,
-    };
-  }
-
   try {
-    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-    const response = await client.messages.create({
-      model: MODEL,
-      max_tokens: 2048,
-      messages: [
-        {
-          role: "user",
-          content: buildExtractionPrompt(input),
-        },
-      ],
-    });
-
-    // Extract text response
-    const textContent = response.content.find((c) => c.type === "text");
-    if (!textContent || textContent.type !== "text") {
-      throw new Error("No text response from Claude");
-    }
+    // Call Claude CLI — Max plan OAuth, no API key needed
+    const responseText = await callClaude(buildExtractionPrompt(input));
 
     // Parse JSON response
-    const parsed = parseClaudeResponse(textContent.text);
+    const parsed = parseClaudeResponse(responseText);
 
     logger.certificate.info("Restriction extraction complete", {
       confidence: parsed.confidence,

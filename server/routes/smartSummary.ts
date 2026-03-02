@@ -42,9 +42,9 @@ router.get(
         } catch (error: any) {
           const msg = error.message || "";
           const isAIUnavailable =
-            msg.includes("ANTHROPIC_API_KEY") ||
-            msg.includes("authentication_error") ||
-            msg.includes("invalid x-api-key") ||
+            msg.includes("timed out") ||
+            msg.includes("Claude CLI") ||
+            msg.includes("ENOENT") ||
             msg.startsWith("401");
           if (isAIUnavailable) {
             logger.ai.warn("AI unavailable, using fallback summary", { errorPreview: msg.slice(0, 100) });
@@ -61,14 +61,6 @@ router.get(
       });
     } catch (error: any) {
       logger.ai.error("Smart summary generation failed", {}, error);
-
-      if (error.message?.includes("ANTHROPIC_API_KEY")) {
-        return res.status(503).json({
-          success: false,
-          error: "AI service unavailable",
-          message: "Configure ANTHROPIC_API_KEY to enable AI summaries",
-        });
-      }
 
       res.status(500).json({
         success: false,
@@ -102,9 +94,9 @@ router.post(
         } catch (error: any) {
           const msg = error.message || "";
           const isAIUnavailable =
-            msg.includes("ANTHROPIC_API_KEY") ||
-            msg.includes("authentication_error") ||
-            msg.includes("invalid x-api-key") ||
+            msg.includes("timed out") ||
+            msg.includes("Claude CLI") ||
+            msg.includes("ENOENT") ||
             msg.startsWith("401");
           if (isAIUnavailable) {
             logger.ai.warn("AI unavailable, using fallback summary", { errorPreview: msg.slice(0, 100) });
@@ -122,14 +114,6 @@ router.post(
       });
     } catch (error: any) {
       logger.ai.error("Smart summary regeneration failed", {}, error);
-
-      if (error.message?.includes("ANTHROPIC_API_KEY")) {
-        return res.status(503).json({
-          success: false,
-          error: "AI service unavailable",
-          message: "Configure ANTHROPIC_API_KEY to enable AI summaries",
-        });
-      }
 
       res.status(500).json({
         success: false,

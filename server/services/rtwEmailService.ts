@@ -9,7 +9,7 @@
  * Fallback chain: Template -> AI -> Fallback template
  */
 
-import Anthropic from "@anthropic-ai/sdk";
+import { callClaude } from "../lib/claude-cli";
 import Handlebars from "handlebars";
 import { logger } from "../lib/logger";
 import { storage } from "../storage";
@@ -383,39 +383,11 @@ export async function generateRTWPlanEmail(
     }
   }
 
-  // 2. Fall back to AI generation
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    logger.api.warn("ANTHROPIC_API_KEY not configured, using fallback email template");
-    return generateFallbackEmail(context);
-  }
-
+  // 2. Fall back to AI generation via Claude CLI (Max plan OAuth, no API key needed)
   try {
-    const anthropic = new Anthropic({ apiKey });
-
-    // Build the prompt
     const prompt = buildEmailPrompt(context);
-
-    // Call the AI
-    const response = await anthropic.messages.create({
-      model: MODEL,
-      max_tokens: 2048,
-      messages: [
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-    });
-
-    const textContent = response.content.find((block) => block.type === "text");
-    if (!textContent || textContent.type !== "text") {
-      logger.api.warn("No text content in AI response, using fallback");
-      return generateFallbackEmail(context);
-    }
-
-    // Parse the response
-    const result = parseEmailResponse(textContent.text);
+    const responseText = await callClaude(prompt);
+    const result = parseEmailResponse(responseText);
 
     logger.api.info("Generated RTW plan email via AI", {
       workerName: context.workerName,

@@ -10,7 +10,7 @@
  * Uses Anthropic Claude to produce actionable insights with structured data.
  */
 
-import Anthropic from "@anthropic-ai/sdk";
+import { callClaude } from "../lib/claude-cli";
 import type { IStorage } from "../storage";
 import { logger } from "../lib/logger";
 import type {
@@ -365,13 +365,6 @@ export async function generateSmartSummary(
   caseId: string,
   organizationId: string
 ): Promise<CaseSummary> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    throw new Error("ANTHROPIC_API_KEY environment variable is not configured");
-  }
-
-  const anthropic = new Anthropic({ apiKey });
-
   // Sync latest email conversations from Freshdesk before generating summary
   await syncLatestEmailsForCase(storage, caseId, organizationId);
 
@@ -381,25 +374,11 @@ export async function generateSmartSummary(
   // Build the prompt
   const prompt = buildPrompt(context);
 
-  // Call the LLM
-  const response = await anthropic.messages.create({
-    model: MODEL,
-    max_tokens: 2048,
-    messages: [
-      {
-        role: "user",
-        content: prompt,
-      },
-    ],
-  });
-
-  const textContent = response.content.find((block) => block.type === "text");
-  if (!textContent || textContent.type !== "text") {
-    throw new Error("No text content in AI response");
-  }
+  // Call Claude CLI — Max plan OAuth, no API key needed
+  const responseText = await callClaude(prompt);
 
   // Parse and return the summary
-  return parseResponse(caseId, textContent.text);
+  return parseResponse(caseId, responseText);
 }
 
 /**

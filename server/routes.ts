@@ -6,7 +6,7 @@ import { syncScheduler } from "./services/syncScheduler";
 import { complianceScheduler } from "./services/complianceScheduler";
 import { HybridSummaryService } from "./services/hybridSummary";
 const hybridSummaryService = new HybridSummaryService();
-import Anthropic from "@anthropic-ai/sdk";
+import { callClaude } from "./lib/claude-cli";
 import { logger, createLogger } from "./lib/logger";
 
 const routeLogger = createLogger("Routes");
@@ -168,7 +168,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       DATABASE_URL: !!process.env.DATABASE_URL,
       FRESHDESK_DOMAIN: !!process.env.FRESHDESK_DOMAIN,
       FRESHDESK_API_KEY: !!process.env.FRESHDESK_API_KEY,
-      ANTHROPIC_API_KEY: !!process.env.ANTHROPIC_API_KEY,
+      CLAUDE_CLI: true,
     });
   });
 
@@ -362,10 +362,6 @@ export async function registerRoutes(app: Express): Promise<void> {
     try {
       const { message, context, history } = req.body;
 
-      if (!process.env.ANTHROPIC_API_KEY) {
-        return res.status(503).json({ error: "AI service unavailable" });
-      }
-
       // Get user's cases for context if needed
       const organizationId = req.user!.role === 'admin' ? undefined : req.user!.organizationId;
       let caseContext = "";
@@ -416,17 +412,10 @@ Provide a helpful, expert response that:
 
 Keep responses concise but comprehensive (2-3 paragraphs max). If suggesting actions, be specific about what, when, and why.`;
 
-      const anthropic = new Anthropic({
-        apiKey: process.env.ANTHROPIC_API_KEY
-      });
-
-      const response = await anthropic.messages.create({
-        model: "claude-3-sonnet-20240229",
-        max_tokens: 1000,
-        messages: [{ role: "user", content: expertPrompt }]
-      });
-
-      const aiResponse = response.content[0]?.text || "I'm having trouble processing that request. Could you rephrase your question?";
+      // Call Claude CLI — Max plan OAuth, no API key needed
+      const aiResponse = await callClaude(expertPrompt, 30_000).catch(() =>
+        "I'm having trouble processing that request. Could you rephrase your question?"
+      );
 
       // Analyze response to generate smart suggestions
       const suggestions = [];
@@ -840,13 +829,6 @@ Keep responses concise but comprehensive (2-3 paragraphs max). If suggesting act
 
     const { message } = parseResult.data;
 
-    // Check API key before making request
-    if (!process.env.ANTHROPIC_API_KEY) {
-      return res.status(503).json({
-        error: "Compliance service unavailable",
-      });
-    }
-
     try {
       // Get user's cases for context
       const organizationId = req.user!.role === 'admin' ? undefined : req.user!.organizationId;
@@ -901,14 +883,8 @@ Summary: ${caseMentioned.summary || 'No summary available'}`;
 ${cases.slice(0, 10).map(c => `- ${c.workerName} (${c.company}): ${c.workStatus}, ${c.complianceIndicator} risk, Next: ${c.nextStep || 'Review needed'}`).join('\n')}`;
       }
 
-      const anthropic = new Anthropic({
-        apiKey: process.env.ANTHROPIC_API_KEY,
-      });
-
-      const response = await anthropic.messages.create({
-        model: "claude-3-haiku-20240307",
-        max_tokens: 1024,
-        system: `You are an AI assistant for GPNet, a worker's compensation case management system for WorkSafe Victoria compliance.
+      // Call Claude CLI — Max plan OAuth, no API key needed
+      const fullPrompt = `You are an AI assistant for GPNet, a worker's compensation case management system for WorkSafe Victoria compliance.
 
 You have access to the user's current case data and can answer questions about their specific cases, statistics, and provide actionable "next steps" guidance.
 
@@ -924,25 +900,16 @@ When answering:
 Example next steps based on case status:
 - High Risk + No Cert = "1. Request updated medical certificate, 2. Schedule return-to-work meeting, 3. Review workplace modifications"
 - Off Work + Has Cert = "1. Check certificate expiry date, 2. Contact worker for progress update, 3. Plan graduated RTW if improving"
-- At Work + Medium Risk = "1. Monitor for any deterioration, 2. Ensure modified duties are in place, 3. Document progress"`,
-        messages: [
-          {
-            role: "user",
-            content: message,
-          },
-        ],
-      });
+- At Work + Medium Risk = "1. Monitor for any deterioration, 2. Ensure modified duties are in place, 3. Document progress"
 
-      const content = response.content[0];
-      const text = content.type === "text" ? content.text : "";
+---
+User question: ${message}`;
 
-      res.json({
-        response: text,
-        model: response.model,
-        usage: response.usage
-      });
+      const text = await callClaude(fullPrompt, 30_000);
+
+      res.json({ response: text, model: "claude-cli" });
     } catch (err) {
-      routeLogger.error("Claude API error", {}, err);
+      routeLogger.error("Claude CLI error", {}, err);
       // Don't expose internal error details to client
       res.status(500).json({
         error: "Compliance evaluation failed. Please try again.",
@@ -1387,7 +1354,7 @@ Example next steps based on case status:
       let certificatesProcessed = 0;
       const processCertificates = req.query.processCertificates !== "false";
 
-      if (processCertificates && process.env.ANTHROPIC_API_KEY) {
+      if (processCertificates) {
         // Import dynamically to avoid circular deps
         const { processCertificatesFromTickets } = await import("./services/certificatePipeline");
         const { isCertificateAttachment } = await import("./services/pdfProcessor");
@@ -1809,10 +1776,10 @@ Example next steps based on case status:
       routeLogger.error("Summary generation failed", {}, err);
       
       // Return 503 if API key not configured during generation attempt
-      if (err instanceof Error && err.message.includes("ANTHROPIC_API_KEY")) {
-        return res.status(503).json({ 
+      if (err instanceof Error && err.message.includes("Claude CLI")) {
+        return res.status(503).json({
           error: "AI summary service unavailable",
-          details: err.message
+          details: "Claude CLI subprocess failed"
         });
       }
       

@@ -11,7 +11,7 @@
  * - Disclaimers everywhere
  */
 
-import Anthropic from "@anthropic-ai/sdk";
+import { callClaude } from "../lib/claude-cli";
 import type { IStorage } from "../storage";
 import { logger } from "../lib/logger";
 import type {
@@ -312,27 +312,19 @@ export async function generateTreatmentPlan(
       additionalContext
     );
 
-    // Call Claude API with timeout
-    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-    const response = await Promise.race([
-      anthropic.messages.create({
-        model: MODEL,
-        max_tokens: MAX_TOKENS,
-        messages: [{ role: "user", content: prompt }],
-      }),
-      new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), TIMEOUT_MS)),
-    ]) as Anthropic.Message;
+    // Call Claude CLI — Max plan OAuth, no API key needed
+    const rawText = await callClaude(prompt, TIMEOUT_MS).catch((err) => {
+      logger.ai.error("Claude CLI failed for treatment plan", { caseId }, err);
+      return null;
+    });
 
-    // Parse AI response
-    const textContent = response.content.find((c) => c.type === "text");
-    if (!textContent || textContent.type !== "text") {
-      logger.ai.error("No text content in AI response", { caseId });
+    if (!rawText) {
       return createFallbackPlan(workerCase);
     }
 
     let aiResponse: AITreatmentPlanResponse;
     try {
-      aiResponse = JSON.parse(textContent.text);
+      aiResponse = JSON.parse(rawText);
     } catch (parseError) {
       logger.ai.error("Treatment plan JSON parse error", { caseId }, parseError);
       return createFallbackPlan(workerCase);

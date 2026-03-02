@@ -12,9 +12,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { HybridSummaryService } from '../services/hybridSummary';
-import Anthropic from '@anthropic-ai/sdk';
-
-const anthropic = new Anthropic();
+import { callClaude } from '../lib/claude-cli';
 const hybridSummaryService = new HybridSummaryService();
 
 // Configure multer for file uploads
@@ -599,17 +597,7 @@ router.post('/cases/:id/injury-check', authorize(), async (req: Request, res: Re
 
          Keep it under 150 words. Start with "Hi ${workerCase.workerName}," and end with appropriate regards.`;
 
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 500,
-      messages: [
-        { role: 'user', content: emailPrompt }
-      ],
-    });
-
-    const emailContent = response.content[0].type === 'text'
-      ? response.content[0].text
-      : 'Unable to generate email content';
+    const emailContent = await callClaude(emailPrompt, 30_000);
 
     // In production, this would send the email via SMTP/SendGrid/etc.
     // For now, we'll store it as a draft and log it

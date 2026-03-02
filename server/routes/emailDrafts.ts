@@ -102,23 +102,6 @@ router.post(
     } catch (error: any) {
       logger.api.error("Email draft generation failed", {}, error);
 
-      // Handle specific errors
-      if (error.message?.includes("ANTHROPIC_API_KEY")) {
-        return res.status(503).json({
-          success: false,
-          error: "AI service unavailable",
-          message: "Email drafting service is not configured",
-        });
-      }
-
-      if (error.message?.includes("authentication_error") || error.message?.includes("invalid x-api-key")) {
-        return res.status(503).json({
-          success: false,
-          error: "AI service unavailable",
-          message: "Email drafting service authentication failed",
-        });
-      }
-
       res.status(500).json({
         success: false,
         error: "Failed to generate email draft",
