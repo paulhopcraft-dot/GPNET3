@@ -1,5 +1,5 @@
 import express, { type Response, type Router } from "express";
-import Anthropic from "@anthropic-ai/sdk";
+import { spawn } from "child_process";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { authorize, type AuthRequest } from "../middleware/auth";
@@ -10,6 +10,37 @@ import { getCaseRTWCompliance } from "../services/rtwCompliance";
 
 const logger = createLogger("ChatRoutes");
 const router: Router = express.Router();
+
+/**
+ * Call the Claude CLI subprocess for a single-turn response.
+ * Uses Max plan OAuth — no ANTHROPIC_API_KEY needed.
+ */
+function callClaude(prompt: string): Promise<string> {
+  const env = {
+    HOME: process.env.HOME ?? "/home/paul_clawdbot",
+    USER: process.env.USER ?? "paul_clawdbot",
+    PATH: process.env.PATH ?? "/usr/local/bin:/usr/bin:/bin",
+    LANG: process.env.LANG ?? "en_US.UTF-8",
+    TMPDIR: process.env.TMPDIR ?? "/tmp",
+  };
+  return new Promise((resolve, reject) => {
+    const proc = spawn(
+      "/usr/bin/claude",
+      ["-p", prompt, "--output-format", "text", "--allowedTools", ""],
+      { env, cwd: "/tmp", stdio: ["ignore", "pipe", "pipe"] }
+    );
+    let stdout = "";
+    let stderr = "";
+    proc.stdout?.on("data", (d: Buffer) => { stdout += d.toString(); });
+    proc.stderr?.on("data", (d: Buffer) => { stderr += d.toString(); });
+    const timer = setTimeout(() => { proc.kill("SIGTERM"); reject(new Error("Claude CLI timed out")); }, 30_000);
+    proc.on("close", (code: number | null) => {
+      clearTimeout(timer);
+      if (code === 0) resolve(stdout.trim().replace(/\s*\*\(~\d+% context\)\*/g, "").trim());
+      else reject(new Error(`Claude CLI exit ${code}: ${stderr.slice(0, 200)}`));
+    });
+  });
+}
 
 // Load Dr. Alex soul from config file — edit config/DR_ALEX_SOUL.md to change persona
 function loadSoul(): string {
@@ -43,10 +74,6 @@ router.post("/message", authorize(), async (req: AuthRequest, res: Response) => 
     }
     if (!sessionId || typeof sessionId !== "string") {
       return res.status(400).json({ error: "sessionId is required" });
-    }
-
-    if (!process.env.ANTHROPIC_API_KEY) {
-      return res.status(503).json({ error: "AI service not configured" });
     }
 
     const orgId = req.user!.organizationId;
@@ -177,17 +204,9 @@ router.post("/message", authorize(), async (req: AuthRequest, res: Response) => 
       }
     }
 
-    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-    const response = await anthropic.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 512,
-      system: SOUL + memoryBlock + contextBlock,
-      messages: [{ role: "user", content: message }],
-    });
-
-    const content = response.content[0];
-    let reply = content.type === "text" ? content.text : "";
+    // Use Claude CLI subprocess — Max plan OAuth, no API key needed
+    const prompt = `${SOUL}${memoryBlock}${contextBlock}\n\n---\nUser message: ${message}\n\nRespond as Dr. Alex. Keep it concise (2-4 sentences). If you want to suggest a booking, end your response with [SUGGEST_BOOKING].`;
+    let reply = await callClaude(prompt);
 
     // Detect booking suggestion signal from soul
     const suggestBooking = reply.includes("[SUGGEST_BOOKING]");
