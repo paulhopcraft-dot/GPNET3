@@ -41,6 +41,11 @@ app.use(
 // Serve uploaded files (logos, etc.)
 app.use("/uploads", express.static(path.join(process.cwd(), "public", "uploads")));
 
+// Dev-only: auto-login helper (serves before Vite middleware)
+if (process.env.NODE_ENV !== "production") {
+  app.use("/autologin.html", express.static(path.join(process.cwd(), "public", "autologin.html")));
+}
+
 declare module "http" {
   interface IncomingMessage {
     rawBody: unknown;

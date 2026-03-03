@@ -111,7 +111,7 @@ export function EmployerSummaryDashboard() {
               <Building className="w-8 h-8 text-blue-600" />
               <div>
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-700 to-indigo-700 bg-clip-text text-transparent">
-                  Symmetry Human Resources Dashboard
+                  {dashboardData?.organizationName ?? 'Dashboard'}
                 </h1>
                 <p className="text-sm text-slate-600">Case Management Portal</p>
               </div>

@@ -19,7 +19,8 @@ import {
   Users,
   Calendar,
   FileText,
-  TrendingUp
+  TrendingUp,
+  Search
 } from "lucide-react";
 
 interface Assessment {
@@ -82,8 +83,15 @@ export default function ChecksPage() {
     queryFn: () => fetch("/api/workers", { credentials: "include" }).then(r => r.json()),
   });
 
+  const [assessmentSearch, setAssessmentSearch] = useState("");
   const assessments = assessmentsData?.assessments ?? [];
   const workers = workersData?.workers ?? [];
+  const filteredAssessments = assessmentSearch
+    ? assessments.filter(a =>
+        a.candidateName.toLowerCase().includes(assessmentSearch.toLowerCase()) ||
+        a.positionTitle.toLowerCase().includes(assessmentSearch.toLowerCase())
+      )
+    : assessments;
 
   const overdueWorkers = workers.filter(w => w.recheckUrgency === "overdue");
   const dueSoonWorkers = workers.filter(w => w.recheckUrgency === "due_soon");
@@ -242,7 +250,17 @@ export default function ChecksPage() {
                   </div>
                 ) : (
                   <div className="divide-y">
-                    {assessments.slice(0, 20).map((a) => {
+                    <div className="relative mb-3">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Search by name or position..."
+                        value={assessmentSearch}
+                        onChange={e => setAssessmentSearch(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    {filteredAssessments.map((a) => {
                       const row = (
                         <div className="py-3 flex items-start justify-between gap-4">
                           <div className="min-w-0">
@@ -269,13 +287,13 @@ export default function ChecksPage() {
                           {row}
                         </Link>
                       ) : (
-                        <div key={a.id}>{row}</div>
+                        <Link key={a.id} to={`/assessments/${a.id}`} className="block hover:bg-muted/40 transition-colors rounded">
+                          {row}
+                        </Link>
                       );
                     })}
-                    {assessments.length > 20 && (
-                      <p className="text-xs text-muted-foreground pt-3">
-                        +{assessments.length - 20} more assessments
-                      </p>
+                    {filteredAssessments.length === 0 && assessmentSearch && (
+                      <p className="text-xs text-muted-foreground pt-3 text-center">No results for "{assessmentSearch}"</p>
                     )}
                   </div>
                 )}

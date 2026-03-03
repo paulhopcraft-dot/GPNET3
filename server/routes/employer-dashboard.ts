@@ -6,6 +6,9 @@
 import { Router, Request, Response } from 'express';
 import { authorize } from '../middleware/auth';
 import { storage } from '../storage';
+import { db } from '../db';
+import { organizations } from '../../shared/schema';
+import { eq } from 'drizzle-orm';
 import { createLogger } from '../lib/logger';
 import { z } from 'zod';
 import multer from 'multer';
@@ -134,8 +137,9 @@ router.get('/dashboard', authorize(), async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Organization ID required' });
     }
 
-    // Get organization name based on organizationId - Symmetry for employers
-    const organizationName = organizationId === 'org-alpha' ? 'Symmetry Human Resources' : 'Your Organization';
+    // Get organization name from database
+    const orgRow = await db.select({ name: organizations.name }).from(organizations).where(eq(organizations.id, organizationId)).limit(1);
+    const organizationName = orgRow[0]?.name ?? 'Your Organization';
 
     // Batch fetch all data upfront (3 queries instead of N*2)
     const [allCases, allActions, allCertificates] = await Promise.all([

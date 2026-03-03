@@ -114,7 +114,7 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       "/api": {
-        target: "http://localhost:3001",
+        target: "http://localhost:5000",
         changeOrigin: true,
       },
     },

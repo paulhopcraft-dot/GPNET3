@@ -326,8 +326,12 @@ function EmployerDashboardContent() {
 }
 
 export function EmployerDashboardPage() {
-  // Use hardcoded Symmetry for now since employer users are from Symmetry org
-  const organizationName = 'Symmetry Human Resources';
+  const { data: dashboardData } = useQuery<DashboardData>({
+    queryKey: ['employer-dashboard'],
+    queryFn: () => fetch('/api/employer/dashboard').then(r => r.json()),
+    staleTime: 60_000,
+  });
+  const organizationName = dashboardData?.organizationName ?? 'Dashboard';
 
   return (
     <PageLayout
