@@ -44,9 +44,8 @@ const inboundEmailSchema = z.object({
 function verifyWebhookSecret(req: Request): boolean {
   const secret = process.env.INBOUND_EMAIL_WEBHOOK_SECRET;
   if (!secret) {
-    // No secret configured - allow in development
-    log.warn("INBOUND_EMAIL_WEBHOOK_SECRET not set - accepting all requests");
-    return true;
+    log.error("INBOUND_EMAIL_WEBHOOK_SECRET not configured - rejecting all webhook requests");
+    return false;
   }
 
   const provided = req.headers["x-webhook-secret"] as string;

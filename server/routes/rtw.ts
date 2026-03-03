@@ -228,7 +228,7 @@ router.get("/overview", authorize(), async (req: AuthRequest, res: Response) => 
  * GET /api/rtw/expiry-overview/:organizationId
  * Get RTW plan expiry overview for an organization
  */
-router.get("/expiry-overview/:organizationId", authorize, async (req: AuthRequest, res: Response) => {
+router.get("/expiry-overview/:organizationId", authorize(), async (req: AuthRequest, res: Response) => {
   try {
     const organizationId = req.params.organizationId;
 
@@ -292,7 +292,7 @@ router.get("/expiry-overview/:organizationId", authorize, async (req: AuthReques
  * GET /api/cases/:id/rtw-compliance
  * Get RTW compliance status for a specific case
  */
-router.get("/cases/:id/rtw-compliance", authorize, requireCaseOwnership, async (req: AuthRequest, res: Response) => {
+router.get("/cases/:id/rtw-compliance", authorize(), requireCaseOwnership, async (req: AuthRequest, res: Response) => {
   try {
     const caseId = req.params.id;
     const organizationId = req.user!.organizationId;
@@ -320,7 +320,7 @@ const extendRtwPlanSchema = z.object({
   reason: z.string().optional(),
 });
 
-router.put("/cases/:id/rtw-plan/extend", authorize, requireCaseOwnership, async (req: AuthRequest, res: Response) => {
+router.put("/cases/:id/rtw-plan/extend", authorize(), requireCaseOwnership, async (req: AuthRequest, res: Response) => {
   try {
     const caseId = req.params.id;
     const organizationId = req.user!.organizationId;
