@@ -1130,6 +1130,31 @@ export type CaseComplianceCheckDB = typeof caseComplianceChecks.$inferSelect;
 export type InsertCaseComplianceCheck = typeof caseComplianceChecks.$inferInsert;
 
 // =====================================================
+// Phase 2: Explanation Layer — universal explanation type
+// =====================================================
+
+export interface ExplanationFactor {
+  factor: string;      // e.g., "Duration exceeds expected"
+  impact: "positive" | "negative" | "neutral";
+  detail: string;      // e.g., "Off work 8 weeks vs expected 4-6 weeks"
+  weight?: number;     // 0-1
+}
+
+export interface Explanation {
+  summary: string;               // One-sentence plain English (shown by default)
+  detail?: string;               // 2-3 sentence expanded explanation
+  factors?: ExplanationFactor[];
+  legislativeRef?: {
+    act: string;                 // e.g., "WIRC Act 2013"
+    section: string;             // e.g., "s82"
+    description: string;
+  };
+  consequence?: string;          // What happens if ignored
+  remedy?: string;               // Specific next step to resolve
+  confidence?: "high" | "medium" | "low";
+}
+
+// =====================================================
 // Action Queue v1 - Case Actions for Compliance
 // =====================================================
 
@@ -1145,6 +1170,7 @@ export interface CaseAction {
   dueDate?: string;
   priority: number;
   notes?: string;
+  rationale?: string; // Phase 2: why this action is needed now (computed, not persisted)
   workerName?: string; // Denormalized for display
   company?: string; // Denormalized for display
 

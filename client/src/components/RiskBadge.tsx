@@ -6,9 +6,10 @@ interface RiskBadgeProps {
   level?: RiskLevel | ComplianceIndicator;
   type: "risk" | "compliance";
   compliance?: CaseCompliance;
+  explanation?: string; // Phase 2: plain-English "why" text shown in tooltip
 }
 
-export function RiskBadge({ level, type, compliance }: RiskBadgeProps) {
+export function RiskBadge({ level, type, compliance, explanation }: RiskBadgeProps) {
   const getRiskColorClass = () => {
     switch (level) {
       case "High":
@@ -23,13 +24,27 @@ export function RiskBadge({ level, type, compliance }: RiskBadgeProps) {
   };
 
   if (type === "risk") {
-    return (
+    const badge = (
       <span
-        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRiskColorClass()}`}
+        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${getRiskColorClass()}`}
         data-testid={`badge-${type}-${level?.toLowerCase().replace(/\s+/g, '-')}`}
       >
         {level}
+        {explanation && (
+          <span className="material-symbols-outlined text-[10px] opacity-80">info</span>
+        )}
       </span>
+    );
+
+    if (!explanation) return badge;
+
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>{badge}</TooltipTrigger>
+        <TooltipContent className="max-w-xs">
+          <p className="text-xs">{explanation}</p>
+        </TooltipContent>
+      </Tooltip>
     );
   }
 

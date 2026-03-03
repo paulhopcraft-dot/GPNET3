@@ -74,7 +74,11 @@ export function CasesTable({ cases, selectedCaseId, onCaseClick }: CasesTablePro
                   <td className="px-4 py-3 text-muted-foreground">{workerCase.company}</td>
                   <td className="px-4 py-3 text-muted-foreground">{workerCase.dateOfInjury}</td>
                   <td className="px-4 py-3">
-                    <RiskBadge level={workerCase.riskLevel} type="risk" />
+                    <RiskBadge
+                      level={workerCase.riskLevel}
+                      type="risk"
+                      explanation={workerCase.compliance?.reason}
+                    />
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{workerCase.workStatus}</td>
                   <td className="px-4 py-3">

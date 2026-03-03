@@ -22,6 +22,13 @@ export interface ComplianceCheckResult {
   finding: string;
   recommendation: string;
   documentReferences: Array<{ source: string; section: string }>;
+  // Phase 2: structured explanation (obligation, legislation, consequence, remedy)
+  explanation?: {
+    obligation: string;      // Plain English: what you must do
+    legislativeRef: string;  // e.g., "WIRC Act 2013, s38"
+    consequence: string;     // What happens if non-compliant
+    remedy: string;          // Specific action to become compliant
+  };
 }
 
 export interface CaseComplianceReport {
@@ -144,6 +151,63 @@ export async function evaluateCase(caseId: string): Promise<CaseComplianceReport
   };
 }
 
+/** Phase 2: Returns a structured explanation for each rule code per the spec table. */
+function getExplanationForRule(ruleCode: string): ComplianceCheckResult['explanation'] {
+  switch (ruleCode) {
+    case 'CERT_CURRENT':
+      return {
+        obligation: 'A current medical certificate must be on file at all times during an active claim.',
+        legislativeRef: 'WIRC Act 2013, s112',
+        consequence: 'WorkSafe can issue an improvement notice; the worker cannot be directed to duties without a valid certificate.',
+        remedy: 'Contact the treating GP to request an updated certificate. Use the email draft tool to send a request.',
+      };
+    case 'RTW_PLAN_10WK':
+      return {
+        obligation: 'For serious injuries, a return-to-work plan must be developed within 10 weeks of the claim.',
+        legislativeRef: 'WorkSafe RTW Code of Practice, cl.4.3',
+        consequence: 'Non-compliance may trigger a WorkSafe investigation and financial penalties.',
+        remedy: "Initiate RTW planning using the worker's current functional capacity and restrictions.",
+      };
+    case 'FILE_REVIEW_8WK':
+      return {
+        obligation: 'Case files must be reviewed at least every 8 weeks.',
+        legislativeRef: 'WorkSafe Claims Manual, ch.7',
+        consequence: 'Stale case files increase the risk of non-compliance and missed intervention opportunities.',
+        remedy: 'Schedule a case review covering medical status, RTW progress, and outstanding compliance items.',
+      };
+    case 'PAYMENT_STEPDOWN':
+      return {
+        obligation: 'Weekly compensation reduces to 80% of pre-injury earnings after 13 weeks.',
+        legislativeRef: 'WIRC Act 2013, s114',
+        consequence: 'Incorrect payments create liability for the insurer and confusion for the worker.',
+        remedy: 'Verify payment calculations have been adjusted and notify the worker of the change in writing.',
+      };
+    case 'CENTRELINK_CLEARANCE':
+      return {
+        obligation: 'Centrelink clearance must be obtained for workers receiving income support.',
+        legislativeRef: 'Social Security Act 1991',
+        consequence: 'Duplicate payments create recovery obligations for both the insurer and the worker.',
+        remedy: 'Submit a Centrelink clearance request if not already completed.',
+      };
+    case 'SUITABLE_DUTIES':
+      return {
+        obligation: "Employers must provide suitable duties to injured workers where available.",
+        legislativeRef: 'WIRC Act 2013, s82-83',
+        consequence: 'Failure to provide suitable duties may result in WorkSafe prosecution.',
+        remedy: "Conduct a workplace assessment to identify duties matching the worker's current capacity.",
+      };
+    case 'RTW_OBLIGATIONS':
+      return {
+        obligation: 'Both employer and worker have obligations to participate actively in the return-to-work process.',
+        legislativeRef: 'WIRC Act 2013, s82-83; RTW Code of Practice',
+        consequence: 'WorkSafe can issue compliance notices to either party.',
+        remedy: 'Ensure both employer and worker are actively engaged and documented in the RTW process.',
+      };
+    default:
+      return undefined;
+  }
+}
+
 /**
  * Evaluate a single rule against a case
  */
@@ -156,6 +220,7 @@ async function evaluateRule(workerCase: WorkerCaseDB, rule: ComplianceRuleDB): P
     finding: '',
     recommendation: '',
     documentReferences: rule.documentReferences as Array<{ source: string; section: string }>,
+    explanation: getExplanationForRule(rule.ruleCode),
   };
 
   // Evaluate based on rule type

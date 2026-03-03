@@ -219,8 +219,15 @@ export function ActionQueueCard({ onCaseClick, limit = 5 }: ActionQueueCardProps
                     </span>
                   </div>
 
-                  {/* Notes if present */}
-                  {action.notes && (
+                  {/* Phase 2: Rationale — why this action is needed now */}
+                  {action.rationale && (
+                    <p className="text-xs text-muted-foreground mt-2 line-clamp-3">
+                      {action.rationale}
+                    </p>
+                  )}
+
+                  {/* Notes if present (additional context beyond rationale) */}
+                  {action.notes && !action.rationale && (
                     <p className="text-xs text-muted-foreground mt-2 line-clamp-2 italic">
                       {action.notes}
                     </p>

@@ -51,6 +51,7 @@ import { evaluateClinicalEvidence } from "./services/clinicalEvidence";
 import { authorize, type AuthRequest } from "./middleware/auth";
 import { requireCaseOwnership } from "./middleware/caseOwnership";
 import { logAuditEvent, AuditEventTypes, getRequestMetadata } from "./services/auditLogger";
+import { filterCaseByRole, isEmployerRole } from "./lib/rbac";
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
@@ -904,6 +905,11 @@ User question: ${message}`;
       });
 
       const result = await storage.getGPNet2CasesPaginated(organizationId, page, limit);
+      // Phase 1.8: strip clinical fields for employer-role users
+      const role = req.user!.role;
+      if (isEmployerRole(role)) {
+        result.cases = result.cases.map(c => filterCaseByRole(c, role));
+      }
       res.json(result);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch cases" });
@@ -1452,7 +1458,8 @@ User question: ${message}`;
         ...getRequestMetadata(req),
       });
 
-      res.json(workerCase);
+      // Phase 1.8: strip clinical fields for employer-role users
+      res.json(filterCaseByRole(workerCase, req.user!.role));
     } catch (error) {
       routeLogger.error("Error fetching case details", { caseId: req.params.id }, error);
       res.status(500).json({
@@ -1545,6 +1552,11 @@ User question: ${message}`;
 
   app.get("/api/cases/:id/clinical-evidence", authorize(), requireCaseOwnership(), async (req: AuthRequest, res) => {
     try {
+      // Phase 1.8: clinical evidence is not visible to employer-role users
+      if (isEmployerRole(req.user!.role)) {
+        return res.status(403).json({ error: "Forbidden", message: "Clinical evidence is not accessible to employer accounts" });
+      }
+
       const workerCase = req.workerCase!; // Populated by requireCaseOwnership middleware
 
       // Log access
@@ -1570,6 +1582,11 @@ User question: ${message}`;
 
   app.get("/api/cases/:id/discussion-notes", authorize(), requireCaseOwnership(), async (req: AuthRequest, res) => {
     try {
+      // Phase 1.8: clinical discussion notes are not visible to employer-role users
+      if (isEmployerRole(req.user!.role)) {
+        return res.status(403).json({ error: "Forbidden", message: "Discussion notes are not accessible to employer accounts" });
+      }
+
       const workerCase = req.workerCase!; // Populated by requireCaseOwnership middleware
 
       // Log access
@@ -1642,20 +1659,25 @@ User question: ${message}`;
         ...getRequestMetadata(req),
       });
 
-      const [discussionNotes, discussionInsights] = await Promise.all([
-        storage.getCaseDiscussionNotes(workerCase.id, workerCase.organizationId, 5),
-        storage.getCaseDiscussionInsights(workerCase.id, workerCase.organizationId, 5),
-      ]);
+      const employer = isEmployerRole(req.user!.role);
 
-      // Return cached summary data
+      // Phase 1.8: skip clinical DB queries for employers
+      const [discussionNotes, discussionInsights] = employer
+        ? [[], []]
+        : await Promise.all([
+            storage.getCaseDiscussionNotes(workerCase.id, workerCase.organizationId, 5),
+            storage.getCaseDiscussionInsights(workerCase.id, workerCase.organizationId, 5),
+          ]);
+
+      // Return cached summary data (AI summary hidden from employers)
       res.json({
         id: workerCase.id,
-        summary: workerCase.aiSummary || null,
-        generatedAt: workerCase.aiSummaryGeneratedAt || null,
-        model: workerCase.aiSummaryModel || null,
-        workStatusClassification: workerCase.aiWorkStatusClassification || null,
+        summary: employer ? null : (workerCase.aiSummary || null),
+        generatedAt: employer ? null : (workerCase.aiSummaryGeneratedAt || null),
+        model: employer ? null : (workerCase.aiSummaryModel || null),
+        workStatusClassification: employer ? null : (workerCase.aiWorkStatusClassification || null),
         ticketLastUpdatedAt: workerCase.ticketLastUpdatedAt || null,
-        needsRefresh: await storage.needsSummaryRefresh(workerCase.id, workerCase.organizationId),
+        needsRefresh: employer ? false : await storage.needsSummaryRefresh(workerCase.id, workerCase.organizationId),
         discussionNotes,
         discussionInsights,
       });
