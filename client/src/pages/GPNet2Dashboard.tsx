@@ -1,9 +1,9 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useNavigate, Link } from "react-router-dom";
 import { CompanyNav } from "@/components/CompanyNav";
 import { SearchBar } from "@/components/SearchBar";
 import { CasesTable } from "@/components/CasesTable";
-import { CaseDetailPanel } from "@/components/CaseDetailPanel";
 import { ChatWidget } from "@/components/ChatWidget";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { queryClient, fetchWithCsrf } from "@/lib/queryClient";
 import type { WorkerCase, PaginatedCasesResponse } from "@shared/schema";
 import { isLegitimateCase, getSurname } from "@shared/schema";
-import { Link } from "react-router-dom";
 
 interface WorkerSummary {
   id: string;
@@ -43,11 +42,10 @@ function fmtDate(s: string | null | undefined) {
 
 export default function GPNet2Dashboard() {
   const { logout } = useAuth();
+  const navigate = useNavigate();
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   const [statFilter, setStatFilter] = useState<StatFilter>('all');
-  const [directFetchCase, setDirectFetchCase] = useState<WorkerCase | null>(null);
   const { toast } = useToast();
 
   const { data: paginatedData, isLoading } = useQuery<PaginatedCasesResponse>({
@@ -203,45 +201,9 @@ export default function GPNet2Dashboard() {
     return Array.from(companySet).sort();
   }, [cases]);
 
-  // Use loaded case if available, otherwise use directly fetched case
-  const selectedCase = useMemo(() => {
-    const loadedCase = cases.find((c) => c.id === selectedCaseId);
-    return loadedCase || directFetchCase;
-  }, [cases, selectedCaseId, directFetchCase]);
-
-  const handleCaseClick = async (caseId: string) => {
-    setSelectedCaseId(caseId);
-    setDirectFetchCase(null); // Reset any previously fetched case
-
-    // Check if case exists in loaded cases
-    const existsInLoaded = cases.some((c) => c.id === caseId);
-    if (!existsInLoaded) {
-      // Fetch the case directly from API
-      try {
-        const response = await fetchWithCsrf(`/api/cases/${caseId}`);
-        if (response.ok) {
-          const fetchedCase = await response.json();
-          setDirectFetchCase(fetchedCase);
-        } else {
-          toast({
-            title: "Case Not Found",
-            description: `Could not load case ${caseId}`,
-            variant: "destructive",
-          });
-        }
-      } catch (err) {
-        toast({
-          title: "Error",
-          description: "Failed to fetch case details",
-          variant: "destructive",
-        });
-      }
-    }
-  };
-
-  const handleClosePanel = () => {
-    setSelectedCaseId(null);
-    setDirectFetchCase(null);
+  // Navigate to full case detail page when clicking a case
+  const handleCaseClick = (caseId: string) => {
+    navigate(`/summary/${caseId}`);
   };
 
   if (isLoading) {
@@ -416,7 +378,6 @@ export default function GPNet2Dashboard() {
             <div className="flex-1 min-w-0">
               <CasesTable
                 cases={filteredCases}
-                selectedCaseId={selectedCaseId}
                 onCaseClick={handleCaseClick}
               />
             </div>
@@ -428,13 +389,9 @@ export default function GPNet2Dashboard() {
           </div>
 
         </div>
-
-        {selectedCase && (
-          <CaseDetailPanel workerCase={selectedCase} onClose={handleClosePanel} />
-        )}
       </main>
       
-      <ChatWidget caseContext={selectedCaseId ? { caseId: selectedCaseId } : undefined} />
+      <ChatWidget />
     </div>
   );
 }

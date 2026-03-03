@@ -31,7 +31,7 @@ export function ChatWidget({ caseContext }: ChatWidgetProps) {
     {
       role: "assistant",
       content:
-        "Hi, I'm Dr. Alex — a workplace health specialist with Preventli. I'm here to help with any health concerns, questions about your recovery, or workplace wellness. What's on your mind today?",
+        "Hi, I'm Alex — a workplace health specialist with Preventli. I'm here to help with case management, employee recovery questions, or workplace wellness guidance. How can I assist you today?",
     },
   ]);
   const [input, setInput] = useState("");
@@ -102,8 +102,8 @@ export function ChatWidget({ caseContext }: ChatWidgetProps) {
               <div className="flex items-center gap-2">
                 <Stethoscope className="w-4 h-4" />
                 <div>
-                  <p className="text-sm font-semibold">Dr. Alex · Preventli</p>
-                  <p className="text-xs opacity-75">GP & Workplace Health Specialist</p>
+                  <p className="text-sm font-semibold">Alex · Preventli</p>
+                  <p className="text-xs opacity-75">Workplace Health Specialist</p>
                 </div>
               </div>
               <button onClick={() => setOpen(false)} className="opacity-75 hover:opacity-100 transition-opacity">
@@ -181,7 +181,7 @@ export function ChatWidget({ caseContext }: ChatWidgetProps) {
           className="flex items-center gap-2 bg-primary text-primary-foreground rounded-full pl-4 pr-5 py-3 shadow-lg hover:bg-primary/90 transition-colors"
         >
           <Stethoscope className="w-5 h-5" />
-          <span className="text-sm font-medium">Talk with a Doctor</span>
+          <span className="text-sm font-medium">Talk with an Expert</span>
         </button>
       </div>
 

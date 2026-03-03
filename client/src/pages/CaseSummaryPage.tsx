@@ -1,11 +1,11 @@
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { Suspense, lazy } from "react";
 import { PageLayout } from "@/components/PageLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RecoveryChart } from "@/components/RecoveryChart";
 import { TimelineCard } from "@/components/TimelineCard";
 import { RefreshCw } from "lucide-react";
 import type { WorkerCase, PaginatedCasesResponse } from "@shared/schema";
@@ -14,6 +14,9 @@ import { CaseContactsPanel } from "@/components/CaseContactsPanel";
 import { FinancialSummaryPanel } from "@/components/FinancialSummaryPanel";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+
+// Lazy load the modern recovery timeline component
+const DynamicRecoveryTimeline = lazy(() => import("@/components/DynamicRecoveryTimeline").then(m => ({ default: m.DynamicRecoveryTimeline })));
 
 export default function CaseSummaryPage() {
   const { id } = useParams<{ id: string }>();
@@ -353,20 +356,14 @@ export default function CaseSummaryPage() {
           </TabsContent>
 
           <TabsContent value="recovery" className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-primary">trending_up</span>
-                  Recovery Progress
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <RecoveryChart
-                  injuryDate={workerCase.dateOfInjury}
-                  expectedRecoveryDate={expectedRecoveryDate.toISOString()}
-                />
-              </CardContent>
-            </Card>
+            <Suspense fallback={
+              <div className="animate-pulse space-y-4 p-6 bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg border border-purple-200/50">
+                <div className="h-8 bg-gradient-to-r from-purple-200 to-blue-200 rounded w-1/3 mb-6"></div>
+                <div className="h-64 bg-gradient-to-r from-purple-100 to-blue-100 rounded"></div>
+              </div>
+            }>
+              <DynamicRecoveryTimeline caseId={id!} />
+            </Suspense>
           </TabsContent>
         </Tabs>
       </div>

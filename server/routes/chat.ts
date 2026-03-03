@@ -83,6 +83,31 @@ router.post("/message", authorize(), async (req: AuthRequest, res: Response) => 
       ? { workerId: context.workerId }
       : null;
 
+    // Load org-wide case summary so Alex knows the full portfolio
+    let orgCasesBlock = "";
+    try {
+      const allCases = await storage.getGPNet2Cases(orgId);
+      if (allCases.length > 0) {
+        const statusCounts: Record<string, number> = {};
+        for (const c of allCases) {
+          const s = c.workStatus ?? "unknown";
+          statusCounts[s] = (statusCounts[s] || 0) + 1;
+        }
+        const statusSummary = Object.entries(statusCounts)
+          .map(([s, n]) => `${s}: ${n}`)
+          .join(", ");
+
+        // Include individual case summaries (cap at 30 to keep prompt manageable)
+        const caseLines = allCases.slice(0, 30).map((c) =>
+          `- ${c.workerName} (${c.company}) — ${c.workStatus ?? "unknown"}${c.summary ? `: ${c.summary.slice(0, 120)}` : ""}`
+        );
+
+        orgCasesBlock = `\n\n---\n## Organisation Case Portfolio (${allCases.length} total)\nStatus breakdown: ${statusSummary}\n\nActive cases:\n${caseLines.join("\n")}\n${allCases.length > 30 ? `\n...and ${allCases.length - 30} more cases` : ""}\n\nYou can reference any of these cases when the user asks about a specific worker or situation.\n---`;
+      }
+    } catch {
+      // org cases load is non-fatal
+    }
+
     // Load conversation history for this case/worker (non-blocking on failure)
     let memoryBlock = "";
     if (memoryKey) {
@@ -205,7 +230,7 @@ router.post("/message", authorize(), async (req: AuthRequest, res: Response) => 
     }
 
     // Use Claude CLI subprocess — Max plan OAuth, no API key needed
-    const prompt = `${SOUL}${memoryBlock}${contextBlock}\n\n---\nUser message: ${message}\n\nRespond as Dr. Alex. Keep it concise (2-4 sentences). If you want to suggest a booking, end your response with [SUGGEST_BOOKING].`;
+    const prompt = `${SOUL}${orgCasesBlock}${memoryBlock}${contextBlock}\n\n---\nUser message: ${message}\n\nRespond as Alex. Keep it concise (2-4 sentences). If you want to suggest a booking, end your response with [SUGGEST_BOOKING].`;
     let reply = await callClaude(prompt);
 
     // Detect booking suggestion signal from soul
