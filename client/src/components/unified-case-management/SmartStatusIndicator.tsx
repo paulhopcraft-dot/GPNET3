@@ -228,7 +228,7 @@ export function SmartStatusIndicator({
         )}
 
         {/* User Progress */}
-        {!progressLoading && userProgress && (
+        {!progressLoading && userProgress && userProgress.available !== false && (
           <Popover>
             <PopoverTrigger asChild>
               <Button
