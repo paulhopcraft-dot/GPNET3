@@ -162,8 +162,8 @@ export async function registerRoutes(app: Express): Promise<void> {
 
   // Inbound Email webhook registered in server/index.ts (before CSRF middleware)
 
-  // Local diagnostics (non-sensitive env presence check)
-  app.get("/api/diagnostics/env", (_req, res) => {
+  // Local diagnostics — admin only
+  app.get("/api/diagnostics/env", authorize(["admin"]), (req: AuthRequest, res) => {
     res.json({
       DATABASE_URL: !!process.env.DATABASE_URL,
       FRESHDESK_DOMAIN: !!process.env.FRESHDESK_DOMAIN,
@@ -316,45 +316,14 @@ export async function registerRoutes(app: Express): Promise<void> {
     }
   });
 
-  // System Health API
+  // System Health API — public, minimal info only
   app.get("/api/system/health", (_req, res) => {
-    const now = new Date();
-    const uptime = Math.floor(process.uptime());
-
-    res.json({
-      status: "excellent",
-      uptime,
-      activeUsers: Math.floor(Math.random() * 25) + 15, // Mock data
-      casesProcessedToday: Math.floor(Math.random() * 150) + 50,
-      pendingActions: Math.floor(Math.random() * 20) + 5,
-      automationRate: Math.floor(Math.random() * 20) + 75,
-      responseTime: Math.floor(Math.random() * 50) + 50,
-      lastUpdated: now.toISOString()
-    });
+    res.json({ status: "ok" });
   });
 
-  // User Progress API
-  app.get("/api/user/progress", authorize(), async (req: AuthRequest, res) => {
-    // Mock user progress data - in real implementation, this would track user activity
-    const mockProgress = {
-      tasksCompletedToday: Math.floor(Math.random() * 15) + 5,
-      tasksRemaining: Math.floor(Math.random() * 10) + 2,
-      averageTaskTime: Math.floor(Math.random() * 10) + 12,
-      productivityScore: Math.floor(Math.random() * 30) + 70,
-      currentStreak: Math.floor(Math.random() * 14) + 1,
-      achievements: [
-        {
-          id: "efficiency",
-          title: "Efficiency Expert",
-          description: "Completed 20+ tasks in one day",
-          icon: "⚡",
-          earnedAt: new Date().toISOString(),
-          isNew: Math.random() > 0.7
-        }
-      ]
-    };
-
-    res.json(mockProgress);
+  // User Progress API — not yet implemented
+  app.get("/api/user/progress", authorize(), (_req: AuthRequest, res) => {
+    res.json({ available: false, data: null });
   });
 
   // AI Chat API - Expert case management assistant

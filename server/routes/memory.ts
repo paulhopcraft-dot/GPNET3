@@ -2,6 +2,7 @@ import express from "express";
 import { z } from "zod";
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 import { authorize, type AuthRequest } from "../middleware/auth";
 import { createLogger } from "../lib/logger";
 
@@ -70,7 +71,7 @@ function writeMemoryFile<T>(filePath: string, data: T): void {
 
 function generateId(prefix: string): string {
   const timestamp = Date.now().toString(36);
-  const random = Math.random().toString(36).substr(2, 5);
+  const random = crypto.randomUUID().replace(/-/g, '').slice(0, 8);
   return `${prefix}_${timestamp}_${random}`;
 }
 
