@@ -39,6 +39,121 @@ export interface FunctionalCapacity {
   otherCapacityNotes?: string;
 }
 
+export type CaseLifecycleStage =
+  | "intake"
+  | "assessment"
+  | "active_treatment"
+  | "rtw_transition"
+  | "maintenance"
+  | "closed_rtw"
+  | "closed_medical_retirement"
+  | "closed_terminated"
+  | "closed_claim_denied"
+  | "closed_other";
+
+export const LIFECYCLE_STAGE_LABELS: Record<CaseLifecycleStage, string> = {
+  intake: "Intake",
+  assessment: "Assessment",
+  active_treatment: "Active Treatment",
+  rtw_transition: "RTW Transition",
+  maintenance: "Maintenance",
+  closed_rtw: "Closed — Return to Work",
+  closed_medical_retirement: "Closed — Medical Retirement",
+  closed_terminated: "Closed — Terminated",
+  closed_claim_denied: "Closed — Claim Denied",
+  closed_other: "Closed — Other",
+};
+
+// Phase 3.4 — Human-readable label maps for all key enums
+
+export const RTW_PLAN_STATUS_LABELS: Record<string, string> = {
+  not_planned: "Not Planned",
+  planned_not_started: "Planned — Not Started",
+  in_progress: "In Progress",
+  working_well: "Working Well",
+  failing: "Failing",
+  on_hold: "On Hold",
+  completed: "Completed",
+};
+
+export const COMPLIANCE_STATUS_LABELS: Record<string, string> = {
+  unknown: "Unknown",
+  compliant: "Compliant",
+  partially_compliant: "Partially Compliant",
+  non_compliant: "Non-Compliant",
+};
+
+export const WORK_STATUS_LABELS: Record<string, string> = {
+  off_work: "Off Work",
+  modified_duties: "Modified Duties",
+  full_duties: "Full Duties",
+  unknown: "Unknown",
+};
+
+export const RISK_LEVEL_LABELS: Record<string, string> = {
+  low: "Low Risk",
+  medium: "Medium Risk",
+  high: "High Risk",
+  critical: "Critical",
+};
+
+export const ACTION_SOURCE_LABELS: Record<string, string> = {
+  compliance: "Compliance Engine",
+  clinical: "Clinical Analysis",
+  rtw: "RTW Planning",
+  manual: "Manual",
+  ai_recommendation: "AI Advisor",
+};
+
+export const ACTION_ASSIGNEE_LABELS: Record<string, string> = {
+  case_manager: "Case Manager",
+  ahr_manager: "AHR Manager",
+  hr: "HR Manager",
+  employer: "Employer",
+  worker: "Worker",
+  gp: "GP / Treating Doctor",
+  specialist: "Specialist",
+};
+
+export const ACTION_PRIORITY_LABELS: Record<string, string> = {
+  critical: "Critical",
+  high: "High",
+  medium: "Medium",
+  low: "Low",
+};
+
+export const ACTION_STATUS_LABELS: Record<string, string> = {
+  pending: "Pending",
+  in_progress: "In Progress",
+  done: "Completed",
+  cancelled: "Cancelled",
+  overdue: "Overdue",
+};
+
+export const SPECIALIST_STATUS_LABELS: Record<string, string> = {
+  none: "None",
+  referred: "Referred",
+  appointment_booked: "Appointment Booked",
+  seen_waiting_report: "Seen — Awaiting Report",
+  report_received: "Report Received",
+  did_not_attend: "Did Not Attend",
+  not_required: "Not Required",
+};
+
+// Valid transitions: from → allowed next stages
+export const LIFECYCLE_TRANSITIONS: Record<CaseLifecycleStage, CaseLifecycleStage[]> = {
+  intake: ["assessment"],
+  assessment: ["active_treatment", "closed_claim_denied"],
+  active_treatment: ["rtw_transition", "closed_medical_retirement", "closed_terminated"],
+  rtw_transition: ["maintenance", "active_treatment", "closed_terminated"],
+  maintenance: ["closed_rtw", "rtw_transition", "active_treatment"],
+  closed_rtw: [],
+  closed_medical_retirement: [],
+  closed_terminated: [],
+  closed_claim_denied: [],
+  closed_other: [],
+};
+
 export type RTWPlanStatus =
   | "not_planned"
   | "planned_not_started"
@@ -678,7 +793,18 @@ export const workerCases = pgTable("worker_cases", {
   clcLastFollowUp: text("clc_last_follow_up"),
   clcNextFollowUp: text("clc_next_follow_up"),
   employmentStatus: text("employment_status").notNull().default("ACTIVE"),
+
+  // Phase 3.2 — Case Assignment
+  caseManagerId: varchar("case_manager_id"),      // Assigned case manager user ID
+  caseManagerName: text("case_manager_name"),     // Denormalized for display
+  assignedAt: timestamp("assigned_at"),           // When the case was assigned
+  secondaryAssigneeId: varchar("secondary_assignee_id"), // Optional secondary (e.g., AHR manager)
+
   caseStatus: text("case_status").notNull().default("open"), // open, closed
+  lifecycleStage: text("lifecycle_stage").notNull().default("intake").$type<CaseLifecycleStage>(),
+  lifecycleStageChangedAt: timestamp("lifecycle_stage_changed_at").defaultNow(),
+  lifecycleStageChangedBy: text("lifecycle_stage_changed_by"),
+  lifecycleStageReason: text("lifecycle_stage_reason"),
   closedAt: timestamp("closed_at"),
   closedReason: text("closed_reason"),
   terminationProcessId: varchar("termination_process_id"),
@@ -1159,7 +1285,26 @@ export interface Explanation {
 // =====================================================
 
 export type CaseActionType = "chase_certificate" | "review_case" | "follow_up";
-export type CaseActionStatus = "pending" | "done" | "cancelled";
+export type CaseActionStatus = "pending" | "in_progress" | "done" | "cancelled" | "overdue";
+
+// Phase 3.3 — Unified Action System types
+export type ActionSource =
+  | "compliance"       // Triggered by the compliance engine (certificate gaps, rule violations)
+  | "clinical"         // Triggered by the clinical analysis pipeline
+  | "rtw"              // Triggered by the RTW planning engine
+  | "manual"           // Created by a user manually
+  | "ai_recommendation"; // Generated by AI advisor
+
+export type ActionAssignee =
+  | "case_manager"
+  | "ahr_manager"
+  | "hr"
+  | "employer"
+  | "worker"
+  | "gp"
+  | "specialist";
+
+export type ActionPriority = "critical" | "high" | "medium" | "low";
 
 export interface CaseAction {
   id: string;
@@ -1198,20 +1343,40 @@ export const caseActions = pgTable("case_actions", {
   organizationId: varchar("organization_id").notNull(), // Added in migration 0009 - tenant isolation
   caseId: varchar("case_id").notNull().references(() => workerCases.id, { onDelete: "cascade" }),
   type: text("type").notNull(), // chase_certificate, review_case, follow_up
-  status: text("status").notNull().default("pending"), // pending, done, cancelled
+
+  // Phase 3.3 — Unified Action System fields
+  title: text("title"),                           // Human-readable action title
+  description: text("description"),               // Detailed description of what to do
+  rationale: text("rationale"),                   // WHY this action is needed (persisted, not computed)
+  source: text("source").$type<ActionSource>(),   // What system generated this action
+  triggerCondition: text("trigger_condition"),     // The condition that triggered this action
+  complianceRuleCode: text("compliance_rule_code"), // e.g., "s38", "s82"
+  legislativeRef: text("legislative_ref"),         // e.g., "WIRC Act 2013 s38"
+  draftEmailContent: text("draft_email_content"), // Pre-written email for this action
+  phoneScript: text("phone_script"),               // Phone call script
+  explanationJson: jsonb("explanation_json"),      // Full Explanation object from Phase 2
+  priorityLevel: text("priority_level").$type<ActionPriority>().default("medium"), // critical|high|medium|low
+
+  status: text("status").notNull().default("pending"), // pending, in_progress, done, cancelled, overdue
   dueDate: timestamp("due_date"),
-  priority: integer("priority").default(1),
+  priority: integer("priority").default(1), // Legacy numeric priority (kept for backwards compat)
   notes: text("notes"),
 
   // WHO does what BY WHEN
   assignedTo: varchar("assigned_to"), // User/organization responsible
   assignedToName: varchar("assigned_to_name"), // Display name (e.g., "GPNet (Paul)")
+  assignedRole: text("assigned_role").$type<ActionAssignee>(), // Role responsible (case_manager, hr, etc.)
 
   // Completion tracking
   completedAt: timestamp("completed_at"),
   completedBy: varchar("completed_by"),
   autoCompleted: boolean("auto_completed").default(false),
   emailReference: varchar("email_reference"), // Email ID that triggered auto-completion
+
+  // Cancellation
+  cancelledAt: timestamp("cancelled_at"),
+  cancelledBy: varchar("cancelled_by"),
+  cancelledReason: text("cancelled_reason"),
 
   // Status indicators
   isBlocker: boolean("is_blocker").default(false),
@@ -2381,3 +2546,22 @@ export const chatMemory = pgTable("chat_memory", {
 
 export type ChatMemoryDB = typeof chatMemory.$inferSelect;
 export type InsertChatMemory = typeof chatMemory.$inferInsert;
+
+// ============================================
+// CASE LIFECYCLE LOG (audit trail for stage transitions)
+// ============================================
+
+export const caseLifecycleLogs = pgTable("case_lifecycle_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  caseId: varchar("case_id").notNull().references(() => workerCases.id, { onDelete: "cascade" }),
+  organizationId: varchar("organization_id").notNull(),
+  fromStage: text("from_stage").notNull().$type<CaseLifecycleStage>(),
+  toStage: text("to_stage").notNull().$type<CaseLifecycleStage>(),
+  changedBy: text("changed_by").notNull(),
+  changedAt: timestamp("changed_at").defaultNow(),
+  reason: text("reason"),
+  automated: boolean("automated").notNull().default(false),
+});
+
+export type CaseLifecycleLogDB = typeof caseLifecycleLogs.$inferSelect;
+export type InsertCaseLifecycleLog = typeof caseLifecycleLogs.$inferInsert;

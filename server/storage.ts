@@ -59,7 +59,11 @@ import type {
   InsertCaseDocument,
   ChatMemoryDB,
   InsertChatMemory,
+  CaseLifecycleStage,
+  CaseLifecycleLogDB,
+  InsertCaseLifecycleLog,
 } from "@shared/schema";
+import { LIFECYCLE_TRANSITIONS } from "@shared/schema";
 import { db } from "./db";
 import {
   workerCases,
@@ -94,6 +98,7 @@ import {
   telehealthBookings,
   caseDocuments,
   chatMemory,
+  caseLifecycleLogs,
   type RTWPlanDB,
   type RTWPlanVersionDB,
   type RTWPlanDutyDB,
@@ -572,6 +577,27 @@ export interface IStorage {
   markNotificationSent(id: string): Promise<NotificationDB>;
   notificationExistsByDedupeKey(dedupeKey: string): Promise<boolean>;
   getNotificationStats(organizationId: string): Promise<{ pending: number; sent: number; failed: number }>;
+
+  // Case Assignment — Phase 3.2
+  assignCase(
+    caseId: string,
+    organizationId: string,
+    caseManagerId: string,
+    caseManagerName: string,
+    secondaryAssigneeId?: string
+  ): Promise<void>;
+
+  // Case Lifecycle — stage transitions with audit trail
+  updateLifecycleStage(
+    caseId: string,
+    organizationId: string,
+    toStage: CaseLifecycleStage,
+    changedBy: string,
+    reason?: string,
+    automated?: boolean
+  ): Promise<void>;
+  getLifecycleLog(caseId: string, organizationId: string): Promise<CaseLifecycleLogDB[]>;
+  autoAssignLifecycleStages(organizationId: string): Promise<Array<{ caseId: string; stage: CaseLifecycleStage }>>;
 
   // Case management - close/override/merge
   closeCase(caseId: string, organizationId: string, reason?: string): Promise<void>;
@@ -1629,6 +1655,187 @@ class DbStorage implements IStorage {
         caseStatus: "closed",
         closedAt: new Date(),
         closedReason: reason || null,
+        updatedAt: new Date(),
+      })
+      .where(and(
+        eq(workerCases.id, caseId),
+        eq(workerCases.organizationId, organizationId)
+      ));
+  }
+
+  async updateLifecycleStage(
+    caseId: string,
+    organizationId: string,
+    toStage: CaseLifecycleStage,
+    changedBy: string,
+    reason?: string,
+    automated = false
+  ): Promise<void> {
+    // Fetch current stage
+    const [existing] = await db
+      .select({ lifecycleStage: workerCases.lifecycleStage })
+      .from(workerCases)
+      .where(and(eq(workerCases.id, caseId), eq(workerCases.organizationId, organizationId)))
+      .limit(1);
+
+    if (!existing) {
+      throw new Error(`Case ${caseId} not found`);
+    }
+
+    const fromStage = existing.lifecycleStage as CaseLifecycleStage;
+
+    // Validate transition (skip for automated migrations where we set the initial stage)
+    if (!automated) {
+      const allowed = LIFECYCLE_TRANSITIONS[fromStage] ?? [];
+      if (!allowed.includes(toStage)) {
+        throw new Error(
+          `Invalid lifecycle transition: ${fromStage} → ${toStage}. ` +
+          `Allowed: ${allowed.length > 0 ? allowed.join(", ") : "none (terminal state)"}`
+        );
+      }
+    }
+
+    // Update case and write audit log in a transaction
+    await db.transaction(async (tx) => {
+      await tx
+        .update(workerCases)
+        .set({
+          lifecycleStage: toStage,
+          lifecycleStageChangedAt: new Date(),
+          lifecycleStageChangedBy: changedBy,
+          lifecycleStageReason: reason ?? null,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(workerCases.id, caseId), eq(workerCases.organizationId, organizationId)));
+
+      await tx.insert(caseLifecycleLogs).values({
+        caseId,
+        organizationId,
+        fromStage,
+        toStage,
+        changedBy,
+        reason: reason ?? null,
+        automated,
+      } satisfies Omit<InsertCaseLifecycleLog, "id" | "changedAt">);
+    });
+  }
+
+  async getLifecycleLog(caseId: string, organizationId: string): Promise<CaseLifecycleLogDB[]> {
+    return db
+      .select()
+      .from(caseLifecycleLogs)
+      .where(and(
+        eq(caseLifecycleLogs.caseId, caseId),
+        eq(caseLifecycleLogs.organizationId, organizationId)
+      ))
+      .orderBy(desc(caseLifecycleLogs.changedAt));
+  }
+
+  /**
+   * Auto-assign lifecycle stages to existing cases that still have the default "intake" stage.
+   * Uses heuristics from the remediation spec (Phase 3.1 migration rules).
+   */
+  async autoAssignLifecycleStages(organizationId: string): Promise<Array<{ caseId: string; stage: CaseLifecycleStage }>> {
+    const cases = await db
+      .select({
+        id: workerCases.id,
+        lifecycleStage: workerCases.lifecycleStage,
+        daysOffWork: workerCases.currentStatus,
+        caseStatus: workerCases.caseStatus,
+      })
+      .from(workerCases)
+      .where(and(
+        eq(workerCases.organizationId, organizationId),
+        eq(workerCases.lifecycleStage, "intake")
+      ));
+
+    if (cases.length === 0) return [];
+
+    // Fetch RTW plans for these cases in one query
+    const caseIds = cases.map(c => c.id);
+    const plans = await db
+      .select({ caseId: rtwPlans.caseId, status: rtwPlans.status })
+      .from(rtwPlans)
+      .where(inArray(rtwPlans.caseId, caseIds));
+
+    const planByCaseId = new Map(plans.map(p => [p.caseId, p.status]));
+
+    // Fetch active certificates
+    const activeCerts = await db
+      .select({ caseId: medicalCertificates.caseId, certEndDate: medicalCertificates.endDate })
+      .from(medicalCertificates)
+      .where(and(
+        inArray(medicalCertificates.caseId, caseIds),
+        gte(medicalCertificates.endDate, new Date())
+      ));
+    const casesWithActiveCert = new Set(activeCerts.map(c => c.caseId));
+
+    const results: Array<{ caseId: string; stage: CaseLifecycleStage }> = [];
+
+    for (const c of cases) {
+      let stage: CaseLifecycleStage = "intake";
+
+      if (c.caseStatus === "closed") {
+        stage = "closed_rtw";
+      } else {
+        const rtwStatus = planByCaseId.get(c.id);
+        if (rtwStatus === "completed") {
+          stage = "maintenance";
+        } else if (rtwStatus === "in_progress" || rtwStatus === "working_well") {
+          stage = "rtw_transition";
+        } else if (casesWithActiveCert.has(c.id)) {
+          // Heuristic: check if case is "long-running" (>4 weeks) → active_treatment, else assessment
+          // We don't have daysOffWork as a reliable number here, default to active_treatment
+          stage = "active_treatment";
+        } else {
+          stage = "assessment";
+        }
+      }
+
+      if ((stage as CaseLifecycleStage) !== "intake") {
+        // Set directly (bypass transition validation since this is initial migration)
+        await db
+          .update(workerCases)
+          .set({
+            lifecycleStage: stage,
+            lifecycleStageChangedAt: new Date(),
+            lifecycleStageChangedBy: "system:migration",
+            lifecycleStageReason: "Auto-assigned during initial lifecycle stage migration",
+            updatedAt: new Date(),
+          })
+          .where(and(eq(workerCases.id, c.id), eq(workerCases.organizationId, organizationId)));
+
+        await db.insert(caseLifecycleLogs).values({
+          caseId: c.id,
+          organizationId,
+          fromStage: "intake",
+          toStage: stage,
+          changedBy: "system:migration",
+          reason: "Auto-assigned during initial lifecycle stage migration",
+          automated: true,
+        } satisfies Omit<InsertCaseLifecycleLog, "id" | "changedAt">);
+
+        results.push({ caseId: c.id, stage });
+      }
+    }
+
+    return results;
+  }
+
+  async assignCase(
+    caseId: string,
+    organizationId: string,
+    caseManagerId: string,
+    caseManagerName: string,
+    secondaryAssigneeId?: string
+  ): Promise<void> {
+    await db
+      .update(workerCases)
+      .set({
+        caseManagerId,
+        caseManagerName,
+        assignedAt: new Date(),
+        secondaryAssigneeId: secondaryAssigneeId ?? null,
         updatedAt: new Date(),
       })
       .where(and(
