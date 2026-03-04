@@ -273,3 +273,40 @@ The memory-unified plugin is **fully built** but **not wired into clawdbot**:
 - Admin: admin@gpnet.local / ChangeMe123!
 - Employer: employer@symmetry.local / ChangeMe123!
 - Natalie: natalie@preventli.com / ChangeMe123!
+
+---
+
+## Session [Mar 3, 2026] — Security Fixes + Infrastructure
+
+### Completed
+- Fixed 3 critical security bugs (RTW auth bypass, fail-open webhook, rate limiter)
+- Protected /api/diagnostics/env (admin-only), removed Math.random() mock stats
+- Fixed crypto.randomUUID() for ID generation in memory.ts
+- Fixed SmartStatusIndicator crash from /api/user/progress returning null
+- Committed pre-existing ChatWidget cleanup (Alex not Dr. Alex, "Talk with an Expert")
+- Added audit report + 12-phase remediation spec to repo
+- Clawdbot: added cron watchdog + WSL boot auto-start (cron, clawdbot, Uno)
+- Restarted Uno (was stuck mid-request for 8h)
+
+### Current State
+- Repo: /mnt/d/dev/gpnet3 (this is the LIVE server)
+- Audit docs also in: /home/paul_clawdbot/dev/gpnet3/ (separate copy)
+- All Phase 1.1-1.7 security fixes done (4 commits: 7095748, f2d0de6, 68aa2ad, a7d1670)
+- Phase 1.8 (RBAC field filtering) NOT done — big effort
+- Phase 2 (Explanation Layer) NOT started — compliance card already has it, dashboard action cards don't
+
+### Next Steps (Priority Order)
+1. **Phase 1.8 — RBAC**: employers seeing clinical/diagnosis data — implement filterCaseByRole()
+2. **Phase 2 — Explanation Layer**: RiskBadge + dashboard action cards need "why" text
+3. **WorkCover compliance rules**: add s25 notification, s82 52-week gate, s114 multi-step-down
+4. **Accessibility**: 2/10 score — add ARIA labels, fix unlabeled form fields
+
+### Key Files
+- Audit: PREVENTLI_FULL_AUDIT_REPORT.md
+- Spec: docs/spec/30-system-remediation-spec.md
+- Security bugs were in: server/routes/rtw.ts, server/routes/inbound-email.ts, server/middleware/security.ts
+
+### Credentials (unchanged)
+- Admin: admin@gpnet.local / ChangeMe123!
+- Employer: employer@symmetry.local / ChangeMe123!
+- Natalie: natalie@preventli.com / ChangeMe123!
