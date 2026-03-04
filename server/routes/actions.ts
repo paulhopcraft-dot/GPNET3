@@ -5,6 +5,7 @@ import { authorize, type AuthRequest } from "../middleware/auth";
 import { requireCaseOwnership } from "../middleware/caseOwnership";
 import { logger } from "../lib/logger";
 import type { CaseActionStatus, CaseActionType, CaseActionDB } from "@shared/schema";
+import { computeActionRationale } from "../lib/actionRationale";
 import {
   getCaseCompliance,
   processComplianceForCase,
@@ -118,7 +119,9 @@ router.get("/pending", requireAuth, async (req: AuthRequest, res: Response) => {
     const organizationId = req.user!.organizationId;
     const limit = parseInt(req.query.limit as string) || 10;
     const actions = await storage.getPendingActions(organizationId, limit);
-    res.json({ success: true, data: actions });
+    // Phase 2: attach computed rationale to each action
+    const withRationale = actions.map(a => ({ ...a, rationale: computeActionRationale(a) }));
+    res.json({ success: true, data: withRationale });
   } catch (error: any) {
     logger.api.error("Error fetching pending actions", {}, error);
     res.status(500).json({ success: false, message: error.message });
@@ -134,7 +137,9 @@ router.get("/overdue", requireAuth, async (req: AuthRequest, res: Response) => {
     const organizationId = req.user!.organizationId;
     const limit = parseInt(req.query.limit as string) || 10;
     const actions = await storage.getOverdueActions(organizationId, limit);
-    res.json({ success: true, data: actions });
+    // Phase 2: attach computed rationale to each action
+    const withRationale = actions.map(a => ({ ...a, rationale: computeActionRationale(a) }));
+    res.json({ success: true, data: withRationale });
   } catch (error: any) {
     logger.api.error("Error fetching overdue actions", {}, error);
     res.status(500).json({ success: false, message: error.message });
