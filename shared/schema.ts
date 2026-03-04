@@ -684,6 +684,18 @@ export interface WorkerCase {
   terminationProcessId?: string | null;
   terminationReason?: TerminationReason | null;
   terminationAuditFlag?: TerminationAuditFlag;
+
+  // Phase 3.1 — Case Lifecycle
+  lifecycleStage?: CaseLifecycleStage;
+  lifecycleStageChangedAt?: string;
+  lifecycleStageChangedBy?: string;
+  lifecycleStageReason?: string;
+
+  // Phase 3.2 — Case Assignment
+  caseManagerId?: string;
+  caseManagerName?: string;
+  assignedAt?: string;
+  secondaryAssigneeId?: string;
 }
 
 // Paginated response for cases list endpoint

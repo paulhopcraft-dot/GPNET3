@@ -8,10 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TimelineCard } from "@/components/TimelineCard";
 import { RefreshCw } from "lucide-react";
-import type { WorkerCase, PaginatedCasesResponse } from "@shared/schema";
+import type { WorkerCase, PaginatedCasesResponse, CaseLifecycleStage } from "@shared/schema";
+import { LIFECYCLE_STAGE_LABELS } from "@shared/schema";
 import { cn } from "@/lib/utils";
 import { CaseContactsPanel } from "@/components/CaseContactsPanel";
 import { FinancialSummaryPanel } from "@/components/FinancialSummaryPanel";
+import { LifecycleStepper } from "@/components/LifecycleStepper";
+import { CurrentCapacityCard } from "@/components/CurrentCapacityCard";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -102,8 +105,20 @@ export default function CaseSummaryPage() {
           </Link>
         </div>
 
+        {/* Lifecycle Stage Stepper */}
+        {workerCase.lifecycleStage && (
+          <Card className="p-4">
+            <LifecycleStepper
+              currentStage={workerCase.lifecycleStage as CaseLifecycleStage}
+              changedAt={workerCase.lifecycleStageChangedAt}
+              changedBy={workerCase.lifecycleStageChangedBy}
+              reason={workerCase.lifecycleStageReason}
+            />
+          </Card>
+        )}
+
         {/* Status Bar */}
-        <div className="border border-border rounded-lg p-4 bg-muted/50 flex items-center gap-4">
+        <div className="border border-border rounded-lg p-4 bg-muted/50 flex items-center gap-4 flex-wrap">
           <Badge
             className={cn(
               workerCase.workStatus === "At work"
@@ -126,6 +141,14 @@ export default function CaseSummaryPage() {
           >
             Compliance: {workerCase.complianceIndicator}
           </Badge>
+          {workerCase.caseManagerName && (
+            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-xs font-medium text-primary">
+                {workerCase.caseManagerName.charAt(0).toUpperCase()}
+              </div>
+              <span>{workerCase.caseManagerName}</span>
+            </div>
+          )}
           <div className="ml-auto text-sm text-muted-foreground">
             Next Step Due: <span className="font-medium">{workerCase.dueDate}</span>
           </div>
@@ -145,6 +168,65 @@ export default function CaseSummaryPage() {
 
           <TabsContent value="summary" className="mt-4">
             <div className="space-y-6">
+              {/* Three summary cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <CurrentCapacityCard workerCase={workerCase} />
+
+                {/* Compliance summary card */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                      <span className="material-symbols-outlined text-lg text-primary">verified_user</span>
+                      Compliance
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0 space-y-2">
+                    <Badge variant="outline" className={cn(
+                      "text-sm",
+                      workerCase.complianceIndicator === "Very High" || workerCase.complianceIndicator === "High"
+                        ? "border-green-300 text-green-700 bg-green-50"
+                        : workerCase.complianceIndicator === "Medium"
+                        ? "border-amber-300 text-amber-700 bg-amber-50"
+                        : "border-red-300 text-red-700 bg-red-50"
+                    )}>
+                      {workerCase.complianceIndicator}
+                    </Badge>
+                    {workerCase.compliance?.reason && (
+                      <p className="text-xs text-muted-foreground">{workerCase.compliance.reason}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground">Due: {workerCase.dueDate}</p>
+                  </CardContent>
+                </Card>
+
+                {/* Recovery summary card */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                      <span className="material-symbols-outlined text-lg text-primary">trending_up</span>
+                      Recovery
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0 space-y-2">
+                    <Badge className={cn(
+                      workerCase.clinicalEvidence?.isImprovingOnExpectedTimeline === true
+                        ? "bg-green-100 text-green-700"
+                        : workerCase.clinicalEvidence?.isImprovingOnExpectedTimeline === false
+                        ? "bg-amber-100 text-amber-700"
+                        : "bg-blue-100 text-blue-700"
+                    )}>
+                      {workerCase.clinicalEvidence?.isImprovingOnExpectedTimeline === true ? "On Track"
+                        : workerCase.clinicalEvidence?.isImprovingOnExpectedTimeline === false ? "Needs Review"
+                        : "Monitoring"}
+                    </Badge>
+                    {workerCase.clinicalEvidence?.flags && workerCase.clinicalEvidence.flags.length > 0 && (
+                      <p className="text-xs text-muted-foreground line-clamp-2">
+                        {workerCase.clinicalEvidence.flags.slice(0, 2).map(f => f.message).join("; ")}
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+
               {/* AI Summary */}
               {workerCase.aiSummary && (
                 <Card>
