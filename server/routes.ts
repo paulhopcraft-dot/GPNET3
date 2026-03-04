@@ -47,6 +47,7 @@ import memoryRoutes from "./routes/memory";
 import intelligenceRoutes from "./routes/intelligence";
 import agentRoutes from "./routes/agents";
 import lifecycleRoutes from "./routes/lifecycle";
+import hrDecisionsRoutes from "./routes/hr-decisions";
 import type { RecoveryTimelineSummary } from "@shared/schema";
 import { evaluateClinicalEvidence } from "./services/clinicalEvidence";
 import { authorize, type AuthRequest } from "./middleware/auth";
@@ -117,6 +118,9 @@ export async function registerRoutes(app: Express): Promise<void> {
   // Lifecycle Stage routes (JWT-protected, case ownership) - Phase 3.1
   app.use("/api/cases", lifecycleRoutes);
   app.use("/api", lifecycleRoutes); // mounts /api/admin/migrate-lifecycle
+
+  // HR Decisions Queue + Portfolio — Phase 5
+  app.use("/api/hr", hrDecisionsRoutes);
 
   // Functional Ability Matrix routes (JWT-protected) - FAM-01 to FAM-07
   app.use("/api/functional-ability", authorize(), functionalAbilityRouter);

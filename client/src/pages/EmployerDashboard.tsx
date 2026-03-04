@@ -1,13 +1,14 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { PaginatedCasesResponse } from "@shared/schema";
-import { Users, Clock, CheckCircle2, AlertTriangle, LogOut } from "lucide-react";
+import { Users, Clock, CheckCircle2, AlertTriangle, LogOut, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PortfolioSummary } from "@/components/PortfolioSummary";
 import { useState } from "react";
 
 export default function EmployerDashboard() {
@@ -87,6 +88,19 @@ export default function EmployerDashboard() {
       </header>
 
       <main className="container mx-auto px-4 py-6">
+        {/* Portfolio Summary — Phase 5.2 */}
+        <div className="mb-6 space-y-3">
+          <PortfolioSummary />
+          <div className="flex justify-end">
+            <Link to="/hr/decisions">
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <ClipboardList className="h-4 w-4" />
+                View Decisions Queue
+              </Button>
+            </Link>
+          </div>
+        </div>
+
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <Card

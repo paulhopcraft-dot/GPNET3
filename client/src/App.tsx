@@ -52,6 +52,7 @@ const EmployerCaseDetailPage = lazy(() => import("./pages/EmployerCaseDetailPage
 const EmployerNewCasePage = lazy(() => import("./pages/EmployerNewCasePage"));
 const EmployerCaseSuccessPage = lazy(() => import("./pages/EmployerCaseSuccessPage"));
 const EmployerDashboardPage = lazy(() => import("./pages/EmployerDashboardPage"));
+const HRDecisionsPage = lazy(() => import("./pages/HRDecisionsPage"));
 const PreEmploymentPage = lazy(() => import("./pages/PreEmploymentPage"));
 const UnifiedCaseWorkspace = lazy(() => import("./pages/UnifiedCaseWorkspace"));
 const LifecycleDashboard = lazy(() => import("./pages/LifecycleDashboard"));
@@ -322,6 +323,16 @@ export default function App() {
                       <ProtectedRoute>
                         <Suspense fallback={<PageLoader />}>
                           <EmployerDashboardPage />
+                        </Suspense>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/hr/decisions"
+                    element={
+                      <ProtectedRoute>
+                        <Suspense fallback={<PageLoader />}>
+                          <HRDecisionsPage />
                         </Suspense>
                       </ProtectedRoute>
                     }

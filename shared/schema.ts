@@ -68,6 +68,7 @@ export const LIFECYCLE_STAGE_LABELS: Record<CaseLifecycleStage, string> = {
 
 export const RTW_PLAN_STATUS_LABELS: Record<string, string> = {
   not_planned: "Not Planned",
+  pending_employer_review: "Pending Employer Review",
   planned_not_started: "Planned — Not Started",
   in_progress: "In Progress",
   working_well: "Working Well",
@@ -156,6 +157,7 @@ export const LIFECYCLE_TRANSITIONS: Record<CaseLifecycleStage, CaseLifecycleStag
 
 export type RTWPlanStatus =
   | "not_planned"
+  | "pending_employer_review"   // Phase 5.3 — awaiting employer sign-off
   | "planned_not_started"
   | "in_progress"
   | "working_well"
