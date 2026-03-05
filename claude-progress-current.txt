@@ -1,0 +1,43 @@
+## Session 105 - 2026-03-05
+
+### Completed
+- Phase 11 & 12 commit (from session 104 carryover):
+  - ContextualHelpSystem wired into CaseSummaryPage
+  - DisputeStatus, CaseDispute added to schema
+  - Related claims banner, dispute banner, mental health notice
+  - RBAC: dispute status stripped from employer view
+  - ContextualHelpSystem help topics for /cases and /employer routes
+
+- Risk tab in CaseSummaryPage fully implemented:
+  - riskFlags as amber badges, dispute/legal alert, termination audit flag
+  - Functional capacity metrics (hours/day, days/week, lifting, standing)
+  - Mitigation strategies list (risk-level aware)
+
+- RTW Plan tab added to CaseSummaryPage (SmartRTWPlanning component)
+- Injury tab enriched: medical constraints, certificate, employment status, lifecycle stage
+- TerminationPanel: "Generate Documentation Package" export (spec 22)
+- ReportsPage: CSV export button (spec 5.4)
+- FinancialsPage: CSV export button (spec 5.4)
+
+### Commits (this session)
+- e46a457 Phase 11 & 12 — edge cases, disputes, contextual help
+- 32cd75e Phase 10.5 — performance
+- 8b0b68e Phase 10.1-10.4 — accessibility
+- 6213c32 Risk tab with real case data
+- 368ffc7 RTW Plan tab in CaseSummaryPage
+- 553754a Termination documentation package export
+- e3c55ee CSV export — Reports page
+- 9a2ca80 CSV export — Financials page
+- 5a4641e Injury tab enrichment
+
+### Pending
+- db:push from Windows (Phase 8 schema: rtwPlanConsents, rtwPlans.pathway)
+- Seed compliance rules: npx tsx server/seed-compliance-rules.ts
+- Financial Engine (spec 23): proper PIAWE/wage data model (large feature)
+- Predictive Analytics UI improvements
+- Intelligence dashboard frontend (no UI for /api/intelligence routes)
+- Plain Language Mode (spec 5.5): verify employer view uses plain labels
+
+### Notes
+- Pre-existing TS errors only in discord-analytics.ts — not our code
+- Build: exit code 0, 3797 modules
