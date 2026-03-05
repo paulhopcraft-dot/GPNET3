@@ -175,7 +175,7 @@ export default function CaseSummaryPage() {
             </div>
           )}
           <div className="ml-auto text-sm text-muted-foreground">
-            Next Step Due: <span className="font-medium">{workerCase.dueDate}</span>
+            Next Step Due: <span className="font-medium">{new Date(workerCase.dueDate).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}</span>
           </div>
         </div>
 
@@ -220,7 +220,7 @@ export default function CaseSummaryPage() {
                     {workerCase.compliance?.reason && (
                       <p className="text-xs text-muted-foreground">{workerCase.compliance.reason}</p>
                     )}
-                    <p className="text-xs text-muted-foreground">Due: {workerCase.dueDate}</p>
+                    <p className="text-xs text-muted-foreground">Due: {new Date(workerCase.dueDate).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}</p>
                   </CardContent>
                 </Card>
 
@@ -315,7 +315,7 @@ export default function CaseSummaryPage() {
                     </div>
                     <div>
                       <label className="text-xs text-muted-foreground">Date of Injury</label>
-                      <p className="text-sm font-medium">{workerCase.dateOfInjury}</p>
+                      <p className="text-sm font-medium">{new Date(workerCase.dateOfInjury).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}</p>
                     </div>
                     <div>
                       <label className="text-xs text-muted-foreground">Owner</label>
@@ -323,7 +323,7 @@ export default function CaseSummaryPage() {
                     </div>
                     <div>
                       <label className="text-xs text-muted-foreground">Due Date</label>
-                      <p className="text-sm font-medium">{workerCase.dueDate}</p>
+                      <p className="text-sm font-medium">{new Date(workerCase.dueDate).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}</p>
                     </div>
                   </div>
                   {workerCase.summary && (
@@ -358,7 +358,7 @@ export default function CaseSummaryPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Date of Injury</label>
-                    <p className="text-sm mt-1">{workerCase.dateOfInjury}</p>
+                    <p className="text-sm mt-1">{new Date(workerCase.dateOfInjury).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}</p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Company</label>
