@@ -3,6 +3,13 @@
 **Launch date:** 13 April 2026
 **Target:** 3–5 paying clients at launch, 10+ by end of June 2026
 
+## Release Scope
+- **v1 (13 Apr):** Preventli staff — case managers, clinical, admin. Full assessment suite included.
+- **v1.1:** Employer portal (dashboard, case view, new case submission, workers list)
+- **v2+:** Financials/PIAWE engine, AI predictions, insurer portal
+
+*Full feature list: [docs/V1_FEATURES.md](V1_FEATURES.md)*
+
 ---
 
 ## Phase 1 — Foundation & Final Build (Week 1: 9–15 Mar 2026)
