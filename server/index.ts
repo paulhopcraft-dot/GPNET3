@@ -1,4 +1,5 @@
 import "dotenv/config";
+import * as Sentry from "@sentry/node";
 import express, { type Request, Response, NextFunction } from "express";
 import cors from "cors";
 import path from "path";
@@ -22,10 +23,26 @@ import {
   getCsrfToken,
 } from "./middleware/security";
 
+// Initialise Sentry before everything else so it can capture startup errors
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV ?? "development",
+    tracesSampleRate: parseFloat(process.env.SENTRY_TRACES_SAMPLE_RATE ?? "0.1"),
+  });
+}
+
 // Validate critical security environment variables on startup (fail-closed)
 validateSecurityEnvironment();
 
 const app = express();
+
+// Trust reverse proxy (Nginx, load balancer) so rate limiters and HTTPS
+// detection use the real client IP from X-Forwarded-For, not the proxy IP.
+// Set to 1 in production (one trusted proxy layer). Disable in dev.
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
 
 // Security headers (helmet) - should be first
 app.use(helmetConfig);
@@ -70,9 +87,8 @@ app.use(cookieParserMiddleware);
 app.use("/api", generalRateLimiter);
 
 // Strict rate limiting for authentication endpoints (5 attempts per 15 minutes)
-// TEMPORARILY DISABLED FOR TESTING - Natalie needs to test compliance system
-// app.use("/api/auth/login", authRateLimiter);
-// app.use("/api/auth/register", authRateLimiter);
+app.use("/api/auth/login", authRateLimiter);
+app.use("/api/auth/register", authRateLimiter);
 
 // CSRF token endpoint (must be before CSRF protection)
 app.get("/api/csrf-token", getCsrfToken);
@@ -161,12 +177,19 @@ const startServer = async () => {
   // CSRF error handler (must be after CSRF middleware and routes)
   app.use(csrfErrorHandler);
 
+  // Sentry error capture (must be after routes, before other error handlers)
+  if (process.env.SENTRY_DSN) {
+    Sentry.setupExpressErrorHandler(app);
+  }
+
   // Global error handler
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
     res.status(status).json({ message });
-    throw err;
+    if (status >= 500) {
+      logger.server.error("Unhandled error", { status }, err);
+    }
   });
 
   const port = parseInt(process.env.PORT || "5000", 10);

@@ -1,46 +1,15 @@
 import express, { type Response, type Router } from "express";
-import { spawn } from "child_process";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { authorize, type AuthRequest } from "../middleware/auth";
 import { storage } from "../storage";
 import { createLogger } from "../lib/logger";
+import { callClaude } from "../lib/llm-client";
 import { getCaseCompliance } from "../services/certificateCompliance";
 import { getCaseRTWCompliance } from "../services/rtwCompliance";
 
 const logger = createLogger("ChatRoutes");
 const router: Router = express.Router();
-
-/**
- * Call the Claude CLI subprocess for a single-turn response.
- * Uses Max plan OAuth — no ANTHROPIC_API_KEY needed.
- */
-function callClaude(prompt: string): Promise<string> {
-  const env = {
-    HOME: process.env.HOME ?? "/home/paul_clawdbot",
-    USER: process.env.USER ?? "paul_clawdbot",
-    PATH: process.env.PATH ?? "/usr/local/bin:/usr/bin:/bin",
-    LANG: process.env.LANG ?? "en_US.UTF-8",
-    TMPDIR: process.env.TMPDIR ?? "/tmp",
-  };
-  return new Promise((resolve, reject) => {
-    const proc = spawn(
-      "/usr/bin/claude",
-      ["-p", prompt, "--output-format", "text", "--allowedTools", ""],
-      { env, cwd: "/tmp", stdio: ["ignore", "pipe", "pipe"] }
-    );
-    let stdout = "";
-    let stderr = "";
-    proc.stdout?.on("data", (d: Buffer) => { stdout += d.toString(); });
-    proc.stderr?.on("data", (d: Buffer) => { stderr += d.toString(); });
-    const timer = setTimeout(() => { proc.kill("SIGTERM"); reject(new Error("Claude CLI timed out")); }, 30_000);
-    proc.on("close", (code: number | null) => {
-      clearTimeout(timer);
-      if (code === 0) resolve(stdout.trim().replace(/\s*\*\(~\d+% context\)\*/g, "").trim());
-      else reject(new Error(`Claude CLI exit ${code}: ${stderr.slice(0, 200)}`));
-    });
-  });
-}
 
 // Load Dr. Alex soul from config file — edit config/DR_ALEX_SOUL.md to change persona
 function loadSoul(): string {

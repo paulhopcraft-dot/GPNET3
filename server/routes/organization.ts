@@ -4,7 +4,7 @@ import { organizations, insurers } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { authorize, type AuthRequest } from "../middleware/auth";
 import { z } from "zod";
-import { logoUpload, getLogoUrl, deleteLogo, getFilenameFromUrl } from "../services/fileUpload";
+import { logoUpload, saveLogoFile, deleteUploadedFile, getFilenameFromUrl } from "../services/fileUpload";
 import { logger } from "../lib/logger";
 
 const router = Router();
@@ -153,7 +153,6 @@ router.post(
       const file = req.file;
 
       if (!organizationId) {
-        if (file) deleteLogo(file.filename);
         return res.status(400).json({
           error: "Bad Request",
           message: "No organization associated with this user",
@@ -175,7 +174,6 @@ router.post(
         .limit(1);
 
       if (existing.length === 0) {
-        deleteLogo(file.filename);
         return res.status(404).json({
           error: "Not Found",
           message: "Organization not found",
@@ -183,13 +181,13 @@ router.post(
       }
 
       // Delete old logo if exists
-      const oldLogoFilename = getFilenameFromUrl(existing[0].logoUrl || "");
-      if (oldLogoFilename) {
-        deleteLogo(oldLogoFilename);
+      const oldLogoKey = getFilenameFromUrl(existing[0].logoUrl || "");
+      if (oldLogoKey) {
+        await deleteUploadedFile(oldLogoKey);
       }
 
-      // Update organization with new logo URL
-      const logoUrl = getLogoUrl(file.filename);
+      // Upload new logo and get URL
+      const { url: logoUrl } = await saveLogoFile(file);
       const updated = await db
         .update(organizations)
         .set({

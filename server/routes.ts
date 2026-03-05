@@ -327,9 +327,36 @@ export async function registerRoutes(app: Express): Promise<void> {
     }
   });
 
-  // System Health API — public, minimal info only
-  app.get("/api/system/health", (_req, res) => {
-    res.json({ status: "ok" });
+  // System Health API — public, probes DB + AI + storage
+  app.get("/api/system/health", async (_req, res) => {
+    const { checkLLMHealth } = await import("./lib/llm-client");
+    const { checkStorageHealth } = await import("./services/storageService");
+    const { sql } = await import("drizzle-orm");
+    const { db } = await import("./db");
+
+    const [aiStatus, storageStatus] = await Promise.all([
+      checkLLMHealth().catch((e: unknown) => ({ ok: false, provider: "unknown", model: "unknown", error: String(e) })),
+      checkStorageHealth().catch((e: unknown) => ({ ok: false, provider: "unknown", error: String(e) })),
+    ]);
+
+    let dbOk = false;
+    let dbError: string | undefined;
+    try {
+      await db.execute(sql`SELECT 1`);
+      dbOk = true;
+    } catch (e) {
+      dbError = e instanceof Error ? e.message : String(e);
+    }
+
+    const allOk = dbOk && aiStatus.ok && storageStatus.ok;
+    res.status(allOk ? 200 : 503).json({
+      status: allOk ? "ok" : "degraded",
+      version: process.env.npm_package_version ?? "unknown",
+      uptime: Math.floor(process.uptime()),
+      database: dbOk ? "ok" : { error: dbError },
+      ai: aiStatus.ok ? { provider: aiStatus.provider, model: aiStatus.model } : { error: aiStatus.error },
+      storage: storageStatus.ok ? { provider: storageStatus.provider } : { error: storageStatus.error },
+    });
   });
 
   // User Progress API — not yet implemented

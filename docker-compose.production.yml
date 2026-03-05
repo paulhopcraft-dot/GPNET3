@@ -1,0 +1,114 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Preventli — Production Docker Compose
+#
+# Usage:
+#   docker compose -f docker-compose.production.yml up -d
+#
+# Required environment variables (set in .env or shell):
+#   POSTGRES_PASSWORD, JWT_SECRET, SESSION_SECRET,
+#   LLM_PROVIDER, OPENROUTER_API_KEY (or ANTHROPIC_API_KEY),
+#   STORAGE_PROVIDER, AWS_S3_BUCKET (if s3), etc.
+#
+# See .env.example for the full list.
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  # ── Application ─────────────────────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: preventli:latest
+    container_name: preventli-app
+    restart: unless-stopped
+    ports:
+      - "${PORT:-5000}:5000"
+    environment:
+      NODE_ENV: production
+      PORT: "${PORT:-5000}"
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-gpnet3}"
+      DATABASE_SSL: "false"   # SSL handled at network level between containers
+      JWT_SECRET: "${JWT_SECRET}"
+      SESSION_SECRET: "${SESSION_SECRET}"
+      CSRF_SECRET: "${CSRF_SECRET:-}"
+      # LLM
+      LLM_PROVIDER: "${LLM_PROVIDER:-openrouter}"
+      OPENROUTER_API_KEY: "${OPENROUTER_API_KEY:-}"
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
+      LLM_MODEL: "${LLM_MODEL:-}"
+      # Storage
+      STORAGE_PROVIDER: "${STORAGE_PROVIDER:-s3}"
+      AWS_S3_BUCKET: "${AWS_S3_BUCKET:-}"
+      AWS_S3_REGION: "${AWS_S3_REGION:-ap-southeast-2}"
+      AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID:-}"
+      AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY:-}"
+      AWS_S3_ENDPOINT: "${AWS_S3_ENDPOINT:-}"
+      AWS_S3_PUBLIC_URL: "${AWS_S3_PUBLIC_URL:-}"
+      # Application URLs
+      CLIENT_URL: "${CLIENT_URL}"
+      APP_URL: "${APP_URL}"
+      API_URL: "${API_URL:-}"
+      # Email
+      SMTP_HOST: "${SMTP_HOST:-}"
+      SMTP_PORT: "${SMTP_PORT:-587}"
+      SMTP_USER: "${SMTP_USER:-}"
+      SMTP_PASS: "${SMTP_PASS:-}"
+      SMTP_SECURE: "${SMTP_SECURE:-false}"
+      SMTP_FROM: "${SMTP_FROM:-}"
+      # Freshdesk
+      FRESHDESK_DOMAIN: "${FRESHDESK_DOMAIN:-}"
+      FRESHDESK_API_KEY: "${FRESHDESK_API_KEY:-}"
+      # Webhooks
+      INBOUND_EMAIL_WEBHOOK_SECRET: "${INBOUND_EMAIL_WEBHOOK_SECRET:-}"
+      # Feature flags
+      ENABLE_NOTIFICATIONS: "${ENABLE_NOTIFICATIONS:-false}"
+      DAILY_SYNC_ENABLED: "${DAILY_SYNC_ENABLED:-false}"
+      COMPLIANCE_CHECK_ENABLED: "${COMPLIANCE_CHECK_ENABLED:-false}"
+      AGENTS_ENABLED: "${AGENTS_ENABLED:-false}"
+      # Monitoring
+      SENTRY_DSN: "${SENTRY_DSN:-}"
+      LOG_LEVEL: "${LOG_LEVEL:-info}"
+      # DB pool
+      DB_POOL_MAX: "${DB_POOL_MAX:-20}"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - preventli-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:5000/api/system/health',(r)=>{process.exit(r.statusCode===200?0:1)})"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+
+  # ── PostgreSQL ───────────────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: preventli-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER:-postgres}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_DB: "${POSTGRES_DB:-gpnet3}"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - preventli-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-gpnet3}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Do NOT expose port 5432 externally in production
+    # Access via preventli-network only
+
+volumes:
+  pgdata:
+    driver: local
+
+networks:
+  preventli-network:
+    driver: bridge

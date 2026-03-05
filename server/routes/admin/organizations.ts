@@ -4,7 +4,7 @@ import { organizations, insurers, insertOrganizationSchema } from "@shared/schem
 import { eq, ilike, or, desc } from "drizzle-orm";
 import { authorize, type AuthRequest } from "../../middleware/auth";
 import { z } from "zod";
-import { logoUpload, getLogoUrl, deleteLogo, getFilenameFromUrl } from "../../services/fileUpload";
+import { logoUpload, saveLogoFile, deleteUploadedFile, getFilenameFromUrl } from "../../services/fileUpload";
 import { logger } from "../../lib/logger";
 
 const router = Router();
@@ -355,8 +355,6 @@ router.post(
         .limit(1);
 
       if (existing.length === 0) {
-        // Delete uploaded file since org doesn't exist
-        deleteLogo(file.filename);
         return res.status(404).json({
           error: "Not Found",
           message: "Organization not found",
@@ -364,13 +362,13 @@ router.post(
       }
 
       // Delete old logo if exists
-      const oldLogoFilename = getFilenameFromUrl(existing[0].logoUrl || "");
-      if (oldLogoFilename) {
-        deleteLogo(oldLogoFilename);
+      const oldLogoKey = getFilenameFromUrl(existing[0].logoUrl || "");
+      if (oldLogoKey) {
+        await deleteUploadedFile(oldLogoKey);
       }
 
-      // Update organization with new logo URL
-      const logoUrl = getLogoUrl(file.filename);
+      // Upload new logo and get URL
+      const { url: logoUrl } = await saveLogoFile(file);
       const updated = await db
         .update(organizations)
         .set({
@@ -420,9 +418,9 @@ router.delete("/:id/logo", async (req: AuthRequest, res: Response) => {
     }
 
     // Delete logo file if exists
-    const logoFilename = getFilenameFromUrl(existing[0].logoUrl || "");
-    if (logoFilename) {
-      deleteLogo(logoFilename);
+    const logoKey = getFilenameFromUrl(existing[0].logoUrl || "");
+    if (logoKey) {
+      await deleteUploadedFile(logoKey);
     }
 
     // Update organization to remove logo URL

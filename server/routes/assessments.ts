@@ -5,7 +5,7 @@ import crypto from "crypto";
 import { storage } from "../storage";
 import { authorize, type AuthRequest } from "../middleware/auth";
 import { sendEmail } from "../services/emailService";
-import { jdUpload, getJdFileUrl } from "../services/fileUpload";
+import { jdUpload, saveJdFile } from "../services/fileUpload";
 import { createLogger } from "../lib/logger";
 
 const logger = createLogger("AssessmentsRoutes");
@@ -53,7 +53,7 @@ router.post("/", authorize(), uploadJd, async (req: AuthRequest, res: Response) 
       });
     }
 
-    const jobDescriptionFileUrl = hasFile ? getJdFileUrl(req.file!.filename) : undefined;
+    const jobDescriptionFileUrl = hasFile ? (await saveJdFile(req.file!)).url : undefined;
 
     // Upsert worker record
     const worker = await storage.upsertWorkerByEmail({

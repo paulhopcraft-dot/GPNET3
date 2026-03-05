@@ -1,17 +1,15 @@
 /**
- * Base Agent — Claude CLI subprocess pattern
- *
- * No API key needed — uses Max plan OAuth via `claude` CLI.
+ * Base Agent — API-based LLM pattern
  *
  * Pattern:
  * 1. Caller pre-gathers context (case data, certs, etc.) by calling read tools directly
  * 2. runAgent builds a prompt: task + context + available write actions
- * 3. Spawns `claude -p "..."` subprocess (Max plan OAuth, no API key cost)
- * 4. Claude returns JSON: { actions: [{tool, args, reasoning, autoExecute}], summary }
+ * 3. Calls LLM via llm-client.ts (OpenRouter or Anthropic API)
+ * 4. LLM returns JSON: { actions: [{tool, args, reasoning, autoExecute}], summary }
  * 5. Each action is executed and persisted to agent_actions for the UI log
  */
 
-import { spawn } from "child_process";
+import { callClaude } from "../lib/llm-client";
 import { createLogger } from "../lib/logger";
 import { db } from "../db";
 import { agentActions } from "@shared/schema";
@@ -45,75 +43,6 @@ interface PlannedAction {
 interface ClaudeActionPlan {
   actions: PlannedAction[];
   summary: string;
-}
-
-/**
- * Call the claude CLI subprocess with a prompt.
- * Uses Max plan OAuth — no ANTHROPIC_API_KEY needed.
- *
- * Uses spawn (not execFile) so we can:
- * - Set stdin to 'ignore' (prevents the CLI blocking on stdin input)
- * - Stream stdout as it arrives (avoids deadlock with large responses)
- * - Run from /tmp (avoids loading project CLAUDE.md context)
- */
-async function callClaude(prompt: string): Promise<string> {
-  // Minimal clean env — strips inherited Claude Code session vars
-  // (CLAUDECODE, ANTHROPIC_API_KEY, CLAUDE_CODE_*) that cause auth issues.
-  const env = {
-    HOME: process.env.HOME ?? "/home/paul_clawdbot",
-    USER: process.env.USER ?? "paul_clawdbot",
-    PATH: process.env.PATH ?? "/usr/local/bin:/usr/bin:/bin",
-    LANG: process.env.LANG ?? "en_US.UTF-8",
-    TMPDIR: process.env.TMPDIR ?? "/tmp",
-  };
-
-  return new Promise((resolve, reject) => {
-    const proc = spawn(
-      "/usr/bin/claude",
-      [
-        "-p", prompt,
-        "--output-format", "text",
-        // Disable built-in tools — we only need a single LLM response, not agentic tool use.
-        "--allowedTools", "",
-      ],
-      {
-        env,
-        // /tmp — avoids claude CLI loading gpnet3 CLAUDE.md project context
-        cwd: "/tmp",
-        // stdin=ignore prevents the CLI blocking waiting for terminal/pipe input
-        stdio: ["ignore", "pipe", "pipe"],
-      }
-    );
-
-    let stdout = "";
-    let stderr = "";
-
-    proc.stdout?.on("data", (data: Buffer) => { stdout += data.toString(); });
-    proc.stderr?.on("data", (data: Buffer) => { stderr += data.toString(); });
-
-    const TIMEOUT_MS = 600_000; // 10 minutes
-    const timer = setTimeout(() => {
-      proc.kill("SIGTERM");
-      reject(new Error(`Claude CLI timed out after ${TIMEOUT_MS / 1000}s. Partial output: ${stdout.slice(0, 200)}`));
-    }, TIMEOUT_MS);
-
-    proc.on("close", (code: number | null, signal: NodeJS.Signals | null) => {
-      clearTimeout(timer);
-      if (code === 0) {
-        resolve(stdout.trim());
-      } else {
-        reject(new Error(
-          `Claude CLI exited ${signal ? `signal=${signal}` : `code=${code}`}. ` +
-          `stderr=${stderr.slice(0, 300) || "(empty)"} partial=${stdout.slice(0, 200) || "(empty)"}`
-        ));
-      }
-    });
-
-    proc.on("error", (err: Error) => {
-      clearTimeout(timer);
-      reject(new Error(`Claude CLI spawn failed: ${err.message}`));
-    });
-  });
 }
 
 /**
@@ -191,8 +120,8 @@ Rules:
     rawResponse = await callClaude(prompt);
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    logger.error("Claude CLI failed", { jobId, caseId, error: msg.slice(0, 500) });
-    throw new Error(`Claude CLI subprocess failed: ${msg.slice(0, 400)}`);
+    logger.error("LLM call failed", { jobId, caseId, error: msg.slice(0, 500) });
+    throw new Error(`LLM call failed: ${msg.slice(0, 400)}`);
   }
 
   let plan: ClaudeActionPlan;

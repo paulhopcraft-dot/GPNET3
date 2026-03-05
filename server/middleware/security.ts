@@ -12,7 +12,7 @@ import { logger } from "../lib/logger";
 // General API rate limiter
 export const generalRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10000,
+  max: 200,
   message: {
     error: "Too Many Requests",
     message: "Too many requests from this IP, please try again later.",
@@ -192,8 +192,11 @@ export const helmetConfig = helmet({
       defaultSrc: ["'self'"],
       scriptSrc: [
         "'self'",
-        "'unsafe-inline'", // Required for Vite dev server
-        "'unsafe-eval'", // Required for Vite dev server in development
+        // unsafe-inline/unsafe-eval are ONLY needed for Vite HMR in development.
+        // The production build is pre-compiled and does NOT require these.
+        ...(process.env.NODE_ENV !== "production"
+          ? ["'unsafe-inline'", "'unsafe-eval'"]
+          : []),
       ],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
