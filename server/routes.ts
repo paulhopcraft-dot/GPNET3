@@ -46,6 +46,7 @@ import preEmploymentRoutes from "./routes/preEmployment";
 import memoryRoutes from "./routes/memory";
 import intelligenceRoutes from "./routes/intelligence";
 import agentRoutes from "./routes/agents";
+import controlRoutes from "./routes/control";
 import lifecycleRoutes from "./routes/lifecycle";
 import hrDecisionsRoutes from "./routes/hr-decisions";
 import type { RecoveryTimelineSummary } from "@shared/schema";
@@ -170,6 +171,9 @@ export async function registerRoutes(app: Express): Promise<void> {
 
   // Agentic System routes (JWT-protected) — coordinator, RTW, recovery, certificate agents
   app.use("/api/agents", agentRoutes);
+
+  // Control Tower routes (admin-only — live operational metrics)
+  app.use("/api/control", controlRoutes);
 
   // Inbound Email webhook registered in server/index.ts (before CSRF middleware)
 
@@ -331,8 +335,15 @@ export async function registerRoutes(app: Express): Promise<void> {
   app.get("/api/system/health", async (_req, res) => {
     const { checkLLMHealth } = await import("./lib/llm-client");
     const { checkStorageHealth } = await import("./services/storageService");
+    const { sendAlert } = await import("./services/alertService");
     const { sql } = await import("drizzle-orm");
     const { db } = await import("./db");
+
+    // Check email: SMTP configured = ok, unconfigured = warning (not fatal)
+    const smtpConfigured = Boolean(
+      process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS
+    );
+    const emailStatus = smtpConfigured ? "ok" : "unconfigured";
 
     const [aiStatus, storageStatus] = await Promise.all([
       checkLLMHealth().catch((e: unknown) => ({ ok: false, provider: "unknown", model: "unknown", error: String(e) })),
@@ -348,6 +359,17 @@ export async function registerRoutes(app: Express): Promise<void> {
       dbError = e instanceof Error ? e.message : String(e);
     }
 
+    // Fire alerts for any failures (non-blocking)
+    if (!dbOk) {
+      sendAlert({ type: "database_failure", severity: "critical", message: dbError ?? "Database unreachable" }).catch(() => {});
+    }
+    if (!aiStatus.ok) {
+      sendAlert({ type: "ai_provider_failure", severity: "critical", message: aiStatus.error ?? "LLM provider unreachable" }).catch(() => {});
+    }
+    if (!storageStatus.ok) {
+      sendAlert({ type: "storage_failure", severity: "critical", message: storageStatus.error ?? "Storage unreachable" }).catch(() => {});
+    }
+
     const allOk = dbOk && aiStatus.ok && storageStatus.ok;
     res.status(allOk ? 200 : 503).json({
       status: allOk ? "ok" : "degraded",
@@ -356,6 +378,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       database: dbOk ? "ok" : { error: dbError },
       ai: aiStatus.ok ? { provider: aiStatus.provider, model: aiStatus.model } : { error: aiStatus.error },
       storage: storageStatus.ok ? { provider: storageStatus.provider } : { error: storageStatus.error },
+      email: emailStatus,
     });
   });
 

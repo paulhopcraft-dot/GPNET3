@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   ChevronDown,
   LogOut,
+  Activity,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -43,6 +44,11 @@ const menuItems = [
     title: "Settings",
     url: "/admin/settings",
     icon: Settings,
+  },
+  {
+    title: "Control Tower",
+    url: "/admin/control-tower",
+    icon: Activity,
   },
 ];
 

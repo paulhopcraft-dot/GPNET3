@@ -155,15 +155,19 @@ export async function callClaude(prompt: string, timeoutMs = 60_000): Promise<st
     timeoutMs,
   });
 
+  const t0 = Date.now();
   try {
     const result = provider === "anthropic"
       ? await callAnthropic(prompt, timeoutMs)
       : await callOpenRouter(prompt, timeoutMs);
 
-    logger.debug("LLM response received", {
-      provider,
-      responseLength: result.length,
-    });
+    const durationMs = Date.now() - t0;
+    logger.debug("LLM response received", { provider, responseLength: result.length, durationMs });
+
+    // Record latency for /api/control/performance — lazy import avoids circular deps
+    import("../services/metricsService").then(({ recordAiCall }) => {
+      recordAiCall(durationMs);
+    }).catch(() => {});
 
     return result;
   } catch (err) {

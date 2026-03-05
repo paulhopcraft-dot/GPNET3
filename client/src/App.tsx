@@ -69,6 +69,7 @@ const ExitHealthCheckForm = lazy(() => import("./pages/ExitHealthCheckForm"));
 const ExitProcessingPage = lazy(() => import("./pages/ExitProcessingPage"));
 const MarketingDocsPage = lazy(() => import("./pages/MarketingDocsPage"));
 const AgentJobsPage = lazy(() => import("./pages/AgentJobsPage"));
+const ControlTowerPage = lazy(() => import("./pages/ControlTowerPage"));
 const PublicQuestionnaire = lazy(() => import("./pages/PublicQuestionnaire"));
 const WorkerProfile = lazy(() => import("./pages/WorkerProfile"));
 const WorkersListPage = lazy(() => import("./pages/WorkersListPage"));
@@ -600,6 +601,14 @@ export default function App() {
                       element={
                         <Suspense fallback={<PageLoader />}>
                           <DutyForm />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="control-tower"
+                      element={
+                        <Suspense fallback={<PageLoader />}>
+                          <ControlTowerPage />
                         </Suspense>
                       }
                     />

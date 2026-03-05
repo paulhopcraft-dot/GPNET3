@@ -82,6 +82,19 @@ app.use(express.urlencoded({ extended: false }));
 // Cookie parser (required for CSRF protection)
 app.use(cookieParserMiddleware);
 
+// Request timing middleware — records API latency for /api/control/performance
+import { recordApiRequest } from "./services/metricsService";
+app.use("/api", (req: Request, res: Response, next: NextFunction) => {
+  const start = Date.now();
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    const prefix = "/" + req.path.split("/").slice(1, 3).join("/"); // e.g. /api/auth
+    const isError = res.statusCode >= 500;
+    recordApiRequest(prefix, duration, isError);
+  });
+  next();
+});
+
 // General API rate limiting (100 requests per 15 minutes)
 // Applied to all /api routes except specific exclusions
 app.use("/api", generalRateLimiter);
