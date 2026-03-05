@@ -364,6 +364,14 @@ export default function CaseSummaryPage() {
                     <label className="text-sm font-medium text-muted-foreground">Company</label>
                     <p className="text-sm mt-1">{workerCase.company}</p>
                   </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Employment Status</label>
+                    <p className="text-sm mt-1">{workerCase.employmentStatus || "Not recorded"}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Lifecycle Stage</label>
+                    <p className="text-sm mt-1">{workerCase.lifecycleStage ? LIFECYCLE_STAGE_LABELS[workerCase.lifecycleStage] : "Not set"}</p>
+                  </div>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Current Status</label>
@@ -375,6 +383,133 @@ export default function CaseSummaryPage() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Medical Constraints */}
+            {workerCase.medicalConstraints && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary">medical_information</span>
+                    Medical Constraints
+                    {workerCase.medicalConstraints.lastUpdatedAt && (
+                      <span className="text-xs font-normal text-muted-foreground ml-auto">
+                        Updated {new Date(workerCase.medicalConstraints.lastUpdatedAt).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}
+                        {workerCase.medicalConstraints.lastUpdatedBy ? ` by ${workerCase.medicalConstraints.lastUpdatedBy}` : ""}
+                      </span>
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {/* Restrictions */}
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Restrictions</p>
+                    <ul className="space-y-1 text-sm">
+                      {workerCase.medicalConstraints.noLiftingOverKg !== undefined && (
+                        <li className="flex items-center gap-2 text-amber-700">
+                          <span className="material-symbols-outlined text-sm">do_not_disturb_on</span>
+                          No lifting over {workerCase.medicalConstraints.noLiftingOverKg} kg
+                        </li>
+                      )}
+                      {workerCase.medicalConstraints.noBending && (
+                        <li className="flex items-center gap-2 text-amber-700">
+                          <span className="material-symbols-outlined text-sm">do_not_disturb_on</span>
+                          No bending
+                        </li>
+                      )}
+                      {workerCase.medicalConstraints.noTwisting && (
+                        <li className="flex items-center gap-2 text-amber-700">
+                          <span className="material-symbols-outlined text-sm">do_not_disturb_on</span>
+                          No twisting
+                        </li>
+                      )}
+                      {workerCase.medicalConstraints.noProlongedStanding && (
+                        <li className="flex items-center gap-2 text-amber-700">
+                          <span className="material-symbols-outlined text-sm">do_not_disturb_on</span>
+                          No prolonged standing
+                        </li>
+                      )}
+                      {workerCase.medicalConstraints.noProlongedSitting && (
+                        <li className="flex items-center gap-2 text-amber-700">
+                          <span className="material-symbols-outlined text-sm">do_not_disturb_on</span>
+                          No prolonged sitting
+                        </li>
+                      )}
+                      {workerCase.medicalConstraints.noDriving && (
+                        <li className="flex items-center gap-2 text-amber-700">
+                          <span className="material-symbols-outlined text-sm">do_not_disturb_on</span>
+                          No driving
+                        </li>
+                      )}
+                      {workerCase.medicalConstraints.noClimbing && (
+                        <li className="flex items-center gap-2 text-amber-700">
+                          <span className="material-symbols-outlined text-sm">do_not_disturb_on</span>
+                          No climbing
+                        </li>
+                      )}
+                      {workerCase.medicalConstraints.otherConstraints && (
+                        <li className="flex items-center gap-2 text-amber-700">
+                          <span className="material-symbols-outlined text-sm">do_not_disturb_on</span>
+                          {workerCase.medicalConstraints.otherConstraints}
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+                  {/* Capacity */}
+                  {(workerCase.medicalConstraints.suitableForLightDuties ||
+                    workerCase.medicalConstraints.suitableForSeatedWork ||
+                    workerCase.medicalConstraints.suitableForModifiedHours) && (
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Suitable For</p>
+                      <div className="flex flex-wrap gap-2">
+                        {workerCase.medicalConstraints.suitableForLightDuties && (
+                          <Badge variant="secondary" className="text-xs">Light duties</Badge>
+                        )}
+                        {workerCase.medicalConstraints.suitableForSeatedWork && (
+                          <Badge variant="secondary" className="text-xs">Seated work</Badge>
+                        )}
+                        {workerCase.medicalConstraints.suitableForModifiedHours && (
+                          <Badge variant="secondary" className="text-xs">Modified hours</Badge>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Certificate summary */}
+            {workerCase.latestCertificate && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary">description</span>
+                    Current Medical Certificate
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <label className="text-xs text-muted-foreground">Certificate Period</label>
+                      <p className="font-medium">
+                        {new Date(workerCase.latestCertificate.startDate).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
+                        {" — "}
+                        {new Date(workerCase.latestCertificate.endDate).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Capacity</label>
+                      <p className="font-medium">{workerCase.latestCertificate.capacity}</p>
+                    </div>
+                    {workerCase.latestCertificate.practitionerName && (
+                      <div className="col-span-2">
+                        <label className="text-xs text-muted-foreground">Issuing Practitioner</label>
+                        <p className="font-medium">{workerCase.latestCertificate.practitionerName}</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
             </div>
           </TabsContent>
 
