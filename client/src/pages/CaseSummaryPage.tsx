@@ -17,6 +17,7 @@ import { LifecycleStepper } from "@/components/LifecycleStepper";
 import { CurrentCapacityCard } from "@/components/CurrentCapacityCard";
 import { ComponentErrorBoundary } from "@/components/ErrorBoundary";
 import { ContextualHelpSystem } from "@/components/unified-case-management/ContextualHelpSystem";
+import { SmartRTWPlanning } from "@/components/unified-case-management/SmartRTWPlanning";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -180,10 +181,11 @@ export default function CaseSummaryPage() {
 
         {/* 7-Tab Case Detail View */}
         <Tabs defaultValue="summary" className="space-y-4">
-          <TabsList className="grid grid-cols-7 h-12">
+          <TabsList className="grid grid-cols-8 h-12">
             <TabsTrigger value="summary">Summary</TabsTrigger>
             <TabsTrigger value="injury">Injury</TabsTrigger>
             <TabsTrigger value="timeline">Timeline</TabsTrigger>
+            <TabsTrigger value="rtw">RTW Plan</TabsTrigger>
             <TabsTrigger value="financial">Financial</TabsTrigger>
             <TabsTrigger value="risk">Risk</TabsTrigger>
             <TabsTrigger value="contacts">Contacts</TabsTrigger>
@@ -378,6 +380,12 @@ export default function CaseSummaryPage() {
 
           <TabsContent value="timeline" className="mt-4">
             <TimelineCard caseId={workerCase.id} />
+          </TabsContent>
+
+          <TabsContent value="rtw" className="mt-4">
+            <ComponentErrorBoundary label="RTW Planning">
+              <SmartRTWPlanning workerCase={workerCase} />
+            </ComponentErrorBoundary>
           </TabsContent>
 
           <TabsContent value="financial" className="mt-4">
