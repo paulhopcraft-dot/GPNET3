@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { PageLayout } from "@/components/PageLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -67,9 +69,39 @@ export default function FinancialsPage() {
     );
   }
 
+  function exportFinancialsCSV() {
+    const headers = ["Company", "Total Cases", "At Work", "Off Work", "Estimated Cost (AUD)", "Cost per Case (AUD)"];
+    const rows = Object.entries(financialData.byCompany)
+      .sort((a, b) => b[1].estimatedCost - a[1].estimatedCost)
+      .map(([company, data]) => [
+        company,
+        data.cases,
+        data.atWork,
+        data.offWork,
+        data.estimatedCost,
+        Math.round(data.estimatedCost / data.cases),
+      ]);
+    const csv = [headers, ...rows]
+      .map((row) => row.map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `financial-analysis-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <PageLayout title="Financials" subtitle="Cost analysis and financial overview">
       <div className="space-y-6">
+        <div className="flex justify-end">
+          <Button variant="outline" size="sm" onClick={exportFinancialsCSV} className="gap-2">
+            <Download className="h-4 w-4" />
+            Export CSV
+          </Button>
+        </div>
         {/* Summary Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
