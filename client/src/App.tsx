@@ -9,6 +9,7 @@ import { ThemeProvider } from "./components/theme-provider";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AdminRoute } from "./components/AdminRoute";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 // Loading component
 const PageLoader = () => (
@@ -119,6 +120,7 @@ export default function App() {
         <TooltipProvider>
           <ThemeProvider defaultTheme="light">
             <AuthProvider>
+              <ErrorBoundary label="Application">
               <Suspense fallback={<PageLoader />}>
                 <Routes>
                   {/* Public routes — no authentication required */}
@@ -652,6 +654,7 @@ export default function App() {
                   />
                 </Routes>
               </Suspense>
+              </ErrorBoundary>
               <Toaster />
             </AuthProvider>
           </ThemeProvider>

@@ -358,28 +358,41 @@ export function TerminationPanel({ workerCase }: TerminationPanelProps) {
             )}
 
             <div className="space-y-2">
-              <h3 className="font-semibold text-sm">Evidence & Alternatives</h3>
+              <h3 className="font-semibold text-sm" id="evidence-section-heading">Evidence & Alternatives</h3>
+              <label htmlFor="term-pre-injury-role" className="text-xs text-muted-foreground">Pre-injury role</label>
               <textarea
+                id="term-pre-injury-role"
                 className="w-full rounded border border-border p-2 text-sm"
                 placeholder="Pre-injury role"
+                aria-labelledby="evidence-section-heading"
+                aria-label="Pre-injury role"
                 value={preInjuryRole}
                 onChange={(e) => setPreInjuryRole(e.target.value)}
               />
+              <label htmlFor="term-rtw-attempts" className="text-xs text-muted-foreground">RTW attempts summary</label>
               <textarea
+                id="term-rtw-attempts"
                 className="w-full rounded border border-border p-2 text-sm"
                 placeholder="RTW attempts summary"
+                aria-label="RTW attempts summary"
+                aria-required="true"
                 value={rtwAttempts}
                 onChange={(e) => setRtwAttempts(e.target.value)}
               />
+              <label htmlFor="term-alternatives" className="text-xs text-muted-foreground">Alternative roles considered</label>
               <textarea
+                id="term-alternatives"
                 className="w-full rounded border border-border p-2 text-sm"
                 placeholder="Alternatives considered"
+                aria-label="Alternative roles considered"
+                aria-required="true"
                 value={alternatives}
                 onChange={(e) => setAlternatives(e.target.value)}
               />
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
+                  aria-required="true"
                   checked={hasSustainableRole}
                   onChange={(e) => setHasSustainableRole(e.target.checked)}
                 />
@@ -400,16 +413,22 @@ export function TerminationPanel({ workerCase }: TerminationPanelProps) {
 
             <div className="space-y-2">
               <h3 className="font-semibold text-sm">Agent Meeting</h3>
+              <label htmlFor="term-agent-meeting-date" className="text-xs text-muted-foreground">Meeting date and time</label>
               <input
+                id="term-agent-meeting-date"
                 type="datetime-local"
                 className="w-full rounded border border-border p-2 text-sm"
+                aria-label="Agent meeting date and time"
                 value={agentMeetingDate}
                 onChange={(e) => setAgentMeetingDate(e.target.value)}
               />
+              <label htmlFor="term-agent-notes-id" className="text-xs text-muted-foreground">Meeting notes reference</label>
               <input
+                id="term-agent-notes-id"
                 type="text"
                 className="w-full rounded border border-border p-2 text-sm"
                 placeholder="Agent meeting notes ID"
+                aria-label="Agent meeting notes reference ID"
                 value={agentMeetingNotesId}
                 onChange={(e) => setAgentMeetingNotesId(e.target.value)}
               />
@@ -420,28 +439,40 @@ export function TerminationPanel({ workerCase }: TerminationPanelProps) {
 
             <div className="space-y-2">
               <h3 className="font-semibold text-sm">Consultant Confirmation</h3>
+              <label htmlFor="term-consultant-invite-date" className="text-xs text-muted-foreground">Invitation date</label>
               <input
+                id="term-consultant-invite-date"
                 type="date"
                 className="w-full rounded border border-border p-2 text-sm"
+                aria-label="Consultant invitation date"
                 value={consultantInviteDate}
                 onChange={(e) => setConsultantInviteDate(e.target.value)}
               />
+              <label htmlFor="term-consultant-appt-date" className="text-xs text-muted-foreground">Appointment date</label>
               <input
+                id="term-consultant-appt-date"
                 type="date"
                 className="w-full rounded border border-border p-2 text-sm"
+                aria-label="Consultant appointment date"
                 value={consultantAppointmentDate}
                 onChange={(e) => setConsultantAppointmentDate(e.target.value)}
               />
+              <label htmlFor="term-consultant-report-id" className="text-xs text-muted-foreground">Report reference</label>
               <input
+                id="term-consultant-report-id"
                 type="text"
                 className="w-full rounded border border-border p-2 text-sm"
                 placeholder="Consultant report ID"
+                aria-label="Consultant report reference ID"
                 value={consultantReportId}
                 onChange={(e) => setConsultantReportId(e.target.value)}
               />
+              <label htmlFor="term-long-term-restrictions" className="text-xs text-muted-foreground">Long-term restrictions</label>
               <textarea
+                id="term-long-term-restrictions"
                 className="w-full rounded border border-border p-2 text-sm"
                 placeholder="Long-term restrictions summary"
+                aria-label="Long-term restrictions summary"
                 value={longTermRestrictionsSummary}
                 onChange={(e) => setLongTermRestrictionsSummary(e.target.value)}
               />

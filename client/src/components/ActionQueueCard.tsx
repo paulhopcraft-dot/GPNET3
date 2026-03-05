@@ -132,10 +132,11 @@ export function ActionQueueCard({ onCaseClick, limit = 5 }: ActionQueueCardProps
           )}
         </div>
       </CardHeader>
-      <CardContent className="flex-1 overflow-y-auto">
+      <CardContent className="flex-1 overflow-y-auto" aria-label="Action queue">
+        <div aria-live="polite" aria-atomic="false">
         {loading && (
-          <div className="flex items-center gap-3 text-sm text-muted-foreground">
-            <span className="material-symbols-outlined animate-spin text-primary">progress_activity</span>
+          <div role="status" className="flex items-center gap-3 text-sm text-muted-foreground">
+            <span className="material-symbols-outlined animate-spin text-primary" aria-hidden="true">progress_activity</span>
             <span>Loading actions...</span>
           </div>
         )}
@@ -237,6 +238,7 @@ export function ActionQueueCard({ onCaseClick, limit = 5 }: ActionQueueCardProps
             })}
           </div>
         )}
+        </div>
       </CardContent>
     </Card>
   );

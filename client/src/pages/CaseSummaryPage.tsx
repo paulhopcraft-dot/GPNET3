@@ -15,6 +15,7 @@ import { CaseContactsPanel } from "@/components/CaseContactsPanel";
 import { FinancialSummaryPanel } from "@/components/FinancialSummaryPanel";
 import { LifecycleStepper } from "@/components/LifecycleStepper";
 import { CurrentCapacityCard } from "@/components/CurrentCapacityCard";
+import { ComponentErrorBoundary } from "@/components/ErrorBoundary";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -438,14 +439,16 @@ export default function CaseSummaryPage() {
           </TabsContent>
 
           <TabsContent value="recovery" className="mt-4">
-            <Suspense fallback={
-              <div className="animate-pulse space-y-4 p-6 bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg border border-purple-200/50">
-                <div className="h-8 bg-gradient-to-r from-purple-200 to-blue-200 rounded w-1/3 mb-6"></div>
-                <div className="h-64 bg-gradient-to-r from-purple-100 to-blue-100 rounded"></div>
-              </div>
-            }>
-              <DynamicRecoveryTimeline caseId={id!} />
-            </Suspense>
+            <ComponentErrorBoundary label="Recovery Timeline">
+              <Suspense fallback={
+                <div className="animate-pulse space-y-4 p-6 bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg border border-purple-200/50">
+                  <div className="h-8 bg-gradient-to-r from-purple-200 to-blue-200 rounded w-1/3 mb-6"></div>
+                  <div className="h-64 bg-gradient-to-r from-purple-100 to-blue-100 rounded"></div>
+                </div>
+              }>
+                <DynamicRecoveryTimeline caseId={id!} />
+              </Suspense>
+            </ComponentErrorBoundary>
           </TabsContent>
         </Tabs>
       </div>

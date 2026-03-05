@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DashboardStats, type StatFilter } from "@/components/dashboard-stats";
 import { ActionQueueCard } from "@/components/ActionQueueCard";
+import { ComponentErrorBoundary } from "@/components/ErrorBoundary";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { queryClient, fetchWithCsrf } from "@/lib/queryClient";
@@ -384,7 +385,9 @@ export default function GPNet2Dashboard() {
 
             {/* Action Queue Sidebar - Fixed width on larger screens */}
             <div className="hidden xl:block w-80 flex-shrink-0">
-              <ActionQueueCard onCaseClick={handleCaseClick} limit={8} />
+              <ComponentErrorBoundary label="Action Queue">
+                <ActionQueueCard onCaseClick={handleCaseClick} limit={8} />
+              </ComponentErrorBoundary>
             </div>
           </div>
 
