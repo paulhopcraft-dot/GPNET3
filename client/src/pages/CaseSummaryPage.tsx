@@ -386,22 +386,103 @@ export default function CaseSummaryPage() {
 
           <TabsContent value="risk" className="mt-4">
             <div className="space-y-4">
+              {/* Overall Risk */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Risk Assessment</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary">shield</span>
+                    Overall Risk Level
+                  </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-sm text-muted-foreground">Risk Level:</span>
-                    <Badge className={riskBadgeColor(workerCase.riskLevel)}>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <Badge className={cn("text-sm px-3 py-1", riskBadgeColor(workerCase.riskLevel))}>
                       {workerCase.riskLevel}
                     </Badge>
+                    <span className="text-sm text-muted-foreground">
+                      {workerCase.riskLevel === "High"
+                        ? "Immediate case manager attention required. Multiple risk indicators active."
+                        : workerCase.riskLevel === "Medium"
+                        ? "Elevated risk indicators present. Monitor closely and plan interventions."
+                        : "Low risk profile. Routine follow-up schedule applies."}
+                    </span>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    Risk management strategies and mitigation plans will be displayed here.
-                  </p>
+
+                  {/* Risk Flags */}
+                  {workerCase.riskFlags && workerCase.riskFlags.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Active Risk Flags</p>
+                      <div className="flex flex-wrap gap-2">
+                        {workerCase.riskFlags.map((flag) => (
+                          <Badge key={flag} variant="outline" className="text-xs border-amber-300 text-amber-700 bg-amber-50">
+                            <span className="material-symbols-outlined text-xs mr-1">warning</span>
+                            {flag}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Dispute alert */}
+                  {workerCase.disputeStatus && workerCase.disputeStatus !== "none" && workerCase.disputeStatus !== "resolved" && (
+                    <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+                      <span className="material-symbols-outlined text-base mt-0.5">gavel</span>
+                      <span><strong>Dispute active:</strong> {workerCase.disputeStatus.replace(/_/g, " ")}. Legal risk elevated — consult insurer before major case decisions.</span>
+                    </div>
+                  )}
+
+                  {/* Termination audit flag */}
+                  {workerCase.terminationAuditFlag && (
+                    <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+                      <span className="material-symbols-outlined text-base mt-0.5">flag</span>
+                      <span><strong>Termination audit flag:</strong> {workerCase.terminationAuditFlag.replace(/_/g, " ")}. Employment action requires legal review.</span>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
+
+              {/* Functional Capacity Risk */}
+              {workerCase.functionalCapacity && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-primary">accessibility</span>
+                      Functional Capacity
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      {workerCase.functionalCapacity.maxWorkHoursPerDay !== undefined && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Max hours/day</span>
+                          <span className="font-medium">{workerCase.functionalCapacity.maxWorkHoursPerDay}h</span>
+                        </div>
+                      )}
+                      {workerCase.functionalCapacity.maxWorkDaysPerWeek !== undefined && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Max days/week</span>
+                          <span className="font-medium">{workerCase.functionalCapacity.maxWorkDaysPerWeek}d</span>
+                        </div>
+                      )}
+                      {workerCase.functionalCapacity.canLiftKg !== undefined && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Lifting limit</span>
+                          <span className="font-medium">{workerCase.functionalCapacity.canLiftKg} kg</span>
+                        </div>
+                      )}
+                      {workerCase.functionalCapacity.canStandMinutes !== undefined && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Standing (max)</span>
+                          <span className="font-medium">{workerCase.functionalCapacity.canStandMinutes} min</span>
+                        </div>
+                      )}
+                    </div>
+                    {workerCase.functionalCapacity.otherCapacityNotes && (
+                      <p className="mt-3 text-sm text-muted-foreground">{workerCase.functionalCapacity.otherCapacityNotes}</p>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Compliance */}
               {workerCase.compliance && (
@@ -432,6 +513,44 @@ export default function CaseSummaryPage() {
                   </CardContent>
                 </Card>
               )}
+
+              {/* Mitigation strategies */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary">health_and_safety</span>
+                    Mitigation Strategies
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    {workerCase.riskLevel === "High" && (
+                      <li className="flex items-start gap-2">
+                        <span className="material-symbols-outlined text-base text-red-500 mt-0.5">priority_high</span>
+                        Escalate to senior case manager for review within 48 hours
+                      </li>
+                    )}
+                    <li className="flex items-start gap-2">
+                      <span className="material-symbols-outlined text-base text-blue-500 mt-0.5">calendar_month</span>
+                      Schedule next clinical review and ensure RTW plan is current
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="material-symbols-outlined text-base text-emerald-500 mt-0.5">groups</span>
+                      Coordinate with employer on suitable duties availability
+                    </li>
+                    {workerCase.disputeStatus && workerCase.disputeStatus !== "none" && workerCase.disputeStatus !== "resolved" && (
+                      <li className="flex items-start gap-2">
+                        <span className="material-symbols-outlined text-base text-amber-500 mt-0.5">gavel</span>
+                        Engage insurer legal team — conciliation strategy is in progress
+                      </li>
+                    )}
+                    <li className="flex items-start gap-2">
+                      <span className="material-symbols-outlined text-base text-purple-500 mt-0.5">description</span>
+                      Ensure all compliance deadlines are documented in the case timeline
+                    </li>
+                  </ul>
+                </CardContent>
+              </Card>
             </div>
           </TabsContent>
 
