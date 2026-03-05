@@ -310,3 +310,68 @@ The memory-unified plugin is **fully built** but **not wired into clawdbot**:
 - Admin: admin@gpnet.local / ChangeMe123!
 - Employer: employer@symmetry.local / ChangeMe123!
 - Natalie: natalie@preventli.com / ChangeMe123!
+
+## Session 105 - 2026-03-05
+
+### Completed
+- Phase 11 & 12 carryover from session 104:
+  - ContextualHelpSystem wired into CaseSummaryPage
+  - DisputeStatus, CaseDispute interface added to schema
+  - Related claims banner, dispute status banner, mental health notice
+  - RBAC: strip dispute details from employer view
+  - Help topics for /cases and /employer routes in ContextualHelpSystem
+- Risk tab fully implemented with real case data (riskFlags, disputeStatus,
+  terminationAuditFlag, functionalCapacity metrics, compliance, mitigation list)
+- RTW Plan tab added to CaseSummaryPage (SmartRTWPlanning, 8 tabs total now)
+- Injury tab enriched: medical constraints (restrictions + suitableFor), 
+  current certificate card, employment status, lifecycle stage
+- Termination documentation package export (spec 22): legal risk checklist txt download
+- CSV export on Reports page (spec 5.4): filtered cases download
+- CSV export on Financials page (spec 5.4): per-company cost analysis download
+- Spec 5.5 plain language for EmployerCaseDetailView: 
+  - "Obligations met" / "Review recommended" / "Action required" (not Very High/Low)
+  - Injury date and due date formatted as DD MMM YYYY
+- Date formatting (spec 5.5) throughout CaseSummaryPage (dueDate, dateOfInjury)
+- FirstTimeTour component (spec 12.2): role-specific 4-5 step onboarding modal
+  - Case manager: case list, action queue, case detail, compliance, AI chat
+  - Employer: dashboard, decisions needed, case details, obligations
+  - Clinician: recovery timelines, clinical override, RTW planning, milestones
+  - localStorage tracked per userId, 1.5s delay after dashboard load
+  - Wired into GPNet2Dashboard and EmployerDashboardPage
+
+### Commits
+- e46a457 Phase 11 & 12 — edge cases, disputes, contextual help
+- 32cd75e Phase 10.5 — performance (memo/useCallback/skeleton)
+- 8b0b68e Phase 10.1-10.4 — error boundaries, form accessibility, ARIA
+- 6213c32 Risk tab with real case data
+- 368ffc7 RTW Plan tab in CaseSummaryPage
+- 553754a Termination documentation package export (spec 22)
+- e3c55ee CSV export — Reports page (spec 5.4)
+- 9a2ca80 CSV export — Financials page (spec 5.4)
+- 5a4641e Injury tab enrichment (medical constraints, certificate)
+- 6034ffa Spec 5.5 plain language — employer case view
+- 07615db First-time tour (spec 12.2)
+- 9852d5e Date formatting DD MMM YYYY — CaseSummaryPage
+
+### In Progress
+- Nothing in-flight
+
+### Next Steps
+1. **Financial Engine (spec 23)** — PIAWE calculation, weekly earnings, cost tracking
+   Needs: new DB tables (case_financials), schema migration, API endpoint, panel update
+2. **Intelligence Dashboard** — /api/intelligence routes have backend but no frontend page
+   Easy win: create IntelligencePage.tsx at /intelligence showing case insights
+3. **ComplianceDashboardWidget** — built but never used, wire into GPNet2Dashboard
+   Blocked by: db:push (compliance rules not seeded yet)
+4. **Spec 12.3** — Update specs 07, 13, 22 to reflect current implementation
+
+### Blockers
+- db:push from Windows required for Phase 8 schema (rtwPlanConsents, rtwPlans.pathway)
+- npx tsx server/seed-compliance-rules.ts from Windows (Phase 7 rules)
+
+### Notes
+- All 12 phases of 30-system-remediation-spec.md COMPLETE
+- Build: exit code 0, 3797 modules, only pre-existing discord-analytics.ts errors
+- Active worktrees (prunable): fix/dashboard-issues, fix/summary-improvements,
+  fix/testing-improvements, feature/missing-info-prompts, feature/presentations-work
+- Active worktree (keep?): feature/onboarding at /mnt/c/Dev/worktrees/onboarding
