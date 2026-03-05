@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { DashboardStats, type StatFilter } from "@/components/dashboard-stats";
 import { ActionQueueCard } from "@/components/ActionQueueCard";
 import { ComponentErrorBoundary } from "@/components/ErrorBoundary";
+import { ContextualHelpSystem } from "@/components/unified-case-management/ContextualHelpSystem";
+import { FirstTimeTour } from "@/components/FirstTimeTour";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -43,7 +45,7 @@ function fmtDate(s: string | null | undefined) {
 }
 
 export default function GPNet2Dashboard() {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const navigate = useNavigate();
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -412,6 +414,8 @@ export default function GPNet2Dashboard() {
       </main>
       
       <ChatWidget />
+      <ContextualHelpSystem mode="floating" showTips={true} userRole="case_manager" />
+      {user && <FirstTimeTour userRole={user.role} userId={user.id} />}
     </div>
   );
 }

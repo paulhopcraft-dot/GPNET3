@@ -1,5 +1,7 @@
 import { PageLayout } from "@/components/PageLayout";
 import { useState, useEffect } from 'react';
+import { useAuth } from "@/hooks/useAuth";
+import { FirstTimeTour } from "@/components/FirstTimeTour";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -332,6 +334,7 @@ export function EmployerDashboardPage() {
     staleTime: 60_000,
   });
   const organizationName = dashboardData?.organizationName ?? 'Dashboard';
+  const { user } = useAuth();
 
   return (
     <PageLayout
@@ -339,6 +342,7 @@ export function EmployerDashboardPage() {
       subtitle="Case Management Portal"
     >
       <EmployerDashboardContent />
+      {user && <FirstTimeTour userRole={user.role} userId={user.id} />}
     </PageLayout>
   );
 }
