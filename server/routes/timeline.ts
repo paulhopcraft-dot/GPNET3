@@ -133,13 +133,75 @@ export function registerTimelineRoutes(app: Express) {
         certificates
       );
 
-      return res.json(chartData);
+      // Attach override data if present
+      const clinStatus = workerCase.clinical_status_json as any;
+      const override = clinStatus?.recoveryOverride ?? null;
+      const adjustedWeeks = override?.adjustedEstimateWeeks ?? null;
+      const responseData: any = { ...chartData };
+      if (override) {
+        responseData.recoveryOverride = override;
+        responseData.adjustedEstimateWeeks = adjustedWeeks;
+      }
+
+      return res.json(responseData);
     } catch (error) {
       logger.api.error("Error generating recovery chart data", {}, error);
       return res.status(500).json({
         error: "Failed to generate recovery chart data",
         details: error instanceof Error ? error.message : "Unknown error",
       });
+    }
+  });
+
+  // POST /api/cases/:id/recovery-override — AHR clinical timeline adjustment (Phase 6.2)
+  app.post("/api/cases/:id/recovery-override", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { adjustedEstimateWeeks, reason, factors } = req.body;
+
+      if (!adjustedEstimateWeeks || typeof adjustedEstimateWeeks !== "number" || adjustedEstimateWeeks < 1) {
+        return res.status(400).json({ error: "adjustedEstimateWeeks must be a positive number" });
+      }
+      if (!reason || typeof reason !== "string" || !reason.trim()) {
+        return res.status(400).json({ error: "reason is required" });
+      }
+
+      const cases = await db.select().from(workerCases).where(eq(workerCases.id, id)).limit(1);
+      if (cases.length === 0) return res.status(404).json({ error: "Case not found" });
+
+      const workerCase = cases[0] as any;
+      const clinStatus = (workerCase.clinical_status_json as any) ?? {};
+
+      // Determine original estimate from estimator
+      const clinicalEvidence = evaluateClinicalEvidence(workerCase);
+      const diagnosisText = workerCase.aiSummary || workerCase.summary || "";
+      const tempChart = generateRecoveryTimelineChartData(
+        id, workerCase.workerName,
+        workerCase.dateOfInjury.toISOString(),
+        diagnosisText,
+        workerCase.riskLevel as "High" | "Medium" | "Low",
+        clinicalEvidence.flags || [], []
+      );
+
+      const override = {
+        id: `ro-${Date.now()}`,
+        caseId: id,
+        originalEstimateWeeks: tempChart.estimatedWeeks,
+        adjustedEstimateWeeks,
+        reason: reason.trim(),
+        factors: Array.isArray(factors) ? factors : [],
+        overriddenBy: (req as any).user?.id ?? "unknown",
+        overriddenAt: new Date().toISOString(),
+      };
+
+      await db.update(workerCases)
+        .set({ clinicalStatusJson: { ...clinStatus, recoveryOverride: override } } as any)
+        .where(eq(workerCases.id, id));
+
+      return res.json({ ok: true, override });
+    } catch (error) {
+      logger.api.error("Error saving recovery override", {}, error);
+      return res.status(500).json({ error: "Failed to save recovery override" });
     }
   });
 

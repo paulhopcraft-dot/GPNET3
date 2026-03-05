@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Logging in...</title>
+  <style>
+    body { font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f8fafc; }
+    .box { text-align: center; max-width: 400px; }
+    .spinner { width: 36px; height: 36px; border: 3px solid #e2e8f0; border-top-color: #2563eb; border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    p { color: #64748b; font-size: 14px; margin: 8px 0; }
+    .error { color: #dc2626; font-size: 13px; background: #fef2f2; padding: 8px 12px; border-radius: 6px; margin-top: 12px; word-break: break-all; }
+  </style>
+</head>
+<body>
+<div class="box">
+  <div class="spinner" id="spinner"></div>
+  <p id="status">Starting...</p>
+  <div class="error" id="error" style="display:none"></div>
+</div>
+<script>
+function log(msg) {
+  console.log(msg);
+  document.getElementById('status').textContent = msg;
+}
+function err(msg) {
+  console.error(msg);
+  document.getElementById('spinner').style.display = 'none';
+  document.getElementById('error').textContent = msg;
+  document.getElementById('error').style.display = 'block';
+}
+
+(async () => {
+  try {
+    // Step 1: Get CSRF token
+    log('Getting CSRF token...');
+    const csrfRes = await fetch('/api/csrf-token', { credentials: 'include' });
+    if (!csrfRes.ok) { err('CSRF fetch failed: ' + csrfRes.status); return; }
+    const csrfData = await csrfRes.json();
+    const csrf = csrfData.data?.csrfToken || csrfData.csrfToken;
+    if (!csrf) { err('No CSRF token in response: ' + JSON.stringify(csrfData)); return; }
+    log('Got CSRF token');
+
+    // Step 2: Logout (ignore errors — may not be logged in)
+    log('Logging out...');
+    await fetch('/api/auth/logout', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'X-CSRF-Token': csrf }
+    }).catch(() => {});
+
+    // Step 3: Fresh CSRF after logout
+    log('Refreshing token...');
+    const csrfRes2 = await fetch('/api/csrf-token', { credentials: 'include' });
+    const csrfData2 = await csrfRes2.json();
+    const csrf2 = csrfData2.data?.csrfToken || csrfData2.csrfToken;
+
+    // Step 4: Login as demo employer (all test pre-employment data is here)
+    log('Signing in as employer@demo.local...');
+    const loginRes = await fetch('/api/auth/login', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf2 },
+      body: JSON.stringify({ email: 'employer@demo.local', password: 'ChangeMe123!' })
+    });
+
+    const loginBody = await loginRes.json();
+    if (!loginRes.ok) {
+      err('Login failed (' + loginRes.status + '): ' + JSON.stringify(loginBody));
+      return;
+    }
+
+    log('Done! Redirecting...');
+    const dest = new URLSearchParams(window.location.search).get('to') || '/checks';
+    window.location.href = dest;
+  } catch (e) {
+    err('Exception: ' + e.message + '\n' + e.stack);
+  }
+})();
+</script>
+</body>
+</html>

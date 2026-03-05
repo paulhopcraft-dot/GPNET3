@@ -21,7 +21,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { GlassPanel } from "@/components/ui/glass-panel";
 import { cn } from "@/lib/utils";
 import { formatWeekAsMonthYear } from "@/lib/dateUtils";
 import {
@@ -38,7 +37,13 @@ import {
   X,
   Upload,
   Loader2,
+  SlidersHorizontal,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // Types matching the server-side RecoveryTimelineChartData
 interface ChartDataPoint {
@@ -70,7 +75,19 @@ interface RecoveryPhaseDisplay {
     description: string;
     completed: boolean;
     completedDate?: string;
+    type?: "clinical" | "case_management";
   }>;
+}
+
+interface RecoveryOverride {
+  id: string;
+  caseId: string;
+  originalEstimateWeeks: number;
+  adjustedEstimateWeeks: number;
+  reason: string;
+  factors: string[];
+  overriddenBy: string;
+  overriddenAt: string;
 }
 
 interface DiagnosticRecommendation {
@@ -114,6 +131,10 @@ interface RecoveryTimelineChartData {
   currentCapacityPercentage: number;
   weeksOffWork: number;
   riskCategory: "High" | "Medium" | "Low";
+  // Clinical override (optional — present when AHR has adjusted timeline)
+  recoveryOverride?: RecoveryOverride;
+  adjustedEstimateWeeks?: number;
+  adjustedCurve?: ChartDataPoint[];
 }
 
 interface DynamicRecoveryTimelineProps {
@@ -202,6 +223,21 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
 
   const [selectedCertificate, setSelectedCertificate] = useState<CertificateMarker | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [showOverrideForm, setShowOverrideForm] = useState(false);
+  const [overrideWeeks, setOverrideWeeks] = useState("");
+  const [overrideReason, setOverrideReason] = useState("");
+  const [overrideFactors, setOverrideFactors] = useState<string[]>([]);
+  const [isSubmittingOverride, setIsSubmittingOverride] = useState(false);
+
+  const OVERRIDE_FACTORS = [
+    "Comorbidities",
+    "Age-related factors",
+    "Psychological overlay",
+    "Surgical intervention required",
+    "Treatment complications",
+    "Stronger than expected recovery",
+    "Other",
+  ] as const;
 
   // Mutation to upload certificate image
   const uploadImageMutation = useMutation({
@@ -266,6 +302,30 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
 
     // Reset file input
     event.target.value = "";
+  };
+
+  const handleOverrideSubmit = async () => {
+    const weeks = parseInt(overrideWeeks, 10);
+    if (!weeks || weeks < 1 || weeks > 260) return;
+    if (!overrideReason.trim()) return;
+    setIsSubmittingOverride(true);
+    try {
+      const response = await fetchWithCsrf(`/api/cases/${caseId}/recovery-override`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ adjustedEstimateWeeks: weeks, reason: overrideReason, factors: overrideFactors }),
+      });
+      if (!response.ok) throw new Error("Failed to save override");
+      queryClient.invalidateQueries({ queryKey: [`/api/cases/${caseId}/recovery-chart`] });
+      setShowOverrideForm(false);
+      setOverrideWeeks("");
+      setOverrideReason("");
+      setOverrideFactors([]);
+    } catch {
+      // silent — user can retry
+    } finally {
+      setIsSubmittingOverride(false);
+    }
   };
 
   if (isLoading) {
@@ -435,7 +495,7 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
             Injury Date: {formatDate(data.injuryDate)} | Duration: {data.weeksElapsed} weeks
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 items-center">
           <Badge className={getStatusColor(data.analysis.comparedToExpected)}>
             {data.analysis.comparedToExpected === "ahead"
               ? "Ahead of Schedule"
@@ -448,6 +508,15 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
           <Badge className={getConfidenceColor(data.confidence)}>
             {data.confidence.charAt(0).toUpperCase() + data.confidence.slice(1)} Confidence
           </Badge>
+          <Button
+            size="sm"
+            variant="outline"
+            className="bg-white/10 border-white/30 text-white hover:bg-white/20"
+            onClick={() => setShowOverrideForm(true)}
+          >
+            <SlidersHorizontal className="h-4 w-4 mr-1" />
+            Adjust Timeline
+          </Button>
         </div>
       </div>
 
@@ -589,6 +658,45 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
                     fontSize: 10,
                   }}
                 />
+
+                {/* Adjusted RTW marker (when override set) */}
+                {data.adjustedEstimateWeeks && data.adjustedEstimateWeeks !== data.estimatedWeeks && (
+                  <ReferenceLine
+                    x={data.adjustedEstimateWeeks}
+                    stroke="#059669"
+                    strokeWidth={2}
+                    strokeDasharray="6 3"
+                    label={{
+                      value: "Adj. RTW",
+                      position: "top",
+                      fill: "#059669",
+                      fontSize: 10,
+                    }}
+                  />
+                )}
+
+                {/* Compliance deadline markers */}
+                {[
+                  { week: 10, label: "RTW Plan", color: "#3b82f6" },
+                  { week: 13, label: "Pay ↓", color: "#f59e0b" },
+                  { week: 52, label: "52wk ↓", color: "#ef4444" },
+                  { week: 130, label: "130wk", color: "#dc2626" },
+                ].map((dl) => (
+                  <ReferenceLine
+                    key={dl.label}
+                    x={dl.week}
+                    stroke={dl.color}
+                    strokeWidth={1}
+                    strokeDasharray="2 4"
+                    strokeOpacity={0.6}
+                    label={{
+                      value: dl.label,
+                      position: "insideTopRight",
+                      fill: dl.color,
+                      fontSize: 9,
+                    }}
+                  />
+                ))}
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -630,261 +738,41 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
       </Card>
       </motion.div>
 
-      {/* Glassmorphism Recovery Data Panels Grid */}
-      <div className="glassmorphism-panels-grid grid grid-cols-12 gap-4 mt-6">
-        {/* Recovery Phase Panel - Spans 4 columns */}
-        <motion.div
-          className="motion-panel col-span-12 md:col-span-4"
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1, ease: "easeOut" }}
-          whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
-        >
-          <GlassPanel className="p-4 h-full" variant="gradient">
-            <h4 className="text-sm font-semibold text-white/90 mb-2 flex items-center gap-2">
-              <Activity className="h-4 w-4" />
-              Recovery Phase
-            </h4>
-            <div className="text-2xl font-bold text-white mb-1">
-              Week {Math.floor(data.weeksOffWork || 0)}
-            </div>
-            <div className="text-xs text-white/70">
-              Current phase: {data.weeksOffWork > 8 ? 'Extended' : data.weeksOffWork > 4 ? 'Mid-term' : 'Early'}
-            </div>
-          </GlassPanel>
-        </motion.div>
-
-        {/* Capacity Status Panel - Spans 4 columns */}
-        <motion.div
-          className="motion-panel col-span-12 md:col-span-4"
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2, ease: "easeOut" }}
-          whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
-        >
-          <GlassPanel className="p-4 h-full" variant="gradient">
-            <h4 className="text-sm font-semibold text-white/90 mb-2 flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" />
-              Work Capacity
-            </h4>
-            <div className="text-2xl font-bold text-white mb-1">
-              {data.currentCapacityPercentage || 0}%
-            </div>
-            <div className="text-xs text-white/70">
-              {data.currentCapacityPercentage >= 75 ? 'High capacity' : data.currentCapacityPercentage >= 25 ? 'Limited capacity' : 'Unfit for work'}
-            </div>
-          </GlassPanel>
-        </motion.div>
-
-        {/* Risk Level Panel - Spans 4 columns */}
-        <motion.div
-          className="motion-panel col-span-12 md:col-span-4"
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3, ease: "easeOut" }}
-          whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
-        >
-          <GlassPanel className="p-4 h-full" variant="gradient">
-            <h4 className="text-sm font-semibold text-white/90 mb-2 flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4" />
-              Risk Level
-            </h4>
-            <div className="text-2xl font-bold text-white mb-1">
-              {data.riskCategory || 'Unknown'}
-            </div>
-            <div className="text-xs text-white/70">
-              Based on injury type and duration
-            </div>
-          </GlassPanel>
-        </motion.div>
+      {/* Summary Row — replaces glass panels and progress rings */}
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-1 px-1 py-3 bg-white/10 rounded-xl text-sm text-white/90 border border-white/20">
+        <span>
+          <span className="font-semibold">Week {Math.floor(data.weeksOffWork || 0)}</span>
+          {" "}of ~{data.adjustedEstimateWeeks || data.estimatedWeeks} expected
+        </span>
+        <span className="text-white/40">|</span>
+        <span>
+          Capacity:{" "}
+          <span className="font-semibold">{data.currentCapacityPercentage || 0}%</span>
+        </span>
+        <span className="text-white/40">|</span>
+        <span>
+          Phase:{" "}
+          <span className="font-semibold">{data.currentPhase || "Active Recovery"}</span>
+        </span>
+        <span className="text-white/40">|</span>
+        <span className={cn(
+          "font-semibold",
+          data.riskCategory === "High" ? "text-red-300" :
+          data.riskCategory === "Medium" ? "text-amber-300" :
+          "text-emerald-300"
+        )}>
+          Risk: {data.riskCategory || "Unknown"}
+        </span>
+        {data.recoveryOverride && (
+          <>
+            <span className="text-white/40">|</span>
+            <span className="text-emerald-300 text-xs flex items-center gap-1">
+              <SlidersHorizontal className="h-3 w-3" />
+              Timeline adjusted by clinician
+            </span>
+          </>
+        )}
       </div>
-
-      {/* Progress Rings Container */}
-      <div className="progress-rings-container animate-float mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Recovery Progress Ring */}
-        <div className="progress-ring flex flex-col items-center p-6">
-          <div className="relative w-24 h-24 mb-4">
-            <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-              <circle
-                className="text-white/20"
-                strokeWidth="3"
-                stroke="currentColor"
-                fill="transparent"
-                r="15.915"
-                cx="18"
-                cy="18"
-              />
-              <circle
-                className="text-green-400 transition-all duration-1000 ease-out"
-                strokeWidth="3"
-                strokeDasharray="100"
-                strokeDashoffset={100 - (data.currentCapacityPercentage || 0)}
-                strokeLinecap="round"
-                stroke="currentColor"
-                fill="transparent"
-                r="15.915"
-                cx="18"
-                cy="18"
-                style={{
-                  animation: 'progress-fill 1.5s ease-out forwards'
-                }}
-              />
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-lg font-bold text-white">
-                {data.currentCapacityPercentage || 0}%
-              </span>
-            </div>
-          </div>
-          <h5 className="text-sm font-semibold text-white/90 text-center">
-            Work Capacity
-          </h5>
-        </div>
-
-        {/* Time Progress Ring */}
-        <div className="progress-ring flex flex-col items-center p-6">
-          <div className="relative w-24 h-24 mb-4">
-            <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-              <circle
-                className="text-white/20"
-                strokeWidth="3"
-                stroke="currentColor"
-                fill="transparent"
-                r="15.915"
-                cx="18"
-                cy="18"
-              />
-              <circle
-                className="text-blue-400 transition-all duration-1000 ease-out"
-                strokeWidth="3"
-                strokeDasharray="100"
-                strokeDashoffset={100 - Math.min(((data.weeksOffWork || 0) / (data.estimatedWeeks || 12)) * 100, 100)}
-                strokeLinecap="round"
-                stroke="currentColor"
-                fill="transparent"
-                r="15.915"
-                cx="18"
-                cy="18"
-                style={{
-                  animation: 'progress-fill 1.5s ease-out 0.3s forwards'
-                }}
-              />
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-lg font-bold text-white">
-                {Math.floor(data.weeksOffWork || 0)}w
-              </span>
-            </div>
-          </div>
-          <h5 className="text-sm font-semibold text-white/90 text-center">
-            Recovery Time
-          </h5>
-        </div>
-
-        {/* Risk Assessment Ring */}
-        <div className="progress-ring flex flex-col items-center p-6">
-          <div className="relative w-24 h-24 mb-4">
-            <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-              <circle
-                className="text-white/20"
-                strokeWidth="3"
-                stroke="currentColor"
-                fill="transparent"
-                r="15.915"
-                cx="18"
-                cy="18"
-              />
-              <circle
-                className={`transition-all duration-1000 ease-out ${
-                  data.riskCategory === 'High' ? 'text-red-400' :
-                  data.riskCategory === 'Medium' ? 'text-yellow-400' :
-                  'text-green-400'
-                }`}
-                strokeWidth="3"
-                strokeDasharray="100"
-                strokeDashoffset={100 - (
-                  data.riskCategory === 'High' ? 85 :
-                  data.riskCategory === 'Medium' ? 60 :
-                  30
-                )}
-                strokeLinecap="round"
-                stroke="currentColor"
-                fill="transparent"
-                r="15.915"
-                cx="18"
-                cy="18"
-                style={{
-                  animation: 'progress-fill 1.5s ease-out 0.6s forwards'
-                }}
-              />
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-lg font-bold text-white">
-                {data.riskCategory === 'High' ? 'H' : data.riskCategory === 'Medium' ? 'M' : 'L'}
-              </span>
-            </div>
-          </div>
-          <h5 className="text-sm font-semibold text-white/90 text-center">
-            Risk Level
-          </h5>
-        </div>
-      </div>
-
-      <style jsx>{`
-        @keyframes progress-fill {
-          0% {
-            stroke-dashoffset: 100;
-          }
-          100% {
-            stroke-dashoffset: var(--final-offset);
-          }
-        }
-
-        @keyframes particlePathMove {
-          0% {
-            transform: translate(-50%, -50%) translateX(-15px) translateY(0px);
-            opacity: 0.6;
-          }
-          50% {
-            transform: translate(-50%, -50%) translateX(0px) translateY(-5px);
-            opacity: 1;
-          }
-          100% {
-            transform: translate(-50%, -50%) translateX(15px) translateY(0px);
-            opacity: 0.6;
-          }
-        }
-
-        @keyframes particleFloatPath {
-          0% {
-            transform: translate(-50%, -50%) translateX(-10px) translateY(-3px);
-            opacity: 0.4;
-          }
-          50% {
-            transform: translate(-50%, -50%) translateX(0px) translateY(3px);
-            opacity: 0.7;
-          }
-          100% {
-            transform: translate(-50%, -50%) translateX(10px) translateY(-3px);
-            opacity: 0.4;
-          }
-        }
-
-        @keyframes particlePulse {
-          0% {
-            opacity: 0.4;
-            transform: scale(0.8);
-          }
-          50% {
-            opacity: 0.9;
-            transform: scale(1.2);
-          }
-          100% {
-            opacity: 0.4;
-            transform: scale(0.8);
-          }
-        }
-      `}</style>
 
       {/* Analysis Summary */}
       <Card>
@@ -990,7 +878,10 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
                         </Badge>
                       </div>
                       <div className="space-y-1">
-                        {phase.milestones.slice(0, 3).map((milestone, mIdx) => (
+                        {phase.milestones
+                          .filter((m) => !m.type || m.type === "clinical")
+                          .slice(0, 3)
+                          .map((milestone, mIdx) => (
                           <div key={mIdx} className="flex items-center gap-2 text-xs">
                             <span
                               className={cn(
@@ -1256,6 +1147,111 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
               >
                 Close
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Adjust Timeline Modal (Phase 6.2) */}
+      {showOverrideForm && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
+          onClick={() => setShowOverrideForm(false)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-4 flex items-center justify-between rounded-t-xl">
+              <div className="flex items-center gap-3">
+                <SlidersHorizontal className="h-5 w-5 text-white" />
+                <h3 className="text-base font-semibold text-white">Adjust Recovery Timeline</h3>
+              </div>
+              <button onClick={() => setShowOverrideForm(false)} className="text-white/80 hover:text-white">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {data.recoveryOverride && (
+                <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                  Current override: {data.recoveryOverride.adjustedEstimateWeeks} weeks
+                  {" "}(original: {data.recoveryOverride.originalEstimateWeeks} weeks)
+                </div>
+              )}
+
+              <div className="space-y-1">
+                <Label htmlFor="override-weeks" className="text-sm font-medium">
+                  New expected duration (weeks) <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="override-weeks"
+                  type="number"
+                  min={1}
+                  max={260}
+                  value={overrideWeeks}
+                  onChange={(e) => setOverrideWeeks(e.target.value)}
+                  placeholder={String(data.estimatedWeeks)}
+                  className="w-32"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="override-reason" className="text-sm font-medium">
+                  Reason for adjustment <span className="text-red-500">*</span>
+                </Label>
+                <Textarea
+                  id="override-reason"
+                  value={overrideReason}
+                  onChange={(e) => setOverrideReason(e.target.value)}
+                  placeholder="Clinical basis for adjusting the expected recovery timeline..."
+                  rows={3}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Factors</Label>
+                <div className="grid grid-cols-1 gap-2">
+                  {OVERRIDE_FACTORS.map((factor) => (
+                    <div key={factor} className="flex items-center gap-2">
+                      <Checkbox
+                        id={`factor-${factor}`}
+                        checked={overrideFactors.includes(factor)}
+                        onCheckedChange={(checked) => {
+                          setOverrideFactors(checked
+                            ? [...overrideFactors, factor]
+                            : overrideFactors.filter((f) => f !== factor)
+                          );
+                        }}
+                      />
+                      <Label htmlFor={`factor-${factor}`} className="text-sm font-normal cursor-pointer">
+                        {factor}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="px-6 py-4 bg-gray-50 border-t rounded-b-xl flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowOverrideForm(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleOverrideSubmit}
+                disabled={isSubmittingOverride || !overrideWeeks || !overrideReason.trim()}
+                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                {isSubmittingOverride ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving...</>
+                ) : (
+                  "Save Override"
+                )}
+              </Button>
             </div>
           </div>
         </div>
