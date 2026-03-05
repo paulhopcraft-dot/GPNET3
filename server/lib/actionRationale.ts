@@ -5,7 +5,9 @@
  * This is computed at response time, not persisted — no DB migration needed.
  */
 
-import type { CaseActionDB } from "@shared/schema";
+import type { CaseAction, CaseActionDB } from "@shared/schema";
+
+type AnyAction = CaseAction | CaseActionDB;
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
@@ -27,7 +29,7 @@ function daysUntil(date: string | Date | null | undefined): number | null {
  * Returns a one-line rationale explaining why the given action is needed now.
  * Falls back to a generic rationale if specific context is unavailable.
  */
-export function computeActionRationale(action: CaseActionDB): string {
+export function computeActionRationale(action: AnyAction): string {
   const due = daysUntil(action.dueDate ?? null);
 
   switch (action.type) {

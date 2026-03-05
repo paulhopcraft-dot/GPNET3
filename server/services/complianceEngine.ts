@@ -203,6 +203,48 @@ function getExplanationForRule(ruleCode: string): ComplianceCheckResult['explana
         consequence: 'WorkSafe can issue compliance notices to either party.',
         remedy: 'Ensure both employer and worker are actively engaged and documented in the RTW process.',
       };
+    case 'CLAIM_NOTIFICATION':
+      return {
+        obligation: 'Employer must notify the insurer of a work-related injury within 10 business days of becoming aware.',
+        legislativeRef: 'WIRC Act 2013, s25',
+        consequence: 'Late notification may affect claim acceptance and creates potential liability for the employer.',
+        remedy: 'Submit claim notification to the insurer immediately via the WorkSafe employer portal.',
+      };
+    case 'PAYMENT_STEPDOWN_52WK':
+      return {
+        obligation: 'Weekly compensation reduces to 75% of pre-injury average weekly earnings (PIAWE) after 52 weeks off work.',
+        legislativeRef: 'WIRC Act 2013, s114(2)',
+        consequence: 'Incorrect payment rates create financial liability for the insurer and confusion for the worker.',
+        remedy: 'Verify payment calculations have been adjusted to 75% PIAWE and notify the worker in writing at least 2 weeks in advance.',
+      };
+    case 'PAYMENT_STEPDOWN_130WK':
+      return {
+        obligation: 'Weekly compensation entitlements generally cease after 130 weeks unless the worker meets the serious injury threshold.',
+        legislativeRef: 'WIRC Act 2013, s114(3)',
+        consequence: 'Continued payments beyond entitlement create significant insurer liability; abrupt cessation causes worker hardship.',
+        remedy: 'Assess whether the worker qualifies for the serious injury extension. If not, issue a notice of cessation at least 4 weeks before payments end.',
+      };
+    case 'TERMINATION_ELIGIBILITY':
+      return {
+        obligation: 'An employer cannot terminate a worker solely because of their work injury for the first 52 weeks of incapacity.',
+        legislativeRef: 'WIRC Act 2013, s242',
+        consequence: 'Unlawful termination exposes the employer to significant penalties and reinstatement orders.',
+        remedy: 'Do not proceed with termination of employment during the protected period. Consult with legal counsel if termination is under consideration for other reasons.',
+      };
+    case 'IME_FREQUENCY':
+      return {
+        obligation: 'Independent Medical Examinations (IMEs) must not be scheduled more frequently than every 12 weeks unless exceptional circumstances exist.',
+        legislativeRef: 'WorkSafe Claims Manual, ch.12; WIRC Act 2013, s126',
+        consequence: 'Excessive IMEs can constitute harassment, trigger WorkSafe investigations, and prejudice claim outcomes.',
+        remedy: 'Review IME scheduling. If a second IME is required within 12 weeks, document the exceptional clinical or legal reason.',
+      };
+    case 'PROVISIONAL_PAYMENTS':
+      return {
+        obligation: 'Provisional weekly payments must commence within 10 business days of receiving a WorkCover claim unless clear grounds for rejection exist.',
+        legislativeRef: 'WIRC Act 2013, s267A',
+        consequence: 'Late provisional payments breach the Act and expose the insurer to interest penalties and compliance action.',
+        remedy: 'Initiate provisional payments immediately. If rejection is being considered, document clear grounds and notify WorkSafe.',
+      };
     default:
       return undefined;
   }
@@ -245,6 +287,24 @@ async function evaluateRule(workerCase: WorkerCaseDB, rule: ComplianceRuleDB): P
 
     case 'RTW_OBLIGATIONS':
       return await evaluateRTWObligations(workerCase, rule, baseResult);
+
+    case 'CLAIM_NOTIFICATION':
+      return await evaluateClaimNotification(workerCase, rule, baseResult);
+
+    case 'PAYMENT_STEPDOWN_52WK':
+      return await evaluatePaymentStepdown52Wk(workerCase, rule, baseResult);
+
+    case 'PAYMENT_STEPDOWN_130WK':
+      return await evaluatePaymentStepdown130Wk(workerCase, rule, baseResult);
+
+    case 'TERMINATION_ELIGIBILITY':
+      return await evaluateTerminationEligibility(workerCase, rule, baseResult);
+
+    case 'IME_FREQUENCY':
+      return await evaluateIMEFrequency(workerCase, rule, baseResult);
+
+    case 'PROVISIONAL_PAYMENTS':
+      return await evaluateProvisionalPayments(workerCase, rule, baseResult);
 
     default:
       baseResult.status = 'warning';
@@ -626,6 +686,258 @@ async function evaluateRTWObligations(
   return result;
 }
 
+/** Count business days between two dates (Mon–Fri only). */
+function countBusinessDays(start: Date, end: Date): number {
+  let count = 0;
+  const cur = new Date(start);
+  cur.setHours(0, 0, 0, 0);
+  const fin = new Date(end);
+  fin.setHours(0, 0, 0, 0);
+  while (cur < fin) {
+    const day = cur.getDay();
+    if (day !== 0 && day !== 6) count++;
+    cur.setDate(cur.getDate() + 1);
+  }
+  return count;
+}
+
+/**
+ * CLAIM_NOTIFICATION: Employer must notify insurer within 10 business days of injury
+ */
+async function evaluateClaimNotification(
+  workerCase: WorkerCaseDB,
+  rule: ComplianceRuleDB,
+  result: ComplianceCheckResult
+): Promise<ComplianceCheckResult> {
+  const injuryDate = new Date(workerCase.dateOfInjury);
+  const today = new Date();
+  const businessDaysSince = countBusinessDays(injuryDate, today);
+
+  // Check if claim notified — use createdAt as a proxy for notification date
+  const notifiedDate = workerCase.createdAt ? new Date(workerCase.createdAt) : null;
+  const businessDaysToNotify = notifiedDate ? countBusinessDays(injuryDate, notifiedDate) : businessDaysSince;
+
+  if (businessDaysSince <= 10) {
+    result.status = 'compliant';
+    result.finding = `Claim is ${businessDaysSince} business days old. Notification window open (10 business days).`;
+    return result;
+  }
+
+  if (businessDaysToNotify > 10) {
+    result.status = 'non_compliant';
+    result.finding = `Claim notification appears late — ${businessDaysSince} business days since injury (threshold: 10). Verify insurer was notified within 10 business days.`;
+    result.recommendation = rule.recommendedAction || 'Submit claim notification to insurer immediately and document the reason for delay.';
+  } else {
+    result.status = 'compliant';
+    result.finding = `Claim was entered into the system ${businessDaysToNotify} business days after injury. Notification appears timely.`;
+  }
+
+  return result;
+}
+
+/**
+ * PAYMENT_STEPDOWN_52WK: Weekly compensation reduces to 75% after 52 weeks
+ */
+async function evaluatePaymentStepdown52Wk(
+  workerCase: WorkerCaseDB,
+  rule: ComplianceRuleDB,
+  result: ComplianceCheckResult
+): Promise<ComplianceCheckResult> {
+  const isOffWork = workerCase.workStatus === 'Off work';
+  if (!isOffWork) {
+    result.status = 'compliant';
+    result.finding = 'Worker is not off work. Payment step-down at 52 weeks not applicable.';
+    return result;
+  }
+
+  const injuryDate = new Date(workerCase.dateOfInjury);
+  const weeksSinceInjury = Math.floor((Date.now() - injuryDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
+
+  if (weeksSinceInjury < 50) {
+    result.status = 'compliant';
+    result.finding = `Worker is ${weeksSinceInjury} weeks post-injury. 52-week payment step-down not yet applicable.`;
+  } else if (weeksSinceInjury < 52) {
+    result.status = 'warning';
+    result.finding = `Worker is ${weeksSinceInjury} weeks post-injury. Payment step-down to 75% PIAWE applies in ${52 - weeksSinceInjury} weeks. Prepare worker notification.`;
+    result.recommendation = 'Prepare written notice of payment reduction for the worker at least 2 weeks before the step-down date.';
+  } else {
+    result.status = 'non_compliant';
+    result.finding = `Worker is ${weeksSinceInjury} weeks post-injury (past 52-week threshold). Verify payments have been reduced to 75% PIAWE and worker was notified in writing.`;
+    result.recommendation = rule.recommendedAction || 'Confirm payment rate adjustment and provide written notification to the worker.';
+  }
+
+  return result;
+}
+
+/**
+ * PAYMENT_STEPDOWN_130WK: Compensation generally ceases at 130 weeks
+ */
+async function evaluatePaymentStepdown130Wk(
+  workerCase: WorkerCaseDB,
+  rule: ComplianceRuleDB,
+  result: ComplianceCheckResult
+): Promise<ComplianceCheckResult> {
+  const isOffWork = workerCase.workStatus === 'Off work';
+  if (!isOffWork) {
+    result.status = 'compliant';
+    result.finding = 'Worker is not off work. 130-week payment cessation not applicable.';
+    return result;
+  }
+
+  const injuryDate = new Date(workerCase.dateOfInjury);
+  const weeksSinceInjury = Math.floor((Date.now() - injuryDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
+
+  if (weeksSinceInjury < 126) {
+    result.status = 'compliant';
+    result.finding = `Worker is ${weeksSinceInjury} weeks post-injury. 130-week payment cessation not yet applicable.`;
+  } else if (weeksSinceInjury < 130) {
+    result.status = 'warning';
+    result.finding = `Worker is ${weeksSinceInjury} weeks post-injury. Payments may cease in ${130 - weeksSinceInjury} weeks unless serious injury threshold is met. Assess entitlement urgently.`;
+    result.recommendation = 'Assess serious injury threshold eligibility. Issue cessation notice at least 4 weeks before payments end.';
+  } else {
+    result.status = 'non_compliant';
+    result.finding = `Worker is ${weeksSinceInjury} weeks post-injury (past 130-week threshold). Verify payment status and whether serious injury extension applies.`;
+    result.recommendation = rule.recommendedAction || 'Review payment status immediately. If no extension applies, cease payments and document decision.';
+  }
+
+  return result;
+}
+
+/**
+ * TERMINATION_ELIGIBILITY: Employer cannot terminate in first 52 weeks of incapacity
+ */
+async function evaluateTerminationEligibility(
+  workerCase: WorkerCaseDB,
+  rule: ComplianceRuleDB,
+  result: ComplianceCheckResult
+): Promise<ComplianceCheckResult> {
+  const injuryDate = new Date(workerCase.dateOfInjury);
+  const weeksSinceInjury = Math.floor((Date.now() - injuryDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
+  const isOffWork = workerCase.workStatus === 'Off work';
+
+  // Check if a termination process has been initiated
+  const hasTerminationProcess = (workerCase as any).terminationProcessId != null;
+
+  if (!isOffWork) {
+    result.status = 'compliant';
+    result.finding = 'Worker is not currently off work. Termination protection not in active scope.';
+    return result;
+  }
+
+  if (weeksSinceInjury < 52) {
+    if (hasTerminationProcess) {
+      result.status = 'non_compliant';
+      result.finding = `Termination process initiated at ${weeksSinceInjury} weeks — before the 52-week protected period has elapsed. This may constitute unlawful termination.`;
+      result.recommendation = rule.recommendedAction || 'Halt termination process and seek legal advice immediately. Employer must not terminate during the 52-week protection period.';
+    } else {
+      result.status = 'compliant';
+      result.finding = `Worker is ${weeksSinceInjury} weeks post-injury and within the 52-week termination protection period. No termination process detected.`;
+    }
+  } else {
+    result.status = 'compliant';
+    result.finding = `Worker is ${weeksSinceInjury} weeks post-injury (past 52-week threshold). Termination protection period has elapsed. Standard employment law applies.`;
+  }
+
+  return result;
+}
+
+/**
+ * IME_FREQUENCY: IMEs must not be scheduled more often than every 12 weeks
+ */
+async function evaluateIMEFrequency(
+  workerCase: WorkerCaseDB,
+  rule: ComplianceRuleDB,
+  result: ComplianceCheckResult
+): Promise<ComplianceCheckResult> {
+  // IME history stored in clinical_status_json
+  const clinicalStatus = workerCase.clinicalStatusJson;
+  const imeHistory: Array<{ date: string }> = (clinicalStatus as any)?.imeHistory ?? [];
+
+  if (imeHistory.length === 0) {
+    result.status = 'compliant';
+    result.finding = 'No IME history recorded. Rule not triggered.';
+    return result;
+  }
+
+  // Sort by date descending
+  const sorted = [...imeHistory]
+    .map(e => new Date(e.date))
+    .sort((a, b) => b.getTime() - a.getTime());
+
+  if (sorted.length < 2) {
+    result.status = 'compliant';
+    result.finding = 'Only one IME recorded. Frequency rule not triggered.';
+    return result;
+  }
+
+  const latest = sorted[0];
+  const previous = sorted[1];
+  const weeksBetween = Math.floor((latest.getTime() - previous.getTime()) / (7 * 24 * 60 * 60 * 1000));
+  const weeksSinceLast = Math.floor((Date.now() - latest.getTime()) / (7 * 24 * 60 * 60 * 1000));
+
+  if (weeksBetween < 12) {
+    result.status = 'non_compliant';
+    result.finding = `Two IMEs were scheduled only ${weeksBetween} weeks apart (minimum 12 weeks required). This may constitute excessive examination.`;
+    result.recommendation = rule.recommendedAction || 'Review IME scheduling. Document exceptional circumstances if a third-party review of this frequency is required.';
+  } else if (weeksSinceLast < 10) {
+    result.status = 'warning';
+    result.finding = `Last IME was ${weeksSinceLast} weeks ago. Scheduling another IME within the next 2 weeks would breach the 12-week minimum interval.`;
+    result.recommendation = 'Do not schedule next IME until at least 12 weeks have elapsed from the last examination.';
+  } else {
+    result.status = 'compliant';
+    result.finding = `IMEs are appropriately spaced (last two: ${weeksBetween} weeks apart). Next eligible IME date is after ${new Date(latest.getTime() + 12 * 7 * 24 * 60 * 60 * 1000).toLocaleDateString('en-AU')}.`;
+  }
+
+  return result;
+}
+
+/**
+ * PROVISIONAL_PAYMENTS: Must commence within 10 business days of claim receipt
+ */
+async function evaluateProvisionalPayments(
+  workerCase: WorkerCaseDB,
+  rule: ComplianceRuleDB,
+  result: ComplianceCheckResult
+): Promise<ComplianceCheckResult> {
+  const isOffWork = workerCase.workStatus === 'Off work';
+  if (!isOffWork) {
+    result.status = 'compliant';
+    result.finding = 'Worker is not off work. Provisional payment obligation not triggered.';
+    return result;
+  }
+
+  const claimDate = workerCase.createdAt ? new Date(workerCase.createdAt) : null;
+  const injuryDate = new Date(workerCase.dateOfInjury);
+
+  if (!claimDate) {
+    result.status = 'warning';
+    result.finding = 'Claim receipt date not recorded. Unable to verify provisional payment timeline.';
+    result.recommendation = 'Record the date the WorkCover claim was received and verify provisional payments commenced within 10 business days.';
+    return result;
+  }
+
+  const businessDaysSinceClaim = countBusinessDays(claimDate, new Date());
+  const businessDaysInjuryToClaim = countBusinessDays(injuryDate, claimDate);
+
+  if (businessDaysSinceClaim <= 10) {
+    result.status = 'compliant';
+    result.finding = `Claim received ${businessDaysSinceClaim} business days ago. Provisional payment window still open (10 business days from claim receipt).`;
+  } else {
+    // Claim is old enough — flag for review if payments may not have started
+    const weeksSinceInjury = Math.floor((Date.now() - injuryDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
+    if (weeksSinceInjury < 2 && businessDaysSinceClaim <= 12) {
+      result.status = 'warning';
+      result.finding = `Claim is ${businessDaysSinceClaim} business days old. Confirm provisional payments commenced or rejection was issued within 10 business days.`;
+      result.recommendation = 'Verify payment commencement date or document grounds for rejection.';
+    } else {
+      result.status = 'compliant';
+      result.finding = `Provisional payment window has passed (claim ${businessDaysSinceClaim} business days old). Verify payments commenced or rejection was issued within the initial 10-business-day window.`;
+    }
+  }
+
+  return result;
+}
+
 /**
  * Create a compliance-related action for non-compliant rules
  */
@@ -670,6 +982,42 @@ async function createComplianceAction(
         actionType = 'follow_up';
         actionNotes = `COMPLIANCE: Centrelink Clearance Verification - ${finding}. Action: ${recommendation}`;
         dueDate = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000); // 2 days
+        break;
+
+      case 'CLAIM_NOTIFICATION':
+        actionType = 'follow_up';
+        actionNotes = `COMPLIANCE: Claim Notification (s25) - ${finding}. Action: ${recommendation}`;
+        dueDate = new Date(Date.now() + 1 * 24 * 60 * 60 * 1000); // 1 day — urgent
+        break;
+
+      case 'PAYMENT_STEPDOWN_52WK':
+        actionType = 'review_case';
+        actionNotes = `COMPLIANCE: 52-Week Payment Step-Down (s114) - ${finding}. Action: ${recommendation}`;
+        dueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+        break;
+
+      case 'PAYMENT_STEPDOWN_130WK':
+        actionType = 'review_case';
+        actionNotes = `COMPLIANCE: 130-Week Payment Cessation (s114) - ${finding}. Action: ${recommendation}`;
+        dueDate = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000); // 5 days
+        break;
+
+      case 'TERMINATION_ELIGIBILITY':
+        actionType = 'follow_up';
+        actionNotes = `COMPLIANCE: Termination Protection (s242) - ${finding}. Action: ${recommendation}`;
+        dueDate = new Date(Date.now() + 1 * 24 * 60 * 60 * 1000); // 1 day — urgent
+        break;
+
+      case 'IME_FREQUENCY':
+        actionType = 'review_case';
+        actionNotes = `COMPLIANCE: IME Frequency Breach - ${finding}. Action: ${recommendation}`;
+        dueDate = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000); // 3 days
+        break;
+
+      case 'PROVISIONAL_PAYMENTS':
+        actionType = 'follow_up';
+        actionNotes = `COMPLIANCE: Provisional Payments (s267A) - ${finding}. Action: ${recommendation}`;
+        dueDate = new Date(Date.now() + 1 * 24 * 60 * 60 * 1000); // 1 day — urgent
         break;
 
       default:

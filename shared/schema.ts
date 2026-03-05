@@ -1329,9 +1329,24 @@ export interface CaseAction {
   dueDate?: string;
   priority: number;
   notes?: string;
-  rationale?: string; // Phase 2: why this action is needed now (computed, not persisted)
+
+  // Phase 2: why this action is needed now (computed at response time)
+  rationale?: string;
   workerName?: string; // Denormalized for display
   company?: string; // Denormalized for display
+
+  // Phase 3.3 — Unified Action System fields
+  source?: ActionSource;
+  title?: string;
+  description?: string;
+  triggerCondition?: string;
+  complianceRuleCode?: string;
+  legislativeRef?: string;
+  draftEmailContent?: string;
+  phoneScript?: string;
+  explanationJson?: unknown;
+  priorityLevel?: ActionPriority;
+  assignedRole?: ActionAssignee;
 
   // WHO does what BY WHEN
   assignedTo?: string; // User/organization responsible
@@ -1342,6 +1357,11 @@ export interface CaseAction {
   completedBy?: string;
   autoCompleted?: boolean;
   emailReference?: string; // Email ID that triggered auto-completion
+
+  // Cancellation
+  cancelledAt?: string;
+  cancelledBy?: string;
+  cancelledReason?: string;
 
   // Status indicators
   isBlocker?: boolean; // Blocks case progress
