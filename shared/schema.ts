@@ -369,7 +369,22 @@ export type TerminationStatus =
   | "PRE_TERMINATION_MEETING_COMPLETED"
   | "DECISION_PENDING"
   | "TERMINATED"
+  | "WORKSAFE_NOTIFIED"   // Phase 9.3 — mandatory final step after termination
   | "TERMINATION_ABORTED";
+
+/** Phase 9.2 — Legislative citations for each termination step */
+export const TERMINATION_STEP_LABELS: Record<TerminationStatus, string> = {
+  NOT_STARTED: "Not Started",
+  PREP_EVIDENCE: "Gather evidence of incapacity (s82(1)(a) WIRC Act)",
+  AGENT_MEETING: "Independent medical/occupational assessment (s82(1)(b))",
+  CONSULTANT_CONFIRMATION: "Obtain consultant report confirming incapacity (s82(3))",
+  PRE_TERMINATION_INVITE_SENT: "Written invitation to pre-termination meeting (s82(4)) — minimum 7 days notice",
+  PRE_TERMINATION_MEETING_COMPLETED: "Pre-termination meeting held — worker response documented (s82(5))",
+  DECISION_PENDING: "Consider worker's response and decide (s82(6))",
+  TERMINATED: "Notice of termination issued (s82(7)) — notify WorkSafe within 10 business days",
+  WORKSAFE_NOTIFIED: "WorkSafe notification completed ✓",
+  TERMINATION_ABORTED: "Termination Aborted",
+};
 export type PayStatusDuringStandDown = "NORMAL" | "WORKCOVER_ONLY" | "SPECIAL_PAID_LEAVE";
 export type TerminationDecision = "NO_DECISION" | "TERMINATE" | "DEFER" | "ALTERNATIVE_ROLE_FOUND";
 

@@ -87,4 +87,21 @@ router.put("/:workerCaseId/decision", async (req, res) => {
   }
 });
 
+/**
+ * POST /api/termination/:workerCaseId/worksafe-notify
+ * Phase 9.3 — Record WorkSafe notification after termination.
+ * Transitions process from TERMINATED → WORKSAFE_NOTIFIED.
+ */
+router.post("/:workerCaseId/worksafe-notify", async (req, res) => {
+  try {
+    const process = await terminationService.notifyWorksafe(
+      req.params.workerCaseId,
+      req.body.notifiedAt
+    );
+    res.json(process);
+  } catch (err) {
+    handleError(res, err);
+  }
+});
+
 export default router;

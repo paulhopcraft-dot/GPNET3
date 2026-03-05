@@ -522,6 +522,38 @@ export class TerminationService {
     await recordAudit(workerCaseId, "termination_decision", { processId: process.id, decision: payload.decision });
     return mapProcess(updatedProcess);
   }
+
+  /**
+   * Phase 9.3 — Record WorkSafe notification (mandatory step after TERMINATED).
+   * Transitions the process to WORKSAFE_NOTIFIED terminal state.
+   */
+  async notifyWorksafe(workerCaseId: string, notifiedAt?: string): Promise<TerminationProcess> {
+    const process = await this.getOrCreateProcessRaw(workerCaseId);
+    if (!process) throw Object.assign(new Error("Termination process not found"), { status: 404 });
+
+    if (process.status !== "TERMINATED") {
+      throw Object.assign(
+        new Error(`Cannot record WorkSafe notification from status '${process.status}'. Process must be TERMINATED first.`),
+        { status: 400 }
+      );
+    }
+
+    const [updated] = await db
+      .update(terminationProcesses)
+      .set({
+        status: "WORKSAFE_NOTIFIED",
+        updatedAt: new Date(),
+      })
+      .where(eq(terminationProcesses.id, process.id))
+      .returning();
+
+    await recordAudit(workerCaseId, "termination_worksafe_notified", {
+      processId: process.id,
+      notifiedAt: notifiedAt ?? new Date().toISOString(),
+    });
+
+    return mapProcess(updated);
+  }
 }
 
 export const terminationService = new TerminationService();

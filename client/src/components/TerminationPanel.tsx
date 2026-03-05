@@ -1,34 +1,42 @@
 import { useEffect, useMemo, useState } from "react";
 import type { WorkerCase, TerminationProcess, PayStatusDuringStandDown, TerminationDecision } from "@shared/schema";
+import { TERMINATION_STEP_LABELS } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
+import { AlertTriangle, Ban, CheckCircle2 } from "lucide-react";
 import { fetchWithCsrf } from "../lib/queryClient";
 
 interface TerminationPanelProps {
   workerCase: WorkerCase;
 }
 
-const statusLabels: Record<TerminationProcess["status"], string> = {
-  NOT_STARTED: "Not started",
-  PREP_EVIDENCE: "Evidence & alternatives",
-  AGENT_MEETING: "Agent meeting",
-  CONSULTANT_CONFIRMATION: "Consultant confirmation",
-  PRE_TERMINATION_INVITE_SENT: "Pre-termination invite sent",
-  PRE_TERMINATION_MEETING_COMPLETED: "Pre-termination meeting completed",
-  DECISION_PENDING: "Decision pending",
-  TERMINATED: "Terminated",
-  TERMINATION_ABORTED: "Terminated aborted",
-};
+// Phase 9.2 — use legislative citations from schema
+const statusLabels = TERMINATION_STEP_LABELS;
 
 function StatusBadge({ status }: { status: TerminationProcess["status"] }) {
   const color =
-    status === "TERMINATED"
-      ? "bg-emerald-100 text-emerald-800"
-      : status === "TERMINATION_ABORTED"
-        ? "bg-slate-100 text-slate-800"
-        : "bg-amber-100 text-amber-800";
-  return <Badge className={color}>{statusLabels[status]}</Badge>;
+    status === "WORKSAFE_NOTIFIED"
+      ? "bg-green-100 text-green-800"
+      : status === "TERMINATED"
+        ? "bg-orange-100 text-orange-800"
+        : status === "TERMINATION_ABORTED"
+          ? "bg-slate-100 text-slate-800"
+          : "bg-amber-100 text-amber-800";
+  // Shorten the label for badge display
+  const shortLabel: Record<TerminationProcess["status"], string> = {
+    NOT_STARTED: "Not Started",
+    PREP_EVIDENCE: "Evidence (s82(1)(a))",
+    AGENT_MEETING: "Assessment (s82(1)(b))",
+    CONSULTANT_CONFIRMATION: "Consultant Report (s82(3))",
+    PRE_TERMINATION_INVITE_SENT: "Invite Sent (s82(4))",
+    PRE_TERMINATION_MEETING_COMPLETED: "Meeting Held (s82(5))",
+    DECISION_PENDING: "Decision Pending (s82(6))",
+    TERMINATED: "Terminated (s82(7))",
+    WORKSAFE_NOTIFIED: "WorkSafe Notified ✓",
+    TERMINATION_ABORTED: "Aborted",
+  };
+  return <Badge className={color}>{shortLabel[status]}</Badge>;
 }
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
@@ -265,6 +273,31 @@ export function TerminationPanel({ workerCase }: TerminationPanelProps) {
 
   const highRisk = useMemo(() => workerCase.terminationAuditFlag === "HIGH_RISK", [workerCase.terminationAuditFlag]);
 
+  // Phase 9.1 — 52-week prerequisite gate
+  const weeksOffWork = useMemo(() => {
+    const injuryDate = new Date(workerCase.dateOfInjury);
+    const today = new Date();
+    return Math.floor((today.getTime() - injuryDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
+  }, [workerCase.dateOfInjury]);
+
+  const date52Weeks = useMemo(() => {
+    const d = new Date(workerCase.dateOfInjury);
+    d.setDate(d.getDate() + 364);
+    return d.toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" });
+  }, [workerCase.dateOfInjury]);
+
+  const canInitiate = weeksOffWork >= 52;
+
+  // Phase 9.3 — WorkSafe notification handler
+  const notifyWorksafe = () =>
+    actionWrapper(async () => {
+      const data = await fetchJson<TerminationProcess>(`/api/termination/${workerCase.id}/worksafe-notify`, {
+        method: "POST",
+        body: JSON.stringify({ notifiedAt: new Date().toISOString() }),
+      });
+      setProcess(data);
+    });
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -274,6 +307,48 @@ export function TerminationPanel({ workerCase }: TerminationPanelProps) {
       <CardContent className="space-y-4">
         {error && <div className="text-sm text-red-600">{error}</div>}
         {loading && <div className="text-sm text-muted-foreground">Loading capacity review…</div>}
+        {/* Phase 9.1 — 52-week gate */}
+        {!loading && !canInitiate && process?.status === "NOT_STARTED" && (
+          <div className="rounded-md border border-red-300 bg-red-50 p-4 text-sm text-red-800 space-y-2">
+            <div className="flex items-center gap-2 font-semibold">
+              <Ban className="h-4 w-4 flex-shrink-0" />
+              Termination cannot be initiated
+            </div>
+            <p>
+              Under s242 of the WIRC Act 2013, an employer must not terminate a worker's employment
+              solely or mainly because of incapacity within the first 52 weeks of the claim.
+              This worker has been on WorkCover for <strong>{weeksOffWork} weeks</strong>.
+            </p>
+            <p className="text-red-700">Earliest eligible date: <strong>{date52Weeks}</strong></p>
+          </div>
+        )}
+
+        {/* Phase 9.3 — WorkSafe notification prompt after termination */}
+        {!loading && process?.status === "TERMINATED" && (
+          <div className="rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800 space-y-3">
+            <div className="flex items-center gap-2 font-semibold">
+              <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+              WorkSafe notification required (s82(7) WIRC Act)
+            </div>
+            <p>
+              The employer must notify WorkSafe of the termination within 10 business days.
+              Failure to notify may result in compliance action.
+            </p>
+            <Button size="sm" onClick={notifyWorksafe} className="bg-amber-600 hover:bg-amber-700 text-white">
+              <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
+              Confirm WorkSafe Notified
+            </Button>
+          </div>
+        )}
+
+        {/* Phase 9.3 — WorkSafe notified confirmation */}
+        {!loading && process?.status === "WORKSAFE_NOTIFIED" && (
+          <div className="rounded-md border border-green-300 bg-green-50 p-3 text-sm text-green-800 flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
+            WorkSafe has been notified. Termination process is complete.
+          </div>
+        )}
+
         {!loading && process && (
           <div className="space-y-6">
             {highRisk && (
@@ -312,7 +387,7 @@ export function TerminationPanel({ workerCase }: TerminationPanelProps) {
               </label>
               <div className="flex gap-2">
                 {process.status === "NOT_STARTED" ? (
-                  <Button onClick={initiate} size="sm">
+                  <Button onClick={initiate} size="sm" disabled={!canInitiate} title={!canInitiate ? `Eligible after 52 weeks (${date52Weeks})` : undefined}>
                     Start Capacity Review
                   </Button>
                 ) : (
