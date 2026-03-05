@@ -394,4 +394,105 @@ router.put("/cases/:id/rtw-plan/extend", authorize(), requireCaseOwnership, asyn
   }
 });
 
+/**
+ * POST /api/cases/:id/rtw-assessment
+ * Phase 8.1 — Records full RTW assessment from wizard, including pathway and consent.
+ */
+const rtwAssessmentSchema = z.object({
+  pathway: z.string().optional(),
+  pathwayRationale: z.string().optional(),
+  targetStartDate: z.string().optional(),
+  targetEndDate: z.string().optional(),
+  initialHoursPerDay: z.number().optional(),
+  initialDaysPerWeek: z.number().optional(),
+  goalStatement: z.string().optional(),
+  reviewDate: z.string().optional(),
+  availableDuties: z.array(z.string()).optional(),
+  excludedDuties: z.string().optional(),
+  workplaceModifications: z.string().optional(),
+  supervisorName: z.string().optional(),
+  supervisorPhone: z.string().optional(),
+  currentRestrictions: z.string().optional(),
+  hoursPerDay: z.number().optional(),
+  daysPerWeek: z.number().optional(),
+  liftingLimitKg: z.number().nullable().optional(),
+  // Consent (Phase 8.2)
+  consentStatus: z.enum(["pending", "agreed", "agreed_with_conditions", "refused"]).optional(),
+  consentMethod: z.enum(["verbal", "written", "email"]).optional(),
+  consentConditions: z.string().optional(),
+  consentRefusalReason: z.string().optional(),
+  consentNotes: z.string().optional(),
+});
+
+router.post("/:id/rtw-assessment", authorize(), requireCaseOwnership(), async (req: AuthRequest, res: Response) => {
+  try {
+    const workerCase = req.workerCase!;
+    const parsed = rtwAssessmentSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Invalid assessment data", details: parsed.error.errors });
+    }
+
+    const data = parsed.data;
+
+    // Persist assessment data in clinical_status_json
+    const existing = (workerCase.clinical_status_json ?? {}) as Record<string, unknown>;
+    const updated = {
+      ...existing,
+      rtwAssessment: {
+        pathway: data.pathway,
+        pathwayRationale: data.pathwayRationale,
+        targetStartDate: data.targetStartDate,
+        targetEndDate: data.targetEndDate,
+        initialHoursPerDay: data.initialHoursPerDay,
+        initialDaysPerWeek: data.initialDaysPerWeek,
+        goalStatement: data.goalStatement,
+        reviewDate: data.reviewDate,
+        availableDuties: data.availableDuties,
+        excludedDuties: data.excludedDuties,
+        workplaceModifications: data.workplaceModifications,
+        supervisorName: data.supervisorName,
+        supervisorPhone: data.supervisorPhone,
+        currentRestrictions: data.currentRestrictions,
+        recordedAt: new Date().toISOString(),
+        recordedBy: req.user!.email,
+      },
+      rtwConsent: {
+        status: data.consentStatus,
+        method: data.consentMethod,
+        conditions: data.consentConditions,
+        refusalReason: data.consentRefusalReason,
+        notes: data.consentNotes,
+        recordedAt: new Date().toISOString(),
+        recordedBy: req.user!.email,
+      },
+    };
+
+    await storage.updateClinicalStatus(workerCase.id, workerCase.organizationId, updated as any);
+
+    // If consent refused, create compliance action
+    if (data.consentStatus === "refused") {
+      await storage.upsertAction(
+        workerCase.id,
+        "follow_up",
+        new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+        "COMPLIANCE: Worker has refused RTW plan — review plan suitability and consider WorkSafe conciliation. (WIRC Act 2013, s82-83)"
+      );
+    }
+
+    await logAuditEvent({
+      userId: req.user!.id,
+      organizationId: req.user!.organizationId,
+      eventType: AuditEventTypes.CASE_UPDATE,
+      resourceType: "rtw_assessment",
+      resourceId: workerCase.id,
+      ...getRequestMetadata(req),
+    });
+
+    res.json({ success: true, message: "RTW assessment recorded." });
+  } catch (err) {
+    logger.api.error("Failed to record RTW assessment", { caseId: req.params.id }, err);
+    res.status(500).json({ error: "Failed to record RTW assessment" });
+  }
+});
+
 export default router;

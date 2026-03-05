@@ -1984,6 +1984,28 @@ export const rtwDutyDemands = pgTable("rtw_duty_demands", {
 export type RTWDutyDemandsDB = typeof rtwDutyDemands.$inferSelect;
 export type InsertRTWDutyDemands = typeof rtwDutyDemands.$inferInsert;
 
+// Phase 8.3 — Structured RTW Pathways
+export type RTWPathway =
+  | "same_role_full_duties"         // Return to pre-injury role, no modifications
+  | "same_role_modified_duties"     // Same role, modified tasks
+  | "same_employer_different_role"  // Different role with same employer
+  | "different_employer"            // Labour hire or host employer placement
+  | "retraining"                    // Vocational retraining program
+  | "self_employment";              // Supported transition to self-employment
+
+export const RTW_PATHWAY_LABELS: Record<RTWPathway, string> = {
+  same_role_full_duties: "Same Role — Full Duties",
+  same_role_modified_duties: "Same Role — Modified Duties",
+  same_employer_different_role: "Same Employer — Different Role",
+  different_employer: "Different Employer / Labour Hire",
+  retraining: "Vocational Retraining",
+  self_employment: "Self-Employment Transition",
+};
+
+// Phase 8.2 — Worker Consent
+export type RTWConsentStatus = "pending" | "agreed" | "agreed_with_conditions" | "refused";
+export type RTWConsentMethod = "verbal" | "written" | "email";
+
 // DB-05: RTW Plans Table - Formal return-to-work plans
 export const rtwPlans = pgTable("rtw_plans", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -1995,6 +2017,10 @@ export const rtwPlans = pgTable("rtw_plans", {
   planType: varchar("plan_type").notNull().default("graduated_return"), // normal_hours, partial_hours, graduated_return
   status: varchar("status").notNull().default("draft"), // draft, pending, approved, rejected, modification_requested
   version: integer("version").notNull().default(1),
+
+  // Phase 8.3 — Pathway
+  pathway: text("pathway").$type<RTWPathway>(),
+  pathwayRationale: text("pathway_rationale"),
 
   startDate: timestamp("start_date"),
   targetEndDate: timestamp("target_end_date"),
@@ -2021,6 +2047,25 @@ export const rtwPlanVersions = pgTable("rtw_plan_versions", {
 });
 
 export type RTWPlanVersionDB = typeof rtwPlanVersions.$inferSelect;
+
+// DB-07: RTW Plan Consents — Phase 8.2 Worker Consent Tracking
+export const rtwPlanConsents = pgTable("rtw_plan_consents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: varchar("organization_id").notNull(),
+  planId: varchar("plan_id").references(() => rtwPlans.id, { onDelete: "cascade" }),
+  caseId: varchar("case_id").notNull().references(() => workerCases.id, { onDelete: "cascade" }),
+  consentStatus: text("consent_status").$type<RTWConsentStatus>().notNull().default("pending"),
+  conditions: text("conditions"),         // If agreed_with_conditions
+  refusalReason: text("refusal_reason"),  // If refused
+  method: text("method").$type<RTWConsentMethod>().notNull().default("verbal"),
+  recordedBy: varchar("recorded_by").notNull().references(() => users.id),
+  documentUrl: text("document_url"),      // Uploaded signed consent form
+  notes: text("notes"),
+  recordedAt: timestamp("recorded_at").defaultNow(),
+});
+
+export type RTWPlanConsentDB = typeof rtwPlanConsents.$inferSelect;
+export type InsertRTWPlanConsent = typeof rtwPlanConsents.$inferInsert;
 export type InsertRTWPlanVersion = typeof rtwPlanVersions.$inferInsert;
 
 // DB-07: RTW Plan Duties Table - Plan-duty assignments with suitability

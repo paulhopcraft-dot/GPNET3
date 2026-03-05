@@ -61,6 +61,7 @@ const PreventionAssessmentForm = lazy(() => import("./pages/PreventionAssessment
 const InjuryAssessmentForm = lazy(() => import("./pages/InjuryAssessmentForm"));
 const ChecksPage = lazy(() => import("./pages/ChecksPage"));
 const ComprehensiveRTWForm = lazy(() => import("./pages/ComprehensiveRTWForm"));
+const RTWAssessmentWizard = lazy(() => import("./pages/RTWAssessmentWizard"));
 const GeneralWellnessForm = lazy(() => import("./pages/GeneralWellnessForm"));
 const MentalHealthForm = lazy(() => import("./pages/MentalHealthForm"));
 const ExitHealthCheckForm = lazy(() => import("./pages/ExitHealthCheckForm"));
@@ -233,6 +234,16 @@ export default function App() {
                       <ProtectedRoute>
                         <Suspense fallback={<PageLoader />}>
                           <ComprehensiveRTWForm />
+                        </Suspense>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/cases/:id/rtw-wizard"
+                    element={
+                      <ProtectedRoute>
+                        <Suspense fallback={<PageLoader />}>
+                          <RTWAssessmentWizard />
                         </Suspense>
                       </ProtectedRoute>
                     }
