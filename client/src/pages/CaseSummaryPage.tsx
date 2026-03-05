@@ -16,6 +16,7 @@ import { FinancialSummaryPanel } from "@/components/FinancialSummaryPanel";
 import { LifecycleStepper } from "@/components/LifecycleStepper";
 import { CurrentCapacityCard } from "@/components/CurrentCapacityCard";
 import { ComponentErrorBoundary } from "@/components/ErrorBoundary";
+import { ContextualHelpSystem } from "@/components/unified-case-management/ContextualHelpSystem";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -105,6 +106,28 @@ export default function CaseSummaryPage() {
             </Button>
           </Link>
         </div>
+
+        {/* Phase 11.1 — Related claims banner */}
+        {workerCase.relatedCaseIds && workerCase.relatedCaseIds.length > 0 && (
+          <div className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
+            <span className="font-semibold">
+              This worker has {workerCase.relatedCaseIds.length} related claim{workerCase.relatedCaseIds.length !== 1 ? "s" : ""}:
+            </span>
+            {workerCase.relatedCaseIds.map((relId) => (
+              <Link key={relId} to={`/cases/${relId}`} className="underline hover:text-amber-900">
+                {relId.slice(0, 8)}…
+              </Link>
+            ))}
+          </div>
+        )}
+
+        {/* Phase 11.2 — Dispute status banner */}
+        {workerCase.disputeStatus && workerCase.disputeStatus !== "none" && workerCase.disputeStatus !== "resolved" && (
+          <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-800">
+            <span className="font-bold">DISPUTED:</span>
+            <span>{workerCase.disputeStatus.replace(/_/g, " ")}</span>
+          </div>
+        )}
 
         {/* Lifecycle Stage Stepper */}
         {workerCase.lifecycleStage && (
@@ -313,6 +336,18 @@ export default function CaseSummaryPage() {
           </TabsContent>
 
           <TabsContent value="injury" className="mt-4">
+            <div className="space-y-4">
+            {/* Phase 11.3 — Mental health privacy notice */}
+            {(workerCase.aiSummary?.toLowerCase().match(/stress|anxiety|depression|psychological|mental health|burnout|ptsd/)) && (
+              <div className="flex items-start gap-3 rounded-lg border border-purple-200 bg-purple-50 p-3 text-sm text-purple-800">
+                <span className="font-semibold flex-shrink-0">Mental Health Claim:</span>
+                <span>
+                  This case involves a psychological/mental health injury. Diagnosis details have
+                  restricted access. Psychosocial workplace risk factors must be addressed in RTW planning.
+                  Longer recovery timelines apply — see Recovery tab.
+                </span>
+              </div>
+            )}
             <Card>
               <CardHeader>
                 <CardTitle>Injury Details</CardTitle>
@@ -338,6 +373,7 @@ export default function CaseSummaryPage() {
                 </div>
               </CardContent>
             </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="timeline" className="mt-4">
@@ -452,6 +488,7 @@ export default function CaseSummaryPage() {
           </TabsContent>
         </Tabs>
       </div>
+      <ContextualHelpSystem mode="floating" showTips={true} userRole="case_manager" />
     </PageLayout>
   );
 }

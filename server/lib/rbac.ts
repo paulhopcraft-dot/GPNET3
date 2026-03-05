@@ -75,6 +75,10 @@ export function filterCaseByRole(workerCase: WorkerCase, role: UserRole): Worker
     // Strip clinical discussion content
     latestDiscussionNotes: undefined,
     discussionInsights: undefined,
+    // Phase 11.2: Strip dispute details from employer view (conciliation strategy is confidential)
+    disputeStatus: workerCase.disputeStatus === "none" || workerCase.disputeStatus === "resolved"
+      ? workerCase.disputeStatus
+      : undefined,
     // Partial-strip the JSON blob
     clinical_status_json: filterClinicalStatus(workerCase.clinical_status_json, role) ?? undefined,
   };

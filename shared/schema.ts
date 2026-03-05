@@ -360,6 +360,30 @@ export interface CaseReport {
 export type EmploymentStatus = "ACTIVE" | "SUSPENDED" | "TERMINATION_IN_PROGRESS" | "TERMINATED";
 export type TerminationReason = "INCAPACITY" | "OTHER";
 export type TerminationAuditFlag = "OK" | "HIGH_RISK" | null;
+/** Phase 11.2 — Dispute status for claims under conciliation or court proceedings */
+export type DisputeStatus =
+  | "none"
+  | "liability_disputed"
+  | "worker_disputing_capacity"
+  | "worker_disputing_duties"
+  | "conciliation_requested"         // s97 conciliation
+  | "conciliation_in_progress"
+  | "court_proceedings"
+  | "resolved";
+
+export interface CaseDispute {
+  id: string;
+  caseId: string;
+  disputeType: DisputeStatus;
+  raisedBy: "worker" | "employer" | "insurer";
+  raisedAt: string;
+  description: string;
+  resolvedAt?: string;
+  resolution?: string;
+  conciliationDate?: string;
+  conciliationOutcome?: string;
+}
+
 export type TerminationStatus =
   | "NOT_STARTED"
   | "PREP_EVIDENCE"
@@ -713,6 +737,14 @@ export interface WorkerCase {
   caseManagerName?: string;
   assignedAt?: string;
   secondaryAssigneeId?: string;
+
+  // Phase 11.1 — Multiple Simultaneous Claims
+  relatedCaseIds?: string[];
+  claimType?: "primary" | "secondary" | "consequential";
+  primaryCaseId?: string;
+
+  // Phase 11.2 — Disputed Claims
+  disputeStatus?: DisputeStatus;
 }
 
 // Paginated response for cases list endpoint

@@ -249,6 +249,63 @@ Use the Smart Workflow Wizard to guide you through each step.
       tags: ["rtw", "planning", "workflow"],
       icon: <Target className="w-5 h-5" />
     }
+  ],
+
+  // Phase 12.1 — Case list page
+  "/cases": [
+    {
+      id: "case-list-overview",
+      title: "Your Case List",
+      description: "How to navigate, filter, and understand case status at a glance",
+      content: `
+**Reading the case list:**
+
+- **Urgency column:** Critical (red) = act immediately, High (amber) = act today
+- **Stage badge:** Shows where the case is in its lifecycle (Intake → Assessment → Active Treatment → RTW Transition → Maintenance → Closed)
+- **Days Off:** Days since injury — long durations increase compliance risk
+- **Compliance badge:** WorkSafe Victoria compliance rating. Low/Very Low = non-compliant, action required
+
+**Filtering:**
+- Use "My Cases" to filter to cases assigned to you
+- Use "Filters" to narrow by stage, risk level, or employer
+- Sort by Urgency (default), Days Off, Worker Name, or Due Date
+
+**Creating a new case:** Click "New Case" in the top-right — this creates a new claim in the system.
+      `,
+      type: "guide",
+      difficulty: "beginner",
+      estimatedTime: 3,
+      tags: ["cases", "filter", "urgency", "compliance"],
+      icon: <Users className="w-5 h-5" />
+    }
+  ],
+
+  // Phase 12.1 — Employer dashboard
+  "/employer": [
+    {
+      id: "employer-dashboard-overview",
+      title: "Employer Dashboard",
+      description: "Understanding your obligations and how to respond to decisions",
+      content: `
+**Your employer dashboard shows:**
+
+- **Active cases** for your workers currently off work
+- **Pending decisions** that need your response (suitable duties assessments, RTW plan approvals)
+- **Compliance obligations** — WorkSafe Victoria requires employers to actively participate in RTW
+
+**Key obligations under the WIRC Act 2013:**
+- Provide suitable employment within the worker's restrictions (s152)
+- Actively participate in RTW planning (s153)
+- Do not terminate employment within 52 weeks of injury without proper process (s82)
+
+**Decision requests:** When you receive a decision request (e.g. "Can the worker return to modified duties?"), respond promptly — delays can result in WorkSafe notices.
+      `,
+      type: "guide",
+      difficulty: "beginner",
+      estimatedTime: 4,
+      tags: ["employer", "dashboard", "rtw", "obligations"],
+      icon: <BookOpen className="w-5 h-5" />
+    }
   ]
 };
 
