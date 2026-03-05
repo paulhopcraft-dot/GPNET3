@@ -143,6 +143,7 @@ export const logger = {
   server: createLogger("Server"),
   sync: createLogger("Sync"),
   compliance: createLogger("Compliance"),
+  storage: createLogger("Storage"),
 };
 
 export type Logger = ReturnType<typeof createLogger>;
