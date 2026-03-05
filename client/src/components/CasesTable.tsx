@@ -4,7 +4,7 @@ import { RiskBadge } from "./RiskBadge";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, memo } from "react";
 import { cn } from "@/lib/utils";
 import {
   AlertTriangle,
@@ -69,6 +69,76 @@ function urgencyScore(c: WorkerCase): number {
 const ACTIVE_STAGES = new Set<CaseLifecycleStage>([
   "intake", "assessment", "active_treatment", "rtw_transition", "maintenance",
 ]);
+
+interface CaseRowProps {
+  c: WorkerCase;
+  isSelected: boolean;
+  onCaseClick?: (id: string) => void;
+}
+
+const CaseRow = memo(function CaseRow({ c, isSelected, onCaseClick }: CaseRowProps) {
+  const stage = (c.lifecycleStage ?? "intake") as CaseLifecycleStage;
+  const days = daysOffWork(c);
+  const complianceLow = ["Low", "Very Low"].includes(c.complianceIndicator ?? "");
+  const score = urgencyScore(c);
+  const urgencyLabel = score >= 100 ? "Critical" : score >= 60 ? "High" : score >= 30 ? "Medium" : "Low";
+  const urgencyCls = score >= 100 ? "text-red-600 font-semibold" : score >= 60 ? "text-amber-600" : "text-muted-foreground";
+
+  return (
+    <tr
+      key={c.id}
+      onClick={() => onCaseClick?.(c.id)}
+      className={cn(
+        "cursor-pointer transition-colors",
+        isSelected ? "bg-primary/10 dark:bg-primary/20" : "hover:bg-muted/50"
+      )}
+      data-testid={`row-case-${c.id}`}
+    >
+      <td className="px-4 py-3">
+        <div className="font-medium text-card-foreground">{c.workerName}</div>
+        <div className="text-xs text-muted-foreground">{c.company}</div>
+      </td>
+      <td className="px-4 py-3">
+        <span className={cn("px-2 py-0.5 rounded-full text-xs font-medium border", LIFECYCLE_COLORS[stage])}>
+          {LIFECYCLE_STAGE_LABELS[stage]}
+        </span>
+      </td>
+      <td className="px-4 py-3">
+        <span className={cn("text-sm font-medium", days > 90 ? "text-red-600" : days > 30 ? "text-amber-600" : "text-muted-foreground")}>
+          {days}d
+        </span>
+      </td>
+      <td className="px-4 py-3">
+        <RiskBadge level={c.riskLevel} type="risk" explanation={c.compliance?.reason} />
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-1">
+          {complianceLow && <AlertTriangle className="h-3.5 w-3.5 text-red-500 flex-shrink-0" />}
+          <RiskBadge level={c.complianceIndicator} type="compliance" compliance={c.compliance} />
+        </div>
+      </td>
+      <td className="px-4 py-3">
+        <span className={cn("text-xs", urgencyCls)}>{urgencyLabel}</span>
+      </td>
+      <td className="px-4 py-3">
+        {c.caseManagerName ? (
+          <div className="flex items-center gap-1.5">
+            <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-xs font-medium text-primary">
+              {c.caseManagerName.charAt(0).toUpperCase()}
+            </div>
+            <span className="text-xs text-muted-foreground truncate max-w-[80px]">{c.caseManagerName}</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1 text-xs text-muted-foreground/50">
+            <User className="h-3.5 w-3.5" />
+            <span>Unassigned</span>
+          </div>
+        )}
+      </td>
+      <td className="px-4 py-3 text-xs text-muted-foreground">{c.dueDate}</td>
+    </tr>
+  );
+});
 
 export function CasesTable({ cases, selectedCaseId, onCaseClick, currentUserId, currentUserName }: CasesTableProps) {
   const [myCasesOnly, setMyCasesOnly] = useState(false);
@@ -141,6 +211,10 @@ export function CasesTable({ cases, selectedCaseId, onCaseClick, currentUserId, 
       return { ...prev, [key]: next };
     });
   }
+
+  const handleCaseClick = useCallback((id: string) => {
+    onCaseClick?.(id);
+  }, [onCaseClick]);
 
   function SortIcon({ field }: { field: SortField }) {
     if (sortField !== field) return <ChevronsUpDown className="h-3 w-3 opacity-40" />;
@@ -304,87 +378,14 @@ export function CasesTable({ cases, selectedCaseId, onCaseClick, currentUserId, 
                 </td>
               </tr>
             ) : (
-              filteredSorted.map((c) => {
-                const stage = (c.lifecycleStage ?? "intake") as CaseLifecycleStage;
-                const days = daysOffWork(c);
-                const isSelected = selectedCaseId === c.id;
-                const complianceLow = ["Low", "Very Low"].includes(c.complianceIndicator ?? "");
-
-                return (
-                  <tr
-                    key={c.id}
-                    onClick={() => onCaseClick?.(c.id)}
-                    className={cn(
-                      "cursor-pointer transition-colors",
-                      isSelected ? "bg-primary/10 dark:bg-primary/20" : "hover:bg-muted/50"
-                    )}
-                    data-testid={`row-case-${c.id}`}
-                  >
-                    {/* Worker + employer */}
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-card-foreground">{c.workerName}</div>
-                      <div className="text-xs text-muted-foreground">{c.company}</div>
-                    </td>
-
-                    {/* Lifecycle stage badge */}
-                    <td className="px-4 py-3">
-                      <span className={cn("px-2 py-0.5 rounded-full text-xs font-medium border", LIFECYCLE_COLORS[stage])}>
-                        {LIFECYCLE_STAGE_LABELS[stage]}
-                      </span>
-                    </td>
-
-                    {/* Days off work */}
-                    <td className="px-4 py-3">
-                      <span className={cn("text-sm font-medium", days > 90 ? "text-red-600" : days > 30 ? "text-amber-600" : "text-muted-foreground")}>
-                        {days}d
-                      </span>
-                    </td>
-
-                    {/* Risk */}
-                    <td className="px-4 py-3">
-                      <RiskBadge level={c.riskLevel} type="risk" explanation={c.compliance?.reason} />
-                    </td>
-
-                    {/* Compliance */}
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1">
-                        {complianceLow && <AlertTriangle className="h-3.5 w-3.5 text-red-500 flex-shrink-0" />}
-                        <RiskBadge level={c.complianceIndicator} type="compliance" compliance={c.compliance} />
-                      </div>
-                    </td>
-
-                    {/* Urgency score */}
-                    <td className="px-4 py-3">
-                      {(() => {
-                        const score = urgencyScore(c);
-                        const label = score >= 100 ? "Critical" : score >= 60 ? "High" : score >= 30 ? "Medium" : "Low";
-                        const cls = score >= 100 ? "text-red-600 font-semibold" : score >= 60 ? "text-amber-600" : "text-muted-foreground";
-                        return <span className={cn("text-xs", cls)}>{label}</span>;
-                      })()}
-                    </td>
-
-                    {/* Assigned case manager */}
-                    <td className="px-4 py-3">
-                      {c.caseManagerName ? (
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-xs font-medium text-primary">
-                            {c.caseManagerName.charAt(0).toUpperCase()}
-                          </div>
-                          <span className="text-xs text-muted-foreground truncate max-w-[80px]">{c.caseManagerName}</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground/50">
-                          <User className="h-3.5 w-3.5" />
-                          <span>Unassigned</span>
-                        </div>
-                      )}
-                    </td>
-
-                    {/* Due date */}
-                    <td className="px-4 py-3 text-xs text-muted-foreground">{c.dueDate}</td>
-                  </tr>
-                );
-              })
+              filteredSorted.map((c) => (
+                <CaseRow
+                  key={c.id}
+                  c={c}
+                  isSelected={selectedCaseId === c.id}
+                  onCaseClick={handleCaseClick}
+                />
+              ))
             )}
           </tbody>
         </table>

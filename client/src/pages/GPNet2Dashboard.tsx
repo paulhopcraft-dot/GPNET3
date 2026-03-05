@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { DashboardStats, type StatFilter } from "@/components/dashboard-stats";
 import { ActionQueueCard } from "@/components/ActionQueueCard";
 import { ComponentErrorBoundary } from "@/components/ErrorBoundary";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { queryClient, fetchWithCsrf } from "@/lib/queryClient";
@@ -209,8 +210,24 @@ export default function GPNet2Dashboard() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="text-lg">Loading cases...</div>
+      <div className="flex h-screen" aria-label="Loading dashboard" role="status">
+        <aside className="hidden lg:flex lg:flex-col w-64 flex-shrink-0 bg-sidebar p-4 border-r border-sidebar-border">
+          <Skeleton className="h-8 w-32 mb-8" />
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-8 w-full mb-2" />
+          ))}
+        </aside>
+        <main className="flex-1 p-6 space-y-4 overflow-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-24 w-full rounded-xl" />
+            ))}
+          </div>
+          <Skeleton className="h-10 w-full" />
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Skeleton key={i} className="h-12 w-full" />
+          ))}
+        </main>
       </div>
     );
   }

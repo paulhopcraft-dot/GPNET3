@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import type { TimelineEvent } from "@shared/schema";
@@ -8,7 +8,7 @@ interface TimelineCardProps {
   caseId: string;
 }
 
-export function TimelineCard({ caseId }: TimelineCardProps) {
+export const TimelineCard = memo(function TimelineCard({ caseId }: TimelineCardProps) {
   const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -161,4 +161,4 @@ export function TimelineCard({ caseId }: TimelineCardProps) {
       </CardContent>
     </Card>
   );
-}
+});

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -30,7 +30,7 @@ interface CertificateCardProps {
   caseId: string;
 }
 
-export function CertificateCard({ caseId }: CertificateCardProps) {
+export const CertificateCard = memo(function CertificateCard({ caseId }: CertificateCardProps) {
   const [certificates, setCertificates] = useState<CertificateWithStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -254,4 +254,4 @@ export function CertificateCard({ caseId }: CertificateCardProps) {
       </CardContent>
     </Card>
   );
-}
+});
