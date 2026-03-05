@@ -204,7 +204,7 @@ export function EmployerCaseDetailView({ workerCase, onClose }: EmployerCaseDeta
           <div>
             <h2 className="text-2xl font-bold">{workerCase.workerName}</h2>
             <p className="text-sm text-muted-foreground mt-1">
-              {workerCase.company} • Injury Date: {workerCase.dateOfInjury}
+              {workerCase.company} • Injury Date: {new Date(workerCase.dateOfInjury).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}
             </p>
           </div>
           <Button variant="ghost" size="icon" onClick={onClose}>
@@ -234,7 +234,12 @@ export function EmployerCaseDetailView({ workerCase, onClose }: EmployerCaseDeta
                 : "border-red-300 text-red-700"
             )}
           >
-            Compliance: {workerCase.complianceIndicator}
+            {/* Spec 5.5 — plain language for employer */}
+            {workerCase.complianceIndicator === "Very High" || workerCase.complianceIndicator === "High"
+              ? "Obligations met"
+              : workerCase.complianceIndicator === "Medium"
+              ? "Review recommended"
+              : "Action required"}
           </Badge>
           {!workerCase.hasCertificate && (
             <Badge variant="destructive" className="text-xs">
@@ -242,7 +247,7 @@ export function EmployerCaseDetailView({ workerCase, onClose }: EmployerCaseDeta
             </Badge>
           )}
           <div className="ml-auto text-sm text-muted-foreground">
-            Next Step Due: <span className="font-medium">{workerCase.dueDate}</span>
+            Next Step Due: <span className="font-medium">{new Date(workerCase.dueDate).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}</span>
           </div>
         </div>
 
