@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { WorkerCase, PaginatedCasesResponse } from "@shared/schema";
 import { isLegitimateCase } from "@shared/schema";
@@ -139,6 +140,39 @@ export default function ReportsPage() {
     return Math.round(totalDays / filteredCases.length);
   }, [filteredCases]);
 
+  // Spec 5.4 — CSV export
+  function exportCasesCSV() {
+    const headers = [
+      "Case ID", "Worker", "Company", "Date of Injury", "Work Status",
+      "Risk Level", "Compliance", "Has Certificate", "RTW Plan Status",
+      "Lifecycle Stage", "Owner", "Due Date",
+    ];
+    const rows = filteredCases.map((c) => [
+      c.id,
+      c.workerName,
+      c.company,
+      c.dateOfInjury,
+      c.workStatus,
+      c.riskLevel,
+      c.complianceIndicator,
+      c.hasCertificate ? "Yes" : "No",
+      c.rtwPlanStatus || "",
+      c.lifecycleStage || "",
+      c.owner,
+      c.dueDate,
+    ]);
+    const csv = [headers, ...rows]
+      .map((row) => row.map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `cases-report-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -177,6 +211,10 @@ export default function ReportsPage() {
                   </option>
                 ))}
               </select>
+              <Button variant="outline" size="sm" onClick={exportCasesCSV} className="gap-2">
+                <Download className="h-4 w-4" />
+                Export CSV
+              </Button>
               <ThemeToggle />
             </div>
           </div>
