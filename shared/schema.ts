@@ -1146,7 +1146,8 @@ export type TimelineEventType =
   | "attachment_uploaded"
   | "termination_milestone"
   | "case_status_change"
-  | "case_created";
+  | "case_created"
+  | "compliance_deadline";  // Phase 7.2 — computed compliance milestones
 
 export interface TimelineEvent {
   id: string;

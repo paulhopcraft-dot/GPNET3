@@ -54,6 +54,7 @@ import { authorize, type AuthRequest } from "./middleware/auth";
 import { requireCaseOwnership } from "./middleware/caseOwnership";
 import { logAuditEvent, AuditEventTypes, getRequestMetadata } from "./services/auditLogger";
 import { filterCaseByRole, isEmployerRole } from "./lib/rbac";
+import { computeComplianceDeadlines } from "./lib/complianceDeadlines";
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
@@ -1637,12 +1638,27 @@ User question: ${message}`;
         ...getRequestMetadata(req),
       });
 
-      const events = await storage.getCaseTimeline(workerCase.id, workerCase.organizationId, limit);
+      const [events, certs] = await Promise.all([
+        storage.getCaseTimeline(workerCase.id, workerCase.organizationId, limit),
+        storage.getCertificatesByCase(workerCase.id, workerCase.organizationId),
+      ]);
+
+      // Phase 7.2: inject computed compliance deadline markers
+      const latestCert = certs.sort((a, b) =>
+        new Date(b.endDate).getTime() - new Date(a.endDate).getTime()
+      )[0];
+      const certEndDate = latestCert?.endDate ? new Date(latestCert.endDate) : null;
+      const complianceEvents = computeComplianceDeadlines(workerCase, certEndDate);
+
+      // Merge and sort all events by timestamp (historical + future deadlines)
+      const allEvents = [...events, ...complianceEvents].sort(
+        (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      );
 
       res.json({
         caseId: workerCase.id,
-        events,
-        totalEvents: events.length
+        events: allEvents,
+        totalEvents: allEvents.length
       });
     } catch (err) {
       routeLogger.error("Failed to fetch timeline", {}, err);

@@ -47,7 +47,14 @@ export function TimelineCard({ caseId }: TimelineCardProps) {
     });
   };
 
-  const severityColor = (severity?: string) => {
+  const severityColor = (severity?: string, isDeadline?: boolean) => {
+    if (isDeadline) {
+      switch (severity) {
+        case "critical": return "border-red-400 bg-red-50 text-red-600";
+        case "warning": return "border-amber-400 bg-amber-50 text-amber-600";
+        default: return "border-blue-300 bg-blue-50 text-blue-600";
+      }
+    }
     switch (severity) {
       case "critical": return "border-red-300 bg-red-50 text-red-600";
       case "warning": return "border-amber-300 bg-amber-50 text-amber-600";
@@ -56,6 +63,7 @@ export function TimelineCard({ caseId }: TimelineCardProps) {
   };
 
   const eventTypeLabel = (eventType: string) => {
+    if (eventType === "compliance_deadline") return "Compliance";
     return eventType.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
   };
 
@@ -90,40 +98,63 @@ export function TimelineCard({ caseId }: TimelineCardProps) {
           <div className="relative">
             <div className="absolute left-4 top-2 bottom-2 w-0.5 bg-border" />
             <div className="space-y-6">
-              {events.map((event) => (
-                <div key={event.id} className="relative flex gap-4">
-                  <div className={`relative z-10 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border-2 ${severityColor(event.severity)}`}>
-                    <span className="material-symbols-outlined text-sm">
-                      {event.icon || "circle"}
-                    </span>
-                  </div>
-                  <div className="flex-1 pb-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="font-medium text-sm text-card-foreground">{event.title}</p>
-                      <Badge variant="outline" className="text-[10px] uppercase tracking-wide whitespace-nowrap">
-                        {eventTypeLabel(event.eventType)}
-                      </Badge>
+              {events.map((event) => {
+                const isDeadline = event.eventType === "compliance_deadline";
+                const isOverdue = isDeadline && event.metadata?.isOverdue;
+                const isFuture = isDeadline && event.metadata?.isFuture;
+                return (
+                  <div key={event.id} className={`relative flex gap-4 ${isDeadline ? "opacity-90" : ""}`}>
+                    <div className={`relative z-10 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border-2 ${severityColor(event.severity, isDeadline)}`}>
+                      <span className="material-symbols-outlined text-sm">
+                        {event.icon || "circle"}
+                      </span>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {formatTimestamp(event.timestamp)}
-                    </p>
-                    {event.description && (
-                      <p className="text-sm text-card-foreground mt-2 leading-relaxed">
-                        {event.description}
-                      </p>
-                    )}
-                    {event.metadata && event.eventType === "discussion_note" && event.metadata.riskFlags && (
-                      <div className="mt-2 flex flex-wrap gap-1">
-                        {(event.metadata.riskFlags as string[]).slice(0, 3).map((flag, idx) => (
-                          <Badge key={idx} variant="outline" className="text-[10px]">
-                            {flag}
-                          </Badge>
-                        ))}
+                    <div className={`flex-1 pb-2 ${isDeadline ? "border-l-2 pl-3 ml-[-1px]" + (isOverdue ? " border-red-300" : isFuture ? " border-blue-200" : " border-amber-300") : ""}`}>
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="font-medium text-sm text-card-foreground">{event.title}</p>
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] uppercase tracking-wide whitespace-nowrap ${
+                            isDeadline
+                              ? isOverdue
+                                ? "border-red-300 bg-red-50 text-red-700"
+                                : isFuture
+                                ? "border-blue-200 bg-blue-50 text-blue-700"
+                                : "border-amber-300 bg-amber-50 text-amber-700"
+                              : ""
+                          }`}
+                        >
+                          {eventTypeLabel(event.eventType)}
+                        </Badge>
                       </div>
-                    )}
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {isDeadline
+                          ? `Deadline: ${formatTimestamp(event.timestamp)}`
+                          : formatTimestamp(event.timestamp)}
+                      </p>
+                      {event.description && (
+                        <p className="text-sm text-card-foreground mt-2 leading-relaxed">
+                          {event.description}
+                        </p>
+                      )}
+                      {isDeadline && event.metadata?.legislativeRef && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          <span className="font-medium">Ref:</span> {event.metadata.legislativeRef as string}
+                        </p>
+                      )}
+                      {event.metadata && event.eventType === "discussion_note" && event.metadata.riskFlags && (
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {(event.metadata.riskFlags as string[]).slice(0, 3).map((flag, idx) => (
+                            <Badge key={idx} variant="outline" className="text-[10px]">
+                              {flag}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
