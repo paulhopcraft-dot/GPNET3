@@ -27,6 +27,7 @@ import { generateModificationSuggestions } from "../services/modificationSuggest
 import { logAuditEvent, getRequestMetadata } from "../services/auditLogger";
 import { logger } from "../lib/logger";
 import { generateRTWPlanEmail, type RTWPlanEmailContext } from "../services/rtwEmailService";
+import { sendEmail } from "../services/emailService";
 import { format } from "date-fns";
 
 const router = Router();
@@ -660,6 +661,62 @@ router.post("/:planId/email/regenerate", async (req: AuthRequest, res) => {
       error: "Failed to regenerate email",
       details: err instanceof Error ? err.message : "Unknown error",
     });
+  }
+});
+
+/**
+ * POST /api/rtw-plans/:planId/email/send
+ * Send RTW plan notification email to manager (EMAIL-10)
+ */
+router.post("/:planId/email/send", async (req: AuthRequest, res) => {
+  try {
+    const { planId } = req.params;
+    const { recipientEmail, subject, body } = req.body;
+
+    if (!recipientEmail || !subject || !body) {
+      return res.status(400).json({
+        success: false,
+        error: "Missing required fields: recipientEmail, subject, body",
+      });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(recipientEmail)) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid email address format",
+      });
+    }
+
+    const organizationId = req.user!.organizationId;
+    const plan = await storage.getRTWPlanById(planId, organizationId);
+    if (!plan) {
+      return res.status(404).json({ success: false, error: "Plan not found" });
+    }
+
+    const result = await sendEmail({ to: recipientEmail, subject, body });
+
+    if (!result.success) {
+      logger.api.error("Failed to send RTW plan email", { planId, recipientEmail, error: result.error });
+      return res.status(500).json({ success: false, error: result.error || "Failed to send email" });
+    }
+
+    await logAuditEvent({
+      userId: req.user?.id ?? null,
+      organizationId: req.user?.organizationId ?? null,
+      eventType: "case.update" as any, // RTW plan email sent
+      resourceType: "rtw_plan",
+      resourceId: planId,
+      metadata: { recipientEmail, subject, messageId: result.messageId, sentAt: new Date().toISOString() },
+      ...getRequestMetadata(req),
+    });
+
+    logger.api.info("RTW plan email sent successfully", { planId, recipientEmail, messageId: result.messageId });
+
+    return res.json({ success: true, data: { messageId: result.messageId, recipientEmail } });
+  } catch (err) {
+    logger.api.error("Error sending RTW plan email", { planId: req.params.planId }, err);
+    return res.status(500).json({ success: false, error: "Failed to send email" });
   }
 });
 

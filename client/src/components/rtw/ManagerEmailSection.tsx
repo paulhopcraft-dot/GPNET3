@@ -13,7 +13,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Mail, Copy, RefreshCw, Loader2, Lock } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Mail, Copy, RefreshCw, Loader2, Lock, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface ManagerEmailSectionProps {
@@ -31,6 +41,8 @@ export function ManagerEmailSection({ planId, planStatus }: ManagerEmailSectionP
   const queryClient = useQueryClient();
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
+  const [showSendDialog, setShowSendDialog] = useState(false);
+  const [recipientEmail, setRecipientEmail] = useState("");
 
   // OUT-08: Email editable only before approval
   const isLocked = planStatus === "approved";
@@ -77,6 +89,30 @@ export function ManagerEmailSection({ planId, planStatus }: ManagerEmailSectionP
     },
     onError: () => {
       toast({ title: "Failed to regenerate email", variant: "destructive" });
+    },
+  });
+
+  // Send email mutation
+  const sendMutation = useMutation({
+    mutationFn: async (data: { recipientEmail: string; subject: string; body: string }) => {
+      const response = await fetch(`/api/rtw-plans/${planId}/email/send`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to send email");
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setShowSendDialog(false);
+      setRecipientEmail("");
+      toast({ title: `Email sent to ${data.data.recipientEmail}` });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to send email", description: error.message, variant: "destructive" });
     },
   });
 
@@ -149,6 +185,15 @@ export function ManagerEmailSection({ planId, planStatus }: ManagerEmailSectionP
             <Copy className="h-4 w-4 mr-2" />
             Copy to Clipboard
           </Button>
+          <Button
+            onClick={() => setShowSendDialog(true)}
+            variant="default"
+            size="sm"
+            disabled={!subject || !body}
+          >
+            <Send className="h-4 w-4 mr-2" />
+            Send Email
+          </Button>
           {!isLocked && (
             <Button
               onClick={() => regenerateMutation.mutate()}
@@ -175,6 +220,45 @@ export function ManagerEmailSection({ planId, planStatus }: ManagerEmailSectionP
           </Alert>
         )}
       </CardContent>
+
+      <AlertDialog open={showSendDialog} onOpenChange={setShowSendDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Send Email to Manager</AlertDialogTitle>
+            <AlertDialogDescription>
+              This email contains medical information about the worker.
+              Please verify the recipient email address before sending.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Label htmlFor="recipient-email">Manager Email Address</Label>
+            <Input
+              id="recipient-email"
+              type="email"
+              value={recipientEmail}
+              onChange={(e) => setRecipientEmail(e.target.value)}
+              placeholder="manager@company.com"
+              className="mt-2"
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => sendMutation.mutate({ recipientEmail, subject, body })}
+              disabled={!recipientEmail || sendMutation.isPending}
+            >
+              {sendMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                "Send Email"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
