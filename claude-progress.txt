@@ -1,377 +1,62 @@
-## Session 97 - 1 Mar 2026
+## Session (Mar 5, 2026) — Control Tower + Production Deployment Stack
 
 ### Completed
-- **Dr. Alex conversation memory** (`fce7124`) — `chat_memory` table + `getChatMemory()` / `saveChatMessage()` in storage.ts
-  - Scoped per case (caseId) or worker profile (workerId)
-  - Loads last 8 messages before Claude call — injected as "Previous conversation" block in system prompt
-  - Fire-and-forget save after each exchange (non-blocking)
-  - Verified end-to-end: 2-message exchange → 4 DB rows written → second message correctly references first
-- **Comprehensive E2E test suite** (`9b113f9`, `6119c86`) — 53 tests, 50 pass, 3 data-conditional skips, 0 fail
-  - @smoke: Authentication + page load smoke (11 tests)
-  - @critical: Workers, Pre-Employment, Employer-Initiated, Dr. Alex Chat, Telehealth Bookings, Case Compliance (32 tests)
-  - @regression: Notifications, Agents, Edge Cases (10 tests)
-  - Fixed 4 rounds of failures (API response shapes, field names, selectors, endpoint paths)
-- **Marketing content** — wrote website copy for Dr. Alex, telehealth booking, and pre-employment automation features
 
-### Key API Shape Discoveries (for future sessions)
-- Cases: `{ cases:[...], total, page, limit, hasMore }`
-- Booking create/update: `{ booking:{...} }`; list: `{ bookings:[...] }`
-- Workers: `{ workers:[...] }`; assessments: `{ assessments:[...] }`
-- Assessment create status: `"created"` (not `"pending"`)
-- Assessment field names: `candidateName` / `candidateEmail` (not workerName/workerEmail)
-- `accessToken` returned on CREATE, not on SEND (send returns `{ success, sentTo }`)
-- Public check submission body: `{ responses: Record<string,unknown> }`
-- ChatWidget scope: PageLayout pages ONLY — not on GPNet2Dashboard (route `/`)
-- Notifications endpoint: `/api/notifications/recent`
+**Control Tower Dashboard (full stack)**
+- /api/control/overview, agents, ai, uploads, auth, alerts, performance — 7 admin-only endpoints
+- /admin/control-tower — React page with 7 panels, 30s auto-refresh, lazy-loaded, AdminRoute protected
+- MetricCard — reusable component (default/success/warning/danger variants)
+- AdminSidebar updated with Control Tower nav item
 
-### Next Steps
-1. **Assessment create UI for employers** — backend exists (`POST /api/assessments`), but NewAssessmentPage form not yet wired for employer role
-2. **Export** — CSV/PDF of all workers with check status for employer reporting
-3. **Recovery timeline** — show injury recovery history on case pages (parallel to check timeline)
-4. **Workers list pre-fill** — "/assessments/new?workerId=X" pre-fills name/email from worker profile
+**Alert Service (server/services/alertService.ts)**
+- Types: ai_provider_failure, agent_failure_rate, database_failure, storage_failure, email_failure, health_check_degraded
+- Channels: console (always), Slack (ALERT_SLACK_WEBHOOK), Telegram (ALERT_TELEGRAM_WEBHOOK)
+- In-memory ring buffer (100 alerts) exposed at /api/control/alerts
+- Health endpoint fires alerts on subsystem failures
+- VALIDATED LIVE — alerts fired correctly when DB/AI missing
 
----
+**Metrics Service (server/services/metricsService.ts)**
+- RingBuffer class with avg(), p95(), max()
+- Tracks: API request duration (1000 samples, per-route), agent job duration (500), AI latency (500)
+- Express middleware auto-records every /api request
+- callClaude() patched to record AI latency
+- /api/control/performance back-fills agent durations from DB on first request
 
-## Session 96 (continued, part 2) - 1 Mar 2026
+**Deployment Scripts (all executable, LF line endings)**
+- scripts/validate-env.sh — validates all required vars with clear pass/fail output
+- scripts/deploy-staging.sh — 7 phases: validate → build → start → health poll → migrate → tests
+- scripts/deploy-production.sh — rollback tagging, confirmation prompt, auto-rollback on failure
+- scripts/test-staging.sh — ~30 assertions across 8 sections
+- scripts/load-test.sh — bash-only, configurable concurrency/duration, error rate threshold
 
-### Completed
-- **Health check notification cron** (`cccb485`) — `generateHealthCheckNotifications()` in notificationService.ts
-  - Fires hourly for overdue/due_soon workers (≤60 days until next check)
-  - Dedupe key: `health_check:{workerId}:{YYYY-MM}:{urgency}` — one per cycle per urgency
-  - Enable with `ENABLE_NOTIFICATIONS=true` in .env
-- **Dr. Alex worker context** (`cccb485`) — chat.ts + PageLayout.tsx
-  - `/workers/:id` URL → workerId extracted, passed to ChatWidget
-  - Dr. Alex loads worker profile, clearance level, daysUntil next check
-  - Overdue → proactively raises check + fires SUGGEST_BOOKING
-  - Due soon → mentions upcoming date, offers to help book
-- **Visual check history timeline** — WorkerProfile.tsx rewrite
-  - Vertical timeline: each completed check as dated node, colour-coded by clearance
-  - Each node: position, clearance badge, projected next-check date arrow
-  - Future node: overdue = red "Schedule Now" CTA; due_soon = amber "Book Now"; upcoming = muted
-  - Aggressive overdue banner: days overdue count + employer liability language
-  - Due-soon banner: days remaining + "checks take 1–2 weeks" urgency
-  - Stat strip at top: total checks / current clearance / next check date
+**Config / Docs**
+- .env.staging, .env.production.example, .env.example (alerting section added)
+- .gitignore updated (.env.staging, .env.production)
+- docs/preventli-launch-checklist.md
+- docs/production-readiness-report.md
 
-### Next Steps
-1. **Export** — CSV/PDF of workers + check status for employer reporting
-2. **Assessment create pre-filled for worker** — /assessments/new?workerId=X pre-fills name/email
-3. **Recovery timeline** (for injury cases) — parallel to check timeline on case pages
+**Commit:** 990b994
 
-## Session 96 (continued) - 1 Mar 2026
+### Known Pre-existing TypeScript Errors (NOT introduced by us)
+- server/agent-runner/triggers.ts — cron namespace (TS2503)
+- server/agents/agent-tools/*.ts — wrong property names (currentCertificateEnd, clinicalStatusJson)
+- server/routes.ts — index type errors, implicit any
 
-### Completed (continuation)
-- **Next-check recommendation engine** (`05cdd5f`) — `computeNextCheckDue()` in workers.ts
-  - 12m: cleared_unconditional, cleared_conditional
-  - 6m: cleared_with_restrictions (Rachel O'Brien → due 2026-09-01 ✓)
-  - N/A: not_cleared, requires_review
-  - recheckUrgency: overdue | due_soon | upcoming | not_applicable | pending
-- **Workers list enriched** — `/api/workers` now returns latestClearanceLevel, nextCheckDue, recheckUrgency per worker
-- **Assessments list** — now includes workerId (accessToken withheld from list)
-- **WorkerProfile.tsx enhanced** — RecheckBanner (green/amber/red), clearance badges, last completed date, "New Check" button
-- **ChecksPage.tsx** — assessment rows link to /workers/:workerId; "Attention Required" panel for overdue/due-soon
-- **WorkersListPage at /workers-list** (`ae6bfdc`) — searchable table, clearance badges, urgency filter, alert bar
-- **Sidebar nav** — "Health Checks" → /checks and "Workers" → /workers-list
-
-### Next Steps
-1. **Proactive AI suggestions in chat** — Dr. Alex aware of worker's check history, proactively suggests checks when case opened
-2. **Recovery timeline** — show check history timeline on worker profile
-3. **Notification cron** — daily run flags workers whose nextCheckDue < 60 days, creates notifications
-4. **Export** — CSV/PDF export of workers with check status for employer reporting
-
----
-
-## Session 96 - 1 Mar 2026
-
-### Completed
-- **ChecksPage assessment list UI** (`776d6dd`) — pre-employment tab wired to `/api/assessments`
-  - Real stat cards: Total / Awaiting Response / Completed / Cleared for Work
-  - Live assessment list with candidateName, positionTitle, sentAt date, status badge, clearanceLevel badge
-  - Badge colors: unconditional=green, conditional=teal, with_restrictions=orange, not_cleared=red, requires_review=yellow
-- **Badge + stat bug fixes** (`4e24662`) — cleared_with_restrictions badge ordering fixed; cleared stat now includes all CLEARED_* variants
-
-### Tested End-to-End (10 real assessments in DB)
-| Candidate | Role | Clearance |
-|---|---|---|
-| Marcus Webb | Forklift Operator | cleared_unconditional ✓ |
-| Derek Huang | Crane Operator | not_cleared (epilepsy + seizures) ✓ |
-| Priya Sharma | Admin Officer | cleared_conditional (diabetes) ✓ |
-| Rachel O'Brien | Delivery Driver | cleared_with_restrictions (knee OA) ✓ |
-
-### Edge Cases Verified
-- Double submit → 410 ✓
-- Invalid token → 404 ✓
-- Missing responses → 400 ✓
-- AI report generates in ~6s ✓
-
-### Next Steps
-1. **Worker profile page** — verify /workers/:id loads with real assessment + booking data
-2. **Assessment send fix** — CSRF not included on send button in NewAssessmentPage (needs fetch with csrfToken header for non-browser-form POST)
-3. **Browser test** — open http://localhost:5173, log in, create + send assessment via UI
-
----
-
-## Session 95 - 1 Mar 2026
-
-### Completed
-- **Telehealth Platform — fully built and committed** (`1c220a6`)
-- **Normalized `workers` table** — FK target for cases, assessments, and bookings; `upsertWorkerByEmail()` used at assessment create
-- **`telehealthBookings` table** — service_type, appointment_type, status, notes, referral flag
-- **`caseDocuments` table** — links docs to cases/workers with source and extractedData JSONB
-- **`workerId` FK on `workerCases`** — links existing cases to normalized worker records
-- **`preEmploymentAssessments` extended** — added `workerId`, `accessToken`, `jobDescription`, `questionnaireResponses`, `sentAt`, `employerNotifiedAt`, `reportJson`, `alertSent`
-- **Workers API** (`server/routes/workers.ts`) — GET list, GET/:id profile, POST upsert
-- **Bookings API** (`server/routes/bookings.ts`) — GET list, POST create, PATCH status
-- **Assessments API** (`server/routes/assessments.ts`) — POST create (upserts worker, generates token), POST/:id/send (emails magic link), GET list, GET/:id
-- **Public routes** (`server/routes/public.ts`) — no-auth GET/POST `/api/public/check/:token` for magic link questionnaire
-- **Chat API** (`server/routes/chat.ts`) — unified Dr. Alex endpoint, loads soul from `config/DR_ALEX_SOUL.md`, optional case context, SUGGEST_BOOKING signal
-- **`config/DR_ALEX_SOUL.md`** — Dr. Alex persona (GP-style, warm, triage-aware); edit file + restart server to update
-- **`ChatWidget.tsx`** — floating "Talk with a Doctor" FAB bottom-right, all authenticated pages; lazy-imports BookingModal
-- **`BookingModal.tsx`** — context-aware booking form (auto-fills on case pages, manual elsewhere); 5 service types, video/f2f
-- **`PublicQuestionnaire.tsx`** — no-auth `/check/:token` page; 8-step questionnaire, handles invalid/expired tokens
-- **`WorkerProfile.tsx`** — `/workers/:id` full worker history: assessments, cases, bookings
-- **`reportGenerator.ts`** — Claude Haiku generates structured clearance report; auto-emails employer (CLEARED) or alerts jacinta@preventli.ai (REQUIRES_REVIEW/NOT_CLEARED)
-- **`PageLayout.tsx`** — added "Book Telehealth" header button + ChatWidget on all pages
-- **App.tsx** — added `/check/:token` public route and `/workers/:id` protected route
-- **Removed `caseChat.ts`** — consolidated into unified chat widget
-- **features.json + domain_memory.json updated** — F025–F030 marked complete
+### Next Steps (priority order)
+1. Provide real staging credentials → fill .env.staging → run deploy-staging.sh end-to-end
+2. Fix pre-existing TS errors in agent-tools (currentCertificateEnd → correct field, clinicalStatusJson → clinical_status_json)
+3. Discord webhook — needs bot token from Discord Developer Portal (server: 1468776337496997960, channel: 1478978031040200866)
+4. Managed PostgreSQL — current docker postgres has no automated backups
+5. Redis for rate limiter state — in-memory resets on restart
 
 ### Blockers
-- **`npm run db:push` still needed** — new tables (workers, telehealthBookings, caseDocuments) and preEmploymentAssessments columns not yet applied
-  - Start PostgreSQL: `sudo service postgresql start`
-  - Then: `cd /mnt/d/dev/gpnet3 && npm run db:push`
+- No local PostgreSQL server (only client installed) — dev env DB-dependent tests can't run locally
+- .env.staging has CHANGE_ME placeholders — deploy-staging.sh will reject until filled
 
-### Completed (Session 95 — full end-to-end verified)
-- **Assessment create form** (`d5032d2`) — `NewAssessmentPage.tsx` at `/assessments/new`; `PreEmploymentForm.tsx` restored intact
-- **sentAt fix** — `updatePreEmploymentAssessmentStatus` now accepts `sentAt?: Date`; stamped on send
-- **db:push succeeded** (`880d288`) — all new tables and columns live in PostgreSQL
-- **JSON parse fix** — strip backtick code fences from AI response before JSON.parse (clearance was always requires_review)
-- **CSRF exemption** — `/api/public/` added to shouldSkipCsrf() so magic-link submissions work
-- **Dr. Alex booking triggers tuned** — now correctly fires SUGGEST_BOOKING for neuro symptoms, direct requests, worsening >3 days
-- **End-to-end tested** (3 workers, full flow):
-  - Emma Clarke (Forklift) → CLEARED ✓, employer email sent
-  - Tom Whitfield (Office) → CLEARED ✓, employer email sent
-  - Lisa Kowalski (Construction, epilepsy) → REQUIRES_REVIEW ✓, Jacinta alert with detailed flags
-- **Chat tested** — Dr. Alex responds correctly, suggestBooking:true fires on nerve symptoms / direct booking request
-- **Booking tested** — POST /api/bookings creates record, status:pending
-
-### Next Steps
-1. **Browser test** — open http://localhost:5173 (Vite frontend), log in, try the full flow in UI
-2. **Assessment list UI** — show sent/completed/clearanceLevel on ChecksPage or PreEmploymentPage (currently backend only)
-3. **Worker profile page** — verify /workers/:id loads with real assessment + booking data
-4. **Page won't load issue** — user reported this; frontend is on port 5173, backend on 5000; Vite proxies /api to 5000
-
-### Key Notes
-- Dr. Alex soul: `config/DR_ALEX_SOUL.md` — edit file, restart server to apply (loaded once at startup)
-- Magic link pattern: `crypto.randomBytes(32).toString('hex')` → `accessToken` on assessment
-- AI persona model: `claude-haiku-4-5-20251001`
-- `SUGGEST_BOOKING` stripped from AI reply text, returned as `suggestBooking: true` in JSON
-
----
-
-## Session 91 - 26 Feb 2026
-
-### Completed
-- **Preventli Agentic System — fully built and committed** (`a98e26e`)
-- **base-agent.ts** — Anthropic tool-use loop, persists every tool call to `agent_actions` table, 20-iteration safety limit
-- **4 specialist agents**: coordinator (morning briefing), RTW (full workflow), recovery (watchdog/predictor), certificate (expiry + inbound)
-- **8 tool modules** wrapping existing services: case, certificate, RTW, compliance, email, recovery, timeline, coordinator
-- **agent-runner/triggers.ts** — AgentScheduler with cron (9am briefing, 8am cert expiry) following existing node-cron pattern
-- **routes/agents.ts** — REST API: trigger, job status, action log, human-in-loop approve/reject
-- **schema.ts** — Added `agent_jobs` and `agent_actions` tables
-- **Human-in-loop tiers** — Tier 1 auto / Tier 2 approval queue / Tier 3 escalate-only
-
-### Blockers
-- **DB migration pending** — `agent_jobs` and `agent_actions` tables not yet pushed to DB
-  - `npm run db:push` fails with ECONNREFUSED — local PostgreSQL not running
-  - Fix: `sudo service postgresql start` then `npm run db:push`, OR update DATABASE_URL in .env to Neon connection string
-
-### Key Storage Function Names (VERIFIED against storage.ts)
-- `getCertificatesByCase(caseId, organizationId)` — 2 params, orgId required
-- `getExpiringCertificates(organizationId, daysAhead)` — orgId FIRST
-- `createAction(InsertCaseAction)` — not `createCaseAction`
-- `getCaseContacts(caseId, organizationId)` — orgId required
-- `generateEmailDraft(storage, caseId, organizationId, request)` — storage is first arg
-- `sendEmail({to, subject, body, html?})` — no `toName` field
-- `logAuditEvent(...)` from `services/auditLogger` — not `storage.createAuditEvent`
-
-### RTW Plan Status Notes
-- `rtwPlans.status` is document approval: `draft/pending/approved/rejected/modification_requested`
-- NOT RTW workflow states — those live in `workerCases.clinicalStatusJson.rtwPlanStatus`
-
-### Model Used (UPDATED — Session 91 end)
-- Agents use **Claude CLI subprocess** (`claude -p "..."`) — Max plan OAuth, NO API KEY
-- base-agent.ts: `execFile("claude", ["-p", prompt, "--output-format", "text"])`
-- Each agent pre-gathers read context directly, passes only write tools to Claude CLI
-- Claude returns JSON action plan → agent executes write actions
-- Commit: `8d88476`
-
-### Next Steps
-1. **Run db:push** — start PostgreSQL and apply `agent_jobs` + `agent_actions` tables
-2. **End-to-end test** — trigger coordinator agent manually via `POST /api/agents/briefing` with a demo org
-3. **Agent action log UI** — client-side page showing plain-English reasoning per case (the demo "wow" moment)
-4. **RTW PDF generator** — Paul to provide sample RTW plan documents for PDF template
-5. **BullMQ queue** (Phase 4) — Redis + worker process for multi-tenant scale
-
-### Worktrees (prunable, can ignore)
-- feature/onboarding: /mnt/c/Dev/worktrees/onboarding
-- Several Windows-path worktrees marked prunable
-
-### Session 54 Notes (Previous)
----
-## Session 54 - 19 Feb 2026
-
-### Completed
-- **WSL Clawdbot fully operational** — both Telegram (@Gomatego_bot) and Discord (@OpenClaw Bot) working
-- **IPv6 crash fix** — WSL had IPv6 enabled but unreachable, causing Node.js fetch crashes. Disabled via sysctl + /etc/sysctl.conf + startup script
-- **Migrated clawdbot config** — Ported from Windows (.clawdbot) + OpenClaw (.openclaw) configs to WSL .clawdbot/clawdbot.json
-- **Discord token recovered** — Found in old .openclaw/openclaw.json, wired into .clawdbot config
-- **Context pruning + compaction config** — Ported from openclaw: cache-ttl mode, memory flush, reserve tokens
-- **Preventli-web agent** — Configured and bound to Discord channel
-- **Session auto-reset** — 4 hour idle timeout configured
-- **Unified memory review** — Full audit completed (see findings below)
-
-### Unified Memory System Findings (CRITICAL)
-The memory-unified plugin is **fully built** but **not wired into clawdbot**:
-- **Plugin code**: /home/paul_clawdbot/dev/clawdbot/extensions/memory-unified/ (132K lines, 31 files)
-- **Config missing**: .clawdbot/clawdbot.json has NO plugins.slots section, only memory-core enabled
-- **What's needed**:
-  1. Compile memory-unified TypeScript extension
-  2. Add plugins.slots.memory = "memory-unified" to config
-  3. Add memory-unified to plugin entries with full config
-  4. Initialize databases in correct location
-  5. Sync memory files to consistent workspace
-- **Reference config**: .openclaw/openclaw.json has the correct wiring (plugins.slots.memory = "memory-unified")
-- **Databases**: memory-search-fts5.db (9.8MB active), memory-unified-analytics.db (94.8MB), but .openclaw/*.db empty
-
-### WSL Critical Fix (REMEMBER THIS)
-- **IPv6 must be disabled in WSL** — causes clawdbot gateway crashes
-- Fix: `sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1`
-- Persistent: Added to /etc/sysctl.conf and start-wsl-gateway.sh
-- Symptoms: "connect ENETUNREACH 2001:67c:4e8:f004::9:443" + "TypeError: fetch failed"
-
-### Known Issues
-- **Telegram context overflow** — Bot accumulates too much context, hits "prompt too large" error. Needs proper context windowing via memory-unified
-- **Bot self-restart crashes** — Config changes trigger SIGUSR1 restart → AbortError crash. commands.restart toggled between true/false during session
-- **Discord channels unresolved** — Some configured channel IDs don't exist in guilds (stale config)
-
-### Environment
-- PRIMARY DEV: WSL Ubuntu-24.04 ONLY
-- Code path: ~/dev/gpnet3 (/home/paul_clawdbot/dev/gpnet3)
-- Clawdbot config: /home/paul_clawdbot/.clawdbot/clawdbot.json
-- Old openclaw config: /home/paul_clawdbot/.openclaw/openclaw.json (reference for memory-unified)
-- Clawdbot: port 18789 (auto-starts via tmux)
-- Branch: main
-
-### Next Session Priority
-1. **Wire up unified memory to clawdbot** (use /gsd for structured execution)
-   - Compile extension → install → wire config → init databases → verify
-2. **Financial/Risk/Contacts tabs** — empty tabs despite data in Summary (HIGH)
-3. **Onboarding Course** — RTW Coordinator workflow walkthrough
-4. **Sales Platform spec** — Product spec for Andrew's Sales Performance & Accountability Platform received (saved in conversation, needs to be filed)
-
-### Credentials
-- Admin: admin@gpnet.local / ChangeMe123!
-- Employer: employer@symmetry.local / ChangeMe123!
-- Natalie: natalie@preventli.com / ChangeMe123!
-
----
-
-## Session [Mar 3, 2026] — Security Fixes + Infrastructure
-
-### Completed
-- Fixed 3 critical security bugs (RTW auth bypass, fail-open webhook, rate limiter)
-- Protected /api/diagnostics/env (admin-only), removed Math.random() mock stats
-- Fixed crypto.randomUUID() for ID generation in memory.ts
-- Fixed SmartStatusIndicator crash from /api/user/progress returning null
-- Committed pre-existing ChatWidget cleanup (Alex not Dr. Alex, "Talk with an Expert")
-- Added audit report + 12-phase remediation spec to repo
-- Clawdbot: added cron watchdog + WSL boot auto-start (cron, clawdbot, Uno)
-- Restarted Uno (was stuck mid-request for 8h)
-
-### Current State
-- Repo: /mnt/d/dev/gpnet3 (this is the LIVE server)
-- Audit docs also in: /home/paul_clawdbot/dev/gpnet3/ (separate copy)
-- All Phase 1.1-1.7 security fixes done (4 commits: 7095748, f2d0de6, 68aa2ad, a7d1670)
-- Phase 1.8 (RBAC field filtering) NOT done — big effort
-- Phase 2 (Explanation Layer) NOT started — compliance card already has it, dashboard action cards don't
-
-### Next Steps (Priority Order)
-1. **Phase 1.8 — RBAC**: employers seeing clinical/diagnosis data — implement filterCaseByRole()
-2. **Phase 2 — Explanation Layer**: RiskBadge + dashboard action cards need "why" text
-3. **WorkCover compliance rules**: add s25 notification, s82 52-week gate, s114 multi-step-down
-4. **Accessibility**: 2/10 score — add ARIA labels, fix unlabeled form fields
-
-### Key Files
-- Audit: PREVENTLI_FULL_AUDIT_REPORT.md
-- Spec: docs/spec/30-system-remediation-spec.md
-- Security bugs were in: server/routes/rtw.ts, server/routes/inbound-email.ts, server/middleware/security.ts
-
-### Credentials (unchanged)
-- Admin: admin@gpnet.local / ChangeMe123!
-- Employer: employer@symmetry.local / ChangeMe123!
-- Natalie: natalie@preventli.com / ChangeMe123!
-
-## Session 105 - 2026-03-05
-
-### Completed
-- Phase 11 & 12 carryover from session 104:
-  - ContextualHelpSystem wired into CaseSummaryPage
-  - DisputeStatus, CaseDispute interface added to schema
-  - Related claims banner, dispute status banner, mental health notice
-  - RBAC: strip dispute details from employer view
-  - Help topics for /cases and /employer routes in ContextualHelpSystem
-- Risk tab fully implemented with real case data (riskFlags, disputeStatus,
-  terminationAuditFlag, functionalCapacity metrics, compliance, mitigation list)
-- RTW Plan tab added to CaseSummaryPage (SmartRTWPlanning, 8 tabs total now)
-- Injury tab enriched: medical constraints (restrictions + suitableFor), 
-  current certificate card, employment status, lifecycle stage
-- Termination documentation package export (spec 22): legal risk checklist txt download
-- CSV export on Reports page (spec 5.4): filtered cases download
-- CSV export on Financials page (spec 5.4): per-company cost analysis download
-- Spec 5.5 plain language for EmployerCaseDetailView: 
-  - "Obligations met" / "Review recommended" / "Action required" (not Very High/Low)
-  - Injury date and due date formatted as DD MMM YYYY
-- Date formatting (spec 5.5) throughout CaseSummaryPage (dueDate, dateOfInjury)
-- FirstTimeTour component (spec 12.2): role-specific 4-5 step onboarding modal
-  - Case manager: case list, action queue, case detail, compliance, AI chat
-  - Employer: dashboard, decisions needed, case details, obligations
-  - Clinician: recovery timelines, clinical override, RTW planning, milestones
-  - localStorage tracked per userId, 1.5s delay after dashboard load
-  - Wired into GPNet2Dashboard and EmployerDashboardPage
-
-### Commits
-- e46a457 Phase 11 & 12 — edge cases, disputes, contextual help
-- 32cd75e Phase 10.5 — performance (memo/useCallback/skeleton)
-- 8b0b68e Phase 10.1-10.4 — error boundaries, form accessibility, ARIA
-- 6213c32 Risk tab with real case data
-- 368ffc7 RTW Plan tab in CaseSummaryPage
-- 553754a Termination documentation package export (spec 22)
-- e3c55ee CSV export — Reports page (spec 5.4)
-- 9a2ca80 CSV export — Financials page (spec 5.4)
-- 5a4641e Injury tab enrichment (medical constraints, certificate)
-- 6034ffa Spec 5.5 plain language — employer case view
-- 07615db First-time tour (spec 12.2)
-- 9852d5e Date formatting DD MMM YYYY — CaseSummaryPage
-
-### In Progress
-- Nothing in-flight
-
-### Next Steps
-1. **Financial Engine (spec 23)** — PIAWE calculation, weekly earnings, cost tracking
-   Needs: new DB tables (case_financials), schema migration, API endpoint, panel update
-2. **Intelligence Dashboard** — /api/intelligence routes have backend but no frontend page
-   Easy win: create IntelligencePage.tsx at /intelligence showing case insights
-3. **ComplianceDashboardWidget** — built but never used, wire into GPNet2Dashboard
-   Blocked by: db:push (compliance rules not seeded yet)
-4. **Spec 12.3** — Update specs 07, 13, 22 to reflect current implementation
-
-### Blockers
-- db:push from Windows required for Phase 8 schema (rtwPlanConsents, rtwPlans.pathway)
-- npx tsx server/seed-compliance-rules.ts from Windows (Phase 7 rules)
-
-### Notes
-- All 12 phases of 30-system-remediation-spec.md COMPLETE
-- Build: exit code 0, 3797 modules, only pre-existing discord-analytics.ts errors
-- Active worktrees (prunable): fix/dashboard-issues, fix/summary-improvements,
-  fix/testing-improvements, feature/missing-info-prompts, feature/presentations-work
-- Active worktree (keep?): feature/onboarding at /mnt/c/Dev/worktrees/onboarding
+### Key Architecture Notes
+- workerCases.caseStatus = "open" | "closed" (NOT .status — caught this bug)
+- audit_events.eventType: "user.login", "user.register", "user.login_failed"
+- All Control Tower endpoints: authorize(["admin"])
+- alertService: in-memory only, resets on restart — acceptable for single-instance
+- metricsService ring buffers reset on restart; perf endpoint back-fills from DB (1h window)
+- validate-env.sh: exits 1 on errors, warns (not fails) on missing SENTRY_DSN, SMTP
