@@ -1,6 +1,6 @@
 # Preventli — Pricing Structure
 
-**Version:** 1.0 | **Date:** 5 March 2026
+**Version:** 1.1 | **Date:** 6 March 2026
 
 ---
 
@@ -54,53 +54,50 @@
 
 ## Step 2 — Pricing Model
 
-**Recommended: Flat monthly tiers by headcount band**
+**Two-track model: per-case for low-volume employers, monthly subscription for high-volume**
 
-Reasons:
-- Simple to quote and approve (no usage surprises)
-- Scales naturally with org size
-- HR Manager can approve lower tiers without CFO
-- Annual billing with monthly option adds 20% uplift
+Key insight: Many employers only have 1–2 active claims at any time. A flat monthly fee
+doesn't feel justified when a claim is closed and nothing is active. Per-case pricing
+removes that friction entirely — the employer only pays when they have a claim to manage.
+
+| Track | Who it's for | How it works |
+|-------|-------------|--------------|
+| **Pay-per-case** | 1–4 active claims at a time | Flat fee per case opened, no monthly commitment |
+| **Subscription** | 5+ active claims regularly | Monthly flat fee, unlimited cases |
 
 ---
 
 ## Step 3 — Proposed Tiers
 
-### Tier 1 — Core (50–150 employees)
-**$499/month** | $4,990/year (2 months free)
+### Pay-Per-Case — Essentials
+**$349 per case** (one-off, per case opened)
 
-Includes:
-- Full case management (unlimited cases)
-- Compliance engine + action queue
-- Medical certificate tracking
-- RTW planning
-- Termination documentation
-- Reports + CSV export
-- AI smart summaries
-- Up to 5 Preventli users
-- Email support
+- Covers the full active life of the claim — no per-month billing
+- All core features: compliance engine, certificate tracking, RTW plan, action queue, termination docs, AI summary
+- Up to 3 Preventli users per case
+- Case closes → no ongoing charge
 
-Best for: SME with HR Manager handling claims alongside other duties
+Best for: SME with fewer than 5 claims per year. Feels like paying for what you use.
+
+**Break-even vs subscription:** At 2 cases/year = $698/year. Subscription makes more sense above ~4 cases/year.
 
 ---
 
-### Tier 2 — Professional (150–500 employees)
-**$1,199/month** | $11,990/year (2 months free)
+### Subscription — Professional (5–20 active claims)
+**$799/month** | $7,990/year (2 months free)
 
-Everything in Core, plus:
-- Full assessment suite (injury, mental health, pre-employment, functional capacity)
-- AI case chat
-- Risk dashboard + predictions
-- Audit log
-- Up to 15 Preventli users
-- Priority support + onboarding session
+- Unlimited cases
+- Full platform: compliance, RTW, certificates, termination, assessments, risk dashboard, AI chat, reports, CSV export
+- Up to 10 Preventli users
+- Onboarding session included
+- Priority email support
 
-Best for: Mid-market with dedicated injury manager or HR team
+Best for: Mid-size employer or one that runs 5+ claims concurrently and wants a single monthly cost.
 
 ---
 
-### Tier 3 — Enterprise (500–1,000 employees)
-**$2,499/month** | $24,990/year
+### Subscription — Enterprise (20+ active claims / multi-site)
+**$1,999/month** | $19,990/year
 
 Everything in Professional, plus:
 - Multi-site / multi-entity support
@@ -110,16 +107,17 @@ Everything in Professional, plus:
 - Unlimited users
 - SLA-backed support (4hr response)
 
-Best for: Large employer or employer group with complex claims portfolio
+Best for: Large employer group, employer with multiple subsidiaries, or organisation managing claims on behalf of others.
 
 ---
 
 ### Add-ons (post-v1.1)
 | Add-on | Price |
 |--------|-------|
-| Employer portal (v1.1) | +$199/month |
+| Employer portal per-case (v1.1) | +$49/case |
+| Employer portal subscription (v1.1) | +$199/month |
 | Freshdesk integration setup | One-off $500 |
-| Additional user seats (above tier limit) | $29/user/month |
+| Additional users above tier limit | $29/user/month |
 
 ---
 
@@ -150,10 +148,16 @@ Best for: Large employer or employer group with complex claims portfolio
 
 ## Summary
 
-| Tier | Employees | Monthly | Annual | Target buyer |
-|------|-----------|---------|--------|--------------|
-| Core | 50–150 | $499 | $4,990 | HR Manager (SME) |
-| Professional | 150–500 | $1,199 | $11,990 | Injury Manager / HR team |
-| Enterprise | 500–1,000 | $2,499 | $24,990 | Risk Manager + CFO |
-| Beta | Any | Free 3 months | — | Reference clients |
-| Founding | Any | -30% yr 1 | — | First 5 clients |
+| Track | When to use | Price | Annual equiv |
+|-------|------------|-------|-------------|
+| Pay-per-case | <5 claims/year | $349/case | ~$700–$1,400 |
+| Professional subscription | 5–20 concurrent claims | $799/month | $7,990 |
+| Enterprise subscription | 20+ claims / multi-site | $1,999/month | $19,990 |
+| Beta (3 months free) | Reference clients | $0 | — |
+| Founding rate (-30% yr 1) | First 5 paying clients | varies | — |
+
+### Decision guide for clients
+- "How many WorkCover claims do you typically have open at once?"
+  - 1–3 → Pay-per-case ($349/claim)
+  - 4–5 → Either — subscription saves money above ~3/year
+  - 5+ → Professional subscription ($799/month)
