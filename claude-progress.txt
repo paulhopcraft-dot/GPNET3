@@ -22,8 +22,7 @@
 - Week 1 tasks remaining: website messaging, terms of service + privacy policy
 
 ### Next Steps (PRIORITY ORDER)
-1. Set ANTHROPIC_API_KEY in .env — AI features broken without it
-2. Choose hosting: Railway (recommended) — deploy to staging
+1. Choose hosting: Railway (recommended) — deploy to staging
 3. Run db:push from Windows (RTW pathway fields) against staging DB
 4. Run npx tsx server/seed-compliance-rules.ts from Windows against staging DB
 5. Configure SMTP or Resend (emails silently failing)
@@ -31,7 +30,7 @@
 7. Beta client outreach — 3-5 orgs, construction + healthcare (23-29 Mar)
 
 ### Blockers
-- ANTHROPIC_API_KEY not set → AI non-functional in any deployment
+- AI provider for production not decided yet (OpenRouter / Claude CLI / other) — TBD
 - SMTP not configured → invites, password resets, notifications silently fail
 - No hosting platform chosen yet → can't test staging
 
