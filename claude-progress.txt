@@ -1,3 +1,57 @@
+## Session 106 (Mar 6–7, 2026) — Go-to-Market Planning + Production Readiness
+
+### Completed
+
+**Production readiness fix**
+- Fixed fileUpload.ts logger errors (logger.info/warn → logger.storage.info/warn)
+- Added `storage: createLogger("Storage")` to logger.ts
+- Build: exit code 0, all 5 critical production issues now resolved
+
+**Go-to-market docs (all committed)**
+- `docs/LAUNCH_PLAN.md` — 6-phase launch plan, 27 tasks, target 13 Apr 2026
+- `docs/V1_FEATURES.md` — v1 scope locked (staff-only, employer portal → v1.1)
+- `docs/TARGET_CLIENT_PROFILE.md` — ICP: SME 50-200, construction/healthcare, HR Manager buyer
+- `docs/PRICING_STRUCTURE.md` — two-track: pay-per-case ($349) + subscription ($799/$1,999/month)
+- `.claude/v3/memory/launch-milestones.json` — machine-readable milestone JSON
+
+**Worktree cleanup**
+- Removed Windows path artifact files from feature/onboarding worktree (committed)
+- All 3 worktrees clean
+
+### In Progress
+- Week 1 tasks remaining: website messaging, terms of service + privacy policy
+
+### Next Steps (PRIORITY ORDER)
+1. Set ANTHROPIC_API_KEY in .env — AI features broken without it
+2. Choose hosting: Railway (recommended) — deploy to staging
+3. Run db:push from Windows (RTW pathway fields) against staging DB
+4. Run npx tsx server/seed-compliance-rules.ts from Windows against staging DB
+5. Configure SMTP or Resend (emails silently failing)
+6. Internal testing week (16-22 Mar)
+7. Beta client outreach — 3-5 orgs, construction + healthcare (23-29 Mar)
+
+### Blockers
+- ANTHROPIC_API_KEY not set → AI non-functional in any deployment
+- SMTP not configured → invites, password resets, notifications silently fail
+- No hosting platform chosen yet → can't test staging
+
+### Active Worktrees
+- main: /mnt/d/dev/gpnet3 [clean]
+- feature/onboarding: /mnt/c/Dev/worktrees/onboarding [clean]
+- wip-deployment: /mnt/d/dev/gpnet3-deploy [clean — Control Tower + deployment stack]
+
+### Production Readiness Score: 6.5/10
+All 5 critical issues resolved. Gaps: no hosting, no API key, no SMTP.
+Target 8/10 by end of Week 1 (15 Mar) after staging deployment.
+
+### Key Decisions This Session
+- v1 = Preventli staff only; employer portal = v1.1
+- Pricing: per-case $349 for low-volume; subscription $799/month for 5+ concurrent claims
+- ICP: SME 50-200 (construction, healthcare). Buyer: HR Manager.
+- Launch date: 13 April 2026. Target: 3-5 paying clients.
+
+---
+
 ## Session (Mar 5, 2026) — Control Tower + Production Deployment Stack
 
 ### Completed
