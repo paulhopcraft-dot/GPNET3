@@ -1,0 +1,41 @@
+services:
+  - type: web
+    name: preventli-backend
+    env: node
+    region: singapore
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
+      - key: FRONTEND_URL
+        value: https://preventli-site.vercel.app
+      - key: CLIENT_URL
+        value: https://preventli-site.vercel.app
+      - key: APP_URL
+        value: https://preventli-site.vercel.app
+      - key: PORT
+        value: 10000
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: FRESHDESK_DOMAIN
+        value: gpnet
+      - key: FRESHDESK_API_KEY
+        sync: false
+      - key: ENABLE_NOTIFICATIONS
+        value: true
+      - key: DEFAULT_ORGANIZATION_ID
+        value: preventli-org
+      - key: NOTIFICATION_DEFAULT_EMAIL
+        value: admin@preventli.au
+      - key: LOG_LEVEL
+        value: info
+      - key: LOG_REQUESTS
+        value: true
