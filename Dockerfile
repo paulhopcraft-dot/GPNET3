@@ -42,12 +42,8 @@ RUN addgroup -g 1001 -S preventli && \
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --prefer-offline && npm cache clean --force
 
-# Copy compiled server output
+# Copy Vite build output (contains public assets)
 COPY --from=builder --chown=preventli:preventli /app/dist ./dist
-
-# Copy client build output (served as static files by Express)
-# Vite outputs to dist/ by default — adjust if vite.config.ts uses outDir
-COPY --from=builder --chown=preventli:preventli /app/dist/public ./dist/public 2>/dev/null || true
 
 # Copy static assets and config needed at runtime
 COPY --from=builder --chown=preventli:preventli /app/config ./config
