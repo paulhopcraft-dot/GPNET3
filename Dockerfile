@@ -53,7 +53,7 @@ COPY --from=builder --chown=preventli:preventli /app/vite.config.ts ./vite.confi
 COPY --from=builder --chown=preventli:preventli /app/tsconfig.json ./tsconfig.json
 
 # Create uploads directory (used by local storage in dev; ignored in prod with S3)
-RUN mkdir -p public/uploads && chown preventli:preventli public/uploads
+RUN mkdir -p uploads/employer-cases && chown -R preventli:preventli uploads
 
 # Switch to non-root
 USER preventli
