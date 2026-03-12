@@ -53,8 +53,8 @@ COPY --from=builder --chown=preventli:preventli /app/vite.config.ts ./vite.confi
 COPY --from=builder --chown=preventli:preventli /app/tsconfig.json ./tsconfig.json
 
 # Create runtime directories that the app expects to write to
-RUN mkdir -p uploads/employer-cases transcripts && \
-    chown -R preventli:preventli uploads transcripts
+RUN mkdir -p uploads/employer-cases public/uploads transcripts && \
+    chown -R preventli:preventli uploads public/uploads transcripts
 
 # Switch to non-root
 USER preventli
