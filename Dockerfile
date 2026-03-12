@@ -48,6 +48,7 @@ COPY --from=builder --chown=preventli:preventli /app/dist ./dist
 # Copy static assets and config needed at runtime
 COPY --from=builder --chown=preventli:preventli /app/config ./config
 COPY --from=builder --chown=preventli:preventli /app/shared ./shared
+COPY --from=builder --chown=preventli:preventli /app/server ./server
 
 # Create uploads directory (used by local storage in dev; ignored in prod with S3)
 RUN mkdir -p public/uploads && chown preventli:preventli public/uploads
