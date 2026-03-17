@@ -1,3 +1,40 @@
+## Session 109 (Mar 17, 2026) — v1 Testing Scenarios + Telehealth Booking Modal
+
+### Completed
+- Confirmed live site (https://gpnet3.onrender.com/) is working — login and dashboard functional
+- Added TelehealthBookingModal component (client/src/components/TelehealthBookingModal.tsx)
+  - Book telehealth appointment form with validation, file upload, confirmation state
+  - Posts to /api/telehealth/booking
+- Created comprehensive v1 testing scenarios doc (docs/V1_TESTING_SCENARIOS.md)
+  - 18 modules covering all v1 features
+  - Updated for live URL and current credentials
+  - Includes bug report template and summary checklist
+
+### In Progress
+- Nothing in progress
+
+### Next Steps
+1. Wire TelehealthBookingModal into the UI (find where the "Book Telehealth" button should live)
+2. Create /api/telehealth/booking endpoint on the server
+3. Configure SMTP/Resend so emails actually send to telehealth providers
+4. Run internal testing week (16–22 Mar) using docs/V1_TESTING_SCENARIOS.md
+5. Fix pre-existing TS errors in agent-tools (currentCertificateEnd, clinicalStatusJson)
+6. Beta client outreach (23–29 Mar)
+
+### Blockers
+- SMTP not configured — telehealth booking notifications won't send
+- /api/telehealth/booking endpoint not yet created
+
+### Test Credentials
+- URL: https://gpnet3.onrender.com/
+- Email: employer@symmetry.local
+- Password: ChangeMe123!
+
+### Active Worktrees
+- main: /mnt/d/dev/gpnet3 [clean after commit]
+
+---
+
 ## Session 106 (Mar 6–7, 2026) — Go-to-Market Planning + Production Readiness
 
 ### Completed
@@ -113,3 +150,35 @@ Target 8/10 by end of Week 1 (15 Mar) after staging deployment.
 - alertService: in-memory only, resets on restart — acceptable for single-instance
 - metricsService ring buffers reset on restart; perf endpoint back-fills from DB (1h window)
 - validate-env.sh: exits 1 on errors, warns (not fails) on missing SENTRY_DSN, SMTP
+
+## Session 108 - 2026-03-12/13
+
+### Completed
+- Fixed Render Docker deployment (was completely broken — 7 sequential fixes)
+  1. Dockerfile missing server/ in runner stage → added COPY
+  2. vite.config.ts missing from runner → added COPY
+  3. server/vite.ts serveStatic path wrong (dist vs dist/public) → fixed path
+  4. tsconfig.json missing from runner (tsx can't resolve @shared alias) → added COPY
+  5. transcripts/ directory permission denied → created in Dockerfile before non-root switch
+  6. dist/public path fix (Vite outputs to dist/public not dist)
+  7. Merge conflicts resolved throughout
+- Preventli is now LIVE at https://gpnet3.onrender.com/ — login screen displays
+- Started Uno bot (was dead, watchdog+startup.sh already in place)
+
+### In Progress
+- Render PostgreSQL setup — Paul is creating the DB on Render free tier
+- Next: link DB URL as DATABASE_URL env var → redeploy → run db:push → run seed
+
+### Next Steps
+1. Create Render Postgres → copy Internal Database URL → set as DATABASE_URL env var on web service → redeploy
+2. Run `npm run db:push` against live DB to create tables
+3. Run `npm run seed` to create test accounts (employer@symmetry.local / ChangeMe123!)
+4. Test login on https://gpnet3.onrender.com/
+
+### Blockers
+- No DATABASE_URL on Render yet — login will fail until DB is connected
+- Discord bot (claude-code-discord) timing out on responses — needs investigation
+
+### Notes
+- Symmetry test creds: employer@symmetry.local / ChangeMe123! (after seed runs)
+- All 8 Dockerfile fixes committed to main and pushed
