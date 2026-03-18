@@ -713,6 +713,20 @@ export default function EmployerCaseDetailPage() {
 
   const injuryFromSummary = parseInjuryFromSummary(aiSummary || workerCase?.aiSummary);
 
+  // Derive risk level from XGBoost score embedded in AI summary (overrides stored riskLevel when present)
+  const parseXGBoostRiskLevel = (summary: string | null | undefined): "High" | "Medium" | "Low" | null => {
+    if (!summary) return null;
+    const match = summary.match(/XGBoost\s+(?:risk(?:\s+index)?|probability|stability score|resilience score)\s+([\d.]+)/i);
+    if (!match) return null;
+    const score = parseFloat(match[1]);
+    if (isNaN(score)) return null;
+    if (score >= 0.61) return "High";
+    if (score >= 0.31) return "Medium";
+    return "Low";
+  };
+
+  const effectiveRiskLevel = parseXGBoostRiskLevel(aiSummary || workerCase?.aiSummary) ?? workerCase?.riskLevel;
+
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -1239,11 +1253,11 @@ export default function EmployerCaseDetailPage() {
                       <div>
                         <h4 className="text-sm font-semibold text-white/90 mb-2">Risk Level</h4>
                         <Badge className={cn(
-                          workerCase.riskLevel === "High" ? "bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-lg shadow-red-500/25" :
-                          workerCase.riskLevel === "Medium" ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/25" :
+                          effectiveRiskLevel === "High" ? "bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-lg shadow-red-500/25" :
+                          effectiveRiskLevel === "Medium" ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/25" :
                           "bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-lg shadow-emerald-500/25"
                         )}>
-                          {workerCase.riskLevel}
+                          {effectiveRiskLevel}
                         </Badge>
                       </div>
                     </div>

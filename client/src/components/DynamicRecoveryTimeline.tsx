@@ -728,9 +728,8 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
                 ))}
               </div>
             ) : (
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
-                <strong>Debug:</strong> No certificate markers found in data. 
-                Check if medical certificates exist for this case and are being properly processed by the API.
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600">
+                No medical certificates uploaded yet. Upload a certificate to see recovery milestones on the timeline.
               </div>
             )}
           </div>

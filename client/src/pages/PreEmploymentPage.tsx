@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -49,6 +49,51 @@ interface DashboardStats {
 export default function PreEmploymentPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [newCandidateName, setNewCandidateName] = useState("");
+  const [newPositionTitle, setNewPositionTitle] = useState("");
+  const [newAssessmentType, setNewAssessmentType] = useState("");
+  const [formError, setFormError] = useState("");
+  const queryClient = useQueryClient();
+
+  const createAssessmentMutation = useMutation({
+    mutationFn: async (data: { candidateName: string; positionTitle: string; assessmentType: string }) => {
+      const response = await fetch("/api/pre-employment/assessments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.message || "Failed to create assessment");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pre-employment-assessments"] });
+      queryClient.invalidateQueries({ queryKey: ["pre-employment-dashboard"] });
+      setDialogOpen(false);
+      setNewCandidateName("");
+      setNewPositionTitle("");
+      setNewAssessmentType("");
+      setFormError("");
+    },
+    onError: (err: Error) => {
+      setFormError(err.message);
+    },
+  });
+
+  const handleCreateAssessment = () => {
+    if (!newCandidateName.trim()) { setFormError("Candidate name is required"); return; }
+    if (!newPositionTitle.trim()) { setFormError("Position title is required"); return; }
+    if (!newAssessmentType) { setFormError("Assessment type is required"); return; }
+    setFormError("");
+    createAssessmentMutation.mutate({
+      candidateName: newCandidateName.trim(),
+      positionTitle: newPositionTitle.trim(),
+      assessmentType: newAssessmentType,
+    });
+  };
 
   // Fetch dashboard stats
   const { data: dashboardStats } = useQuery<{ stats: DashboardStats }>({
@@ -112,7 +157,7 @@ export default function PreEmploymentPage() {
           <p className="text-gray-600 mt-2">Manage health assessments for new candidates</p>
         </div>
 
-        <Dialog>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button className="bg-blue-600 hover:bg-blue-700">
               <PlusCircle className="w-4 h-4 mr-2" />
@@ -129,15 +174,25 @@ export default function PreEmploymentPage() {
             <div className="space-y-4 pt-4">
               <div className="space-y-2">
                 <Label htmlFor="candidateName">Candidate Name</Label>
-                <Input id="candidateName" placeholder="John Smith" />
+                <Input
+                  id="candidateName"
+                  placeholder="John Smith"
+                  value={newCandidateName}
+                  onChange={(e) => setNewCandidateName(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="position">Position Title</Label>
-                <Input id="position" placeholder="Software Engineer" />
+                <Input
+                  id="position"
+                  placeholder="Software Engineer"
+                  value={newPositionTitle}
+                  onChange={(e) => setNewPositionTitle(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="assessmentType">Assessment Type</Label>
-                <Select>
+                <Select value={newAssessmentType} onValueChange={setNewAssessmentType}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
@@ -149,7 +204,14 @@ export default function PreEmploymentPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <Button className="w-full">Create Assessment</Button>
+              {formError && <p className="text-sm text-red-600">{formError}</p>}
+              <Button
+                className="w-full"
+                onClick={handleCreateAssessment}
+                disabled={createAssessmentMutation.isPending}
+              >
+                {createAssessmentMutation.isPending ? "Creating..." : "Create Assessment"}
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
