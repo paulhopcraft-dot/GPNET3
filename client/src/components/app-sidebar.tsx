@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Building2, FileText, Settings, HelpCircle, Monitor, Heart, UserPlus, ShieldCheck, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, Building2, FileText, Settings, HelpCircle, Monitor, Heart, UserPlus, ShieldCheck } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -125,12 +125,7 @@ export function AppSidebar() {
                   </a>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton onClick={logout} data-testid="link-logout" className="hover-elevate active-elevate-2 text-red-500 hover:text-red-600">
-                  <LogOut className="h-4 w-4" />
-                  <span>Log out</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
