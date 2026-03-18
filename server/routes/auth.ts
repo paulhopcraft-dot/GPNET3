@@ -17,7 +17,8 @@ router.post("/refresh", refresh);
 router.get("/me", authorize(), me);
 
 // POST /api/auth/logout - Logout and revoke refresh token
-router.post("/logout", authorize(), logout);
+// No authorize() — cookies must be clearable even with expired/invalid tokens
+router.post("/logout", logout);
 
 // POST /api/auth/logout-all - Logout from all devices (revoke all refresh tokens)
 router.post("/logout-all", authorize(), logoutAll);
