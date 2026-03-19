@@ -14,7 +14,7 @@ import {
   RefreshCw,
   Server,
 } from "lucide-react";
-import AdminLayout from "@/components/admin/AdminLayout";
+import { AdminLayout } from "@/components/admin/AdminLayout";
 import { MetricCard } from "@/components/control-tower/MetricCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

@@ -40,7 +40,7 @@ import {
   MessageSquare,
   Zap
 } from "lucide-react";
-import { WorkerCase, RTWPlanStatus } from "@shared/schema";
+import type { WorkerCase, RTWPlanStatus } from "@shared/schema";
 
 interface RTWPlanningProps {
   workerCase: WorkerCase;

@@ -37,7 +37,7 @@ import {
   Target,
   Activity
 } from "lucide-react";
-import { WorkerCase } from "@shared/schema";
+import type { WorkerCase } from "@shared/schema";
 
 interface OneClickAction {
   id: string;

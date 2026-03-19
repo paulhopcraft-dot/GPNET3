@@ -40,7 +40,7 @@ import {
   ThumbsUp,
   ThumbsDown
 } from "lucide-react";
-import { WorkerCase } from "@shared/schema";
+import type { WorkerCase } from "@shared/schema";
 
 interface ChatMessage {
   id: string;

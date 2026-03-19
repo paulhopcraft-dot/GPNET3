@@ -44,7 +44,7 @@ import { InjuryLifecycleManager } from "@/components/unified-case-management/Inj
 import { OneClickActionsPanel } from "@/components/unified-case-management/OneClickActionsPanel";
 import { SmartTimelineVisualization } from "@/components/unified-case-management/SmartTimelineVisualization";
 import { StakeholderCoordinationHub } from "@/components/unified-case-management/StakeholderCoordinationHub";
-import { WorkerCase } from "@shared/schema";
+import type { WorkerCase } from "@shared/schema";
 
 interface WorkspaceStats {
   totalCases: number;

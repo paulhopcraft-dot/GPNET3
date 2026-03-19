@@ -44,7 +44,7 @@ import {
   Zap,
   HelpCircle
 } from "lucide-react";
-import { WorkerCase } from "@shared/schema";
+import type { WorkerCase } from "@shared/schema";
 
 interface WorkflowStep {
   id: string;
