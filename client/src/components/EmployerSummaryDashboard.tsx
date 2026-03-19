@@ -353,10 +353,6 @@ export function EmployerSummaryDashboard() {
               <p className="text-slate-600">Contact your case management team or access support resources</p>
             </div>
             <div className="flex space-x-3">
-              <Button className="bg-green-600 hover:bg-green-700">
-                <Phone className="w-4 h-4 mr-2" />
-                Call Support
-              </Button>
               <Button variant="outline">
                 <Mail className="w-4 h-4 mr-2" />
                 Email Support
