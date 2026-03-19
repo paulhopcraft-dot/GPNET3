@@ -124,7 +124,7 @@ export default function ChecksPage() {
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">{value}</div>
-        <p className="text-xs text-muted-foreground">{description}</p>
+        <p className="text-xs text-slate-600">{description}</p>
       </CardContent>
     </Card>
   );
@@ -242,9 +242,9 @@ export default function ChecksPage() {
               </CardHeader>
               <CardContent>
                 {assessmentsLoading ? (
-                  <p className="text-sm text-muted-foreground py-4">Loading assessments…</p>
+                  <p className="text-sm text-slate-600 py-4">Loading assessments…</p>
                 ) : assessments.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
+                  <div className="text-center py-8 text-slate-600">
                     <UserPlus className="w-10 h-10 mx-auto mb-3 text-gray-300" />
                     <p className="text-sm">No assessments yet. Create one to get started.</p>
                   </div>
@@ -265,8 +265,8 @@ export default function ChecksPage() {
                         <div className="py-3 flex items-start justify-between gap-4">
                           <div className="min-w-0">
                             <p className="font-medium text-sm truncate">{a.candidateName}</p>
-                            <p className="text-xs text-muted-foreground truncate">{a.positionTitle}</p>
-                            <p className="text-xs text-muted-foreground mt-0.5">
+                            <p className="text-xs text-slate-600 truncate">{a.positionTitle}</p>
+                            <p className="text-xs text-slate-600 mt-0.5">
                               {a.sentAt ? `Sent ${formatDate(a.sentAt)}` : `Created ${formatDate(a.createdAt)}`}
                             </p>
                           </div>
@@ -293,7 +293,7 @@ export default function ChecksPage() {
                       );
                     })}
                     {filteredAssessments.length === 0 && assessmentSearch && (
-                      <p className="text-xs text-muted-foreground pt-3 text-center">No results for "{assessmentSearch}"</p>
+                      <p className="text-xs text-slate-600 pt-3 text-center">No results for "{assessmentSearch}"</p>
                     )}
                   </div>
                 )}
@@ -340,7 +340,7 @@ export default function ChecksPage() {
                 <CardDescription>Proactive health monitoring and injury prevention</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-sm text-slate-600">
                   • Regular health screenings<br/>
                   • Workplace safety assessments<br/>
                   • Ergonomic evaluations<br/>
@@ -407,7 +407,7 @@ export default function ChecksPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-sm text-slate-600">
                   • Incident reporting and documentation<br/>
                   • Medical certificate management<br/>
                   • Return-to-work planning<br/>
@@ -461,7 +461,7 @@ export default function ChecksPage() {
                 <CardDescription>Comprehensive employee wellness monitoring</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-sm text-slate-600">
                   • Annual health screenings<br/>
                   • Biometric monitoring<br/>
                   • Fitness assessments<br/>
@@ -516,7 +516,7 @@ export default function ChecksPage() {
                 <CardDescription>Employee mental health and wellbeing services</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-sm text-slate-600">
                   • Psychological assessments<br/>
                   • Counseling and therapy coordination<br/>
                   • Stress and anxiety management<br/>
@@ -578,7 +578,7 @@ export default function ChecksPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-sm text-slate-600">
                   • Final health assessments<br/>
                   • Exit documentation completion<br/>
                   • Liability and insurance closure<br/>

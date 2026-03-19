@@ -113,7 +113,7 @@ function UpdateStatusDialog({
           <div className="grid gap-2">
             <Label htmlFor="status">New Status</Label>
             {validTransitions.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-slate-600">
                 This plan is completed. No further transitions are allowed.
               </p>
             ) : (
@@ -241,7 +241,7 @@ export default function RTWPlannerPage() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+              <CardTitle className="text-sm font-medium text-slate-600">
                 Off Work Cases
               </CardTitle>
             </CardHeader>
@@ -251,7 +251,7 @@ export default function RTWPlannerPage() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+              <CardTitle className="text-sm font-medium text-slate-600">
                 With RTW Plans
               </CardTitle>
             </CardHeader>
@@ -261,7 +261,7 @@ export default function RTWPlannerPage() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+              <CardTitle className="text-sm font-medium text-slate-600">
                 RTW In Progress
               </CardTitle>
             </CardHeader>
@@ -271,7 +271,7 @@ export default function RTWPlannerPage() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+              <CardTitle className="text-sm font-medium text-slate-600">
                 RTW Completed
               </CardTitle>
             </CardHeader>
@@ -289,7 +289,7 @@ export default function RTWPlannerPage() {
                 <span className="material-symbols-outlined text-4xl text-muted-foreground mb-4">
                   event_available
                 </span>
-                <p className="text-muted-foreground">No cases currently require RTW planning.</p>
+                <p className="text-slate-600">No cases currently require RTW planning.</p>
               </CardContent>
             </Card>
           ) : (
@@ -299,7 +299,7 @@ export default function RTWPlannerPage() {
                   <div className="flex items-start justify-between">
                     <div>
                       <CardTitle className="text-base">{workerCase.workerName}</CardTitle>
-                      <p className="text-sm text-muted-foreground">{workerCase.company}</p>
+                      <p className="text-sm text-slate-600">{workerCase.company}</p>
                     </div>
                     <Badge className={rtwStatusColor(workerCase.rtwPlanStatus)}>
                       {RTW_STATUS_LABELS[(workerCase.rtwPlanStatus || "not_planned") as RTWPlanStatus]}
@@ -309,7 +309,7 @@ export default function RTWPlannerPage() {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Recovery Progress</span>
+                      <span className="text-slate-600">Recovery Progress</span>
                       <span className="font-medium">
                         {calculateRecoveryProgress(workerCase.dateOfInjury)}%
                       </span>
@@ -319,18 +319,18 @@ export default function RTWPlannerPage() {
 
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span className="text-muted-foreground">Injury Date</span>
+                      <span className="text-slate-600">Injury Date</span>
                       <p className="font-medium">{workerCase.dateOfInjury}</p>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">Work Status</span>
+                      <span className="text-slate-600">Work Status</span>
                       <p className="font-medium">{workerCase.workStatus}</p>
                     </div>
                   </div>
 
                   {workerCase.nextStep && (
                     <div className="text-sm">
-                      <span className="text-muted-foreground">Next Step</span>
+                      <span className="text-slate-600">Next Step</span>
                       <p className="font-medium">{workerCase.nextStep}</p>
                     </div>
                   )}

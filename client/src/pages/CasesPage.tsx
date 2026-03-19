@@ -87,7 +87,7 @@ export default function CasesPage() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+              <CardTitle className="text-sm font-medium text-slate-600">
                 Total Cases
               </CardTitle>
             </CardHeader>
@@ -97,7 +97,7 @@ export default function CasesPage() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+              <CardTitle className="text-sm font-medium text-slate-600">
                 At Work
               </CardTitle>
             </CardHeader>
@@ -107,7 +107,7 @@ export default function CasesPage() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+              <CardTitle className="text-sm font-medium text-slate-600">
                 Off Work
               </CardTitle>
             </CardHeader>
@@ -117,7 +117,7 @@ export default function CasesPage() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+              <CardTitle className="text-sm font-medium text-slate-600">
                 High Risk
               </CardTitle>
             </CardHeader>
@@ -178,7 +178,7 @@ export default function CasesPage() {
               <TableBody>
                 {filteredCases.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-8 text-slate-600">
                       No cases found
                     </TableCell>
                   </TableRow>

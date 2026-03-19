@@ -787,7 +787,7 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
             <TrendIcon trend={data.analysis.trend} />
             <div>
               <p className="text-sm">{data.analysis.message}</p>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-slate-600 mt-1">
                 Trend: <span className="font-medium capitalize">{data.analysis.trend}</span>
                 {data.analysis.weeksDifference !== null && (
                   <> | Difference: {Math.abs(data.analysis.weeksDifference)} weeks</>
@@ -958,7 +958,7 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
           <CardContent>
             <ul className="space-y-1">
               {data.riskFactors.map((factor, index) => (
-                <li key={index} className="text-xs text-muted-foreground flex items-center gap-2">
+                <li key={index} className="text-xs text-slate-600 flex items-center gap-2">
                   <span className="w-1 h-1 bg-amber-500 rounded-full" />
                   {factor}
                 </li>
@@ -974,7 +974,7 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
           <CardContent>
             <ul className="space-y-1">
               {data.potentialSpecialistReferrals.map((specialist, index) => (
-                <li key={index} className="text-xs text-muted-foreground flex items-center gap-2">
+                <li key={index} className="text-xs text-slate-600 flex items-center gap-2">
                   <span className="w-1 h-1 bg-blue-500 rounded-full" />
                   {specialist}
                 </li>
@@ -985,7 +985,7 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
       </div>
 
         {/* Estimated RTW */}
-        <div className="text-center text-sm text-muted-foreground border-t pt-4">
+        <div className="text-center text-sm text-slate-600 border-t pt-4">
           <p>
             Estimated Return to Work: <strong>{formatDate(data.estimatedRTWDate)}</strong>
             {" "}({data.estimatedWeeks} weeks from injury)
@@ -1041,7 +1041,7 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
               ) : (
                 <div className="border rounded-lg p-8 bg-gray-50 text-center">
                   <FileText className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                  <p className="text-sm text-gray-500 mb-3">No certificate image available</p>
+                  <p className="text-sm text-gray-700 mb-3">No certificate image available</p>
                   <input
                     type="file"
                     ref={fileInputRef}
@@ -1083,7 +1083,7 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
               {/* Details Grid */}
               <div className="grid grid-cols-2 gap-4 pt-2">
                 <div className="bg-gray-50 rounded-lg p-3">
-                  <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
+                  <div className="flex items-center gap-2 text-gray-700 text-xs mb-1">
                     <Calendar className="h-3 w-3" />
                     Date
                   </div>
@@ -1097,7 +1097,7 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
                 </div>
 
                 <div className="bg-gray-50 rounded-lg p-3">
-                  <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
+                  <div className="flex items-center gap-2 text-gray-700 text-xs mb-1">
                     <Activity className="h-3 w-3" />
                     Week
                   </div>

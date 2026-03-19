@@ -18,6 +18,7 @@ import { CurrentCapacityCard } from "@/components/CurrentCapacityCard";
 import { ComponentErrorBoundary } from "@/components/ErrorBoundary";
 import { ContextualHelpSystem } from "@/components/unified-case-management/ContextualHelpSystem";
 import { SmartRTWPlanning } from "@/components/unified-case-management/SmartRTWPlanning";
+import { CaseActionPanel } from "@/components/CaseActionPanel";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -179,7 +180,10 @@ export default function CaseSummaryPage() {
           </div>
         </div>
 
+        {/* Main content area + persistent sidebar */}
+        <div className="flex gap-6 items-start">
         {/* 7-Tab Case Detail View */}
+        <div className="flex-1 min-w-0">
         <Tabs defaultValue="summary" className="space-y-4">
           <TabsList className="grid grid-cols-8 h-12">
             <TabsTrigger value="summary">Summary</TabsTrigger>
@@ -749,6 +753,14 @@ export default function CaseSummaryPage() {
             </ComponentErrorBoundary>
           </TabsContent>
         </Tabs>
+        </div>{/* end flex-1 tab container */}
+
+        {/* Persistent right sidebar */}
+        <CaseActionPanel
+          caseId={workerCase.id}
+          organizationId={workerCase.organizationId}
+        />
+        </div>{/* end flex row */}
       </div>
       <ContextualHelpSystem mode="floating" showTips={true} userRole="case_manager" />
     </PageLayout>
