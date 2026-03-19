@@ -6,7 +6,7 @@ import { GlassPanel } from "@/components/ui/glass-panel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, RefreshCw, Sparkles, CheckCircle2, Circle, AlertCircle, Clock } from "lucide-react";
+import { ArrowLeft, RefreshCw, Sparkles, CheckCircle2, Circle, AlertCircle, Clock, ShieldCheck, ShieldAlert, ShieldX, TrendingUp, TrendingDown, Minus, Flag, CalendarClock } from "lucide-react";
 import { fetchWithCsrf } from "@/lib/queryClient";
 import type { WorkerCase, PaginatedCasesResponse, CaseActionDB } from "@shared/schema";
 import { cn } from "@/lib/utils";
@@ -74,6 +74,508 @@ interface CaseAction {
   completedBy: string | null;
   createdAt: string;
 }
+
+// ─── helpers ──────────────────────────────────────────────────────────────────
+
+const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000;
+const MS_PER_DAY  = 24 * 60 * 60 * 1000;
+
+function calcWeeksOffWork(dateOfInjury: string | undefined): number {
+  if (!dateOfInjury) return 0;
+  const injury = new Date(dateOfInjury);
+  if (isNaN(injury.getTime())) return 0;
+  return Math.max(0, Math.floor((Date.now() - injury.getTime()) / MS_PER_WEEK));
+}
+
+function calcDaysFromInjury(dateOfInjury: string | undefined): number {
+  if (!dateOfInjury) return 0;
+  const injury = new Date(dateOfInjury);
+  if (isNaN(injury.getTime())) return 0;
+  return Math.max(0, Math.floor((Date.now() - injury.getTime()) / MS_PER_DAY));
+}
+
+/** Returns the next Victorian compliance checkpoint (13/26/52 wk) and days until it. */
+function nextCheckpoint(daysOff: number): { label: string; daysUntil: number } | null {
+  const checkpoints = [
+    { days: 91,  label: "13-week review" },
+    { days: 182, label: "26-week review" },
+    { days: 364, label: "52-week review" },
+  ];
+  for (const cp of checkpoints) {
+    if (daysOff < cp.days) {
+      return { label: cp.label, daysUntil: cp.days - daysOff };
+    }
+  }
+  return null;
+}
+
+function certExpiryStatus(cert: WorkerCase["latestCertificate"]): {
+  expired: boolean;
+  daysAgo: number;
+  label: string;
+} | null {
+  if (!cert?.endDate) return null;
+  const end = new Date(cert.endDate);
+  if (isNaN(end.getTime())) return null;
+  const diff = Math.floor((end.getTime() - Date.now()) / MS_PER_DAY);
+  if (diff < 0) {
+    return { expired: true, daysAgo: Math.abs(diff), label: `Expired ${Math.abs(diff)} day${Math.abs(diff) !== 1 ? "s" : ""} ago` };
+  }
+  return { expired: false, daysAgo: 0, label: `Valid for ${diff} more day${diff !== 1 ? "s" : ""}` };
+}
+
+function formatRelativeDue(dueDate: string | null): { text: string; overdue: boolean } {
+  if (!dueDate) return { text: "No due date", overdue: false };
+  const due = new Date(dueDate);
+  const diffDays = Math.floor((due.getTime() - Date.now()) / MS_PER_DAY);
+  if (diffDays < 0) return { text: `${Math.abs(diffDays)} day${Math.abs(diffDays) !== 1 ? "s" : ""} overdue`, overdue: true };
+  if (diffDays === 0) return { text: "Due today", overdue: false };
+  if (diffDays === 1) return { text: "Due tomorrow", overdue: false };
+  return { text: `Due in ${diffDays} days`, overdue: false };
+}
+
+function riskLevelToPlain(riskLevel: string | undefined, riskScore?: number): string {
+  const level = (riskLevel || "").toLowerCase();
+  if (level === "high" || level === "very high") {
+    return "High probability of long-term incapacity — early intervention needed.";
+  }
+  if (level === "medium") {
+    return "Moderate risk of extended time off — monitor closely and keep RTW plan current.";
+  }
+  if (level === "low") {
+    return "Low risk — standard monitoring and cert renewals expected.";
+  }
+  if (riskScore !== undefined) {
+    if (riskScore >= 0.7) return "High probability of long-term incapacity — early intervention needed.";
+    if (riskScore >= 0.4) return "Moderate risk of extended time off — monitor closely.";
+    return "Low risk — standard monitoring expected.";
+  }
+  return "Risk level not yet assessed.";
+}
+
+/** Derive a next action from case state when the actions API is empty. */
+function deriveNextAction(
+  workerCase: WorkerCase,
+  weeksOff: number,
+  certStatus: ReturnType<typeof certExpiryStatus>
+): { title: string; owner: string; dueText: string; overdue: boolean } | null {
+  if (certStatus?.expired) {
+    return {
+      title: "Chase medical certificate renewal",
+      owner: "Coordinator",
+      dueText: "Overdue",
+      overdue: true,
+    };
+  }
+  if (!workerCase.hasCertificate && weeksOff > 0) {
+    return {
+      title: "Obtain medical certificate from treating GP",
+      owner: "Coordinator",
+      dueText: "As soon as possible",
+      overdue: false,
+    };
+  }
+  if (!workerCase.rtwPlanStatus && weeksOff >= 2 && workerCase.workStatus !== "At work") {
+    return {
+      title: "Create Return to Work plan",
+      owner: "Coordinator",
+      dueText: "Within 3 days",
+      overdue: false,
+    };
+  }
+  if (workerCase.dueDate) {
+    const rel = formatRelativeDue(workerCase.dueDate);
+    return {
+      title: workerCase.nextStep || "Review case progress",
+      owner: "Coordinator",
+      dueText: rel.text,
+      overdue: rel.overdue,
+    };
+  }
+  return null;
+}
+
+// ─── flags engine ─────────────────────────────────────────────────────────────
+
+interface CaseFlag {
+  label: string;
+  severity: "red" | "amber" | "green";
+}
+
+function buildCaseFlags(
+  workerCase: WorkerCase,
+  weeksOff: number,
+  certStatus: ReturnType<typeof certExpiryStatus>
+): CaseFlag[] {
+  const flags: CaseFlag[] = [];
+
+  if (certStatus?.expired) {
+    flags.push({ label: certStatus.label, severity: "red" });
+  } else if (!workerCase.hasCertificate && weeksOff > 0) {
+    flags.push({ label: "No medical certificate on file", severity: "red" });
+  }
+
+  if (!workerCase.rtwPlanStatus && weeksOff >= 2 && workerCase.workStatus !== "At work") {
+    flags.push({ label: "No RTW plan — worker off work 2+ weeks", severity: "amber" });
+  }
+
+  const compliance = (workerCase.complianceIndicator || "").toLowerCase();
+  if (compliance === "low" || compliance === "very low") {
+    flags.push({ label: "Compliance indicator: Low", severity: "red" });
+  } else if (compliance === "medium") {
+    flags.push({ label: "Compliance indicator: Medium", severity: "amber" });
+  }
+
+  if (workerCase.riskLevel === "High") {
+    flags.push({ label: `Risk level: ${workerCase.riskLevel}`, severity: "red" });
+  }
+
+  if (flags.length === 0) {
+    flags.push({ label: "No active flags", severity: "green" });
+  }
+
+  return flags;
+}
+
+// ─── Command Centre Component ──────────────────────────────────────────────────
+
+interface CommandCentreProps {
+  workerCase: WorkerCase;
+  caseActions: CaseAction[];
+  completeAction: { isPending: boolean };
+  uncompleteAction: { isPending: boolean };
+  toggleAction: (action: CaseAction) => void;
+}
+
+function CommandCentre({ workerCase, caseActions, completeAction, uncompleteAction, toggleAction }: CommandCentreProps) {
+  const weeksOff   = calcWeeksOffWork(workerCase.dateOfInjury);
+  const daysOff    = calcDaysFromInjury(workerCase.dateOfInjury);
+  const checkpoint = nextCheckpoint(daysOff);
+  const certStatus = certExpiryStatus(workerCase.latestCertificate);
+  const flags      = buildCaseFlags(workerCase, weeksOff, certStatus);
+
+  // Compliance card
+  const complianceRaw = (workerCase.complianceIndicator || "").toLowerCase();
+  const complianceLevel: "compliant" | "at-risk" | "non-compliant" =
+    complianceRaw === "very high" || complianceRaw === "high" ? "compliant" :
+    complianceRaw === "medium" ? "at-risk" : "non-compliant";
+
+  const complianceIssue =
+    certStatus?.expired ? `Medical cert expired ${certStatus.daysAgo} day${certStatus.daysAgo !== 1 ? "s" : ""} ago` :
+    !workerCase.hasCertificate && weeksOff > 0 ? "No medical certificate on file" :
+    complianceLevel === "at-risk" ? "Compliance indicator flagged" :
+    complianceLevel === "non-compliant" ? "One or more obligations not met" :
+    "All obligations met";
+
+  // Recovery card — derive expected weeks from risk/injury context
+  const expectedWeeks =
+    workerCase.riskLevel === "Low" ? 6 :
+    workerCase.riskLevel === "Medium" ? 12 :
+    workerCase.riskLevel === "High" ? 26 : 8;
+
+  const recoveryStatus: "on-track" | "delayed" =
+    weeksOff <= expectedWeeks ? "on-track" : "delayed";
+
+  // Next action card
+  const pendingActions = caseActions.filter(a => a.status !== "completed");
+  const topAction = pendingActions.length > 0
+    ? pendingActions.sort((a, b) => {
+        const pOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+        return (pOrder[a.priority] ?? 9) - (pOrder[b.priority] ?? 9);
+      })[0]
+    : null;
+
+  const derivedAction = !topAction ? deriveNextAction(workerCase, weeksOff, certStatus) : null;
+
+  const nextActionTitle  = topAction?.title ?? derivedAction?.title ?? "No immediate actions";
+  const nextActionOwner  = topAction?.completedBy ?? derivedAction?.owner ?? "Coordinator";
+  const nextActionDue    = topAction ? formatRelativeDue(topAction.dueDate) : (derivedAction ? { text: derivedAction.dueText, overdue: derivedAction.overdue } : { text: "", overdue: false });
+
+  // Action feed
+  const recentCompleted  = caseActions.filter(a => a.status === "completed").slice(0, 3);
+  const pendingFeed      = caseActions.filter(a => a.status !== "completed");
+
+  return (
+    <div className="p-4 space-y-4 max-w-5xl mx-auto">
+
+      {/* ── 1. Case Status Banner ─────────────────────────────────────────── */}
+      <div className="rounded-xl border bg-card p-4 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-bold">{workerCase.workerName}</h2>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              {workerCase.company}
+              {workerCase.dateOfInjury ? ` · Injured ${workerCase.dateOfInjury}` : ""}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Weeks off work */}
+            {weeksOff > 0 && (
+              <Badge className="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200 font-medium">
+                Week {weeksOff} off work
+              </Badge>
+            )}
+
+            {/* Work status */}
+            <Badge className={cn(
+              "font-medium",
+              workerCase.workStatus === "At work"
+                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-100"
+                : "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-100"
+            )}>
+              {workerCase.workStatus}
+            </Badge>
+
+            {/* Risk level */}
+            <Badge variant="outline" className={cn(
+              "font-medium border",
+              workerCase.riskLevel === "High"
+                ? "border-red-300 text-red-700 bg-red-50 dark:bg-red-950/30 dark:text-red-300"
+                : workerCase.riskLevel === "Medium"
+                ? "border-amber-300 text-amber-700 bg-amber-50 dark:bg-amber-950/30 dark:text-amber-300"
+                : "border-emerald-300 text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-300"
+            )}>
+              {workerCase.riskLevel || "Unknown"} risk
+            </Badge>
+
+            {/* Compliance checkpoint countdown */}
+            {checkpoint && checkpoint.daysUntil <= 21 && (
+              <Badge className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100 flex items-center gap-1 font-medium">
+                <CalendarClock className="h-3 w-3" />
+                {checkpoint.label} in {checkpoint.daysUntil} day{checkpoint.daysUntil !== 1 ? "s" : ""}
+              </Badge>
+            )}
+            {checkpoint && checkpoint.daysUntil > 21 && checkpoint.daysUntil <= 42 && (
+              <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-100 flex items-center gap-1 font-medium">
+                <CalendarClock className="h-3 w-3" />
+                {checkpoint.label} in {checkpoint.daysUntil} days
+              </Badge>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ── 2. Four Status Cards ──────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+
+        {/* Card 1 — Compliance */}
+        <Card className={cn(
+          "border-t-4",
+          complianceLevel === "compliant"     ? "border-t-emerald-500" :
+          complianceLevel === "at-risk"       ? "border-t-amber-500" :
+                                               "border-t-red-500"
+        )}>
+          <CardContent className="pt-4 pb-3 px-4">
+            <div className="flex items-start justify-between mb-2">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Compliance</span>
+              {complianceLevel === "compliant"   ? <ShieldCheck className="h-5 w-5 text-emerald-500 shrink-0" /> :
+               complianceLevel === "at-risk"     ? <ShieldAlert className="h-5 w-5 text-amber-500 shrink-0" /> :
+                                                   <ShieldX className="h-5 w-5 text-red-500 shrink-0" />}
+            </div>
+            <p className={cn(
+              "text-base font-bold",
+              complianceLevel === "compliant"   ? "text-emerald-700 dark:text-emerald-400" :
+              complianceLevel === "at-risk"     ? "text-amber-700 dark:text-amber-400" :
+                                                  "text-red-700 dark:text-red-400"
+            )}>
+              {complianceLevel === "compliant" ? "Compliant" :
+               complianceLevel === "at-risk"   ? "At Risk" : "Non-Compliant"}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1 leading-snug">{complianceIssue}</p>
+          </CardContent>
+        </Card>
+
+        {/* Card 2 — Recovery */}
+        <Card className={cn(
+          "border-t-4",
+          recoveryStatus === "on-track" ? "border-t-emerald-500" : "border-t-amber-500"
+        )}>
+          <CardContent className="pt-4 pb-3 px-4">
+            <div className="flex items-start justify-between mb-2">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Recovery</span>
+              {recoveryStatus === "on-track"
+                ? <TrendingUp className="h-5 w-5 text-emerald-500 shrink-0" />
+                : <TrendingDown className="h-5 w-5 text-amber-500 shrink-0" />}
+            </div>
+            {recoveryStatus === "on-track" ? (
+              <>
+                <p className="text-base font-bold text-emerald-700 dark:text-emerald-400">On Track</p>
+                <p className="text-xs text-muted-foreground mt-1 leading-snug">
+                  Week {weeksOff} of ~{expectedWeeks} expected — progressing as expected
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-base font-bold text-amber-700 dark:text-amber-400">Delayed</p>
+                <p className="text-xs text-muted-foreground mt-1 leading-snug">
+                  {weeksOff - expectedWeeks} week{weeksOff - expectedWeeks !== 1 ? "s" : ""} beyond expected recovery — assessment needed
+                </p>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Card 3 — Next Action */}
+        <Card className={cn(
+          "border-t-4",
+          nextActionDue.overdue ? "border-t-red-500" :
+          (topAction || derivedAction) ? "border-t-blue-500" : "border-t-slate-300"
+        )}>
+          <CardContent className="pt-4 pb-3 px-4">
+            <div className="flex items-start justify-between mb-2">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Next Action</span>
+              <Clock className={cn("h-5 w-5 shrink-0", nextActionDue.overdue ? "text-red-500" : "text-blue-500")} />
+            </div>
+            <p className="text-sm font-bold leading-snug">{nextActionTitle}</p>
+            {(topAction || derivedAction) && (
+              <div className="mt-1.5 space-y-0.5">
+                <p className="text-xs text-muted-foreground">Owner: {nextActionOwner}</p>
+                <p className={cn("text-xs font-medium", nextActionDue.overdue ? "text-red-600" : "text-muted-foreground")}>
+                  {nextActionDue.text}
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Card 4 — Case Health / Flags */}
+        <Card className={cn(
+          "border-t-4",
+          flags.some(f => f.severity === "red")    ? "border-t-red-500" :
+          flags.some(f => f.severity === "amber")  ? "border-t-amber-500" :
+                                                     "border-t-emerald-500"
+        )}>
+          <CardContent className="pt-4 pb-3 px-4">
+            <div className="flex items-start justify-between mb-2">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Case Health</span>
+              <Flag className={cn(
+                "h-5 w-5 shrink-0",
+                flags.some(f => f.severity === "red")   ? "text-red-500" :
+                flags.some(f => f.severity === "amber") ? "text-amber-500" :
+                                                          "text-emerald-500"
+              )} />
+            </div>
+            <p className={cn(
+              "text-base font-bold",
+              flags.some(f => f.severity === "red")   ? "text-red-700 dark:text-red-400" :
+              flags.some(f => f.severity === "amber") ? "text-amber-700 dark:text-amber-400" :
+                                                        "text-emerald-700 dark:text-emerald-400"
+            )}>
+              {flags.filter(f => f.severity !== "green").length} flag{flags.filter(f => f.severity !== "green").length !== 1 ? "s" : ""}
+            </p>
+            <ul className="mt-1 space-y-0.5">
+              {flags.slice(0, 3).map((f, i) => (
+                <li key={i} className={cn(
+                  "text-xs leading-snug",
+                  f.severity === "red"   ? "text-red-600 dark:text-red-400" :
+                  f.severity === "amber" ? "text-amber-600 dark:text-amber-400" :
+                                          "text-emerald-600 dark:text-emerald-400"
+                )}>
+                  {f.label}
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Risk plain English row */}
+      <div className="rounded-lg border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+        <span className="font-medium text-foreground">Risk outlook: </span>
+        {riskLevelToPlain(workerCase.riskLevel)}
+      </div>
+
+      {/* ── 3. Action Feed ───────────────────────────────────────────────── */}
+      <div className="space-y-2">
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide px-1">Action Feed</h3>
+
+        {recentCompleted.length === 0 && pendingFeed.length === 0 ? (
+          <Card>
+            <CardContent className="py-6 text-center text-muted-foreground text-sm">
+              <Minus className="h-6 w-6 mx-auto mb-2 opacity-40" />
+              No actions recorded yet. Actions are created when compliance checks run.
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-1.5">
+            {/* Pending / overdue actions */}
+            {pendingFeed.map(action => {
+              const due = formatRelativeDue(action.dueDate);
+              const isPriorityCriticalOrHigh = action.priority === "critical" || action.priority === "high";
+              return (
+                <div
+                  key={action.id}
+                  className={cn(
+                    "flex items-start gap-3 rounded-lg border px-4 py-3",
+                    due.overdue               ? "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800" :
+                    isPriorityCriticalOrHigh  ? "bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-800" :
+                                               "bg-card border-border"
+                  )}
+                >
+                  <button
+                    onClick={() => toggleAction(action)}
+                    disabled={completeAction.isPending || uncompleteAction.isPending}
+                    className="mt-0.5 shrink-0"
+                    aria-label="Mark complete"
+                  >
+                    <Circle className={cn(
+                      "h-4 w-4",
+                      due.overdue ? "text-red-500" : "text-muted-foreground"
+                    )} />
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium">{action.title}</p>
+                    {action.description && <p className="text-xs text-muted-foreground mt-0.5">{action.description}</p>}
+                  </div>
+                  <div className="text-right shrink-0">
+                    {action.completedBy && <p className="text-xs text-muted-foreground">{action.completedBy}</p>}
+                    <p className={cn("text-xs font-medium", due.overdue ? "text-red-600" : "text-muted-foreground")}>
+                      {due.text}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Completed actions */}
+            {recentCompleted.length > 0 && (
+              <>
+                {pendingFeed.length > 0 && <div className="border-t my-2" />}
+                <p className="text-xs text-muted-foreground px-1 pb-0.5">Recently completed</p>
+                {recentCompleted.map(action => (
+                  <div
+                    key={action.id}
+                    className="flex items-start gap-3 rounded-lg border border-border px-4 py-3 opacity-60"
+                  >
+                    <button
+                      onClick={() => toggleAction(action)}
+                      disabled={completeAction.isPending || uncompleteAction.isPending}
+                      className="mt-0.5 shrink-0"
+                      aria-label="Mark incomplete"
+                    >
+                      <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                    </button>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm line-through">{action.title}</p>
+                    </div>
+                    {action.completedAt && (
+                      <p className="text-xs text-muted-foreground shrink-0">
+                        {new Date(action.completedAt).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function EmployerCaseDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -347,248 +849,14 @@ export default function EmployerCaseDetailPage() {
         </div>
 
         {/* Tab Content */}
-        <TabsContent value="summary" className="flex-1 p-3 overflow-hidden">
-          <div className="grid grid-cols-[1fr_minmax(350px,450px)] gap-4 h-full w-full max-w-full">
-            <div className="space-y-2 min-w-0 overflow-hidden">
-              {/* Latest Update - Prominent at top */}
-              {workerCase.ticketLastUpdatedAt && (
-                <Card className="border-l-4 border-l-primary bg-primary/5">
-                  <CardContent className="py-2">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-lg font-semibold text-primary">
-                          Status as at {new Date(workerCase.ticketLastUpdatedAt).toLocaleDateString('en-AU', {
-                            weekday: 'long',
-                            day: 'numeric',
-                            month: 'long',
-                            year: 'numeric'
-                          })}
-                        </p>
-                      </div>
-                      <Badge className={cn(
-                        "text-sm",
-                        workerCase.workStatus === "At work"
-                          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-100"
-                          : "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-100"
-                      )}>
-                        {workerCase.workStatus}
-                      </Badge>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              <Card className="overflow-hidden">
-                <CardContent className="p-0">
-                  {loadingSummary && !aiSummary ? (
-                    <div className="flex items-center justify-center py-8">
-                      <div className="text-center">
-                        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-                        <p className="text-sm text-muted-foreground">Generating case summary...</p>
-                      </div>
-                    </div>
-                  ) : aiSummary ? (
-                    <div className="p-3 text-sm [&_strong]:font-semibold [&_table]:text-xs [&_th]:py-1 [&_td]:py-1 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-primary [&_h2]:mt-3 [&_h2]:mb-2 [&_h2:first-child]:mt-0 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:space-y-1 [&_p]:my-2 [&_p:first-of-type]:mt-0">
-                      {renderMarkdown(
-                        aiSummary
-                          .replace(/Case Summary\s*[-–—:]\s*[A-Za-z\s]+\n*/gi, '')
-                          .replace(/\*\*Case Summary\s*[-–—:]\s*[A-Za-z\s]+\*\*\n*/gi, '')
-                          .replace(/^#+\s*Case Summary.*\n*/gim, '')
-                          .replace(/^#+\s*Latest Update.*\n*/gim, '')
-                          .replace(/\*\*Latest Update.*?\*\*\n*/gi, '')
-                          .replace(/Latest Update\s*\(\d{4}-\d{2}-\d{2}\)\s*\n*/gi, '')
-                          .replace(/^Latest Update\s*\n/gim, '')
-                          .replace(/^\s*\n+/g, '') // Remove leading empty lines
-                          .trim()
-                      )}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <Sparkles className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
-                      <p className="text-sm text-muted-foreground mb-4">
-                        No summary available yet.
-                      </p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={generateSummary}
-                        disabled={loadingSummary}
-                      >
-                        Generate Summary
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="min-w-0 overflow-hidden">
-              <Card className="h-full">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center justify-between">
-                    <span>Action Plan</span>
-                    <Badge variant="outline" className="text-xs">
-                      {caseActions.filter(a => a.status !== 'completed').length} pending
-                    </Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="overflow-y-auto max-h-[calc(100vh-300px)]">
-                  {caseActions.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">No actions for this case yet.</p>
-                      <p className="text-xs mt-1">Actions will appear when compliance checks run.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {/* Critical Priority */}
-                      {groupedActions.critical.length > 0 && (
-                        <div className="space-y-2">
-                          <h3 className="text-sm font-semibold text-red-600 flex items-center gap-1">
-                            <AlertCircle className="h-4 w-4" />
-                            Critical ({groupedActions.critical.length})
-                          </h3>
-                          <ul className="text-xs space-y-1.5">
-                            {groupedActions.critical.map(action => (
-                              <li key={action.id} className="flex items-start gap-2 p-2 bg-red-50 rounded border border-red-200">
-                                <button
-                                  onClick={() => toggleAction(action)}
-                                  className="mt-0.5 shrink-0"
-                                  disabled={completeAction.isPending || uncompleteAction.isPending}
-                                >
-                                  <Circle className="h-4 w-4 text-red-500 hover:text-red-700" />
-                                </button>
-                                <div className="flex-1">
-                                  <span className="font-medium">{action.title}</span>
-                                  {action.description && <p className="text-muted-foreground mt-0.5">{action.description}</p>}
-                                  {action.dueDate && (
-                                    <p className="text-red-600 text-[10px] mt-1">Due: {new Date(action.dueDate).toLocaleDateString()}</p>
-                                  )}
-                                </div>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {/* High Priority */}
-                      {groupedActions.high.length > 0 && (
-                        <div className="space-y-2">
-                          <h3 className="text-sm font-semibold text-orange-600">
-                            High Priority ({groupedActions.high.length})
-                          </h3>
-                          <ul className="text-xs space-y-1.5">
-                            {groupedActions.high.map(action => (
-                              <li key={action.id} className="flex items-start gap-2 p-2 bg-orange-50 rounded border border-orange-200">
-                                <button
-                                  onClick={() => toggleAction(action)}
-                                  className="mt-0.5 shrink-0"
-                                  disabled={completeAction.isPending || uncompleteAction.isPending}
-                                >
-                                  <Circle className="h-4 w-4 text-orange-500 hover:text-orange-700" />
-                                </button>
-                                <div className="flex-1">
-                                  <span className="font-medium">{action.title}</span>
-                                  {action.description && <p className="text-muted-foreground mt-0.5">{action.description}</p>}
-                                  {action.dueDate && (
-                                    <p className="text-orange-600 text-[10px] mt-1">Due: {new Date(action.dueDate).toLocaleDateString()}</p>
-                                  )}
-                                </div>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {/* Medium Priority */}
-                      {groupedActions.medium.length > 0 && (
-                        <div className="space-y-2">
-                          <h3 className="text-sm font-semibold text-yellow-600">
-                            Medium Priority ({groupedActions.medium.length})
-                          </h3>
-                          <ul className="text-xs space-y-1.5">
-                            {groupedActions.medium.map(action => (
-                              <li key={action.id} className="flex items-start gap-2 p-2 bg-yellow-50 rounded border border-yellow-200">
-                                <button
-                                  onClick={() => toggleAction(action)}
-                                  className="mt-0.5 shrink-0"
-                                  disabled={completeAction.isPending || uncompleteAction.isPending}
-                                >
-                                  <Circle className="h-4 w-4 text-yellow-600 hover:text-yellow-700" />
-                                </button>
-                                <div className="flex-1">
-                                  <span className="font-medium">{action.title}</span>
-                                  {action.description && <p className="text-muted-foreground mt-0.5">{action.description}</p>}
-                                  {action.dueDate && (
-                                    <p className="text-yellow-700 text-[10px] mt-1">Due: {new Date(action.dueDate).toLocaleDateString()}</p>
-                                  )}
-                                </div>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {/* Low Priority */}
-                      {groupedActions.low.length > 0 && (
-                        <div className="space-y-2">
-                          <h3 className="text-sm font-semibold text-gray-600">
-                            Low Priority ({groupedActions.low.length})
-                          </h3>
-                          <ul className="text-xs space-y-1.5">
-                            {groupedActions.low.map(action => (
-                              <li key={action.id} className="flex items-start gap-2 p-2 bg-gray-50 rounded border border-gray-200">
-                                <button
-                                  onClick={() => toggleAction(action)}
-                                  className="mt-0.5 shrink-0"
-                                  disabled={completeAction.isPending || uncompleteAction.isPending}
-                                >
-                                  <Circle className="h-4 w-4 text-gray-500 hover:text-gray-700" />
-                                </button>
-                                <div className="flex-1">
-                                  <span>{action.title}</span>
-                                  {action.description && <p className="text-muted-foreground mt-0.5">{action.description}</p>}
-                                </div>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {/* Completed */}
-                      {groupedActions.completed.length > 0 && (
-                        <div className="space-y-2 border-t pt-3 mt-3">
-                          <h3 className="text-sm font-semibold text-emerald-600 flex items-center gap-1">
-                            <CheckCircle2 className="h-4 w-4" />
-                            Completed ({groupedActions.completed.length})
-                          </h3>
-                          <ul className="text-xs space-y-1">
-                            {groupedActions.completed.slice(0, 5).map(action => (
-                              <li key={action.id} className="flex items-start gap-2 p-1.5 opacity-60">
-                                <button
-                                  onClick={() => toggleAction(action)}
-                                  className="mt-0.5 shrink-0"
-                                  disabled={completeAction.isPending || uncompleteAction.isPending}
-                                >
-                                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                                </button>
-                                <span className="line-through">{action.title}</span>
-                              </li>
-                            ))}
-                            {groupedActions.completed.length > 5 && (
-                              <li className="text-muted-foreground pl-6">
-                                +{groupedActions.completed.length - 5} more completed
-                              </li>
-                            )}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+        <TabsContent value="summary" className="flex-1 overflow-y-auto">
+          <CommandCentre
+            workerCase={workerCase}
+            caseActions={caseActions}
+            completeAction={completeAction}
+            uncompleteAction={uncompleteAction}
+            toggleAction={toggleAction}
+          />
         </TabsContent>
 
         <TabsContent value="injury" className="flex-1 p-6">
