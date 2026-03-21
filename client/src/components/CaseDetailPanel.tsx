@@ -28,6 +28,7 @@ import { StatusHeader } from "./StatusHeader";
 import { DateQualityBadge } from "./DateQualityBadge";
 import { CaseActionPlanCard } from "./CaseActionPlanCard";
 import { CaseContactsPanel } from "./CaseContactsPanel";
+import { MilestoneClock } from "./MilestoneClock";
 import type { CaseContact, CaseContactRole } from "@shared/schema";
 
 interface CaseDetailPanelProps {
@@ -622,6 +623,11 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
             pendingActions={caseActions}
             certificateStatus={certificateStatus}
           />
+
+          {/* Compliance Milestone Clock - Off Work cases only */}
+          {workerCase.workStatus === "Off work" && workerCase.caseStatus !== "closed" && (
+            <MilestoneClock workerCase={workerCase} />
+          )}
 
           {/* Interactive Action Plan - WHO does WHAT by WHEN */}
           <CaseActionPlanCard

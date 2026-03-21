@@ -14,6 +14,7 @@ import {
   Search,
   User,
 } from "lucide-react";
+import { MilestoneBadge } from "./MilestoneBadge";
 
 const LIFECYCLE_COLORS: Record<CaseLifecycleStage, string> = {
   intake: "bg-slate-100 text-slate-700 border-slate-300",
@@ -104,9 +105,14 @@ const CaseRow = memo(function CaseRow({ c, isSelected, onCaseClick }: CaseRowPro
         </span>
       </td>
       <td className="px-4 py-3">
-        <span className={cn("text-sm font-medium", days > 90 ? "text-red-600" : days > 30 ? "text-amber-600" : "text-muted-foreground")}>
-          {days}d
-        </span>
+        <div className="flex flex-col gap-0.5">
+          <span className={cn("text-sm font-medium", days > 90 ? "text-red-600" : days > 30 ? "text-amber-600" : "text-muted-foreground")}>
+            Day {days}
+          </span>
+          {c.workStatus === "Off work" && c.dateOfInjury && (
+            <MilestoneBadge dateOfInjury={c.dateOfInjury as string} />
+          )}
+        </div>
       </td>
       <td className="px-4 py-3">
         <RiskBadge level={c.riskLevel} type="risk" explanation={c.compliance?.reason} />

@@ -19,6 +19,7 @@ import { ComponentErrorBoundary } from "@/components/ErrorBoundary";
 import { ContextualHelpSystem } from "@/components/unified-case-management/ContextualHelpSystem";
 import { SmartRTWPlanning } from "@/components/unified-case-management/SmartRTWPlanning";
 import { CaseActionPanel } from "@/components/CaseActionPanel";
+import { MilestoneClock } from "@/components/MilestoneClock";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -29,7 +30,7 @@ export default function CaseSummaryPage() {
   const { id } = useParams<{ id: string }>();
 
   const { data: paginatedData, isLoading } = useQuery<PaginatedCasesResponse>({
-    queryKey: ["/api/gpnet2/cases"],
+    queryKey: ["/api/gpnet2/cases?limit=200"],
   });
   const cases = paginatedData?.cases ?? [];
 
@@ -179,6 +180,11 @@ export default function CaseSummaryPage() {
             Next Step Due: <span className="font-medium">{new Date(workerCase.dueDate).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}</span>
           </div>
         </div>
+
+        {/* Compliance Milestone Clock — Off Work cases only */}
+        {workerCase.workStatus === "Off work" && workerCase.caseStatus !== "closed" && (
+          <MilestoneClock workerCase={workerCase} />
+        )}
 
         {/* Main content area + persistent sidebar */}
         <div className="flex gap-6 items-start">
