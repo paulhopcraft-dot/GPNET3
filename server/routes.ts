@@ -1723,8 +1723,66 @@ User question: ${message}`;
       const certEndDate = latestCert?.endDate ? new Date(latestCert.endDate) : null;
       const complianceEvents = computeComplianceDeadlines(workerCase, certEndDate);
 
+      // Inject key case milestones computed from case data
+      const milestoneEvents: typeof events = [];
+      if (workerCase.dateOfInjury) {
+        const injuryDate = new Date(workerCase.dateOfInjury);
+        // Injury occurred
+        milestoneEvents.push({
+          id: `milestone-injury-${workerCase.id}`,
+          caseId: workerCase.id,
+          eventType: "milestone",
+          timestamp: injuryDate.toISOString(),
+          title: "Injury Occurred",
+          description: `Case opened. Worker: ${workerCase.workerName}. Status at injury: ${workerCase.workStatus || "Unknown"}.`,
+          severity: "info",
+          icon: "personal_injury",
+          metadata: {},
+        } as any);
+
+        // Expected RTW (only if still off work)
+        if (workerCase.workStatus === "Off work") {
+          const riskLevel = (workerCase.riskLevel || "").toLowerCase();
+          const estWeeks = riskLevel === "high" ? 26 : riskLevel === "medium" ? 12 : 6;
+          const expectedRtw = new Date(injuryDate);
+          expectedRtw.setDate(expectedRtw.getDate() + estWeeks * 7);
+          const today = new Date();
+          const isOverdue = expectedRtw < today;
+          milestoneEvents.push({
+            id: `milestone-expected-rtw-${workerCase.id}`,
+            caseId: workerCase.id,
+            eventType: "milestone",
+            timestamp: expectedRtw.toISOString(),
+            title: isOverdue ? "Expected RTW (Overdue)" : "Expected Return to Work",
+            description: isOverdue
+              ? `Worker was expected to return by ${expectedRtw.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })} based on ${riskLevel} risk profile. Escalation recommended.`
+              : `Target return to work based on ${riskLevel} risk profile (${estWeeks}-week estimate).`,
+            severity: isOverdue ? "critical" : "info",
+            icon: isOverdue ? "schedule" : "work",
+            metadata: { estimatedWeeks: estWeeks },
+          } as any);
+        }
+
+        // Certificate events from cert history
+        for (const cert of certs) {
+          if (cert.startDate) {
+            milestoneEvents.push({
+              id: `milestone-cert-${cert.id}`,
+              caseId: workerCase.id,
+              eventType: "certificate",
+              timestamp: new Date(cert.startDate).toISOString(),
+              title: "Medical Certificate Issued",
+              description: `Certificate valid ${cert.startDate} to ${cert.endDate}. Capacity: ${(cert as any).workCapacity ?? "Off work"}.`,
+              severity: "info",
+              icon: "description",
+              metadata: {},
+            } as any);
+          }
+        }
+      }
+
       // Merge and sort all events by timestamp (historical + future deadlines)
-      const allEvents = [...events, ...complianceEvents].sort(
+      const allEvents = [...events, ...complianceEvents, ...milestoneEvents].sort(
         (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
       );
 
