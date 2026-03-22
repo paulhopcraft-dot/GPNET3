@@ -250,12 +250,24 @@ router.get('/dashboard', authorize(), async (req: Request, res: Response) => {
         }
       }
 
-      // Check for missing RTW plans (for cases off work > 4 weeks)
-      if (workerCase.workStatus === 'Off work') {
+      // RTW plan awaiting employer sign-off — surfaces as critical action for Sarah
+      if (workerCase.rtwPlanStatus === 'pending_employer_review') {
+        priorityActions.push({
+          id: `rtw-approval-${caseId}`,
+          workerName,
+          action: `RTW plan requires your approval`,
+          priority: 'critical',
+          daysOverdue: 0,
+          type: 'rtw_plan',
+          caseId,
+          workStatus: workerCase.workStatus || 'Unknown'
+        });
+      } else if (workerCase.workStatus === 'Off work') {
+        // Check for missing RTW plans (for cases off work > 4 weeks without any plan)
         const injuryDate = new Date(workerCase.dateOfInjury);
         const weeksSinceInjury = Math.floor((now.getTime() - injuryDate.getTime()) / (1000 * 60 * 60 * 24 * 7));
 
-        if (weeksSinceInjury >= 4) {
+        if (weeksSinceInjury >= 4 && !workerCase.rtwPlanStatus) {
           priorityActions.push({
             id: `rtw-${caseId}`,
             workerName,
