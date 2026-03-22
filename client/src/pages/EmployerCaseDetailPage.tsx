@@ -1,13 +1,12 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { useState, useEffect, Suspense, lazy } from "react";
+import { useState, Suspense, lazy } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GlassPanel } from "@/components/ui/glass-panel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, RefreshCw, Sparkles, CheckCircle2, Circle, AlertCircle, Clock, ShieldCheck, ShieldAlert, ShieldX, TrendingUp, TrendingDown, Minus, Flag, CalendarClock } from "lucide-react";
-import { fetchWithCsrf } from "@/lib/queryClient";
 import type { WorkerCase, PaginatedCasesResponse, CaseActionDB } from "@shared/schema";
 import { cn } from "@/lib/utils";
 import { TimelineCard } from "@/components/TimelineCard";
@@ -15,22 +14,6 @@ import { CaseContactsPanel } from "@/components/CaseContactsPanel";
 
 // Heavy components - lazy load to reduce initial bundle size
 const DynamicRecoveryTimeline = lazy(() => import("@/components/DynamicRecoveryTimeline").then(m => ({ default: m.DynamicRecoveryTimeline })));
-
-// Lazy loaded markdown component with remark-gfm
-const LazyMarkdownRenderer = lazy(async () => {
-  const [ReactMarkdown, remarkGfm] = await Promise.all([
-    import('react-markdown'),
-    import('remark-gfm')
-  ]);
-
-  return {
-    default: ({ children }: { children: string }) => (
-      <ReactMarkdown.default remarkPlugins={[remarkGfm.default]}>
-        {children}
-      </ReactMarkdown.default>
-    )
-  };
-});
 
 // Date formatting helper
 const formatCertDate = (dateStr: string | undefined): string => {
@@ -640,9 +623,7 @@ function CommandCentre({ workerCase, caseActions, effectiveRiskLevel }: CommandC
 export default function EmployerCaseDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [loadingSummary, setLoadingSummary] = useState(false);
   const [aiSummary, setAiSummary] = useState<string | null>(null);
-  const [summaryLoaded, setSummaryLoaded] = useState(false);
 
   // Fetch case data - use same approach as CaseSummaryPage
   const { data: paginatedData, isLoading, error } = useQuery<PaginatedCasesResponse>({
@@ -658,54 +639,6 @@ export default function EmployerCaseDetailPage() {
   });
 
   const caseActions = actionsData?.data ?? [];
-
-  // Group actions by priorityLevel (text field) — not priority (legacy integer)
-  const groupActionsByPriority = (actions: CaseAction[]) => {
-    const pl = (a: CaseAction) => a.priorityLevel ?? 'medium';
-    const critical = actions.filter(a => pl(a) === 'critical' && a.status !== 'completed');
-    const high = actions.filter(a => pl(a) === 'high' && a.status !== 'completed');
-    const medium = actions.filter(a => pl(a) === 'medium' && a.status !== 'completed');
-    const low = actions.filter(a => pl(a) === 'low' && a.status !== 'completed');
-    const completed = actions.filter(a => a.status === 'completed');
-    return { critical, high, medium, low, completed };
-  };
-
-  const groupedActions = groupActionsByPriority(caseActions);
-
-  const generateSummary = async () => {
-    if (!id) return;
-    setLoadingSummary(true);
-    try {
-      const response = await fetchWithCsrf(`/api/cases/${id}/summary`, {
-        method: "POST",
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setAiSummary(data.summary);
-        setSummaryLoaded(true);
-      }
-    } catch (error) {
-      console.error("Error generating summary:", error);
-    } finally {
-      setLoadingSummary(false);
-    }
-  };
-
-  // Employers cannot access clinical AI summaries — mark as loaded immediately
-  // to suppress the 403-generating POST call (server blocks it anyway via RBAC).
-  useEffect(() => {
-    if (workerCase && id && !summaryLoaded) {
-      setSummaryLoaded(true);
-    }
-  }, [workerCase, id, summaryLoaded]);
-
-  const renderMarkdown = (content: string) => (
-    <Suspense fallback={<div className="animate-pulse h-32 bg-gray-100 rounded"></div>}>
-      <LazyMarkdownRenderer>
-        {content}
-      </LazyMarkdownRenderer>
-    </Suspense>
-  );
 
   // Parse injury details from AI summary markdown tables
   const parseInjuryFromSummary = (summary: string | null | undefined) => {
