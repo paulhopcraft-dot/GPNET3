@@ -400,11 +400,18 @@ function CommandCentre({ workerCase, caseActions, effectiveRiskLevel, onApproveR
         if (workerCase.rtwPlanStatus === "pending_employer_review") barrierParts.push("RTW plan awaiting your approval");
         if ((complianceLevel === "non-compliant")) barrierParts.push("compliance obligations not met");
 
+        const activePlan = workerCase.rtwPlanStatus === "in_progress" || workerCase.rtwPlanStatus === "working_well";
+
         return (
-          <div className="rounded-lg border bg-muted/30 px-4 py-3 text-sm">
+          <div className="rounded-lg border bg-muted/30 px-4 py-3 text-sm space-y-1">
             <p className="text-foreground leading-relaxed">{statusLine}</p>
+            {activePlan && (
+              <p className="text-emerald-700 dark:text-emerald-400 leading-relaxed">
+                ✓ Return to work plan is active — your coordinator is managing implementation. Contact them if you have questions.
+              </p>
+            )}
             {barrierParts.length > 0 && (
-              <p className="text-amber-700 dark:text-amber-400 mt-1 leading-relaxed">
+              <p className="text-amber-700 dark:text-amber-400 leading-relaxed">
                 Current barriers: {barrierParts.join("; ")}.
               </p>
             )}
@@ -510,6 +517,11 @@ function CommandCentre({ workerCase, caseActions, effectiveRiskLevel, onApproveR
                 >
                   Request changes
                 </Button>
+              </div>
+            )}
+            {(workerCase?.rtwPlanStatus === "in_progress" || workerCase?.rtwPlanStatus === "working_well") && (
+              <div className="mt-2 rounded-md bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700 px-3 py-2 text-xs text-emerald-800 dark:text-emerald-300">
+                ✓ Plan approved — coordinator is managing implementation
               </div>
             )}
           </CardContent>
