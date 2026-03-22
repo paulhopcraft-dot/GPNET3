@@ -699,12 +699,13 @@ export default function EmployerCaseDetailPage() {
     }
   };
 
-  // Auto-load summary when case data is available
+  // Employers cannot access clinical AI summaries — mark as loaded immediately
+  // to suppress the 403-generating POST call (server blocks it anyway via RBAC).
   useEffect(() => {
-    if (workerCase && id && !summaryLoaded && !loadingSummary) {
-      generateSummary();
+    if (workerCase && id && !summaryLoaded) {
+      setSummaryLoaded(true);
     }
-  }, [workerCase, id, summaryLoaded, loadingSummary]);
+  }, [workerCase, id, summaryLoaded]);
 
   const renderMarkdown = (content: string) => (
     <Suspense fallback={<div className="animate-pulse h-32 bg-gray-100 rounded"></div>}>
