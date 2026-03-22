@@ -56,9 +56,7 @@ export default function InjuryDateReviewPage() {
 
   const acceptMutation = useMutation({
     mutationFn: (caseId: string) =>
-      apiRequest(`/api/injury-dates/${caseId}/accept`, {
-        method: "POST",
-      }),
+      apiRequest('POST', `/api/injury-dates/${caseId}/accept`),
     onSuccess: () => {
       toast({ title: "Date accepted", description: "The extracted date has been approved." });
       queryClient.invalidateQueries({ queryKey: ["/api/injury-dates/review-queue"] });
@@ -75,10 +73,7 @@ export default function InjuryDateReviewPage() {
 
   const correctMutation = useMutation({
     mutationFn: ({ caseId, newDate, reason }: { caseId: string; newDate: string; reason: string }) =>
-      apiRequest(`/api/injury-dates/${caseId}/correct`, {
-        method: "POST",
-        body: JSON.stringify({ newDate, reason }),
-      }),
+      apiRequest("POST", `/api/injury-dates/${caseId}/correct`, { newDate, reason }),
     onSuccess: () => {
       toast({ title: "Date corrected", description: "The injury date has been updated successfully." });
       queryClient.invalidateQueries({ queryKey: ["/api/injury-dates/review-queue"] });
