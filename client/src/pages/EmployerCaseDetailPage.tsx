@@ -1,5 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { useState, Suspense, lazy } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GlassPanel } from "@/components/ui/glass-panel";
@@ -624,6 +626,23 @@ export default function EmployerCaseDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const approveRtwMutation = useMutation({
+    mutationFn: () =>
+      apiRequest("PATCH", `/api/rtw/cases/${id}/status`, {
+        rtwPlanStatus: "in_progress",
+        reason: "Approved by employer",
+      }),
+    onSuccess: () => {
+      toast({ title: "RTW plan approved", description: "The Return to Work plan is now active." });
+      queryClient.invalidateQueries({ queryKey: ["/api/gpnet2/cases"] });
+    },
+    onError: () => {
+      toast({ title: "Failed to approve plan", variant: "destructive" });
+    },
+  });
 
   // Fetch case data - use same approach as CaseSummaryPage
   const { data: paginatedData, isLoading, error } = useQuery<PaginatedCasesResponse>({
@@ -1338,6 +1357,35 @@ export default function EmployerCaseDetailPage() {
                              workerCase.rtwPlanStatus === "completed" ? "Completed" :
                              workerCase.rtwPlanStatus}
                           </p>
+                          {workerCase.rtwPlanStatus === "pending_employer_review" && (
+                            <div className="flex gap-2 mt-3">
+                              <Button
+                                size="sm"
+                                className="bg-emerald-500 hover:bg-emerald-600 text-white"
+                                disabled={approveRtwMutation.isPending}
+                                onClick={() => approveRtwMutation.mutate()}
+                              >
+                                {approveRtwMutation.isPending ? "Approving…" : "Approve plan"}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-white/30 text-white/80 hover:bg-white/10"
+                                disabled={approveRtwMutation.isPending}
+                                onClick={() => {
+                                  apiRequest("PATCH", `/api/rtw/cases/${id}/status`, {
+                                    rtwPlanStatus: "on_hold",
+                                    reason: "Employer requested changes",
+                                  }).then(() => {
+                                    toast({ title: "Changes requested", description: "The coordinator has been notified." });
+                                    queryClient.invalidateQueries({ queryKey: ["/api/gpnet2/cases"] });
+                                  });
+                                }}
+                              >
+                                Request changes
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       )}
                       <div>
