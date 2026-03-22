@@ -567,9 +567,9 @@ export function SmartWorkflowWizard({
 
             {/* Step Component */}
             <div className="min-h-[200px]">
-              {React.cloneElement(currentStep.component as React.ReactElement, {
+              {React.cloneElement(currentStep.component as React.ReactElement<{ data: unknown; onChange: (data: unknown) => void }>, {
                 data: workflowData[currentStep.id] || {},
-                onChange: (data: any) => updateStepData(currentStep.id, data)
+                onChange: (data: unknown) => updateStepData(currentStep.id, data)
               })}
             </div>
 
