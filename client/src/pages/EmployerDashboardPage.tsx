@@ -327,20 +327,24 @@ function EmployerDashboardContent() {
             <div className="divide-y divide-slate-100">
               {[...allCasesData.cases]
                 .sort((a, b) => {
-                  // Off work first, then At work; within group sort by weeks off (longest first)
+                  // RTW approval needed first, then Off work (longest first), then At work
+                  const aPending = a.rtwPlanStatus === "pending_employer_review";
+                  const bPending = b.rtwPlanStatus === "pending_employer_review";
+                  if (aPending !== bPending) return aPending ? -1 : 1;
                   if (a.workStatus !== b.workStatus) return a.workStatus === "Off work" ? -1 : 1;
                   return new Date(a.dateOfInjury).getTime() - new Date(b.dateOfInjury).getTime();
                 })
                 .map(c => {
                   const weeksOff = Math.max(0, Math.floor((Date.now() - new Date(c.dateOfInjury).getTime()) / (7 * 24 * 60 * 60 * 1000)));
+                  const needsApproval = c.rtwPlanStatus === "pending_employer_review";
                   return (
                     <div
                       key={c.id}
-                      className="flex items-center justify-between px-4 py-3 hover:bg-slate-50 cursor-pointer group"
+                      className={`flex items-center justify-between px-4 py-3 hover:bg-slate-50 cursor-pointer group${needsApproval ? " bg-yellow-50 border-l-4 border-l-yellow-400" : ""}`}
                       onClick={() => navigate(`/employer/case/${c.id}`)}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-semibold text-slate-600">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold ${needsApproval ? "bg-yellow-200 text-yellow-800" : "bg-slate-200 text-slate-600"}`}>
                           {c.workerName.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
                         </div>
                         <div>
@@ -351,6 +355,9 @@ function EmployerDashboardContent() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
+                        {needsApproval && (
+                          <Badge className="bg-yellow-100 text-yellow-800 text-xs border border-yellow-300">RTW approval needed</Badge>
+                        )}
                         <Badge className={
                           c.workStatus === "Off work"
                             ? "bg-amber-100 text-amber-800 text-xs"

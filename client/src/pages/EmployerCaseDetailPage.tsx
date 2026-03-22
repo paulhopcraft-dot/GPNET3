@@ -157,6 +157,14 @@ function deriveNextAction(
   weeksOff: number,
   certStatus: ReturnType<typeof certExpiryStatus>
 ): { title: string; owner: string; dueText: string; overdue: boolean } | null {
+  if (workerCase.rtwPlanStatus === "pending_employer_review") {
+    return {
+      title: "Review and approve Return to Work plan",
+      owner: "You (employer sign-off required)",
+      dueText: "Action required",
+      overdue: true,
+    };
+  }
   if (certStatus?.expired) {
     return {
       title: "Chase medical certificate renewal",
