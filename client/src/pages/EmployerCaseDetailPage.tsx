@@ -214,7 +214,9 @@ function buildCaseFlags(
     flags.push({ label: "No medical certificate on file", severity: "red" });
   }
 
-  if (!workerCase.rtwPlanStatus && weeksOff >= 2 && workerCase.workStatus !== "At work") {
+  if (workerCase.rtwPlanStatus === "pending_employer_review") {
+    flags.push({ label: "Action required: RTW plan awaiting your approval", severity: "red" });
+  } else if (!workerCase.rtwPlanStatus && weeksOff >= 2 && workerCase.workStatus !== "At work") {
     flags.push({ label: "No RTW plan — worker off work 2+ weeks", severity: "amber" });
   }
 
@@ -782,7 +784,7 @@ export default function EmployerCaseDetailPage() {
             <div className="min-w-0">
               <h1 className="text-lg font-bold truncate">{workerCase.workerName}</h1>
               <p className="text-xs text-muted-foreground truncate">
-                {workerCase.company} • {workerCase.dateOfInjury}
+                {workerCase.company} • Injured {formatCertDate(workerCase.dateOfInjury)}
               </p>
             </div>
           </div>
@@ -1376,12 +1378,33 @@ export default function EmployerCaseDetailPage() {
                       <div>
                         <h4 className="text-sm font-semibold text-white/90 mb-2">Primary Diagnosis</h4>
                         <p className="text-sm text-white/80">{workerCase.summary || "Diagnosis details pending"}</p>
-                        <p className="text-sm text-white/60">Injury Date: {workerCase.dateOfInjury}</p>
+                        <p className="text-sm text-white/60">Injury Date: {formatCertDate(workerCase.dateOfInjury)}</p>
                       </div>
                       <div>
                         <h4 className="text-sm font-semibold text-white/90 mb-2">Work Status</h4>
                         <p className="text-sm text-white/80">{workerCase.workStatus}</p>
                       </div>
+                      {workerCase.rtwPlanStatus && (
+                        <div>
+                          <h4 className="text-sm font-semibold text-white/90 mb-2">RTW Plan</h4>
+                          <p className={cn(
+                            "text-sm font-medium",
+                            workerCase.rtwPlanStatus === "pending_employer_review" ? "text-yellow-300" :
+                            workerCase.rtwPlanStatus === "in_progress" || workerCase.rtwPlanStatus === "working_well" ? "text-emerald-300" :
+                            workerCase.rtwPlanStatus === "failing" ? "text-red-300" :
+                            "text-white/80"
+                          )}>
+                            {workerCase.rtwPlanStatus === "pending_employer_review" ? "Awaiting your approval" :
+                             workerCase.rtwPlanStatus === "in_progress" ? "In progress" :
+                             workerCase.rtwPlanStatus === "working_well" ? "On track" :
+                             workerCase.rtwPlanStatus === "failing" ? "Failing — intervention needed" :
+                             workerCase.rtwPlanStatus === "planned_not_started" ? "Planned, not started" :
+                             workerCase.rtwPlanStatus === "on_hold" ? "On hold" :
+                             workerCase.rtwPlanStatus === "completed" ? "Completed" :
+                             workerCase.rtwPlanStatus}
+                          </p>
+                        </div>
+                      )}
                       <div>
                         <h4 className="text-sm font-semibold text-white/90 mb-2">Risk Level</h4>
                         <Badge className={cn(
