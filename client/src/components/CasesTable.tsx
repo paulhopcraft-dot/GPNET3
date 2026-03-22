@@ -53,10 +53,30 @@ function daysOffWork(c: WorkerCase): number {
   return Math.floor((Date.now() - new Date(c.dateOfInjury).getTime()) / 86_400_000);
 }
 
+/** Extract XGBoost probability score from the AI summary text field.
+ *  Returns a 0–1 float or null if not present. */
+function extractXGBoostScore(aiSummaryText: string | null | undefined): number | null {
+  if (!aiSummaryText) return null;
+  const match = aiSummaryText.match(/xgboost\s+risk\s+([\d.]+)/i);
+  if (!match || !match[1]) return null;
+  const val = parseFloat(match[1]);
+  return isNaN(val) ? null : val;
+}
+
+/** Derive effective risk level — XGBoost overrides the stored value when it signals higher risk. */
+function effectiveRiskLevel(c: WorkerCase): "High" | "Medium" | "Low" {
+  const stored: "High" | "Medium" | "Low" = c.riskLevel ?? "Medium";
+  const xgb = extractXGBoostScore(c.aiSummary);
+  if (xgb === null) return stored;
+  if (xgb >= 0.8) return "High";
+  if (xgb >= 0.6) return stored === "Low" ? "Medium" : stored;
+  return stored;
+}
+
 function urgencyScore(c: WorkerCase): number {
   // Higher = more urgent. Overdue red flag cases get highest score.
   const compliance = c.complianceIndicator?.toLowerCase() ?? "";
-  const risk = c.riskLevel?.toLowerCase() ?? "";
+  const risk = effectiveRiskLevel(c).toLowerCase();
   let score = 0;
   if (compliance === "low" || compliance === "very low") score += 100;
   else if (compliance === "medium") score += 50;
@@ -109,7 +129,7 @@ const CaseRow = memo(function CaseRow({ c, isSelected, onCaseClick }: CaseRowPro
         </span>
       </td>
       <td className="px-4 py-3">
-        <RiskBadge level={c.riskLevel} type="risk" explanation={c.compliance?.reason} />
+        <RiskBadge level={effectiveRiskLevel(c)} type="risk" explanation={c.compliance?.reason} />
       </td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-1">
