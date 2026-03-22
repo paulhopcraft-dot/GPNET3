@@ -1781,6 +1781,34 @@ User question: ${message}`;
         }
       }
 
+      // RTW plan status milestone — shows coordinator when employer approved / plan changed
+      const rtwStatus = (workerCase as any).rtwPlanStatus as string | undefined;
+      if (rtwStatus && rtwStatus !== "not_planned") {
+        const rtwLabels: Record<string, { title: string; description: string; severity: string; icon: string }> = {
+          planned_not_started: { title: "RTW Plan Created", description: "A return to work plan has been prepared for this case.", severity: "info", icon: "assignment" },
+          pending_employer_review: { title: "RTW Plan — Awaiting Employer Approval", description: "The coordinator submitted the return to work plan for employer sign-off.", severity: "warning", icon: "pending_actions" },
+          in_progress: { title: "RTW Plan — Employer Approved ✓", description: "Employer signed off on the return to work plan. Plan is now active.", severity: "success", icon: "assignment_turned_in" },
+          working_well: { title: "RTW Plan — Working Well", description: "Return to work plan is progressing as planned.", severity: "success", icon: "check_circle" },
+          failing: { title: "RTW Plan — Failing", description: "Return to work plan is not meeting targets. Review required.", severity: "critical", icon: "error" },
+          on_hold: { title: "RTW Plan — On Hold", description: "Return to work plan has been paused pending review.", severity: "warning", icon: "pause_circle" },
+          completed: { title: "RTW Plan — Completed", description: "Worker has successfully returned to work.", severity: "success", icon: "task_alt" },
+        };
+        const label = rtwLabels[rtwStatus];
+        if (label) {
+          milestoneEvents.push({
+            id: `milestone-rtw-status-${workerCase.id}`,
+            caseId: workerCase.id,
+            eventType: "milestone",
+            timestamp: new Date((workerCase as any).updatedAt || workerCase.dateOfInjury).toISOString(),
+            title: label.title,
+            description: label.description,
+            severity: label.severity,
+            icon: label.icon,
+            metadata: { rtwPlanStatus: rtwStatus },
+          } as any);
+        }
+      }
+
       // Merge and sort all events by timestamp (historical + future deadlines)
       const allEvents = [...events, ...complianceEvents, ...milestoneEvents].sort(
         (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
