@@ -112,8 +112,9 @@ export function registerTimelineRoutes(app: Express) {
       // Evaluate clinical evidence to get flags
       const clinicalEvidence = evaluateClinicalEvidence(workerCase);
 
-      // Use AI summary (rich medical text) for injury type detection, fall back to ticket subject
-      const diagnosisText = workerCase.aiSummary || workerCase.summary || "";
+      // Use human-readable summary for injury type detection (not the XGBoost aiSummary which lacks diagnosis keywords).
+      // aiSummary is reserved for XGBoost score extraction; summary contains the clinical description.
+      const diagnosisText = workerCase.summary || workerCase.aiSummary || "";
       logger.api.info("Injury type detection input", {
         caseId: id,
         hasAiSummary: !!workerCase.aiSummary,
@@ -127,7 +128,8 @@ export function registerTimelineRoutes(app: Express) {
       const weeksOffWork = workerCase.dateOfInjury
         ? Math.floor((Date.now() - new Date(workerCase.dateOfInjury).getTime()) / (7 * 24 * 60 * 60 * 1000))
         : 0;
-      const xgboostMatch = diagnosisText.match(
+      const xgboostSource = workerCase.aiSummary || workerCase.summary || "";
+      const xgboostMatch = xgboostSource.match(
         /XGBoost\s+(?:risk(?:\s+index)?|probability|stability score|resilience score)\s+([\d.]+)/i
       );
       const xgboostScore = xgboostMatch ? parseFloat(xgboostMatch[1]) : null;
