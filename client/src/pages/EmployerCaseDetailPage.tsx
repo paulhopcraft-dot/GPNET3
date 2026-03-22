@@ -650,25 +650,8 @@ export default function EmployerCaseDetailPage() {
     },
   });
 
-  // Auto-trigger compliance sync when actions are empty
-  const syncCompliance = useMutation({
-    mutationFn: async () => {
-      const response = await fetchWithCsrf(`/api/actions/case/${id}/compliance/sync`, { method: "POST" });
-      if (!response.ok) throw new Error("Compliance sync failed");
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/actions/case/${id}`] });
-    },
-  });
-
-  // Trigger compliance sync on first load if no pending actions exist
-  const hasPendingActions = caseActions.some(a => a.status === 'pending');
-  useEffect(() => {
-    if (id && actionsData && !hasPendingActions && !syncCompliance.isPending && !syncCompliance.isSuccess && !syncCompliance.isError) {
-      syncCompliance.mutate();
-    }
-  }, [id, actionsData]);
+  // Employer role cannot trigger compliance sync (403 — no organizationId in employer JWT).
+  // Compliance checks are run by coordinators; employer view is read-only for actions.
 
   const toggleAction = (action: CaseAction) => {
     if (action.status === 'completed') {
