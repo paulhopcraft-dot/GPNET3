@@ -135,21 +135,18 @@ function formatRelativeDue(dueDate: string | null): { text: string; overdue: boo
   return { text: `Due in ${diffDays} days`, overdue: false };
 }
 
-function riskLevelToPlain(riskLevel: string | undefined, riskScore?: number): string {
+function riskLevelToPlain(riskLevel: string | undefined, weeksOff?: number): string {
   const level = (riskLevel || "").toLowerCase();
-  if (level === "high" || level === "very high") {
-    return "High probability of long-term incapacity — early intervention needed.";
+  // Duration override: 36+ weeks without RTW = high risk regardless of stored level
+  const longRunning = (weeksOff ?? 0) >= 36;
+  if (level === "high" || level === "very high" || longRunning) {
+    return "High probability of long-term incapacity — immediate RTW intervention required.";
   }
   if (level === "medium") {
     return "Moderate risk of extended time off — monitor closely and keep RTW plan current.";
   }
   if (level === "low") {
     return "Low risk — standard monitoring and cert renewals expected.";
-  }
-  if (riskScore !== undefined) {
-    if (riskScore >= 0.7) return "High probability of long-term incapacity — early intervention needed.";
-    if (riskScore >= 0.4) return "Moderate risk of extended time off — monitor closely.";
-    return "Low risk — standard monitoring expected.";
   }
   return "Risk level not yet assessed.";
 }
@@ -498,7 +495,7 @@ function CommandCentre({ workerCase, caseActions, completeAction, uncompleteActi
       {/* Risk plain English row */}
       <div className="rounded-lg border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
         <span className="font-medium text-foreground">Risk outlook: </span>
-        {riskLevelToPlain(workerCase.riskLevel)}
+        {riskLevelToPlain(effectiveRiskLevel, weeksOff)}
       </div>
 
       {/* ── 3. Action Feed ───────────────────────────────────────────────── */}
