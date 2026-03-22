@@ -122,13 +122,31 @@ export function registerTimelineRoutes(app: Express) {
         diagnosisTextLen: diagnosisText.length,
       });
 
+      // Derive effective risk level: XGBoost score in aiSummary overrides stored riskLevel (score ≥0.8 → High);
+      // cases off work ≥36 weeks always escalate to High regardless of stored level.
+      const weeksOffWork = workerCase.dateOfInjury
+        ? Math.floor((Date.now() - new Date(workerCase.dateOfInjury).getTime()) / (7 * 24 * 60 * 60 * 1000))
+        : 0;
+      const xgboostMatch = diagnosisText.match(
+        /XGBoost\s+(?:risk(?:\s+index)?|probability|stability score|resilience score)\s+([\d.]+)/i
+      );
+      const xgboostScore = xgboostMatch ? parseFloat(xgboostMatch[1]) : null;
+      let effectiveRiskLevel: "High" | "Medium" | "Low" =
+        (workerCase.riskLevel as "High" | "Medium" | "Low") || "Medium";
+      if (xgboostScore !== null && xgboostScore >= 0.8) {
+        effectiveRiskLevel = "High";
+      }
+      if (weeksOffWork >= 36) {
+        effectiveRiskLevel = "High";
+      }
+
       // Generate comprehensive chart data
       const chartData = generateRecoveryTimelineChartData(
         id,
         workerCase.workerName,
         workerCase.dateOfInjury.toISOString(),
         diagnosisText,
-        workerCase.riskLevel as "High" | "Medium" | "Low",
+        effectiveRiskLevel,
         clinicalEvidence.flags || [],
         certificates
       );
