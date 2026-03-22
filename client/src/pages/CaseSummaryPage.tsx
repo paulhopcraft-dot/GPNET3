@@ -224,7 +224,7 @@ export default function CaseSummaryPage() {
                     {workerCase.compliance?.reason && (
                       <p className="text-xs text-muted-foreground">{workerCase.compliance.reason}</p>
                     )}
-                    <p className="text-xs text-muted-foreground">Due: {new Date(workerCase.dueDate).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}</p>
+                    {workerCase.dueDate && <p className="text-xs text-muted-foreground">Due: {new Date(workerCase.dueDate).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}</p>}
                   </CardContent>
                 </Card>
 
@@ -327,7 +327,7 @@ export default function CaseSummaryPage() {
                     </div>
                     <div>
                       <label className="text-xs text-muted-foreground">Due Date</label>
-                      <p className="text-sm font-medium">{new Date(workerCase.dueDate).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}</p>
+                      <p className="text-sm font-medium">{workerCase.dueDate ? new Date(workerCase.dueDate).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" }) : "—"}</p>
                     </div>
                   </div>
                   {workerCase.summary && (
