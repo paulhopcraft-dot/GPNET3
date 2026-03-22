@@ -965,6 +965,19 @@ User question: ${message}`;
       });
 
       const result = await storage.getGPNet2CasesPaginated(organizationId, page, limit);
+
+      // Iteration 9: fire-and-forget lifecycle stage advancement for orgs with stale intake cases.
+      // Non-blocking — the list returns immediately; next fetch shows updated stages.
+      const staleOrgs = new Set(
+        result.cases
+          .filter(c => c.lifecycleStage === "intake")
+          .map(c => c.organizationId)
+          .filter((id): id is string => !!id)
+      );
+      for (const orgId of staleOrgs) {
+        storage.autoAssignLifecycleStages(orgId).catch(() => {});
+      }
+
       // Phase 1.8: strip clinical fields for employer-role users
       const role = req.user!.role;
       if (isEmployerRole(role)) {
