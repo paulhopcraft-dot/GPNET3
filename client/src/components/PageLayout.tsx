@@ -78,9 +78,6 @@ export function PageLayout({ children, title, subtitle }: PageLayoutProps) {
             </div>
             <h1 className="text-sidebar-foreground text-xl font-bold">Preventli</h1>
           </Link>
-          <div className="mt-1 ml-13 text-xs text-sidebar-foreground/60">
-            Workers' Compensation
-          </div>
         </div>
         <nav className="space-y-1">
           {filteredNavItems.map((item) => (
