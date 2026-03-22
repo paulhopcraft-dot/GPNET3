@@ -363,14 +363,15 @@ function EmployerDashboardContent() {
                 .map(c => {
                   const weeksOff = Math.max(0, Math.floor((Date.now() - new Date(c.dateOfInjury).getTime()) / (7 * 24 * 60 * 60 * 1000)));
                   const needsApproval = c.rtwPlanStatus === "pending_employer_review";
+                  const planActive = c.rtwPlanStatus === "in_progress" || c.rtwPlanStatus === "working_well";
                   return (
                     <div
                       key={c.id}
-                      className={`flex items-center justify-between px-4 py-3 hover:bg-slate-50 cursor-pointer group${needsApproval ? " bg-yellow-50 border-l-4 border-l-yellow-400" : ""}`}
+                      className={`flex items-center justify-between px-4 py-3 hover:bg-slate-50 cursor-pointer group${needsApproval ? " bg-yellow-50 border-l-4 border-l-yellow-400" : planActive ? " bg-emerald-50/40 border-l-4 border-l-emerald-400" : ""}`}
                       onClick={() => navigate(`/employer/case/${c.id}`)}
                     >
                       <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold ${needsApproval ? "bg-yellow-200 text-yellow-800" : "bg-slate-200 text-slate-600"}`}>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold ${needsApproval ? "bg-yellow-200 text-yellow-800" : planActive ? "bg-emerald-200 text-emerald-800" : "bg-slate-200 text-slate-600"}`}>
                           {c.workerName.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
                         </div>
                         <div>
@@ -383,6 +384,9 @@ function EmployerDashboardContent() {
                       <div className="flex items-center gap-2">
                         {needsApproval && (
                           <Badge className="bg-yellow-100 text-yellow-800 text-xs border border-yellow-300">RTW approval needed</Badge>
+                        )}
+                        {planActive && (
+                          <Badge className="bg-emerald-100 text-emerald-800 text-xs border border-emerald-300">✓ RTW plan active</Badge>
                         )}
                         <Badge className={
                           c.workStatus === "Off work"
