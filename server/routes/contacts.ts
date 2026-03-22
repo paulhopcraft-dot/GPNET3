@@ -81,10 +81,52 @@ router.get(
 
       const contacts = await storage.getCaseContacts(caseId, organizationId, { includeInactive });
 
+      // Inject synthetic key contacts from case data when no real contacts exist
+      let allContacts = contacts;
+      if (contacts.length === 0 && req.workerCase) {
+        const wc = req.workerCase;
+        const syntheticContacts: any[] = [];
+        if (wc.workerName) {
+          syntheticContacts.push({
+            id: `synthetic-worker-${caseId}`,
+            caseId,
+            organizationId,
+            role: "worker",
+            name: wc.workerName,
+            phone: null,
+            email: null,
+            company: wc.company || null,
+            isPrimary: true,
+            isActive: true,
+            notes: "Auto-generated from case data",
+            createdAt: wc.dateOfInjury || new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          });
+        }
+        if (wc.owner && wc.owner !== "Unassigned") {
+          syntheticContacts.push({
+            id: `synthetic-coordinator-${caseId}`,
+            caseId,
+            organizationId,
+            role: "case_manager",
+            name: wc.owner,
+            phone: null,
+            email: null,
+            company: "GPNet Case Management",
+            isPrimary: false,
+            isActive: true,
+            notes: "Auto-generated from case data",
+            createdAt: wc.dateOfInjury || new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          });
+        }
+        allContacts = syntheticContacts;
+      }
+
       res.json({
         success: true,
-        data: contacts,
-        total: contacts.length,
+        data: allContacts,
+        total: allContacts.length,
       });
     } catch (error: any) {
       logger.api.error("Error fetching case contacts", { caseId: req.params.caseId }, error);
