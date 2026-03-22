@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import {
   Users,
   AlertTriangle,
@@ -18,6 +19,7 @@ import {
   Building,
   Activity
 } from 'lucide-react';
+import type { PaginatedCasesResponse } from '@shared/schema';
 
 interface CaseStatistics {
   totalCases: number;
@@ -47,11 +49,18 @@ interface DashboardData {
 }
 
 function EmployerDashboardContent() {
+  const navigate = useNavigate();
+
   const { data: dashboardData, isLoading, error } = useQuery<DashboardData>({
     queryKey: ['employer-dashboard'],
     queryFn: () => fetch('/api/employer/dashboard').then(r => r.json()),
-    refetchInterval: 120_000, // Refresh every 2 minutes
-    staleTime: 60_000, // Cache for 1 minute
+    refetchInterval: 120_000,
+    staleTime: 60_000,
+  });
+
+  const { data: allCasesData } = useQuery<PaginatedCasesResponse>({
+    queryKey: ['/api/gpnet2/cases'],
+    staleTime: 60_000,
   });
 
   if (isLoading) {
@@ -303,6 +312,66 @@ function EmployerDashboardContent() {
           </CardContent>
         </Card>
       </div>
+
+      {/* All Workers Roster */}
+      {allCasesData && allCasesData.cases.length > 0 && (
+        <Card className="bg-white shadow-lg border-0">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Users className="w-5 h-5 text-slate-600" />
+              All Workers
+              <Badge variant="secondary" className="ml-1">{allCasesData.cases.length}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="divide-y divide-slate-100">
+              {[...allCasesData.cases]
+                .sort((a, b) => {
+                  // Off work first, then At work; within group sort by weeks off (longest first)
+                  if (a.workStatus !== b.workStatus) return a.workStatus === "Off work" ? -1 : 1;
+                  return new Date(a.dateOfInjury).getTime() - new Date(b.dateOfInjury).getTime();
+                })
+                .map(c => {
+                  const weeksOff = Math.max(0, Math.floor((Date.now() - new Date(c.dateOfInjury).getTime()) / (7 * 24 * 60 * 60 * 1000)));
+                  return (
+                    <div
+                      key={c.id}
+                      className="flex items-center justify-between px-4 py-3 hover:bg-slate-50 cursor-pointer group"
+                      onClick={() => navigate(`/employer/case/${c.id}`)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-semibold text-slate-600">
+                          {c.workerName.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-slate-900 group-hover:text-blue-700">{c.workerName}</p>
+                          <p className="text-xs text-slate-500">
+                            {c.workStatus === "Off work" ? `Week ${weeksOff} off work` : `Week ${weeksOff} post-injury · At work`}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge className={
+                          c.workStatus === "Off work"
+                            ? "bg-amber-100 text-amber-800 text-xs"
+                            : "bg-green-100 text-green-800 text-xs"
+                        }>{c.workStatus}</Badge>
+                        <Badge className={
+                          (c.riskLevel || "").toLowerCase() === "high"
+                            ? "bg-red-100 text-red-800 text-xs"
+                            : (c.riskLevel || "").toLowerCase() === "medium"
+                            ? "bg-amber-100 text-amber-800 text-xs"
+                            : "bg-green-100 text-green-800 text-xs"
+                        }>{c.riskLevel || "Unknown"}</Badge>
+                        <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-blue-500" />
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Quick Actions Footer */}
       <div className="bg-white rounded-xl shadow-lg p-6">
