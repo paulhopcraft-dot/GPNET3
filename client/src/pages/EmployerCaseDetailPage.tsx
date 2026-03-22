@@ -805,13 +805,13 @@ export default function EmployerCaseDetailPage() {
             </Badge>
             <Badge variant="outline" className={cn(
               "text-xs border",
-              workerCase.complianceIndicator === "Very High" || workerCase.complianceIndicator === "High"
-                ? "border-emerald-300 text-emerald-700"
-                : workerCase.complianceIndicator === "Medium"
+              (effectiveRiskLevel || workerCase.riskLevel || "").toLowerCase() === "high"
+                ? "border-red-300 text-red-700"
+                : (effectiveRiskLevel || workerCase.riskLevel || "").toLowerCase() === "medium"
                 ? "border-yellow-300 text-yellow-700"
-                : "border-red-300 text-red-700"
+                : "border-emerald-300 text-emerald-700"
             )}>
-              {workerCase.complianceIndicator}
+              {effectiveRiskLevel || workerCase.riskLevel || "Unknown"}
             </Badge>
           </div>
         </div>
