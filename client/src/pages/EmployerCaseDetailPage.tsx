@@ -386,6 +386,44 @@ function CommandCentre({ workerCase, caseActions, effectiveRiskLevel }: CommandC
         </div>
       </div>
 
+      {/* ── 1b. Employer Brief ────────────────────────────────────────────── */}
+      {(() => {
+        const isOff = workerCase.workStatus !== "At work";
+        const injuryDesc = workerCase.summary
+          ? workerCase.summary.split(/[.;]/)[0].trim().toLowerCase()
+          : "an injury";
+        const injuryDate = formatCertDate(workerCase.dateOfInjury);
+        const riskLabel = (effectiveRiskLevel || workerCase.riskLevel || "unknown").toLowerCase();
+        const overdue = isOff && expectedWeeks > 0 && weeksOff > expectedWeeks;
+        const overdueBy = overdue ? weeksOff - expectedWeeks : 0;
+
+        let statusLine: string;
+        if (!isOff) {
+          statusLine = `${workerCase.workerName} has returned to work and is currently active. The case remains open for monitoring.`;
+        } else if (overdue) {
+          statusLine = `${workerCase.workerName} has been off work for ${weeksOff} weeks — ${overdueBy} week${overdueBy !== 1 ? "s" : ""} beyond the expected ${expectedWeeks}-week recovery window. The claim is classified as ${riskLabel} risk.`;
+        } else {
+          statusLine = `${workerCase.workerName} has been off work for ${weeksOff} week${weeksOff !== 1 ? "s" : ""}. Recovery is within the expected window for a ${riskLabel}-risk claim.`;
+        }
+
+        const barrierParts: string[] = [];
+        if (!workerCase.hasCertificate && isOff) barrierParts.push("no medical certificate on file");
+        if (!workerCase.rtwPlanStatus && weeksOff >= 2 && isOff) barrierParts.push("no RTW plan in place");
+        if (workerCase.rtwPlanStatus === "pending_employer_review") barrierParts.push("RTW plan awaiting your approval");
+        if ((complianceLevel === "non-compliant")) barrierParts.push("compliance obligations not met");
+
+        return (
+          <div className="rounded-lg border bg-muted/30 px-4 py-3 text-sm">
+            <p className="text-foreground leading-relaxed">{statusLine}</p>
+            {barrierParts.length > 0 && (
+              <p className="text-amber-700 dark:text-amber-400 mt-1 leading-relaxed">
+                Current barriers: {barrierParts.join("; ")}.
+              </p>
+            )}
+          </div>
+        );
+      })()}
+
       {/* ── 2. Four Status Cards ──────────────────────────────────────────── */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4">
 
