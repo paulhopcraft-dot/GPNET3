@@ -73,6 +73,8 @@ interface CaseAction {
   dueDate: string | null;
   completedAt: string | null;
   completedBy: string | null;
+  assignedTo?: string | null;
+  assignedToName?: string | null;
   createdAt: string;
 }
 
@@ -251,13 +253,10 @@ function buildCaseFlags(
 interface CommandCentreProps {
   workerCase: WorkerCase;
   caseActions: CaseAction[];
-  completeAction: { isPending: boolean };
-  uncompleteAction: { isPending: boolean };
-  toggleAction: (action: CaseAction) => void;
   effectiveRiskLevel: string;
 }
 
-function CommandCentre({ workerCase, caseActions, completeAction, uncompleteAction, toggleAction, effectiveRiskLevel }: CommandCentreProps) {
+function CommandCentre({ workerCase, caseActions, effectiveRiskLevel }: CommandCentreProps) {
   const weeksOff   = calcWeeksOffWork(workerCase.dateOfInjury);
   const daysOff    = calcDaysFromInjury(workerCase.dateOfInjury);
   const checkpoint = nextCheckpoint(daysOff);
@@ -317,7 +316,7 @@ function CommandCentre({ workerCase, caseActions, completeAction, uncompleteActi
   };
 
   const nextActionTitle  = (topAction ? (topAction.title || actionTypeLabel(topAction.type)) : null) ?? derivedAction?.title ?? "No immediate actions";
-  const nextActionOwner  = topAction?.completedBy ?? derivedAction?.owner ?? "Coordinator";
+  const nextActionOwner  = topAction?.assignedToName ?? topAction?.assignedTo ?? derivedAction?.owner ?? "Coordinator";
   const nextActionDue    = topAction ? formatRelativeDue(topAction.dueDate) : (derivedAction ? { text: derivedAction.dueText, overdue: derivedAction.overdue } : { text: "", overdue: false });
 
   // Action feed
@@ -896,9 +895,6 @@ export default function EmployerCaseDetailPage() {
           <CommandCentre
             workerCase={workerCase}
             caseActions={caseActions}
-            completeAction={completeAction}
-            uncompleteAction={uncompleteAction}
-            toggleAction={toggleAction}
             effectiveRiskLevel={effectiveRiskLevel ?? workerCase.riskLevel ?? "Unknown"}
           />
         </TabsContent>
@@ -926,27 +922,27 @@ export default function EmployerCaseDetailPage() {
                       {injuryFromSummary['date of onset'] || formatCertDate(workerCase.dateOfInjury) || "Not recorded"}
                     </div>
                   </div>
-                  {(workerCase.medicalConstraints?.mechanism || injuryFromSummary['mechanism']) && (
+                  {((workerCase.medicalConstraints as Record<string, string> | undefined)?.mechanism || injuryFromSummary['mechanism']) && (
                     <div className="flex border-b pb-2">
                       <div className="w-40 text-sm font-medium">Mechanism</div>
                       <div className="text-sm flex-1">
-                        {workerCase.medicalConstraints?.mechanism || injuryFromSummary['mechanism']}
+                        {(workerCase.medicalConstraints as Record<string, string> | undefined)?.mechanism || injuryFromSummary['mechanism']}
                       </div>
                     </div>
                   )}
-                  {(workerCase.medicalConstraints?.treatingGp || injuryFromSummary['treating gp']) && (
+                  {((workerCase.medicalConstraints as Record<string, string> | undefined)?.treatingGp || injuryFromSummary['treating gp']) && (
                     <div className="flex border-b pb-2">
                       <div className="w-40 text-sm font-medium">Treating GP</div>
                       <div className="text-sm flex-1">
-                        {workerCase.medicalConstraints?.treatingGp || injuryFromSummary['treating gp']}
+                        {(workerCase.medicalConstraints as Record<string, string> | undefined)?.treatingGp || injuryFromSummary['treating gp']}
                       </div>
                     </div>
                   )}
-                  {(workerCase.medicalConstraints?.physiotherapist || injuryFromSummary['physiotherapist']) && (
+                  {((workerCase.medicalConstraints as Record<string, string> | undefined)?.physiotherapist || injuryFromSummary['physiotherapist']) && (
                     <div className="flex border-b pb-2">
                       <div className="w-40 text-sm font-medium">Physiotherapist</div>
                       <div className="text-sm flex-1">
-                        {workerCase.medicalConstraints?.physiotherapist || injuryFromSummary['physiotherapist']}
+                        {(workerCase.medicalConstraints as Record<string, string> | undefined)?.physiotherapist || injuryFromSummary['physiotherapist']}
                       </div>
                     </div>
                   )}
