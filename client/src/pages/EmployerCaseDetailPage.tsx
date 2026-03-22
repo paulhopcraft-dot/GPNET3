@@ -256,6 +256,12 @@ function CommandCentre({ workerCase, caseActions, effectiveRiskLevel, onApproveR
     queryKey: [`/api/cases/${workerCase.id}/recovery-chart`],
   });
 
+  // Fetch RTW plan summary for employer approval preview
+  const { data: rtwPlanData } = useQuery<{ success: boolean; data: { plan: { planType: string; startDate: string | null }; schedule: { weekNumber: number; hoursPerDay: number; daysPerWeek: number }[]; duties: { dutyName: string; suitability: string }[] } }>({
+    queryKey: [`/api/rtw-plans?caseId=${workerCase.id}`],
+    enabled: workerCase.rtwPlanStatus === "pending_employer_review",
+  });
+
   // Compliance card
   const complianceRaw = (workerCase.complianceIndicator || "").toLowerCase();
   const complianceLevel: "compliant" | "at-risk" | "non-compliant" =
@@ -500,23 +506,48 @@ function CommandCentre({ workerCase, caseActions, effectiveRiskLevel, onApproveR
               </div>
             )}
             {workerCase?.rtwPlanStatus === "pending_employer_review" && onApproveRtw && (
-              <div className="flex gap-2 mt-3">
-                <Button
-                  size="sm"
-                  className="bg-emerald-500 hover:bg-emerald-600 text-white"
-                  disabled={rtwApprovePending}
-                  onClick={onApproveRtw}
-                >
-                  {rtwApprovePending ? "Approving…" : "Approve plan"}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={rtwApprovePending}
-                  onClick={onRequestChangesRtw}
-                >
-                  Request changes
-                </Button>
+              <div className="mt-3 space-y-2">
+                {rtwPlanData?.data && (() => {
+                  const { plan, schedule, duties } = rtwPlanData.data;
+                  const planTypeLabel = plan.planType === "graduated_return" ? "Graduated return" : plan.planType === "partial_hours" ? "Partial hours" : "Normal hours";
+                  const firstWeek = schedule[0];
+                  const lastWeek = schedule[schedule.length - 1];
+                  const includedDuties = duties.filter(d => d.suitability !== "not_suitable");
+                  const startStr = plan.startDate ? new Date(plan.startDate).toLocaleDateString("en-AU", { day: "numeric", month: "short" }) : "TBC";
+                  return (
+                    <div className="rounded-md border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 text-xs space-y-1">
+                      <p className="font-semibold text-amber-900 dark:text-amber-200">Plan summary — please review before approving</p>
+                      <p className="text-amber-800 dark:text-amber-300"><span className="font-medium">Type:</span> {planTypeLabel} · <span className="font-medium">Start:</span> {startStr} · <span className="font-medium">Duration:</span> {schedule.length} week{schedule.length !== 1 ? "s" : ""}</p>
+                      {firstWeek && (
+                        <p className="text-amber-800 dark:text-amber-300">
+                          <span className="font-medium">Schedule:</span> Week 1 — {firstWeek.hoursPerDay}h/day, {firstWeek.daysPerWeek} day{firstWeek.daysPerWeek !== 1 ? "s" : ""}/wk
+                          {lastWeek && lastWeek.weekNumber > 1 && ` → Week ${lastWeek.weekNumber} — ${lastWeek.hoursPerDay}h/day, ${lastWeek.daysPerWeek} day${lastWeek.daysPerWeek !== 1 ? "s" : ""}/wk`}
+                        </p>
+                      )}
+                      {includedDuties.length > 0 && (
+                        <p className="text-amber-800 dark:text-amber-300"><span className="font-medium">Duties:</span> {includedDuties.slice(0, 3).map(d => d.dutyName).join(", ")}{includedDuties.length > 3 ? ` +${includedDuties.length - 3} more` : ""}</p>
+                      )}
+                    </div>
+                  );
+                })()}
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    className="bg-emerald-500 hover:bg-emerald-600 text-white"
+                    disabled={rtwApprovePending}
+                    onClick={onApproveRtw}
+                  >
+                    {rtwApprovePending ? "Approving…" : "Approve plan"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={rtwApprovePending}
+                    onClick={onRequestChangesRtw}
+                  >
+                    Request changes
+                  </Button>
+                </div>
               </div>
             )}
             {(workerCase?.rtwPlanStatus === "in_progress" || workerCase?.rtwPlanStatus === "working_well") && (

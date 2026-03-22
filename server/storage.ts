@@ -640,6 +640,7 @@ export interface IStorage {
   getDutiesByIds(dutyIds: string[], organizationId: string): Promise<RTWDutyWithDemands[]>;
 
   // RTW Plan Output - Plan Details (OUT-01 to OUT-06)
+  getLatestRTWPlanByCase(caseId: string, organizationId: string): Promise<RTWPlanWithDetails | null>;
   getRTWPlanFullDetails(planId: string, organizationId: string): Promise<RTWPlanFullDetails | null>;
   getRoleById(roleId: string, organizationId: string): Promise<RTWRoleDB | null>;
 
@@ -3210,6 +3211,20 @@ class DbStorage implements IStorage {
       schedule,
       duties,
     };
+  }
+
+  async getLatestRTWPlanByCase(caseId: string, organizationId: string): Promise<RTWPlanWithDetails | null> {
+    const [plan] = await db.select()
+      .from(rtwPlans)
+      .where(and(
+        eq(rtwPlans.caseId, caseId),
+        eq(rtwPlans.organizationId, organizationId)
+      ))
+      .orderBy(desc(rtwPlans.createdAt))
+      .limit(1);
+
+    if (!plan) return null;
+    return this.getRTWPlanById(plan.id, organizationId);
   }
 
   /**
