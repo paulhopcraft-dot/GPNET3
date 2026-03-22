@@ -658,11 +658,13 @@ export default function EmployerCaseDetailPage() {
         rtwPlanStatus: "in_progress",
         reason: "Approved by employer",
       }),
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({ title: "RTW plan approved", description: "The Return to Work plan is now active." });
-      queryClient.invalidateQueries({ queryKey: ["/api/gpnet2/cases"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/employer/dashboard"] });
-      setTimeout(() => navigate("/employer"), 1200);
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ["/api/gpnet2/cases"] }),
+        queryClient.refetchQueries({ queryKey: ["/api/employer/dashboard"] }),
+      ]);
+      navigate("/employer");
     },
     onError: () => {
       toast({ title: "Failed to approve plan", variant: "destructive" });
@@ -872,16 +874,17 @@ export default function EmployerCaseDetailPage() {
             caseActions={caseActions}
             effectiveRiskLevel={effectiveRiskLevel ?? workerCase.riskLevel ?? "Unknown"}
             onApproveRtw={() => approveRtwMutation.mutate()}
-            onRequestChangesRtw={() => {
-              apiRequest("PUT", `/api/cases/${id}/rtw-plan`, {
+            onRequestChangesRtw={async () => {
+              await apiRequest("PUT", `/api/cases/${id}/rtw-plan`, {
                 rtwPlanStatus: "on_hold",
                 reason: "Employer requested changes",
-              }).then(() => {
-                toast({ title: "Changes requested", description: "The coordinator has been notified." });
-                queryClient.invalidateQueries({ queryKey: ["/api/gpnet2/cases"] });
-                queryClient.invalidateQueries({ queryKey: ["/api/employer/dashboard"] });
-                setTimeout(() => navigate("/employer"), 1200);
               });
+              toast({ title: "Changes requested", description: "The coordinator has been notified." });
+              await Promise.all([
+                queryClient.refetchQueries({ queryKey: ["/api/gpnet2/cases"] }),
+                queryClient.refetchQueries({ queryKey: ["/api/employer/dashboard"] }),
+              ]);
+              navigate("/employer");
             }}
             rtwApprovePending={approveRtwMutation.isPending}
           />
@@ -1410,14 +1413,17 @@ export default function EmployerCaseDetailPage() {
                                 variant="outline"
                                 className="border-white/30 text-white/80 hover:bg-white/10"
                                 disabled={approveRtwMutation.isPending}
-                                onClick={() => {
-                                  apiRequest("PUT", `/api/cases/${id}/rtw-plan`, {
+                                onClick={async () => {
+                                  await apiRequest("PUT", `/api/cases/${id}/rtw-plan`, {
                                     rtwPlanStatus: "on_hold",
                                     reason: "Employer requested changes",
-                                  }).then(() => {
-                                    toast({ title: "Changes requested", description: "The coordinator has been notified." });
-                                    queryClient.invalidateQueries({ queryKey: ["/api/gpnet2/cases"] });
                                   });
+                                  toast({ title: "Changes requested", description: "The coordinator has been notified." });
+                                  await Promise.all([
+                                    queryClient.refetchQueries({ queryKey: ["/api/gpnet2/cases"] }),
+                                    queryClient.refetchQueries({ queryKey: ["/api/employer/dashboard"] }),
+                                  ]);
+                                  navigate("/employer");
                                 }}
                               >
                                 Request changes

@@ -42,6 +42,11 @@ type SeedCase = {
   clinicalStatusJson?: { rtwPlanStatus?: string };
 };
 
+// Fixed UUIDs for key demo cases (stable across restarts, used in e2e tests)
+const FIXED_CASE_IDS: Record<string, string> = {
+  "Ethan Wells": "f7cd6639-a713-45ba-b5fd-8a0eb42840d8",
+};
+
 const employers = [
   { id: "empl-symmetry", name: "Symmetry Manufacturing" },
   { id: "empl-core", name: "Core Industrial Solutions" },
@@ -470,7 +475,7 @@ async function seed() {
   // Seed cases for Org Alpha
   console.log("Seeding cases for Org Alpha (Symmetry Manufacturing)...");
   for (const seedCase of alphaCases) {
-    const caseId = randomUUID();
+    const caseId = FIXED_CASE_IDS[seedCase.workerName] ?? randomUUID();
     const certificateAttachment = seedCase.attachments.find(
       (attachment) => attachment.type === "medical-certificate",
     );
