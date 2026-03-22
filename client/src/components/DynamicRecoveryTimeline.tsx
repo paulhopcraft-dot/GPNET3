@@ -984,12 +984,24 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
       </div>
 
         {/* Estimated RTW */}
-        <div className="text-center text-sm text-slate-600 border-t pt-4">
-          <p>
-            Estimated Return to Work: <strong>{formatDate(data.estimatedRTWDate)}</strong>
-            {" "}({data.estimatedWeeks} weeks from injury)
-          </p>
-          <p className="text-xs mt-1">
+        <div className="text-center text-sm border-t pt-4">
+          {data.estimatedRTWDate && new Date(data.estimatedRTWDate) < new Date() ? (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-left">
+              <p className="font-semibold text-red-700">
+                RTW Not Achieved — {Math.round((Date.now() - new Date(data.estimatedRTWDate).getTime()) / (7 * 24 * 60 * 60 * 1000))} weeks overdue
+              </p>
+              <p className="text-xs text-red-600 mt-1">
+                Expected return was <strong>{formatDate(data.estimatedRTWDate)}</strong> ({data.adjustedEstimateWeeks || data.estimatedWeeks} weeks from injury).
+                Case has significantly exceeded the estimated recovery timeline — immediate escalation and case review required.
+              </p>
+            </div>
+          ) : (
+            <p className="text-slate-600">
+              Estimated Return to Work: <strong>{formatDate(data.estimatedRTWDate)}</strong>
+              {" "}({data.adjustedEstimateWeeks || data.estimatedWeeks} weeks from injury)
+            </p>
+          )}
+          <p className="text-xs mt-1 text-slate-500">
             This timeline is advisory only and based on typical recovery patterns for{" "}
             {data.injuryTypeLabel.toLowerCase()}. Individual recovery may vary.
           </p>
