@@ -288,12 +288,30 @@ router.get('/dashboard', authorize(), async (req: Request, res: Response) => {
     // Sort all actions by days overdue (most urgent first)
     priorityActions.sort((a, b) => (b.daysOverdue || 0) - (a.daysOverdue || 0));
 
+    // Deduplicate: each worker appears once — keep their highest-priority action.
+    // A worker with Critical + Routine actions should only surface the Critical one.
+    // Sarah Chen doesn't need to see the same worker 3 times; she clicks through to the case.
+    const priorityOrder: Record<string, number> = { critical: 0, urgent: 1, routine: 2 };
+    const bestByCase = new Map<string, PriorityAction>();
+    for (const action of priorityActions) {
+      const existing = bestByCase.get(action.caseId);
+      if (
+        !existing ||
+        priorityOrder[action.priority] < priorityOrder[existing.priority] ||
+        (action.priority === existing.priority && (action.daysOverdue || 0) > (existing.daysOverdue || 0))
+      ) {
+        bestByCase.set(action.caseId, action);
+      }
+    }
+    const deduplicatedActions = Array.from(bestByCase.values());
+    deduplicatedActions.sort((a, b) => (b.daysOverdue || 0) - (a.daysOverdue || 0));
+
     // Use threshold-based priorities set during generation — do NOT redistribute by
     // relative position. Redistribution incorrectly downgrades genuinely critical cases
     // (e.g. Ava Thompson at 413 days) just because Ethan Wells is ranked higher.
-    statistics.criticalActions = priorityActions.filter(a => a.priority === 'critical').length;
-    statistics.urgentActions = priorityActions.filter(a => a.priority === 'urgent').length;
-    statistics.routineActions = priorityActions.filter(a => a.priority === 'routine').length;
+    statistics.criticalActions = deduplicatedActions.filter(a => a.priority === 'critical').length;
+    statistics.urgentActions = deduplicatedActions.filter(a => a.priority === 'urgent').length;
+    statistics.routineActions = deduplicatedActions.filter(a => a.priority === 'routine').length;
 
     // Build complete worker list for filtering (not just those with actions)
     const allWorkersInfo: WorkerInfo[] = allCases.map(c => ({
@@ -305,9 +323,9 @@ router.get('/dashboard', authorize(), async (req: Request, res: Response) => {
     }));
 
     // Take up to 20 critical, 15 urgent, 15 routine for display (50 total max)
-    const criticalActions = priorityActions.filter(a => a.priority === 'critical').slice(0, 20);
-    const urgentActions = priorityActions.filter(a => a.priority === 'urgent').slice(0, 15);
-    const routineActions = priorityActions.filter(a => a.priority === 'routine').slice(0, 15);
+    const criticalActions = deduplicatedActions.filter(a => a.priority === 'critical').slice(0, 20);
+    const urgentActions = deduplicatedActions.filter(a => a.priority === 'urgent').slice(0, 15);
+    const routineActions = deduplicatedActions.filter(a => a.priority === 'routine').slice(0, 15);
     const distributedActions = [...criticalActions, ...urgentActions, ...routineActions];
 
     const dashboardData: DashboardData = {

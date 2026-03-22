@@ -199,7 +199,7 @@ function EmployerDashboardContent() {
                           </p>
                         </div>
                         <p className="text-sm text-slate-600 mb-2">{action.action}</p>
-                        {action.daysOverdue && (
+                        {!!action.daysOverdue && (
                           <Badge className="bg-red-100 text-red-800">
                             {action.daysOverdue} days overdue
                           </Badge>
@@ -240,7 +240,7 @@ function EmployerDashboardContent() {
                         </p>
                       </div>
                       <p className="text-sm text-slate-600 mb-2">{action.action}</p>
-                      {action.daysOverdue && (
+                      {!!action.daysOverdue && (
                         <Badge className="bg-amber-100 text-amber-800">
                           {action.daysOverdue} days overdue
                         </Badge>
