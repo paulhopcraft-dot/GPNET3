@@ -654,7 +654,7 @@ export default function EmployerCaseDetailPage() {
 
   const approveRtwMutation = useMutation({
     mutationFn: () =>
-      apiRequest("PATCH", `/api/rtw/cases/${id}/status`, {
+      apiRequest("PUT", `/api/cases/${id}/rtw-plan`, {
         rtwPlanStatus: "in_progress",
         reason: "Approved by employer",
       }),
@@ -871,7 +871,7 @@ export default function EmployerCaseDetailPage() {
             effectiveRiskLevel={effectiveRiskLevel ?? workerCase.riskLevel ?? "Unknown"}
             onApproveRtw={() => approveRtwMutation.mutate()}
             onRequestChangesRtw={() => {
-              apiRequest("PATCH", `/api/rtw/cases/${id}/status`, {
+              apiRequest("PUT", `/api/cases/${id}/rtw-plan`, {
                 rtwPlanStatus: "on_hold",
                 reason: "Employer requested changes",
               }).then(() => {
@@ -1407,7 +1407,7 @@ export default function EmployerCaseDetailPage() {
                                 className="border-white/30 text-white/80 hover:bg-white/10"
                                 disabled={approveRtwMutation.isPending}
                                 onClick={() => {
-                                  apiRequest("PATCH", `/api/rtw/cases/${id}/status`, {
+                                  apiRequest("PUT", `/api/cases/${id}/rtw-plan`, {
                                     rtwPlanStatus: "on_hold",
                                     reason: "Employer requested changes",
                                   }).then(() => {

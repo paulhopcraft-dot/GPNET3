@@ -46,6 +46,7 @@ const RTW_STATUS_VALUES: RTWPlanStatus[] = [
   "failing",
   "on_hold",
   "completed",
+  "pending_employer_review",
 ];
 
 const updateRtwStatusSchema = z.object({
