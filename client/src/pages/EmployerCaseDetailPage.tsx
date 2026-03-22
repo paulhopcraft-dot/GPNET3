@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect, Suspense, lazy } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GlassPanel } from "@/components/ui/glass-panel";
@@ -640,7 +640,6 @@ function CommandCentre({ workerCase, caseActions, effectiveRiskLevel }: CommandC
 export default function EmployerCaseDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const [loadingSummary, setLoadingSummary] = useState(false);
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [summaryLoaded, setSummaryLoaded] = useState(false);
@@ -659,45 +658,6 @@ export default function EmployerCaseDetailPage() {
   });
 
   const caseActions = actionsData?.data ?? [];
-
-  // Mutation to complete an action
-  const completeAction = useMutation({
-    mutationFn: async (actionId: string) => {
-      const response = await fetchWithCsrf(`/api/actions/case/${id}/actions/${actionId}/complete`, {
-        method: "POST",
-      });
-      if (!response.ok) throw new Error("Failed to complete action");
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/actions/case/${id}`] });
-    },
-  });
-
-  // Mutation to uncomplete an action
-  const uncompleteAction = useMutation({
-    mutationFn: async (actionId: string) => {
-      const response = await fetchWithCsrf(`/api/actions/case/${id}/actions/${actionId}/uncomplete`, {
-        method: "POST",
-      });
-      if (!response.ok) throw new Error("Failed to uncomplete action");
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/actions/case/${id}`] });
-    },
-  });
-
-  // Employer role cannot trigger compliance sync (403 — no organizationId in employer JWT).
-  // Compliance checks are run by coordinators; employer view is read-only for actions.
-
-  const toggleAction = (action: CaseAction) => {
-    if (action.status === 'completed') {
-      uncompleteAction.mutate(action.id);
-    } else {
-      completeAction.mutate(action.id);
-    }
-  };
 
   // Group actions by priorityLevel (text field) — not priority (legacy integer)
   const groupActionsByPriority = (actions: CaseAction[]) => {
