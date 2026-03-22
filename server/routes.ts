@@ -966,11 +966,21 @@ User question: ${message}`;
 
       const result = await storage.getGPNet2CasesPaginated(organizationId, page, limit);
 
-      // Iteration 9: fire-and-forget lifecycle stage advancement for orgs with stale intake cases.
+      // Iteration 9/13: fire-and-forget lifecycle stage advancement.
+      // Covers "intake" cases (iter 9) and "assessment" cases stuck > 28d (iter 13).
       // Non-blocking — the list returns immediately; next fetch shows updated stages.
+      const ASSESSMENT_ADVANCE_DAYS = 28;
+      const _now = new Date();
       const staleOrgs = new Set(
         result.cases
-          .filter(c => c.lifecycleStage === "intake")
+          .filter(c => {
+            if (c.lifecycleStage === "intake") return true;
+            if (c.lifecycleStage === "assessment" && c.dateOfInjury) {
+              const daysOff = Math.floor((_now.getTime() - new Date(c.dateOfInjury).getTime()) / 86400000);
+              return daysOff > ASSESSMENT_ADVANCE_DAYS;
+            }
+            return false;
+          })
           .map(c => c.organizationId)
           .filter((id): id is string => !!id)
       );

@@ -1749,27 +1749,43 @@ class DbStorage implements IStorage {
   }
 
   /**
-   * Auto-assign lifecycle stages to existing cases that still have the default "intake" stage.
+   * Auto-assign lifecycle stages to cases still at "intake" or stuck at "assessment".
    * Uses heuristics from the remediation spec (Phase 3.1 migration rules).
+   * Iteration 13: also advances "assessment" cases that are > 28 days old.
    */
   async autoAssignLifecycleStages(organizationId: string): Promise<Array<{ caseId: string; stage: CaseLifecycleStage }>> {
+    const now = new Date();
+    const ASSESSMENT_ADVANCE_MS = 28 * 24 * 60 * 60 * 1000; // 28 days
+
+    // Fetch both "intake" cases AND "assessment" cases that may need advancement
     const cases = await db
       .select({
         id: workerCases.id,
         lifecycleStage: workerCases.lifecycleStage,
-        daysOffWork: workerCases.currentStatus,
         caseStatus: workerCases.caseStatus,
+        dateOfInjury: workerCases.dateOfInjury,
       })
       .from(workerCases)
       .where(and(
         eq(workerCases.organizationId, organizationId),
-        eq(workerCases.lifecycleStage, "intake")
+        inArray(workerCases.lifecycleStage, ["intake", "assessment"])
       ));
 
     if (cases.length === 0) return [];
 
+    // Only process "assessment" cases that are genuinely stale (> 28 days off work)
+    const eligibleCases = cases.filter(c => {
+      if (c.lifecycleStage === "intake") return true;
+      if (c.lifecycleStage === "assessment" && c.dateOfInjury) {
+        return (now.getTime() - new Date(c.dateOfInjury).getTime()) > ASSESSMENT_ADVANCE_MS;
+      }
+      return false;
+    });
+
+    if (eligibleCases.length === 0) return [];
+
     // Fetch RTW plans for these cases in one query
-    const caseIds = cases.map(c => c.id);
+    const caseIds = eligibleCases.map(c => c.id);
     const plans = await db
       .select({ caseId: rtwPlans.caseId, status: rtwPlans.status })
       .from(rtwPlans)
@@ -1789,8 +1805,9 @@ class DbStorage implements IStorage {
 
     const results: Array<{ caseId: string; stage: CaseLifecycleStage }> = [];
 
-    for (const c of cases) {
-      let stage: CaseLifecycleStage = "intake";
+    for (const c of eligibleCases) {
+      const fromStage = c.lifecycleStage as CaseLifecycleStage;
+      let stage: CaseLifecycleStage = fromStage;
 
       if (c.caseStatus === "closed") {
         stage = "closed_rtw";
@@ -1801,34 +1818,42 @@ class DbStorage implements IStorage {
         } else if (rtwStatus === "in_progress" || rtwStatus === "working_well") {
           stage = "rtw_transition";
         } else if (casesWithActiveCert.has(c.id)) {
-          // Heuristic: check if case is "long-running" (>4 weeks) → active_treatment, else assessment
-          // We don't have daysOffWork as a reliable number here, default to active_treatment
           stage = "active_treatment";
+        } else if (c.dateOfInjury) {
+          // Duration-based fallback: no cert, no RTW plan → use days off work
+          const daysOff = Math.floor((now.getTime() - new Date(c.dateOfInjury).getTime()) / 86400000);
+          if (daysOff > 180) {
+            stage = "maintenance"; // 6+ months: chronic / maintenance phase
+          } else if (daysOff > 28) {
+            stage = "active_treatment"; // 4+ weeks: active treatment underway
+          } else {
+            stage = "assessment"; // < 4 weeks: still in initial assessment
+          }
         } else {
           stage = "assessment";
         }
       }
 
-      if ((stage as CaseLifecycleStage) !== "intake") {
-        // Set directly (bypass transition validation since this is initial migration)
+      if ((stage as CaseLifecycleStage) !== fromStage) {
+        // Set directly (bypass transition validation since this is bulk migration)
         await db
           .update(workerCases)
           .set({
             lifecycleStage: stage,
-            lifecycleStageChangedAt: new Date(),
+            lifecycleStageChangedAt: now,
             lifecycleStageChangedBy: "system:migration",
-            lifecycleStageReason: "Auto-assigned during initial lifecycle stage migration",
-            updatedAt: new Date(),
+            lifecycleStageReason: "Auto-advanced by duration heuristic",
+            updatedAt: now,
           })
           .where(and(eq(workerCases.id, c.id), eq(workerCases.organizationId, organizationId)));
 
         await db.insert(caseLifecycleLogs).values({
           caseId: c.id,
           organizationId,
-          fromStage: "intake",
+          fromStage,
           toStage: stage,
           changedBy: "system:migration",
-          reason: "Auto-assigned during initial lifecycle stage migration",
+          reason: "Auto-advanced by duration heuristic",
           automated: true,
         } satisfies Omit<InsertCaseLifecycleLog, "id" | "changedAt">);
 
