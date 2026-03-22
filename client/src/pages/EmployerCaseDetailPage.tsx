@@ -430,7 +430,7 @@ function CommandCentre({ workerCase, caseActions, completeAction, uncompleteActi
               <>
                 <p className="text-base font-bold text-amber-700 dark:text-amber-400">Delayed</p>
                 <p className="text-xs text-muted-foreground mt-1 leading-snug">
-                  {weeksOff - expectedWeeks} week{weeksOff - expectedWeeks !== 1 ? "s" : ""} beyond expected recovery — assessment needed
+                  {weeksOff - expectedWeeks} week{weeksOff - expectedWeeks !== 1 ? "s" : ""} beyond expected recovery — escalation recommended
                 </p>
               </>
             )}
@@ -921,7 +921,7 @@ export default function EmployerCaseDetailPage() {
                   <div className="flex border-b pb-2">
                     <div className="w-40 text-sm font-medium">Date of Onset</div>
                     <div className="text-sm flex-1">
-                      {injuryFromSummary['date of onset'] || workerCase.dateOfInjury || "Not recorded"}
+                      {injuryFromSummary['date of onset'] || formatCertDate(workerCase.dateOfInjury) || "Not recorded"}
                     </div>
                   </div>
                   {(workerCase.medicalConstraints?.mechanism || injuryFromSummary['mechanism']) && (
@@ -1019,11 +1019,20 @@ export default function EmployerCaseDetailPage() {
                           </div>
                         );
                       }
+
+                      // Psychological/stress injuries don't require imaging
+                      const summaryLower = (workerCase.summary || workerCase.aiSummary || "").toLowerCase();
+                      const isPsychological = ['psychological', 'mental', 'stress', 'anxiety', 'depression', 'ptsd', 'psychiatric'].some(t => summaryLower.includes(t));
+                      if (isPsychological) {
+                        return (
+                          <p className="text-sm text-muted-foreground">Not applicable for psychological injuries. Medical/psychiatric assessments are managed by the case manager.</p>
+                        );
+                      }
                       return (
                         <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded text-sm">
                           <p className="text-amber-800 dark:text-amber-200">No imaging results on file</p>
                           <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                            Consider requesting X-ray or ultrasound if clinically indicated
+                            Consider requesting X-ray, MRI, or ultrasound if clinically indicated
                           </p>
                         </div>
                       );
@@ -1329,6 +1338,7 @@ export default function EmployerCaseDetailPage() {
             caseId={id!}
             workerName={workerCase.workerName}
             company={workerCase.company}
+            readOnly
           />
         </TabsContent>
 
