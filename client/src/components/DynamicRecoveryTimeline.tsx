@@ -496,15 +496,22 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
           </p>
         </div>
         <div className="flex flex-wrap gap-2 items-center">
-          <Badge className={getStatusColor(data.analysis.comparedToExpected)}>
-            {data.analysis.comparedToExpected === "ahead"
-              ? "Ahead of Schedule"
-              : data.analysis.comparedToExpected === "on_track"
-              ? "On Track"
-              : data.analysis.comparedToExpected === "behind"
-              ? "Behind Schedule"
-              : "Assessment Needed"}
-          </Badge>
+          {(() => {
+            // When cert data is absent, fall back to elapsed vs estimated to determine status
+            const overdue = data.weeksElapsed > (data.estimatedWeeks || 0);
+            const derivedStatus = data.analysis.comparedToExpected === "ahead" ? "ahead"
+              : data.analysis.comparedToExpected === "on_track" ? "on_track"
+              : (data.analysis.comparedToExpected === "behind" || overdue) ? "behind"
+              : "unknown";
+            return (
+              <Badge className={getStatusColor(derivedStatus)}>
+                {derivedStatus === "ahead" ? "Ahead of Schedule"
+                  : derivedStatus === "on_track" ? "On Track"
+                  : derivedStatus === "behind" ? "Behind Schedule"
+                  : "Assessment Needed"}
+              </Badge>
+            );
+          })()}
           <Badge className={getConfidenceColor(data.confidence)}>
             {data.confidence.charAt(0).toUpperCase() + data.confidence.slice(1)} Confidence
           </Badge>
