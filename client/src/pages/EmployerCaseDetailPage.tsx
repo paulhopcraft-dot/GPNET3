@@ -239,9 +239,12 @@ interface CommandCentreProps {
   workerCase: WorkerCase;
   caseActions: CaseAction[];
   effectiveRiskLevel: string;
+  onApproveRtw?: () => void;
+  onRequestChangesRtw?: () => void;
+  rtwApprovePending?: boolean;
 }
 
-function CommandCentre({ workerCase, caseActions, effectiveRiskLevel }: CommandCentreProps) {
+function CommandCentre({ workerCase, caseActions, effectiveRiskLevel, onApproveRtw, onRequestChangesRtw, rtwApprovePending }: CommandCentreProps) {
   const weeksOff   = calcWeeksOffWork(workerCase.dateOfInjury);
   const daysOff    = calcDaysFromInjury(workerCase.dateOfInjury);
   const checkpoint = nextCheckpoint(daysOff);
@@ -489,29 +492,21 @@ function CommandCentre({ workerCase, caseActions, effectiveRiskLevel }: CommandC
                 </p>
               </div>
             )}
-            {workerCase?.rtwPlanStatus === "pending_employer_review" && (
+            {workerCase?.rtwPlanStatus === "pending_employer_review" && onApproveRtw && (
               <div className="flex gap-2 mt-3">
                 <Button
                   size="sm"
                   className="bg-emerald-500 hover:bg-emerald-600 text-white"
-                  disabled={approveRtwMutation.isPending}
-                  onClick={() => approveRtwMutation.mutate()}
+                  disabled={rtwApprovePending}
+                  onClick={onApproveRtw}
                 >
-                  {approveRtwMutation.isPending ? "Approving…" : "Approve plan"}
+                  {rtwApprovePending ? "Approving…" : "Approve plan"}
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
-                  disabled={approveRtwMutation.isPending}
-                  onClick={() => {
-                    apiRequest("PATCH", `/api/rtw/cases/${id}/status`, {
-                      rtwPlanStatus: "on_hold",
-                      reason: "Employer requested changes",
-                    }).then(() => {
-                      toast({ title: "Changes requested", description: "The coordinator has been notified." });
-                      queryClient.invalidateQueries({ queryKey: ["/api/gpnet2/cases"] });
-                    });
-                  }}
+                  disabled={rtwApprovePending}
+                  onClick={onRequestChangesRtw}
                 >
                   Request changes
                 </Button>
@@ -874,6 +869,17 @@ export default function EmployerCaseDetailPage() {
             workerCase={workerCase}
             caseActions={caseActions}
             effectiveRiskLevel={effectiveRiskLevel ?? workerCase.riskLevel ?? "Unknown"}
+            onApproveRtw={() => approveRtwMutation.mutate()}
+            onRequestChangesRtw={() => {
+              apiRequest("PATCH", `/api/rtw/cases/${id}/status`, {
+                rtwPlanStatus: "on_hold",
+                reason: "Employer requested changes",
+              }).then(() => {
+                toast({ title: "Changes requested", description: "The coordinator has been notified." });
+                queryClient.invalidateQueries({ queryKey: ["/api/gpnet2/cases"] });
+              });
+            }}
+            rtwApprovePending={approveRtwMutation.isPending}
           />
         </TabsContent>
 
