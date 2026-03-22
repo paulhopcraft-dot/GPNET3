@@ -1144,93 +1144,184 @@ export default function EmployerCaseDetailPage() {
 
 
         <TabsContent value="financial" className="flex-1 p-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Financial Summary</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {workerCase.financialData ? (
-                <div className="space-y-3">
-                  {workerCase.financialData.preInjuryEarnings && (
-                    <div className="flex border-b pb-2">
-                      <div className="w-48 text-sm font-medium">Pre-injury weekly earnings</div>
-                      <div className="text-sm flex-1">${workerCase.financialData.preInjuryEarnings.toLocaleString()}</div>
+          {(() => {
+            // Australian workers comp average: ~$1,350/week income replacement
+            const AVG_WEEKLY_COMP = 1350;
+            const weeksOff = calcWeeksOffWork(workerCase.dateOfInjury);
+            const isOffWork = workerCase.workStatus !== "At work";
+            const costToDate = isOffWork ? weeksOff * AVG_WEEKLY_COMP : 0;
+            // Estimated remaining based on risk level heuristic
+            const riskBasedTotalWeeks =
+              (effectiveRiskLevel || workerCase.riskLevel || "").toLowerCase() === "high" ? 26 :
+              (effectiveRiskLevel || workerCase.riskLevel || "").toLowerCase() === "medium" ? 12 : 6;
+            const remainingWeeks = isOffWork ? Math.max(0, riskBasedTotalWeeks - weeksOff) : 0;
+            const projectedFutureCost = remainingWeeks * AVG_WEEKLY_COMP;
+            const totalEstimate = costToDate + projectedFutureCost;
+            const fmt = (n: number) => `$${n.toLocaleString()}`;
+            return (
+              <div className="space-y-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">Claim Cost Estimate</CardTitle>
+                    <p className="text-xs text-muted-foreground">Based on Australian average workers compensation ($1,350/week). Actual amounts depend on PIAWE calculation and insurer.</p>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-3 gap-4 mb-4">
+                      <div className="rounded-lg border bg-muted/30 p-4 text-center">
+                        <div className="text-2xl font-bold text-foreground">{fmt(costToDate)}</div>
+                        <div className="text-xs text-muted-foreground mt-1">Est. paid to date</div>
+                        <div className="text-xs text-muted-foreground">{weeksOff} weeks</div>
+                      </div>
+                      <div className="rounded-lg border bg-amber-50 p-4 text-center">
+                        <div className="text-2xl font-bold text-amber-700">{fmt(projectedFutureCost)}</div>
+                        <div className="text-xs text-muted-foreground mt-1">Projected future cost</div>
+                        <div className="text-xs text-muted-foreground">{remainingWeeks} weeks remaining (est.)</div>
+                      </div>
+                      <div className="rounded-lg border bg-blue-50 p-4 text-center">
+                        <div className="text-2xl font-bold text-blue-700">{fmt(totalEstimate)}</div>
+                        <div className="text-xs text-muted-foreground mt-1">Total claim estimate</div>
+                        <div className="text-xs text-muted-foreground">{riskBasedTotalWeeks} weeks total (est.)</div>
+                      </div>
                     </div>
-                  )}
-                  {workerCase.financialData.currentEarnings && (
-                    <div className="flex border-b pb-2">
-                      <div className="w-48 text-sm font-medium">Current weekly earnings</div>
-                      <div className="text-sm flex-1">${workerCase.financialData.currentEarnings.toLocaleString()}</div>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex border-b pb-2">
+                        <div className="w-56 font-medium text-muted-foreground">Worker status</div>
+                        <div>{workerCase.workStatus}</div>
+                      </div>
+                      <div className="flex border-b pb-2">
+                        <div className="w-56 font-medium text-muted-foreground">Weeks since injury</div>
+                        <div>{weeksOff} weeks</div>
+                      </div>
+                      <div className="flex border-b pb-2">
+                        <div className="w-56 font-medium text-muted-foreground">Estimated weekly rate</div>
+                        <div>$1,350/week (Australian avg)</div>
+                      </div>
+                      <div className="flex">
+                        <div className="w-56 font-medium text-muted-foreground">Risk level</div>
+                        <div>{effectiveRiskLevel || workerCase.riskLevel || "Unknown"}</div>
+                      </div>
                     </div>
-                  )}
-                  {workerCase.financialData.weeklyShortfall && (
-                    <div className="flex border-b pb-2">
-                      <div className="w-48 text-sm font-medium">Weekly shortfall</div>
-                      <div className="text-sm flex-1">${workerCase.financialData.weeklyShortfall.toLocaleString()}</div>
-                    </div>
-                  )}
-                  {workerCase.financialData.piaweEntitlement && (
-                    <div className="flex pb-2">
-                      <div className="w-48 text-sm font-medium">PIAWE entitlement</div>
-                      <div className="text-sm flex-1">${workerCase.financialData.piaweEntitlement.toLocaleString()}/week</div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p className="text-sm">No financial data recorded for this case.</p>
-                  <p className="text-xs mt-1">Financial details will appear when claim data is synced.</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                  </CardContent>
+                </Card>
+                {weeksOff > 26 && (
+                  <Card className="border-red-200 bg-red-50">
+                    <CardContent className="pt-4">
+                      <div className="flex gap-2 text-sm text-red-800">
+                        <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-medium">Long-duration claim</p>
+                          <p className="text-xs text-red-600 mt-1">This case has exceeded 26 weeks. Review with your insurer about claim classification and consider escalating RTW planning.</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            );
+          })()}
         </TabsContent>
 
         <TabsContent value="risk" className="flex-1 p-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Risk Assessment</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {workerCase.riskAssessment && workerCase.riskAssessment.length > 0 ? (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-4 gap-4 p-2 border-b-2 border-primary text-sm font-semibold text-primary">
-                    <div>Risk</div>
-                    <div>Likelihood</div>
-                    <div>Impact</div>
-                    <div>Mitigation</div>
-                  </div>
-                  {workerCase.riskAssessment.map((risk: any, idx: number) => (
-                    <div key={idx} className="grid grid-cols-4 gap-4 p-2 border-b text-sm">
-                      <div>{risk.description}</div>
-                      <div>
-                        <span className={cn(
-                          "px-2 py-1 rounded text-xs",
-                          risk.likelihood === "high" ? "bg-red-100 text-red-800" :
-                          risk.likelihood === "medium" ? "bg-amber-100 text-amber-800" :
-                          "bg-green-100 text-green-800"
-                        )}>{risk.likelihood}</span>
-                      </div>
-                      <div>
-                        <span className={cn(
-                          "px-2 py-1 rounded text-xs",
-                          risk.impact === "high" ? "bg-red-100 text-red-800" :
-                          risk.impact === "medium" ? "bg-amber-100 text-amber-800" :
-                          "bg-green-100 text-green-800"
-                        )}>{risk.impact}</span>
-                      </div>
-                      <div>{risk.mitigation}</div>
+          {(() => {
+            const weeksOff = calcWeeksOffWork(workerCase.dateOfInjury);
+            const isOffWork = workerCase.workStatus !== "At work";
+            const compliance = (workerCase.complianceIndicator || "").toLowerCase();
+            const riskLevel = (effectiveRiskLevel || workerCase.riskLevel || "").toLowerCase();
+
+            type RiskFactor = { label: string; likelihood: "high" | "medium" | "low"; impact: "high" | "medium" | "low"; mitigation: string };
+            const factors: RiskFactor[] = [];
+
+            // 1. Duration risk
+            if (weeksOff >= 26 && isOffWork) {
+              factors.push({ label: "Long-duration absence", likelihood: "high", impact: "high", mitigation: "Escalate to senior case manager. Schedule IME. Review insurer claim classification." });
+            } else if (weeksOff >= 13 && isOffWork) {
+              factors.push({ label: "Extended absence", likelihood: "medium", impact: "high", mitigation: "Confirm RTW plan is active. Review barriers to return." });
+            } else if (weeksOff >= 4 && isOffWork) {
+              factors.push({ label: "Absence exceeding 4 weeks", likelihood: "medium", impact: "medium", mitigation: "Confirm graduated RTW plan is in place with treating GP." });
+            }
+
+            // 2. Certificate / compliance risk
+            if (!workerCase.hasCertificate && isOffWork) {
+              factors.push({ label: "No medical certificate on file", likelihood: "high", impact: "high", mitigation: "Request certificate immediately. Claim may be at risk without valid certification." });
+            } else if (compliance === "low" || compliance === "very low") {
+              factors.push({ label: "Low compliance — case file incomplete", likelihood: "high", impact: "medium", mitigation: "Review missing documentation with case coordinator. Complete claim requirements." });
+            } else if (compliance === "medium") {
+              factors.push({ label: "Partial compliance", likelihood: "medium", impact: "low", mitigation: "Follow up on outstanding items with case coordinator." });
+            }
+
+            // 3. RTW plan risk
+            if (!workerCase.rtwPlanStatus && weeksOff >= 2 && isOffWork) {
+              factors.push({ label: "No return-to-work plan", likelihood: "high", impact: "high", mitigation: "Initiate RTW planning with treating doctor and insurer. Delayed RTW plans increase long-term risk." });
+            }
+
+            // 4. Overall risk level
+            if (riskLevel === "high" || riskLevel === "very high") {
+              factors.push({ label: "High clinical risk classification", likelihood: "high", impact: "high", mitigation: "Monitor weekly. Ensure specialist involvement. Consider vocational assessment." });
+            } else if (riskLevel === "medium") {
+              factors.push({ label: "Moderate clinical risk", likelihood: "medium", impact: "medium", mitigation: "Bi-weekly check-ins with worker. Confirm treatment is progressing." });
+            }
+
+            // 5. Claim complexity (ticket count as proxy)
+            if ((workerCase.ticketCount || 1) >= 5) {
+              factors.push({ label: "High claim complexity", likelihood: "medium", impact: "medium", mitigation: "Multiple updates suggest complex case. Ensure all parties (insurer, GP, employer) are aligned." });
+            }
+
+            const likelihoodColor = (l: string) =>
+              l === "high" ? "bg-red-100 text-red-800" : l === "medium" ? "bg-amber-100 text-amber-800" : "bg-green-100 text-green-800";
+            const impactColor = (i: string) =>
+              i === "high" ? "bg-red-100 text-red-800" : i === "medium" ? "bg-amber-100 text-amber-800" : "bg-green-100 text-green-800";
+
+            const highCount = factors.filter(f => f.likelihood === "high").length;
+            const overallBg = highCount >= 2 ? "border-red-200 bg-red-50" : highCount === 1 ? "border-amber-200 bg-amber-50" : "border-green-200 bg-green-50";
+            const overallText = highCount >= 2 ? "text-red-800" : highCount === 1 ? "text-amber-800" : "text-green-800";
+            const overallLabel = highCount >= 2 ? "High Risk — Immediate Action Required" : highCount === 1 ? "Moderate Risk — Monitor Closely" : "Low Risk — Routine Management";
+
+            return (
+              <div className="space-y-4">
+                <Card className={cn("border", overallBg)}>
+                  <CardContent className="pt-4 pb-3">
+                    <div className="flex items-center gap-2">
+                      {highCount >= 2 ? <ShieldX className={cn("w-5 h-5", overallText)} /> : highCount === 1 ? <ShieldAlert className={cn("w-5 h-5", overallText)} /> : <ShieldCheck className={cn("w-5 h-5", overallText)} />}
+                      <span className={cn("font-semibold text-sm", overallText)}>{overallLabel}</span>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p className="text-sm">No risk assessment recorded for this case.</p>
-                  <p className="text-xs mt-1">Risk factors will be identified during case review.</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    <p className={cn("text-xs mt-1 ml-7", overallText.replace("800", "600"))}>{factors.length} risk factor{factors.length !== 1 ? "s" : ""} identified across duration, compliance, and clinical dimensions.</p>
+                  </CardContent>
+                </Card>
+
+                {factors.length > 0 ? (
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">Risk Factors</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                      <div className="divide-y">
+                        {factors.map((f, idx) => (
+                          <div key={idx} className="grid grid-cols-[2fr_1fr_1fr_3fr] gap-3 p-3 text-sm items-start">
+                            <div className="font-medium">{f.label}</div>
+                            <div><span className={cn("px-2 py-0.5 rounded text-xs capitalize", likelihoodColor(f.likelihood))}>{f.likelihood}</span></div>
+                            <div><span className={cn("px-2 py-0.5 rounded text-xs capitalize", impactColor(f.impact))}>{f.impact}</span></div>
+                            <div className="text-muted-foreground text-xs">{f.mitigation}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Card className="border-green-200 bg-green-50">
+                    <CardContent className="pt-4">
+                      <div className="flex gap-2 text-sm text-green-800">
+                        <ShieldCheck className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-medium">No significant risk factors identified</p>
+                          <p className="text-xs text-green-600 mt-1">This case appears to be progressing within expected parameters. Continue routine management.</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            );
+          })()}
         </TabsContent>
 
         <TabsContent value="contacts" className="flex-1 p-6">
