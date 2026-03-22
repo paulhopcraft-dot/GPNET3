@@ -254,6 +254,11 @@ function CommandCentre({ workerCase, caseActions, completeAction, uncompleteActi
   const certStatus = certExpiryStatus(workerCase.latestCertificate);
   const flags      = buildCaseFlags(workerCase, weeksOff, certStatus, effectiveRiskLevel);
 
+  // Fetch injury-specific recovery estimate (injury type + risk modifier = accurate weeks)
+  const { data: recoveryChartData } = useQuery<{ estimatedWeeks?: number; adjustedEstimateWeeks?: number }>({
+    queryKey: [`/api/cases/${workerCase.id}/recovery-chart`],
+  });
+
   // Compliance card
   const complianceRaw = (workerCase.complianceIndicator || "").toLowerCase();
   const complianceLevel: "compliant" | "at-risk" | "non-compliant" =
@@ -614,11 +619,6 @@ export default function EmployerCaseDetailPage() {
     enabled: !!id,
   });
 
-  // Fetch injury-specific recovery estimate (injury type + risk modifier = accurate weeks)
-  const { data: recoveryChartData } = useQuery<{ estimatedWeeks?: number; adjustedEstimateWeeks?: number }>({
-    queryKey: [`/api/cases/${id}/recovery-chart`],
-    enabled: !!id,
-  });
   const caseActions = actionsData?.data ?? [];
 
   // Mutation to complete an action
