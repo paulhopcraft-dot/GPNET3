@@ -31,8 +31,8 @@ import { isLegitimateCase } from "@shared/schema";
 const VALID_TRANSITIONS: Record<RTWPlanStatus, RTWPlanStatus[]> = {
   not_planned: ["planned_not_started"],
   pending_employer_review: ["in_progress", "on_hold", "not_planned"],
-  planned_not_started: ["in_progress", "on_hold", "not_planned"],
-  in_progress: ["working_well", "failing", "on_hold", "completed"],
+  planned_not_started: ["in_progress", "on_hold", "not_planned", "pending_employer_review"],
+  in_progress: ["working_well", "failing", "on_hold", "completed", "pending_employer_review"],
   working_well: ["in_progress", "completed", "on_hold"],
   failing: ["in_progress", "on_hold", "not_planned"],
   on_hold: ["planned_not_started", "in_progress", "not_planned"],
