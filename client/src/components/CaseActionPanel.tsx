@@ -22,6 +22,7 @@ import {
   Activity,
   FileText,
   RefreshCw,
+  MessageSquare,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -49,9 +50,14 @@ function getActionStatusStyle(action: CaseAction): string {
   return "text-blue-600";
 }
 
+function isEmployerFeedback(action: CaseAction): boolean {
+  return !!action.notes?.includes("Employer requested");
+}
+
 function getLeftBorderClass(action: CaseAction): string {
   if (action.status === "done") return "border-l-4 border-green-400";
   if (action.failed) return "border-l-4 border-gray-300";
+  if (isEmployerFeedback(action)) return "border-l-4 border-amber-400";
   if (action.dueDate && new Date(action.dueDate) < new Date())
     return "border-l-4 border-red-400";
   return "border-l-4 border-blue-400";
@@ -70,6 +76,7 @@ function formatRelativeDate(dateStr?: string): string {
 
 function getActionIcon(action: CaseAction): React.ReactElement {
   if (action.status === "done") return <CheckCircle2 className="w-4 h-4 text-green-500" />;
+  if (isEmployerFeedback(action)) return <MessageSquare className="w-4 h-4 text-amber-500" />;
   if (action.dueDate && new Date(action.dueDate) < new Date())
     return <AlertTriangle className="w-4 h-4 text-red-500" />;
   switch (action.type) {
@@ -123,13 +130,13 @@ function LastActionsSection({ actions }: { actions: CaseAction[] }): React.React
                 <p
                   className={cn(
                     "text-xs font-medium truncate",
-                    getActionStatusStyle(action)
+                    isEmployerFeedback(action) ? "text-amber-700 dark:text-amber-400" : getActionStatusStyle(action)
                   )}
                 >
-                  {action.title || action.type.replace(/_/g, " ")}
+                  {isEmployerFeedback(action) ? "Employer feedback — changes requested" : (action.title || action.type.replace(/_/g, " "))}
                 </p>
                 {action.notes && (
-                  <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
+                  <p className={cn("text-xs mt-0.5", isEmployerFeedback(action) ? "text-amber-800 dark:text-amber-300" : "text-muted-foreground line-clamp-1")}>
                     {action.notes}
                   </p>
                 )}
