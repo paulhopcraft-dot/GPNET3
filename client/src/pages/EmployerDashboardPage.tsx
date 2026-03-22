@@ -191,16 +191,33 @@ function EmployerDashboardContent() {
 
         <Card className="bg-white shadow-lg border-0 hover:shadow-xl transition-all duration-300">
           <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600 mb-1">Critical Actions</p>
-                <p className="text-3xl font-bold text-red-700">{criticalActions.length}</p>
-                <p className="text-xs text-red-600 mt-1">Immediate attention</p>
-              </div>
-              <div className="p-3 bg-red-100 rounded-xl">
-                <AlertTriangle className="w-6 h-6 text-red-600" />
-              </div>
-            </div>
+            {(() => {
+              const activePlans = (allCasesData?.cases ?? []).filter(c => c.rtwPlanStatus === "in_progress" || c.rtwPlanStatus === "working_well").length;
+              const hasCritical = criticalActions.length > 0;
+              return activePlans > 0 ? (
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-slate-600 mb-1">RTW Plans Active</p>
+                    <p className="text-3xl font-bold text-emerald-700">{activePlans}</p>
+                    <p className="text-xs text-emerald-600 mt-1">{hasCritical ? `${criticalActions.length} critical action${criticalActions.length !== 1 ? "s" : ""} pending` : "No critical actions"}</p>
+                  </div>
+                  <div className="p-3 bg-emerald-100 rounded-xl">
+                    <CheckCircle className="w-6 h-6 text-emerald-600" />
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-slate-600 mb-1">Critical Actions</p>
+                    <p className="text-3xl font-bold text-red-700">{criticalActions.length}</p>
+                    <p className="text-xs text-red-600 mt-1">Immediate attention</p>
+                  </div>
+                  <div className="p-3 bg-red-100 rounded-xl">
+                    <AlertTriangle className="w-6 h-6 text-red-600" />
+                  </div>
+                </div>
+              );
+            })()}
           </CardContent>
         </Card>
       </div>
