@@ -1771,6 +1771,20 @@ User question: ${message}`;
       const workerCase = req.workerCase!; // Populated by requireCaseOwnership middleware
       const force = req.query.force === 'true';
 
+      // Employers cannot access AI summaries (clinical reasoning is confidential)
+      if (isEmployerRole(req.user!.role)) {
+        return res.json({
+          id: workerCase.id,
+          summary: null,
+          cached: true,
+          generatedAt: null,
+          model: null,
+          workStatusClassification: null,
+          discussionNotes: [],
+          discussionInsights: [],
+        });
+      }
+
       // PRD Story 1: Use unified interface with force parameter
       let result;
       try {

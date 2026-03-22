@@ -12,7 +12,6 @@ import type { WorkerCase, PaginatedCasesResponse, CaseActionDB } from "@shared/s
 import { cn } from "@/lib/utils";
 import { TimelineCard } from "@/components/TimelineCard";
 import { CaseContactsPanel } from "@/components/CaseContactsPanel";
-import { TreatmentPlanCard } from "@/components/TreatmentPlanCard";
 
 // Heavy components - lazy load to reduce initial bundle size
 const DynamicRecoveryTimeline = lazy(() => import("@/components/DynamicRecoveryTimeline").then(m => ({ default: m.DynamicRecoveryTimeline })));
@@ -627,6 +626,25 @@ export default function EmployerCaseDetailPage() {
     },
   });
 
+  // Auto-trigger compliance sync when actions are empty
+  const syncCompliance = useMutation({
+    mutationFn: async () => {
+      const response = await fetchWithCsrf(`/api/actions/case/${id}/compliance/sync`, { method: "POST" });
+      if (!response.ok) throw new Error("Compliance sync failed");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/actions/case/${id}`] });
+    },
+  });
+
+  // Trigger compliance sync on first load if no actions exist
+  useEffect(() => {
+    if (id && actionsData && caseActions.length === 0 && !syncCompliance.isPending && !syncCompliance.isSuccess) {
+      syncCompliance.mutate();
+    }
+  }, [id, actionsData]);
+
   const toggleAction = (action: CaseAction) => {
     if (action.status === 'completed') {
       uncompleteAction.mutate(action.id);
@@ -1225,9 +1243,15 @@ export default function EmployerCaseDetailPage() {
 
             {/* Supporting Information - Treatment Plan & Diagnosis Grid */}
             <div className="treatment-supporting-info grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Treatment Plan Section */}
+              {/* Treatment Plan Section — clinical plans are not accessible to employer accounts */}
               <div className="treatment-left-column">
-                {id && <TreatmentPlanCard caseId={id} />}
+                <GlassPanel className="h-full" variant="gradient">
+                  <div className="p-6 flex flex-col items-center justify-center text-center min-h-[200px]">
+                    <span className="material-symbols-outlined text-4xl text-white/40 mb-3">lock</span>
+                    <h3 className="text-sm font-semibold text-white/80 mb-1">Treatment Plan</h3>
+                    <p className="text-xs text-white/50">Clinical treatment details are managed by the case manager and are not available in the employer view.</p>
+                  </div>
+                </GlassPanel>
               </div>
 
               {/* Diagnosis Section */}
