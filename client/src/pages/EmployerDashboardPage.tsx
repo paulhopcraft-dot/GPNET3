@@ -113,8 +113,34 @@ function EmployerDashboardContent() {
   const urgentActions = actions.filter(a => a.priority === 'urgent');
   const routineActions = actions.filter(a => a.priority === 'routine');
 
+  const pendingApprovals = allCasesData?.cases.filter(c => c.rtwPlanStatus === 'pending_employer_review') ?? [];
+
   return (
     <div className="space-y-6">
+      {/* RTW Approval Banner — only shown when employer action is needed */}
+      {pendingApprovals.length > 0 && (
+        <div className="rounded-lg border-2 border-yellow-400 bg-yellow-50 px-5 py-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="w-5 h-5 text-yellow-600 shrink-0" />
+            <div>
+              <p className="font-semibold text-yellow-900">
+                {pendingApprovals.length === 1
+                  ? `Return to Work plan requires your approval — ${pendingApprovals[0].workerName}`
+                  : `${pendingApprovals.length} Return to Work plans awaiting your approval`}
+              </p>
+              <p className="text-xs text-yellow-700 mt-0.5">Your sign-off is required before the plan can proceed.</p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            className="bg-yellow-500 hover:bg-yellow-600 text-white shrink-0"
+            onClick={() => navigate(`/employer/case/${pendingApprovals[0].id}`)}
+          >
+            Review now
+          </Button>
+        </div>
+      )}
+
       {/* Statistics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="bg-white shadow-lg border-0 hover:shadow-xl transition-all duration-300">
