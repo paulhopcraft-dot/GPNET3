@@ -866,13 +866,17 @@ export function extractInjuryType(summary: string): InjuryType {
     return "carpal_tunnel";
   }
 
-  // Rotator cuff
+  // Rotator cuff / shoulder
   if (
     lower.includes("rotator cuff") ||
     lower.includes("shoulder impingement") ||
     lower.includes("supraspinatus") ||
     lower.includes("infraspinatus") ||
-    (lower.includes("shoulder") && (lower.includes("tear") || lower.includes("tendon")))
+    (lower.includes("shoulder") && (
+      lower.includes("tear") || lower.includes("tendon") ||
+      lower.includes("reconstruction") || lower.includes("surgery") ||
+      lower.includes("injury") || lower.includes("repair")
+    ))
   ) {
     return "rotator_cuff";
   }
