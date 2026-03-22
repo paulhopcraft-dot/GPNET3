@@ -598,6 +598,7 @@ export interface IStorage {
   ): Promise<void>;
   getLifecycleLog(caseId: string, organizationId: string): Promise<CaseLifecycleLogDB[]>;
   autoAssignLifecycleStages(organizationId: string): Promise<Array<{ caseId: string; stage: CaseLifecycleStage }>>;
+  autoAdvanceLifecycleStage(caseId: string, organizationId: string): Promise<CaseLifecycleStage | null>;
 
   // Case management - close/override/merge
   closeCase(caseId: string, organizationId: string, reason?: string): Promise<void>;
@@ -1836,6 +1837,67 @@ class DbStorage implements IStorage {
     }
 
     return results;
+  }
+
+  /**
+   * Auto-advance lifecycle stage for a single case if it's stuck at "intake".
+   * Uses the same heuristics as autoAssignLifecycleStages.
+   * Returns the new stage if advanced, null if no change needed.
+   */
+  async autoAdvanceLifecycleStage(caseId: string, organizationId: string): Promise<CaseLifecycleStage | null> {
+    const [c] = await db
+      .select({ id: workerCases.id, lifecycleStage: workerCases.lifecycleStage, caseStatus: workerCases.caseStatus })
+      .from(workerCases)
+      .where(and(eq(workerCases.id, caseId), eq(workerCases.organizationId, organizationId)))
+      .limit(1);
+
+    if (!c || c.lifecycleStage !== "intake") return null;
+
+    let stage: CaseLifecycleStage = "intake";
+
+    if (c.caseStatus === "closed") {
+      stage = "closed_rtw";
+    } else {
+      const [rtwPlan] = await db
+        .select({ status: rtwPlans.status })
+        .from(rtwPlans)
+        .where(eq(rtwPlans.caseId, caseId))
+        .limit(1);
+
+      const rtwStatus = rtwPlan?.status;
+
+      if (rtwStatus === "completed") {
+        stage = "maintenance";
+      } else if (rtwStatus === "in_progress" || rtwStatus === "working_well") {
+        stage = "rtw_transition";
+      } else {
+        const [activeCert] = await db
+          .select({ id: medicalCertificates.id })
+          .from(medicalCertificates)
+          .where(and(eq(medicalCertificates.caseId, caseId), gte(medicalCertificates.endDate, new Date())))
+          .limit(1);
+
+        stage = activeCert ? "active_treatment" : "assessment";
+      }
+    }
+
+    // stage is now guaranteed to be a non-intake stage
+    await db
+      .update(workerCases)
+      .set({ lifecycleStage: stage, lifecycleStageChangedAt: new Date(), lifecycleStageChangedBy: "system:compliance", lifecycleStageReason: "Auto-advanced by compliance sync", updatedAt: new Date() })
+      .where(and(eq(workerCases.id, caseId), eq(workerCases.organizationId, organizationId)));
+
+    await db.insert(caseLifecycleLogs).values({
+      caseId,
+      organizationId,
+      fromStage: "intake",
+      toStage: stage,
+      changedBy: "system:compliance",
+      reason: "Auto-advanced by compliance sync",
+      automated: true,
+    } satisfies Omit<InsertCaseLifecycleLog, "id" | "changedAt">);
+
+    return stage;
   }
 
   async assignCase(

@@ -255,6 +255,9 @@ export async function processComplianceForCase(
     );
   }
 
+  // Auto-advance lifecycle stage if case is stuck at "intake"
+  await storage.autoAdvanceLifecycleStage(caseId, organizationId);
+
   return compliance;
 }
 
