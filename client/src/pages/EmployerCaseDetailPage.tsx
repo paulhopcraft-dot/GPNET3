@@ -922,7 +922,7 @@ export default function EmployerCaseDetailPage() {
                     <div className="text-sm flex-1">
                       {workerCase.clinical_status_json?.treatmentPlan?.injuryType ||
                        injuryFromSummary['injury'] ||
-                       "Not specified"}
+                       (workerCase.summary ? workerCase.summary.split(/[.;]/)[0].trim() : "Not specified")}
                     </div>
                   </div>
                   <div className="flex border-b pb-2">
@@ -992,6 +992,7 @@ export default function EmployerCaseDetailPage() {
                     <p className="text-sm">
                       {workerCase.clinical_status_json?.treatmentPlan?.diagnosisSummary ||
                        workerCase.clinical_status_json?.treatmentPlan?.injuryType ||
+                       workerCase.summary ||
                        "Diagnosis details not yet recorded"}
                     </p>
                   </div>
