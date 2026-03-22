@@ -524,6 +524,7 @@ function CommandCentre({ workerCase, caseActions, completeAction, uncompleteActi
             {pendingFeed.map(action => {
               const due = formatRelativeDue(action.dueDate);
               const isPriorityCriticalOrHigh = action.priorityLevel === "critical" || action.priorityLevel === "high";
+              const owner = action.assignedToName || action.assignedTo;
               return (
                 <div
                   key={action.id}
@@ -534,23 +535,18 @@ function CommandCentre({ workerCase, caseActions, completeAction, uncompleteActi
                                                "bg-card border-border"
                   )}
                 >
-                  <button
-                    onClick={() => toggleAction(action)}
-                    disabled={completeAction.isPending || uncompleteAction.isPending}
-                    className="mt-0.5 shrink-0"
-                    aria-label="Mark complete"
-                  >
+                  <div className="mt-0.5 shrink-0">
                     <Circle className={cn(
                       "h-4 w-4",
-                      due.overdue ? "text-red-500" : "text-muted-foreground"
+                      due.overdue ? "text-red-400" : "text-muted-foreground/40"
                     )} />
-                  </button>
+                  </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium">{action.title || actionTypeLabel(action.type)}</p>
                     {(action.description || action.notes) && <p className="text-xs text-muted-foreground mt-0.5">{action.description ?? action.notes}</p>}
+                    {owner && <p className="text-xs text-muted-foreground/70 mt-0.5">Assigned to: {owner}</p>}
                   </div>
                   <div className="text-right shrink-0">
-                    {action.completedBy && <p className="text-xs text-muted-foreground">{action.completedBy}</p>}
                     <p className={cn("text-xs font-medium", due.overdue ? "text-red-600" : "text-muted-foreground")}>
                       {due.text}
                     </p>
@@ -569,16 +565,12 @@ function CommandCentre({ workerCase, caseActions, completeAction, uncompleteActi
                     key={action.id}
                     className="flex items-start gap-3 rounded-lg border border-border px-4 py-3 opacity-60"
                   >
-                    <button
-                      onClick={() => toggleAction(action)}
-                      disabled={completeAction.isPending || uncompleteAction.isPending}
-                      className="mt-0.5 shrink-0"
-                      aria-label="Mark incomplete"
-                    >
+                    <div className="mt-0.5 shrink-0">
                       <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                    </button>
+                    </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm line-through">{action.title || actionTypeLabel(action.type)}</p>
+                      {action.completedBy && <p className="text-xs text-muted-foreground/70 mt-0.5">Completed by: {action.completedBy}</p>}
                     </div>
                     {action.completedAt && (
                       <p className="text-xs text-muted-foreground shrink-0">
