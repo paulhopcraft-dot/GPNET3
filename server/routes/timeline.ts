@@ -2,6 +2,7 @@ import type { Express, Request, Response } from "express";
 import { db } from "../db";
 import { workerCases, medicalCertificates } from "../../shared/schema";
 import { eq, desc } from "drizzle-orm";
+import { authorize } from "../middleware/auth";
 import {
   calculateRecoveryTimeline,
   generateRecoveryTimelineChartData,
@@ -174,7 +175,8 @@ export function registerTimelineRoutes(app: Express) {
   });
 
   // POST /api/cases/:id/recovery-override — AHR clinical timeline adjustment (Phase 6.2)
-  app.post("/api/cases/:id/recovery-override", async (req: Request, res: Response) => {
+  // Restricted to non-employer roles (coordinators, admins only)
+  app.post("/api/cases/:id/recovery-override", authorize(["admin", "coordinator", "clinician"]), async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const { adjustedEstimateWeeks, reason, factors } = req.body;

@@ -956,7 +956,7 @@ export default function EmployerCaseDetailPage() {
                       </div>
                     </div>
                   )}
-                  {(injuryFromSummary['case manager'] || workerCase.owner) && (
+                  {(injuryFromSummary['case manager'] || (workerCase.owner && workerCase.owner !== "Unassigned")) && (
                     <div className="flex border-b pb-2">
                       <div className="w-40 text-sm font-medium">Case Manager</div>
                       <div className="text-sm flex-1">
@@ -1352,7 +1352,7 @@ export default function EmployerCaseDetailPage() {
             <div className="recovery-hero-section">
               {id && (
                 <Suspense fallback={<ChartLoader />}>
-                  <DynamicRecoveryTimeline caseId={id} />
+                  <DynamicRecoveryTimeline caseId={id} readOnly />
                 </Suspense>
               )}
             </div>

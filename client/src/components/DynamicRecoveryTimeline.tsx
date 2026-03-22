@@ -140,6 +140,7 @@ interface RecoveryTimelineChartData {
 interface DynamicRecoveryTimelineProps {
   caseId: string;
   className?: string;
+  readOnly?: boolean;
 }
 
 // Enhanced custom tooltip for the chart with modern styling
@@ -213,6 +214,7 @@ const TrendIcon = ({ trend }: { trend: string }) => {
 export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = ({
   caseId,
   className,
+  readOnly = false,
 }) => {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -515,15 +517,17 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
           <Badge className={getConfidenceColor(data.confidence)}>
             {data.confidence.charAt(0).toUpperCase() + data.confidence.slice(1)} Confidence
           </Badge>
-          <Button
-            size="sm"
-            variant="outline"
-            className="bg-white/10 border-white/30 text-white hover:bg-white/20"
-            onClick={() => setShowOverrideForm(true)}
-          >
-            <SlidersHorizontal className="h-4 w-4 mr-1" />
-            Adjust Timeline
-          </Button>
+          {!readOnly && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="bg-white/10 border-white/30 text-white hover:bg-white/20"
+              onClick={() => setShowOverrideForm(true)}
+            >
+              <SlidersHorizontal className="h-4 w-4 mr-1" />
+              Adjust Timeline
+            </Button>
+          )}
         </div>
       </div>
 
