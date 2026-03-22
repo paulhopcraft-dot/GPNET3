@@ -489,6 +489,34 @@ function CommandCentre({ workerCase, caseActions, effectiveRiskLevel }: CommandC
                 </p>
               </div>
             )}
+            {workerCase?.rtwPlanStatus === "pending_employer_review" && (
+              <div className="flex gap-2 mt-3">
+                <Button
+                  size="sm"
+                  className="bg-emerald-500 hover:bg-emerald-600 text-white"
+                  disabled={approveRtwMutation.isPending}
+                  onClick={() => approveRtwMutation.mutate()}
+                >
+                  {approveRtwMutation.isPending ? "Approving…" : "Approve plan"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={approveRtwMutation.isPending}
+                  onClick={() => {
+                    apiRequest("PATCH", `/api/rtw/cases/${id}/status`, {
+                      rtwPlanStatus: "on_hold",
+                      reason: "Employer requested changes",
+                    }).then(() => {
+                      toast({ title: "Changes requested", description: "The coordinator has been notified." });
+                      queryClient.invalidateQueries({ queryKey: ["/api/gpnet2/cases"] });
+                    });
+                  }}
+                >
+                  Request changes
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 
