@@ -268,11 +268,14 @@ function CommandCentre({ workerCase, caseActions, completeAction, uncompleteActi
     complianceLevel === "non-compliant" ? "One or more obligations not met" :
     "All obligations met";
 
-  // Recovery card — derive expected weeks from effective risk level (XGBoost-elevated if available)
-  const expectedWeeks =
+  // Recovery card — use injury-specific estimate from API; fall back to risk-level heuristic
+  const riskBasedWeeks =
     effectiveRiskLevel === "Low" ? 6 :
     effectiveRiskLevel === "Medium" ? 12 :
     effectiveRiskLevel === "High" ? 26 : 8;
+  const expectedWeeks = recoveryChartData?.adjustedEstimateWeeks
+    ?? recoveryChartData?.estimatedWeeks
+    ?? riskBasedWeeks;
 
   const recoveryStatus: "on-track" | "delayed" =
     weeksOff <= expectedWeeks ? "on-track" : "delayed";
@@ -609,6 +612,12 @@ export default function EmployerCaseDetailPage() {
   // Fetch case actions
   const { data: actionsData } = useQuery<{ success: boolean; data: CaseAction[] }>({
     queryKey: [`/api/actions/case/${id}`],
+    enabled: !!id,
+  });
+
+  // Fetch injury-specific recovery estimate (injury type + risk modifier = accurate weeks)
+  const { data: recoveryChartData } = useQuery<{ estimatedWeeks?: number; adjustedEstimateWeeks?: number }>({
+    queryKey: [`/api/cases/${id}/recovery-chart`],
     enabled: !!id,
   });
   const caseActions = actionsData?.data ?? [];
