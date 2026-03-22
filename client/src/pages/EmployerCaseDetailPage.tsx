@@ -661,6 +661,8 @@ export default function EmployerCaseDetailPage() {
     onSuccess: () => {
       toast({ title: "RTW plan approved", description: "The Return to Work plan is now active." });
       queryClient.invalidateQueries({ queryKey: ["/api/gpnet2/cases"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/employer/dashboard"] });
+      setTimeout(() => navigate("/employer"), 1200);
     },
     onError: () => {
       toast({ title: "Failed to approve plan", variant: "destructive" });
@@ -877,6 +879,8 @@ export default function EmployerCaseDetailPage() {
               }).then(() => {
                 toast({ title: "Changes requested", description: "The coordinator has been notified." });
                 queryClient.invalidateQueries({ queryKey: ["/api/gpnet2/cases"] });
+                queryClient.invalidateQueries({ queryKey: ["/api/employer/dashboard"] });
+                setTimeout(() => navigate("/employer"), 1200);
               });
             }}
             rtwApprovePending={approveRtwMutation.isPending}
