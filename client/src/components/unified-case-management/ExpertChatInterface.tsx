@@ -491,12 +491,12 @@ export function ExpertChatInterface({
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder={currentCase ? `Ask about ${currentCase.workerName}'s case...` : "Ask me anything about case management..."}
-                disabled={sendMessageMutation.isLoading}
+                disabled={sendMessageMutation.isPending}
                 className="flex-1"
               />
               <Button
                 onClick={() => handleSendMessage()}
-                disabled={!input.trim() || sendMessageMutation.isLoading}
+                disabled={!input.trim() || sendMessageMutation.isPending}
                 size="sm"
               >
                 <Send className="w-4 h-4" />

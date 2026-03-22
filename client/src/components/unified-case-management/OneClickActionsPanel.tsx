@@ -35,7 +35,8 @@ import {
   Send,
   Zap,
   Target,
-  Activity
+  Activity,
+  TrendingUp
 } from "lucide-react";
 import type { WorkerCase } from "@shared/schema";
 
