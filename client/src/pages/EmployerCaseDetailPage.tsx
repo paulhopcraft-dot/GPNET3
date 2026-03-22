@@ -206,7 +206,8 @@ interface CaseFlag {
 function buildCaseFlags(
   workerCase: WorkerCase,
   weeksOff: number,
-  certStatus: ReturnType<typeof certExpiryStatus>
+  certStatus: ReturnType<typeof certExpiryStatus>,
+  effectiveRiskLevel?: string
 ): CaseFlag[] {
   const flags: CaseFlag[] = [];
 
@@ -227,8 +228,9 @@ function buildCaseFlags(
     flags.push({ label: "Compliance indicator: Medium", severity: "amber" });
   }
 
-  if (workerCase.riskLevel === "High") {
-    flags.push({ label: `Risk level: ${workerCase.riskLevel}`, severity: "red" });
+  const riskForFlags = effectiveRiskLevel || workerCase.riskLevel;
+  if (riskForFlags === "High") {
+    flags.push({ label: `Risk level: High`, severity: "red" });
   }
 
   if (flags.length === 0) {
@@ -246,14 +248,15 @@ interface CommandCentreProps {
   completeAction: { isPending: boolean };
   uncompleteAction: { isPending: boolean };
   toggleAction: (action: CaseAction) => void;
+  effectiveRiskLevel: string;
 }
 
-function CommandCentre({ workerCase, caseActions, completeAction, uncompleteAction, toggleAction }: CommandCentreProps) {
+function CommandCentre({ workerCase, caseActions, completeAction, uncompleteAction, toggleAction, effectiveRiskLevel }: CommandCentreProps) {
   const weeksOff   = calcWeeksOffWork(workerCase.dateOfInjury);
   const daysOff    = calcDaysFromInjury(workerCase.dateOfInjury);
   const checkpoint = nextCheckpoint(daysOff);
   const certStatus = certExpiryStatus(workerCase.latestCertificate);
-  const flags      = buildCaseFlags(workerCase, weeksOff, certStatus);
+  const flags      = buildCaseFlags(workerCase, weeksOff, certStatus, effectiveRiskLevel);
 
   // Compliance card
   const complianceRaw = (workerCase.complianceIndicator || "").toLowerCase();
@@ -268,11 +271,11 @@ function CommandCentre({ workerCase, caseActions, completeAction, uncompleteActi
     complianceLevel === "non-compliant" ? "One or more obligations not met" :
     "All obligations met";
 
-  // Recovery card — derive expected weeks from risk/injury context
+  // Recovery card — derive expected weeks from effective risk level (XGBoost-elevated if available)
   const expectedWeeks =
-    workerCase.riskLevel === "Low" ? 6 :
-    workerCase.riskLevel === "Medium" ? 12 :
-    workerCase.riskLevel === "High" ? 26 : 8;
+    effectiveRiskLevel === "Low" ? 6 :
+    effectiveRiskLevel === "Medium" ? 12 :
+    effectiveRiskLevel === "High" ? 26 : 8;
 
   const recoveryStatus: "on-track" | "delayed" =
     weeksOff <= expectedWeeks ? "on-track" : "delayed";
@@ -339,16 +342,16 @@ function CommandCentre({ workerCase, caseActions, completeAction, uncompleteActi
               {workerCase.workStatus}
             </Badge>
 
-            {/* Risk level */}
+            {/* Risk level — uses XGBoost-elevated effectiveRiskLevel if available */}
             <Badge variant="outline" className={cn(
               "font-medium border",
-              workerCase.riskLevel === "High"
+              effectiveRiskLevel === "High"
                 ? "border-red-300 text-red-700 bg-red-50 dark:bg-red-950/30 dark:text-red-300"
-                : workerCase.riskLevel === "Medium"
+                : effectiveRiskLevel === "Medium"
                 ? "border-amber-300 text-amber-700 bg-amber-50 dark:bg-amber-950/30 dark:text-amber-300"
                 : "border-emerald-300 text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-300"
             )}>
-              {workerCase.riskLevel || "Unknown"} risk
+              {effectiveRiskLevel || "Unknown"} risk
             </Badge>
 
             {/* Compliance checkpoint countdown */}
@@ -904,6 +907,7 @@ export default function EmployerCaseDetailPage() {
             completeAction={completeAction}
             uncompleteAction={uncompleteAction}
             toggleAction={toggleAction}
+            effectiveRiskLevel={effectiveRiskLevel ?? workerCase.riskLevel ?? "Unknown"}
           />
         </TabsContent>
 
