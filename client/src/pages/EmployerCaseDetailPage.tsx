@@ -322,10 +322,12 @@ function CommandCentre({ workerCase, caseActions, completeAction, uncompleteActi
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {/* Weeks off work */}
+            {/* Weeks since injury — only show "off work" label when worker is actually off work */}
             {weeksOff > 0 && (
               <Badge className="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200 font-medium">
-                Week {weeksOff} off work
+                {workerCase.workStatus === "At work"
+                  ? `Week ${weeksOff} post-injury`
+                  : `Week ${weeksOff} off work`}
               </Badge>
             )}
 
