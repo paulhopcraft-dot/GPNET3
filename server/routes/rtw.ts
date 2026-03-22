@@ -135,6 +135,20 @@ router.put("/:id/rtw-plan", authorize(), requireCaseOwnership(), async (req: Aut
       rtwPlanStatus,
     });
 
+    // When plan becomes active, clear any stale "No RTW plan" review actions
+    const ACTIVE_STATUSES: RTWPlanStatus[] = ["in_progress", "working_well", "completed"];
+    if (ACTIVE_STATUSES.includes(rtwPlanStatus as RTWPlanStatus)) {
+      const caseActionsAll = await storage.getActionsByCase(workerCase.id, workerCase.organizationId);
+      const staleRtwActions = caseActionsAll.filter(
+        a => a.type === "review_case" &&
+             a.status === "pending" &&
+             (a.notes?.includes("RTW plan") || a.notes?.includes("No RTW"))
+      );
+      await Promise.all(
+        staleRtwActions.map(a => storage.completeAction(a.id, req.user!.id, req.user!.email))
+      );
+    }
+
     // Log audit event with transition details
     await logAuditEvent({
       userId: req.user!.id,
