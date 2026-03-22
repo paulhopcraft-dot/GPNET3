@@ -30,6 +30,7 @@ import { isLegitimateCase } from "@shared/schema";
 // Valid RTW plan status transitions (PRD-3.2.3)
 const VALID_TRANSITIONS: Record<RTWPlanStatus, RTWPlanStatus[]> = {
   not_planned: ["planned_not_started"],
+  pending_employer_review: ["in_progress", "on_hold", "not_planned"],
   planned_not_started: ["in_progress", "on_hold", "not_planned"],
   in_progress: ["working_well", "failing", "on_hold", "completed"],
   working_well: ["in_progress", "completed", "on_hold"],
@@ -40,6 +41,7 @@ const VALID_TRANSITIONS: Record<RTWPlanStatus, RTWPlanStatus[]> = {
 
 const RTW_STATUS_LABELS: Record<RTWPlanStatus, string> = {
   not_planned: "Not Planned",
+  pending_employer_review: "Awaiting Employer Approval",
   planned_not_started: "Planned - Not Started",
   in_progress: "In Progress",
   working_well: "Working Well",

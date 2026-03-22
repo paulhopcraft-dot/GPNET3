@@ -649,10 +649,10 @@ export function StakeholderCoordinationHub({
             <div className="flex gap-2 pt-4">
               <Button
                 onClick={handleSendMessage}
-                disabled={!newMessage.trim() || messageRecipients.length === 0 || sendMessageMutation.isLoading}
+                disabled={!newMessage.trim() || messageRecipients.length === 0 || sendMessageMutation.isPending}
                 className="flex-1"
               >
-                {sendMessageMutation.isLoading ? (
+                {sendMessageMutation.isPending ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                 ) : (
                   <Send className="w-4 h-4 mr-2" />

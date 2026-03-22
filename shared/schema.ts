@@ -719,6 +719,7 @@ export interface WorkerCase {
   certificateHistory?: MedicalCertificateInput[];
   riskFlags?: string[];
   injuryDescription?: string;
+  injuryType?: string;
   contactPhone?: string;
   currentCertificateStart?: string;
   currentCertificateEnd?: string;

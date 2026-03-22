@@ -162,11 +162,11 @@ export function SmartTimelineVisualization({
         title: "RTW Plan Created",
         description: "Return to work plan developed and agreed upon",
         type: "rtw",
-        status: workerCase.rtwPlanStatus === "not_planned" ? "upcoming" : "completed",
+        status: "completed",
         stakeholder: "case_manager",
         impact: "positive",
         estimatedDuration: 90,
-        nextSteps: workerCase.rtwPlanStatus === "not_planned" ? ["Create RTW plan", "Coordinate with employer"] : []
+        nextSteps: []
       });
     }
 
