@@ -15,6 +15,7 @@ import type {
   MedicalCertificateDB
 } from "@shared/schema";
 import type { IStorage } from "../storage";
+import { getCaseRTWCompliance, requiresRTWAction, getRTWCompliancePriority } from "./rtwCompliance";
 
 // Configuration
 const EXPIRING_SOON_DAYS = 7;
@@ -240,6 +241,20 @@ export async function processComplianceForCase(
 ): Promise<CertificateCompliance> {
   const compliance = await getCaseCompliance(storage, caseId, organizationId);
   await syncComplianceActions(storage, caseId, compliance);
+
+  // Also check RTW plan compliance and create review_case action if needed
+  const rtwCompliance = await getCaseRTWCompliance(storage, caseId, organizationId);
+  if (requiresRTWAction(rtwCompliance)) {
+    const priority = getRTWCompliancePriority(rtwCompliance);
+    await storage.upsertAction(
+      caseId,
+      "review_case",
+      new Date(),
+      rtwCompliance.message,
+      priority
+    );
+  }
+
   return compliance;
 }
 

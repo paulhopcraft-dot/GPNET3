@@ -558,7 +558,7 @@ export interface IStorage {
   uncompleteAction(id: string): Promise<CaseActionDB>;
   failAction(id: string, reason: string): Promise<CaseActionDB>;
   findPendingActionByTypeAndCase(caseId: string, type: CaseActionType): Promise<CaseActionDB | null>;
-  upsertAction(caseId: string, type: CaseActionType, dueDate?: Date, notes?: string): Promise<CaseActionDB>;
+  upsertAction(caseId: string, type: CaseActionType, dueDate?: Date, notes?: string, priorityLevel?: "critical" | "high" | "medium" | "low"): Promise<CaseActionDB>;
 
   // Email Drafter v1 - Email Draft management - UPDATED for multi-tenant isolation
   createEmailDraft(draft: InsertEmailDraft): Promise<EmailDraftDB>;
@@ -2509,16 +2509,20 @@ class DbStorage implements IStorage {
     return result || null;
   }
 
-  async upsertAction(caseId: string, type: CaseActionType, dueDate?: Date, notes?: string): Promise<CaseActionDB> {
+  async upsertAction(caseId: string, type: CaseActionType, dueDate?: Date, notes?: string, priorityLevel?: "critical" | "high" | "medium" | "low"): Promise<CaseActionDB> {
     // Check if a pending action of this type already exists for the case
     const existing = await this.findPendingActionByTypeAndCase(caseId, type);
 
     if (existing) {
-      // Update the existing action if needed (e.g., new due date)
-      if (dueDate || notes) {
+      // Update the existing action — also escalate priority if new priority is higher
+      const priorityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
+      const existingPriority = (existing.priorityLevel ?? "medium") as "critical" | "high" | "medium" | "low";
+      const newPriorityHigher = priorityLevel && priorityOrder[priorityLevel] > priorityOrder[existingPriority];
+      if (dueDate || notes || newPriorityHigher) {
         return await this.updateAction(existing.id, {
           dueDate: dueDate ?? existing.dueDate ?? undefined,
           notes: notes ?? existing.notes ?? undefined,
+          ...(newPriorityHigher ? { priorityLevel } : {}),
         });
       }
       return existing;
@@ -2543,6 +2547,7 @@ class DbStorage implements IStorage {
       dueDate,
       notes,
       priority: 1,
+      priorityLevel: priorityLevel ?? "medium",
     });
   }
 
