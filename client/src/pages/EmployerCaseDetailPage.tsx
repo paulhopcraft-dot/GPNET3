@@ -240,11 +240,13 @@ interface CommandCentreProps {
   caseActions: CaseAction[];
   effectiveRiskLevel: string;
   onApproveRtw?: () => void;
-  onRequestChangesRtw?: () => void;
+  onRequestChangesRtw?: (feedback: string) => void;
   rtwApprovePending?: boolean;
 }
 
 function CommandCentre({ workerCase, caseActions, effectiveRiskLevel, onApproveRtw, onRequestChangesRtw, rtwApprovePending }: CommandCentreProps) {
+  const [showChangesInput, setShowChangesInput] = useState(false);
+  const [changesFeedback, setChangesFeedback] = useState("");
   const weeksOff   = calcWeeksOffWork(workerCase.dateOfInjury);
   const daysOff    = calcDaysFromInjury(workerCase.dateOfInjury);
   const checkpoint = nextCheckpoint(daysOff);
@@ -530,24 +532,54 @@ function CommandCentre({ workerCase, caseActions, effectiveRiskLevel, onApproveR
                     </div>
                   );
                 })()}
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    className="bg-emerald-500 hover:bg-emerald-600 text-white"
-                    disabled={rtwApprovePending}
-                    onClick={onApproveRtw}
-                  >
-                    {rtwApprovePending ? "Approving…" : "Approve plan"}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={rtwApprovePending}
-                    onClick={onRequestChangesRtw}
-                  >
-                    Request changes
-                  </Button>
-                </div>
+                {!showChangesInput ? (
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      className="bg-emerald-500 hover:bg-emerald-600 text-white"
+                      disabled={rtwApprovePending}
+                      onClick={onApproveRtw}
+                    >
+                      {rtwApprovePending ? "Approving…" : "Approve plan"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={rtwApprovePending}
+                      onClick={() => setShowChangesInput(true)}
+                    >
+                      Request changes
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-foreground">What needs to change?</p>
+                    <textarea
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+                      rows={3}
+                      placeholder="e.g. The schedule is too aggressive — start at 2 days/week, not 4"
+                      value={changesFeedback}
+                      onChange={e => setChangesFeedback(e.target.value)}
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        disabled={!changesFeedback.trim()}
+                        onClick={() => {
+                          onRequestChangesRtw?.(changesFeedback.trim());
+                          setShowChangesInput(false);
+                          setChangesFeedback("");
+                        }}
+                      >
+                        Send feedback
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => { setShowChangesInput(false); setChangesFeedback(""); }}>
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             {(workerCase?.rtwPlanStatus === "in_progress" || workerCase?.rtwPlanStatus === "working_well") && (
@@ -917,12 +949,19 @@ export default function EmployerCaseDetailPage() {
             caseActions={caseActions}
             effectiveRiskLevel={effectiveRiskLevel ?? workerCase.riskLevel ?? "Unknown"}
             onApproveRtw={() => approveRtwMutation.mutate()}
-            onRequestChangesRtw={async () => {
+            onRequestChangesRtw={async (feedback: string) => {
+              const reason = feedback || "Employer requested changes to the RTW plan";
               await apiRequest("PUT", `/api/cases/${id}/rtw-plan`, {
-                rtwPlanStatus: "on_hold",
-                reason: "Employer requested changes",
+                rtwPlanStatus: "planned_not_started",
+                reason,
               });
-              toast({ title: "Changes requested", description: "The coordinator has been notified." });
+              // Create a coordinator action with Sarah's feedback so it surfaces in their queue
+              await apiRequest("POST", `/api/actions/case/${id}`, {
+                type: "review_case",
+                notes: `Employer requested RTW plan changes: "${reason}"`,
+                priority: 1,
+              }).catch(() => {}); // best-effort
+              toast({ title: "Changes requested", description: "Your feedback has been sent to the coordinator." });
               await Promise.all([
                 queryClient.refetchQueries({ queryKey: ["/api/gpnet2/cases"] }),
                 queryClient.refetchQueries({ queryKey: ["/api/employer/dashboard"] }),
@@ -1457,11 +1496,19 @@ export default function EmployerCaseDetailPage() {
                                 className="border-white/30 text-white/80 hover:bg-white/10"
                                 disabled={approveRtwMutation.isPending}
                                 onClick={async () => {
+                                  const feedback = window.prompt("What changes are needed? (Your feedback goes to the coordinator)");
+                                  if (feedback === null) return; // cancelled
+                                  const reason = feedback.trim() || "Employer requested changes to the RTW plan";
                                   await apiRequest("PUT", `/api/cases/${id}/rtw-plan`, {
-                                    rtwPlanStatus: "on_hold",
-                                    reason: "Employer requested changes",
+                                    rtwPlanStatus: "planned_not_started",
+                                    reason,
                                   });
-                                  toast({ title: "Changes requested", description: "The coordinator has been notified." });
+                                  await apiRequest("POST", `/api/actions/case/${id}`, {
+                                    type: "review_case",
+                                    notes: `Employer requested RTW plan changes: "${reason}"`,
+                                    priority: 1,
+                                  }).catch(() => {});
+                                  toast({ title: "Changes requested", description: "Your feedback has been sent to the coordinator." });
                                   await Promise.all([
                                     queryClient.refetchQueries({ queryKey: ["/api/gpnet2/cases"] }),
                                     queryClient.refetchQueries({ queryKey: ["/api/employer/dashboard"] }),
