@@ -1163,7 +1163,11 @@ export default function EmployerCaseDetailPage() {
             const riskBasedTotalWeeks =
               (effectiveRiskLevel || workerCase.riskLevel || "").toLowerCase() === "high" ? 26 :
               (effectiveRiskLevel || workerCase.riskLevel || "").toLowerCase() === "medium" ? 12 : 6;
-            const remainingWeeks = isOffWork ? Math.max(0, riskBasedTotalWeeks - weeksOff) : 0;
+            const isLongDuration = isOffWork && weeksOff > riskBasedTotalWeeks;
+            // Long-duration: use 13-week rolling estimate (ongoing); normal: remaining to estimate
+            const remainingWeeks = isOffWork
+              ? (isLongDuration ? 13 : Math.max(0, riskBasedTotalWeeks - weeksOff))
+              : 0;
             const projectedFutureCost = remainingWeeks * AVG_WEEKLY_COMP;
             const totalEstimate = costToDate + projectedFutureCost;
             const fmt = (n: number) => `$${n.toLocaleString()}`;
@@ -1184,12 +1188,12 @@ export default function EmployerCaseDetailPage() {
                       <div className="rounded-lg border bg-amber-50 p-4 text-center">
                         <div className="text-2xl font-bold text-amber-700">{fmt(projectedFutureCost)}</div>
                         <div className="text-xs text-muted-foreground mt-1">Projected future cost</div>
-                        <div className="text-xs text-muted-foreground">{remainingWeeks} weeks remaining (est.)</div>
+                        <div className="text-xs text-muted-foreground">{isLongDuration ? "Ongoing — ~13 wks rolling est." : `${remainingWeeks} weeks remaining (est.)`}</div>
                       </div>
                       <div className="rounded-lg border bg-blue-50 p-4 text-center">
                         <div className="text-2xl font-bold text-blue-700">{fmt(totalEstimate)}</div>
                         <div className="text-xs text-muted-foreground mt-1">Total claim estimate</div>
-                        <div className="text-xs text-muted-foreground">{riskBasedTotalWeeks} weeks total (est.)</div>
+                        <div className="text-xs text-muted-foreground">{isLongDuration ? `${weeksOff}+ weeks (ongoing)` : `${riskBasedTotalWeeks} weeks total (est.)`}</div>
                       </div>
                     </div>
                     <div className="space-y-2 text-sm">
