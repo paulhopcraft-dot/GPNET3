@@ -64,10 +64,12 @@ interface CaseAction {
   id: string;
   caseId: string;
   type: string;
-  title: string;
+  title: string | null;
   description: string | null;
+  notes: string | null;
   status: 'pending' | 'completed' | 'failed';
-  priority: 'low' | 'medium' | 'high' | 'critical';
+  priority: number | null;                                         // Legacy integer — do not use for display
+  priorityLevel: 'low' | 'medium' | 'high' | 'critical' | null;  // Use this
   dueDate: string | null;
   completedAt: string | null;
   completedBy: string | null;
@@ -279,14 +281,25 @@ function CommandCentre({ workerCase, caseActions, completeAction, uncompleteActi
   const pendingActions = caseActions.filter(a => a.status !== "completed");
   const topAction = pendingActions.length > 0
     ? pendingActions.sort((a, b) => {
-        const pOrder = { critical: 0, high: 1, medium: 2, low: 3 };
-        return (pOrder[a.priority] ?? 9) - (pOrder[b.priority] ?? 9);
+        const pOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+        return (pOrder[a.priorityLevel ?? "medium"] ?? 9) - (pOrder[b.priorityLevel ?? "medium"] ?? 9);
       })[0]
     : null;
 
   const derivedAction = !topAction ? deriveNextAction(workerCase, weeksOff, certStatus) : null;
 
-  const nextActionTitle  = topAction?.title ?? derivedAction?.title ?? "No immediate actions";
+  const actionTypeLabel = (type: string): string => {
+    switch (type) {
+      case 'review_case': return 'Review Case';
+      case 'chase_certificate': return 'Obtain Medical Certificate';
+      case 'follow_up': return 'Follow Up Required';
+      case 'contact_worker': return 'Contact Worker';
+      case 'update_rtw_plan': return 'Update RTW Plan';
+      default: return type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    }
+  };
+
+  const nextActionTitle  = (topAction ? (topAction.title || actionTypeLabel(topAction.type)) : null) ?? derivedAction?.title ?? "No immediate actions";
   const nextActionOwner  = topAction?.completedBy ?? derivedAction?.owner ?? "Coordinator";
   const nextActionDue    = topAction ? formatRelativeDue(topAction.dueDate) : (derivedAction ? { text: derivedAction.dueText, overdue: derivedAction.overdue } : { text: "", overdue: false });
 
@@ -501,7 +514,7 @@ function CommandCentre({ workerCase, caseActions, completeAction, uncompleteActi
             {/* Pending / overdue actions */}
             {pendingFeed.map(action => {
               const due = formatRelativeDue(action.dueDate);
-              const isPriorityCriticalOrHigh = action.priority === "critical" || action.priority === "high";
+              const isPriorityCriticalOrHigh = action.priorityLevel === "critical" || action.priorityLevel === "high";
               return (
                 <div
                   key={action.id}
@@ -524,8 +537,8 @@ function CommandCentre({ workerCase, caseActions, completeAction, uncompleteActi
                     )} />
                   </button>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">{action.title}</p>
-                    {action.description && <p className="text-xs text-muted-foreground mt-0.5">{action.description}</p>}
+                    <p className="text-sm font-medium">{action.title || actionTypeLabel(action.type)}</p>
+                    {(action.description || action.notes) && <p className="text-xs text-muted-foreground mt-0.5">{action.description ?? action.notes}</p>}
                   </div>
                   <div className="text-right shrink-0">
                     {action.completedBy && <p className="text-xs text-muted-foreground">{action.completedBy}</p>}
@@ -556,7 +569,7 @@ function CommandCentre({ workerCase, caseActions, completeAction, uncompleteActi
                       <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                     </button>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm line-through">{action.title}</p>
+                      <p className="text-sm line-through">{action.title || actionTypeLabel(action.type)}</p>
                     </div>
                     {action.completedAt && (
                       <p className="text-xs text-muted-foreground shrink-0">
@@ -638,9 +651,10 @@ export default function EmployerCaseDetailPage() {
     },
   });
 
-  // Trigger compliance sync on first load if no actions exist
+  // Trigger compliance sync on first load if no pending actions exist
+  const hasPendingActions = caseActions.some(a => a.status === 'pending');
   useEffect(() => {
-    if (id && actionsData && caseActions.length === 0 && !syncCompliance.isPending && !syncCompliance.isSuccess) {
+    if (id && actionsData && !hasPendingActions && !syncCompliance.isPending && !syncCompliance.isSuccess) {
       syncCompliance.mutate();
     }
   }, [id, actionsData]);
@@ -653,12 +667,13 @@ export default function EmployerCaseDetailPage() {
     }
   };
 
-  // Group actions by priority
+  // Group actions by priorityLevel (text field) — not priority (legacy integer)
   const groupActionsByPriority = (actions: CaseAction[]) => {
-    const critical = actions.filter(a => a.priority === 'critical' && a.status !== 'completed');
-    const high = actions.filter(a => a.priority === 'high' && a.status !== 'completed');
-    const medium = actions.filter(a => a.priority === 'medium' && a.status !== 'completed');
-    const low = actions.filter(a => a.priority === 'low' && a.status !== 'completed');
+    const pl = (a: CaseAction) => a.priorityLevel ?? 'medium';
+    const critical = actions.filter(a => pl(a) === 'critical' && a.status !== 'completed');
+    const high = actions.filter(a => pl(a) === 'high' && a.status !== 'completed');
+    const medium = actions.filter(a => pl(a) === 'medium' && a.status !== 'completed');
+    const low = actions.filter(a => pl(a) === 'low' && a.status !== 'completed');
     const completed = actions.filter(a => a.status === 'completed');
     return { critical, high, medium, low, completed };
   };
