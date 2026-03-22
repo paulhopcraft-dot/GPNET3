@@ -39,6 +39,7 @@ type SeedCase = {
   aiSummary: string;
   aiWorkStatusClassification: string;
   attachments: SeedAttachment[];
+  clinicalStatusJson?: { rtwPlanStatus?: string };
 };
 
 const employers = [
@@ -184,6 +185,7 @@ const alphaCases: SeedCase[] = [
     company: employers[1].name,
     dateOfInjury: "2024-11-15T00:00:00.000Z",
     riskLevel: "Medium",
+    clinicalStatusJson: { rtwPlanStatus: "pending_employer_review" },
     workStatus: "Off work",
     compliance: {
       indicator: "Low",
@@ -499,6 +501,7 @@ async function seed() {
       ticketLastUpdatedAt: new Date(seedCase.ticketLastUpdatedAt),
       clcLastFollowUp: seedCase.clcLastFollowUp,
       clcNextFollowUp: seedCase.clcNextFollowUp,
+      clinicalStatusJson: (seedCase as any).clinicalStatusJson ?? null,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -552,6 +555,7 @@ async function seed() {
       ticketLastUpdatedAt: new Date(seedCase.ticketLastUpdatedAt),
       clcLastFollowUp: seedCase.clcLastFollowUp,
       clcNextFollowUp: seedCase.clcNextFollowUp,
+      clinicalStatusJson: (seedCase as any).clinicalStatusJson ?? null,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
