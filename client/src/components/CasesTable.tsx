@@ -119,9 +119,16 @@ const CaseRow = memo(function CaseRow({ c, isSelected, onCaseClick }: CaseRowPro
         <div className="text-xs text-muted-foreground">{c.company}</div>
       </td>
       <td className="px-4 py-3">
-        <span className={cn("px-2 py-0.5 rounded-full text-xs font-medium border", LIFECYCLE_COLORS[stage])}>
-          {LIFECYCLE_STAGE_LABELS[stage]}
-        </span>
+        <div className="flex flex-col gap-1">
+          <span className={cn("px-2 py-0.5 rounded-full text-xs font-medium border", LIFECYCLE_COLORS[stage])}>
+            {LIFECYCLE_STAGE_LABELS[stage]}
+          </span>
+          {c.rtwPlanStatus === "pending_employer_review" && (
+            <span className="px-2 py-0.5 rounded-full text-xs font-medium border bg-yellow-50 text-yellow-700 border-yellow-300 w-fit">
+              ⏳ Awaiting employer
+            </span>
+          )}
+        </div>
       </td>
       <td className="px-4 py-3">
         <span className={cn("text-sm font-medium", days > 90 ? "text-red-600" : days > 30 ? "text-amber-600" : "text-muted-foreground")}>
