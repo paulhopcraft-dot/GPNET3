@@ -30,6 +30,7 @@ export interface CaseActionPanelProps {
   caseId: string;
   workerId?: string;
   organizationId?: string;
+  nextStep?: string;
 }
 
 interface ChatMessage {
@@ -160,6 +161,7 @@ interface NextActionSectionProps {
   caseId: string;
   onMarkDone: (actionId: string) => void;
   isMarkingDone: boolean;
+  nextStep?: string;
 }
 
 function NextActionSection({
@@ -167,6 +169,7 @@ function NextActionSection({
   caseId,
   onMarkDone,
   isMarkingDone,
+  nextStep,
 }: NextActionSectionProps): React.ReactElement {
   const now = new Date();
 
@@ -182,6 +185,15 @@ function NextActionSection({
     })[0];
 
   if (!next) {
+    // Fall back to the case's nextStep field if available
+    if (nextStep) {
+      return (
+        <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-3 text-sm text-blue-700">
+          <p className="font-medium">{nextStep}</p>
+          <p className="text-xs text-blue-500 mt-1">From case management system</p>
+        </div>
+      );
+    }
     return (
       <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-3 text-sm text-green-700 flex items-center gap-2">
         <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
@@ -456,7 +468,7 @@ function ChatBoxSection({ caseId, workerId, organizationId }: ChatBoxSectionProp
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export function CaseActionPanel({ caseId, workerId, organizationId }: CaseActionPanelProps): React.ReactElement {
+export function CaseActionPanel({ caseId, workerId, organizationId, nextStep }: CaseActionPanelProps): React.ReactElement {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -538,6 +550,7 @@ export function CaseActionPanel({ caseId, workerId, organizationId }: CaseAction
               caseId={caseId}
               onMarkDone={(id) => markDone(id)}
               isMarkingDone={isMarkingDone}
+              nextStep={nextStep}
             />
           )}
         </CardContent>

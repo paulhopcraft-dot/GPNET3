@@ -759,6 +759,7 @@ export default function CaseSummaryPage() {
         <CaseActionPanel
           caseId={workerCase.id}
           organizationId={workerCase.organizationId}
+          nextStep={workerCase.nextStep}
         />
         </div>{/* end flex row */}
       </div>
