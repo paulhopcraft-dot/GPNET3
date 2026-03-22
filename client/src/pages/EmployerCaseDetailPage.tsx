@@ -654,7 +654,7 @@ export default function EmployerCaseDetailPage() {
   // Trigger compliance sync on first load if no pending actions exist
   const hasPendingActions = caseActions.some(a => a.status === 'pending');
   useEffect(() => {
-    if (id && actionsData && !hasPendingActions && !syncCompliance.isPending && !syncCompliance.isSuccess) {
+    if (id && actionsData && !hasPendingActions && !syncCompliance.isPending && !syncCompliance.isSuccess && !syncCompliance.isError) {
       syncCompliance.mutate();
     }
   }, [id, actionsData]);

@@ -288,23 +288,9 @@ router.get('/dashboard', authorize(), async (req: Request, res: Response) => {
     // Sort all actions by days overdue (most urgent first)
     priorityActions.sort((a, b) => (b.daysOverdue || 0) - (a.daysOverdue || 0));
 
-    // Reassign priority based on relative position to ensure distribution
-    // Top 40% = critical, next 30% = urgent, bottom 30% = routine
-    const totalActions = priorityActions.length;
-    const criticalCutoff = Math.floor(totalActions * 0.4);
-    const urgentCutoff = Math.floor(totalActions * 0.7);
-
-    priorityActions.forEach((action, index) => {
-      if (index < criticalCutoff) {
-        action.priority = 'critical';
-      } else if (index < urgentCutoff) {
-        action.priority = 'urgent';
-      } else {
-        action.priority = 'routine';
-      }
-    });
-
-    // Update statistics with redistributed action counts
+    // Use threshold-based priorities set during generation — do NOT redistribute by
+    // relative position. Redistribution incorrectly downgrades genuinely critical cases
+    // (e.g. Ava Thompson at 413 days) just because Ethan Wells is ranked higher.
     statistics.criticalActions = priorityActions.filter(a => a.priority === 'critical').length;
     statistics.urgentActions = priorityActions.filter(a => a.priority === 'urgent').length;
     statistics.routineActions = priorityActions.filter(a => a.priority === 'routine').length;
