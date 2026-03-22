@@ -220,10 +220,9 @@ function buildCaseFlags(
 
   const compliance = (workerCase.complianceIndicator || "").toLowerCase();
   if (compliance === "low" || compliance === "very low") {
-    flags.push({ label: "Compliance indicator: Low", severity: "red" });
-  } else if (compliance === "medium") {
-    flags.push({ label: "Compliance indicator: Medium", severity: "amber" });
+    flags.push({ label: "Compliance: Critical — case file incomplete", severity: "red" });
   }
+  // Medium compliance is not flagged — specific issues (no cert, no RTW plan) are already surfaced above
 
   const riskForFlags = effectiveRiskLevel || workerCase.riskLevel;
   if (riskForFlags === "High") {
