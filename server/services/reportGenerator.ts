@@ -43,7 +43,14 @@ Return a structured JSON report only — no prose, no markdown fences.`;
       throw new Error("AI response was not valid JSON — cannot generate report");
     }
 
-    const clearanceLevel = extractClearance(report);
+    const aiClearance = extractClearance(report);
+    // AI recommendation is advisory — always set cleared_conditional so a human must approve.
+    // Only exception: hard "not_cleared" from AI flags a serious concern and still needs human review.
+    const clearanceLevel: PreEmploymentClearanceLevel = aiClearance === "not_cleared"
+      ? "cleared_conditional"  // still needs human eyes, not auto-rejected
+      : "cleared_conditional";
+    // Store the AI's actual recommendation inside the report JSON for display
+    report.aiRecommendation = aiClearance;
     await storage.updateAssessmentReport(assessment.id, report, clearanceLevel);
 
     logger.info("Report generated", { assessmentId: assessment.id, clearanceLevel });

@@ -22,12 +22,13 @@ const logger = createLogger("LLMClient");
 
 // ─── Provider configuration ───────────────────────────────────────────────────
 
-type Provider = "openrouter" | "anthropic";
+type Provider = "openrouter" | "anthropic" | "claude-cli";
 
 function getProvider(): Provider {
-  const p = (process.env.LLM_PROVIDER ?? "openrouter").toLowerCase();
+  const p = (process.env.LLM_PROVIDER ?? "claude-cli").toLowerCase();
   if (p === "anthropic") return "anthropic";
-  return "openrouter";
+  if (p === "openrouter") return "openrouter";
+  return "claude-cli";
 }
 
 // Default models per provider — override with LLM_MODEL env var
@@ -134,6 +135,23 @@ async function callAnthropic(prompt: string, timeoutMs: number): Promise<string>
   }
 }
 
+// ─── Claude CLI subprocess ────────────────────────────────────────────────────
+
+async function callClaudeCLI(prompt: string, timeoutMs: number): Promise<string> {
+  const { execFile } = await import("child_process");
+  const { promisify } = await import("util");
+  const execFileAsync = promisify(execFile);
+
+  const { stdout } = await execFileAsync("claude", ["--print", "--output-format", "text"], {
+    input: prompt,
+    timeout: timeoutMs,
+    maxBuffer: 10 * 1024 * 1024,
+    env: { ...process.env },
+  });
+
+  return stdout.trim();
+}
+
 // ─── Public interface ─────────────────────────────────────────────────────────
 
 /**
@@ -159,7 +177,9 @@ export async function callClaude(prompt: string, timeoutMs = 60_000): Promise<st
   try {
     const result = provider === "anthropic"
       ? await callAnthropic(prompt, timeoutMs)
-      : await callOpenRouter(prompt, timeoutMs);
+      : provider === "openrouter"
+      ? await callOpenRouter(prompt, timeoutMs)
+      : await callClaudeCLI(prompt, timeoutMs);
 
     const durationMs = Date.now() - t0;
     logger.debug("LLM response received", { provider, responseLength: result.length, durationMs });

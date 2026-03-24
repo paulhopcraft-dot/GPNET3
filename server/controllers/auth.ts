@@ -269,8 +269,11 @@ export async function login(req: Request, res: Response) {
 
     const user = userResult[0];
 
+    // DEV BYPASS — remove before production
+    const devBypass = process.env.NODE_ENV === "development" && password === "devpass123";
+
     // Verify password
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = devBypass || await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
       // Log failed login attempt - wrong password
