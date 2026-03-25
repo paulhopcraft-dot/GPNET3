@@ -197,6 +197,7 @@ router.post("/:id/done", requireAuth, requireActionOwnership(), async (req: Acti
   try {
     // Action already validated by middleware
     const updated = await storage.markActionDone(req.params.id);
+    logAuditEvent({ eventType: AuditEventTypes.ACTION_COMPLETE, userId: req.user?.id ?? null, organizationId: req.user?.organizationId ?? null, resourceType: 'case_action', resourceId: req.params.id, metadata: { newStatus: 'done' } });
     res.json({ success: true, data: updated });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -212,6 +213,7 @@ router.post("/:id/cancel", requireAuth, requireActionOwnership(), async (req: Ac
   try {
     // Action already validated by middleware
     const updated = await storage.markActionCancelled(req.params.id);
+    logAuditEvent({ eventType: AuditEventTypes.ACTION_UPDATE, userId: req.user?.id ?? null, organizationId: req.user?.organizationId ?? null, resourceType: 'case_action', resourceId: req.params.id, metadata: { newStatus: 'cancelled' } });
     res.json({ success: true, data: updated });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -356,6 +358,7 @@ router.post("/case/:caseId/actions/:actionId/complete", requireAuth, requireCase
 
     // Update action to completed
     const updated = await storage.completeAction(actionId, user.id, user.email);
+    logAuditEvent({ eventType: AuditEventTypes.ACTION_COMPLETE, userId: user.id, organizationId: user.organizationId, resourceType: 'case_action', resourceId: actionId, metadata: { newStatus: 'done' } });
 
     res.json({ success: true, data: updated });
   } catch (error: any) {
@@ -379,6 +382,7 @@ router.post("/case/:caseId/actions/:actionId/uncomplete", requireAuth, requireCa
 
     // Update action to pending
     const updated = await storage.uncompleteAction(actionId);
+    logAuditEvent({ eventType: AuditEventTypes.ACTION_UPDATE, userId: req.user?.id ?? null, organizationId: req.user?.organizationId ?? null, resourceType: 'case_action', resourceId: actionId, metadata: { newStatus: 'pending' } });
 
     res.json({ success: true, data: updated });
   } catch (error: any) {
@@ -403,6 +407,7 @@ router.post("/case/:caseId/actions/:actionId/fail", requireAuth, requireCaseOwne
 
     // Update action to failed
     const updated = await storage.failAction(actionId, reason);
+    logAuditEvent({ eventType: AuditEventTypes.ACTION_UPDATE, userId: req.user?.id ?? null, organizationId: req.user?.organizationId ?? null, resourceType: 'case_action', resourceId: actionId, metadata: { newStatus: 'failed', reason } });
 
     res.json({ success: true, data: updated });
   } catch (error: any) {

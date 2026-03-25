@@ -53,6 +53,9 @@ export function EmailDraftModal({
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [recipientEmail, setRecipientEmail] = useState("");
 
   // Form state
   const [emailTypes, setEmailTypes] = useState<EmailTypeInfo[]>([]);
@@ -90,6 +93,9 @@ export function EmailDraftModal({
       setError(null);
       setCopied(false);
       setSaved(false);
+      setSending(false);
+      setSent(false);
+      setRecipientEmail("");
       setGeneratedDraft(null);
       setEditedSubject("");
       setEditedBody("");
@@ -198,6 +204,40 @@ export function EmailDraftModal({
       setError(err instanceof Error ? err.message : "Failed to save draft");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSendEmail = async () => {
+    if (!generatedDraft || !recipientEmail) return;
+
+    setSending(true);
+    setError(null);
+
+    try {
+      const response = await fetchWithCsrf(
+        `/api/cases/${caseId}/email-drafts/${generatedDraft.id}/send`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            recipientEmail,
+            subject: editedSubject,
+            body: editedBody,
+          }),
+        }
+      );
+
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.message || data.error || "Failed to send email");
+      }
+
+      setSent(true);
+    } catch (err) {
+      console.error("Send error:", err);
+      setError(err instanceof Error ? err.message : "Failed to send email");
+    } finally {
+      setSending(false);
     }
   };
 
@@ -358,9 +398,31 @@ export function EmailDraftModal({
               />
             </div>
 
+            {/* Recipient Email for Sending */}
+            {!sent && (
+              <div className="space-y-2">
+                <Label htmlFor="recipient-email">Recipient Email (required to send)</Label>
+                <Input
+                  id="recipient-email"
+                  type="email"
+                  placeholder="e.g., john.smith@example.com"
+                  value={recipientEmail}
+                  onChange={(e) => setRecipientEmail(e.target.value)}
+                />
+              </div>
+            )}
+
+            {/* Sent Success Message */}
+            {sent && (
+              <div className="bg-green-50 text-green-800 text-sm p-3 rounded-md flex items-center gap-2">
+                <span className="material-symbols-outlined text-base">check_circle</span>
+                Email sent successfully to {recipientEmail}
+              </div>
+            )}
+
             {/* Action Buttons */}
             <div className="flex justify-between pt-4">
-              <Button variant="outline" onClick={handleRegenerate}>
+              <Button variant="outline" onClick={handleRegenerate} disabled={sending}>
                 <span className="material-symbols-outlined text-sm mr-2">
                   refresh
                 </span>
@@ -370,18 +432,31 @@ export function EmailDraftModal({
                 <Button
                   variant="outline"
                   onClick={handleCopyToClipboard}
-                  disabled={loading}
+                  disabled={loading || sending}
                 >
                   <span className="material-symbols-outlined text-sm mr-2">
                     {copied ? "check" : "content_copy"}
                   </span>
-                  {copied ? "Copied!" : "Copy to Clipboard"}
+                  {copied ? "Copied!" : "Copy"}
                 </Button>
-                <Button onClick={handleSaveDraft} disabled={loading}>
+                <Button
+                  variant="outline"
+                  onClick={handleSaveDraft}
+                  disabled={loading || sending}
+                >
                   <span className="material-symbols-outlined text-sm mr-2">
                     {saved ? "check" : "save"}
                   </span>
                   {saved ? "Saved!" : "Save Draft"}
+                </Button>
+                <Button
+                  onClick={handleSendEmail}
+                  disabled={loading || sending || sent || !recipientEmail}
+                >
+                  <span className="material-symbols-outlined text-sm mr-2">
+                    {sent ? "check" : sending ? "autorenew" : "send"}
+                  </span>
+                  {sent ? "Sent!" : sending ? "Sending..." : "Send Email"}
                 </Button>
               </div>
             </div>

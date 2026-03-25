@@ -8,7 +8,7 @@ import { authorize } from '../middleware/auth';
 import { storage } from '../storage';
 import { db } from '../db';
 import { organizations } from '../../shared/schema';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { createLogger } from '../lib/logger';
 import { z } from 'zod';
 import multer from 'multer';
@@ -141,9 +141,20 @@ router.get('/dashboard', authorize(), async (req: Request, res: Response) => {
     const orgRow = await db.select({ name: organizations.name }).from(organizations).where(eq(organizations.id, organizationId)).limit(1);
     const organizationName = orgRow[0]?.name ?? 'Your Organization';
 
-    // Batch fetch all data upfront (3 queries instead of N*2)
-    const [allCases, allActions, allCertificates] = await Promise.all([
-      storage.getGPNet2Cases(organizationId),
+    // Lightweight case query — dashboard only needs basic fields, not notes/attachments/insights
+    // Uses raw SQL to avoid loading full case objects with discussion notes, certificates, etc.
+    const { rows: allCases } = await db.execute(
+      sql`SELECT id, worker_name AS "workerName", company, work_status AS "workStatus",
+              rtw_plan_status AS "rtwPlanStatus", date_of_injury AS "dateOfInjury",
+              compliance_indicator AS "complianceIndicator", case_status AS "caseStatus",
+              has_certificate AS "hasCertificate"
+       FROM worker_cases
+       WHERE organization_id = ${organizationId}
+         AND (case_status = 'open' OR case_status IS NULL)`
+    ) as { rows: any[] };
+
+    // Batch fetch actions and certificates in parallel
+    const [allActions, allCertificates] = await Promise.all([
       storage.getAllActionsWithCaseInfo(organizationId, { status: 'pending' }),
       storage.getCertificatesByOrganization(organizationId)
     ]);

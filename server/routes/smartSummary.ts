@@ -11,6 +11,7 @@ import { requireCaseOwnership } from "../middleware/caseOwnership";
 import { storage } from "../storage";
 import { logger } from "../lib/logger";
 import { generateSmartSummary, generateFallbackSummary } from "../services/smartSummary";
+import { logAuditEvent, AuditEventTypes } from "../services/auditLogger";
 
 const router = express.Router();
 
@@ -54,6 +55,8 @@ router.get(
           }
         }
       }
+
+      logAuditEvent({ eventType: AuditEventTypes.AI_SUMMARY_GENERATE, userId: req.user?.id ?? null, organizationId: req.user?.organizationId ?? null, resourceType: 'case', resourceId: req.params.caseId, metadata: { triggered: 'manual', fallback: useFallback } });
 
       res.json({
         success: true,
@@ -106,6 +109,8 @@ router.post(
           }
         }
       }
+
+      logAuditEvent({ eventType: AuditEventTypes.AI_SUMMARY_GENERATE, userId: req.user?.id ?? null, organizationId: req.user?.organizationId ?? null, resourceType: 'case', resourceId: req.params.caseId, metadata: { triggered: 'manual', regenerated: true, fallback: useFallback } });
 
       res.json({
         success: true,

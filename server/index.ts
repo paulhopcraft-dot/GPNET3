@@ -187,6 +187,11 @@ const startServer = async () => {
 
   await registerRoutes(app);
 
+  // Catch-all for unmatched /api/* routes — return JSON 404 instead of Vite HTML fallback
+  app.all('/api/*', (_req, res) => {
+    res.status(404).json({ error: 'Not Found', message: 'API endpoint not found' });
+  });
+
   // CSRF error handler (must be after CSRF middleware and routes)
   app.use(csrfErrorHandler);
 

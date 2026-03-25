@@ -65,39 +65,26 @@ export default function PreEmploymentPage() {
   const [newJobDescription, setNewJobDescription] = useState("");
   const [formError, setFormError] = useState("");
   const [reportModalAssessment, setReportModalAssessment] = useState<PreEmploymentAssessment | null>(null);
+  const [decisionLevel, setDecisionLevel] = useState<string>("");
+  const [decisionNotes, setDecisionNotes] = useState("");
   const queryClient = useQueryClient();
 
-  const approveAssessmentMutation = useMutation({
-    mutationFn: async (id: string) => {
+  const clearanceDecisionMutation = useMutation({
+    mutationFn: async ({ id, clearanceLevel, notes }: { id: string; clearanceLevel: string; notes?: string }) => {
       const response = await fetchWithCsrf(`/api/pre-employment/assessments/${id}/status`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "completed", clearanceLevel: "cleared_unconditional" }),
+        body: JSON.stringify({ status: "completed", clearanceLevel, notes: notes || undefined }),
       });
-      if (!response.ok) throw new Error("Failed to approve");
+      if (!response.ok) throw new Error("Failed to submit decision");
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pre-employment-assessments"] });
       queryClient.invalidateQueries({ queryKey: ["pre-employment-dashboard"] });
       setReportModalAssessment(null);
-    },
-  });
-
-  const rejectAssessmentMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const response = await fetchWithCsrf(`/api/pre-employment/assessments/${id}/status`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "completed", clearanceLevel: "not_cleared" }),
-      });
-      if (!response.ok) throw new Error("Failed to reject");
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["pre-employment-assessments"] });
-      queryClient.invalidateQueries({ queryKey: ["pre-employment-dashboard"] });
-      setReportModalAssessment(null);
+      setDecisionLevel("");
+      setDecisionNotes("");
     },
   });
 
@@ -198,7 +185,7 @@ export default function PreEmploymentPage() {
   const getClearanceLabel = (clearance?: string) => {
     switch (clearance) {
       case "cleared_unconditional": return "✓ Approved";
-      case "cleared_conditional": return "⏳ Awaiting Approval";
+      case "cleared_conditional": return "Cleared — Conditional";
       case "cleared_with_restrictions": return "Cleared with Restrictions";
       case "not_cleared": return "✗ Not Cleared";
       case "requires_review": return "Requires Review";
@@ -379,21 +366,21 @@ export default function PreEmploymentPage() {
                             size="sm"
                             variant="outline"
                             className="text-blue-700 border-blue-300 hover:bg-blue-50"
-                            onClick={() => setReportModalAssessment(assessment)}
+                            onClick={() => { setDecisionLevel(""); setDecisionNotes(""); setReportModalAssessment(assessment); }}
                           >
                             <FileText className="w-3 h-3 mr-1" />
                             View Report
                           </Button>
                         )}
 
-                        {/* Approve button — only shown when not yet completed/cancelled */}
+                        {/* Quick approve button — only shown when not yet completed/cancelled and no report */}
                         {assessment.status !== "completed" && assessment.status !== "cancelled" && !hasReport(assessment) && (
                           <Button
                             size="sm"
                             variant="outline"
                             className="text-green-700 border-green-300 hover:bg-green-50"
-                            onClick={() => approveAssessmentMutation.mutate(assessment.id)}
-                            disabled={approveAssessmentMutation.isPending}
+                            onClick={() => clearanceDecisionMutation.mutate({ id: assessment.id, clearanceLevel: "cleared_unconditional" })}
+                            disabled={clearanceDecisionMutation.isPending}
                           >
                             <CheckCircle className="w-3 h-3 mr-1" />
                             Approve
@@ -493,36 +480,56 @@ export default function PreEmploymentPage() {
                   </div>
                 )}
 
-                {/* Approve / Reject buttons — shown when AI has reviewed but human hasn't approved yet */}
+                {/* Clearance Decision — shown when AI has reviewed but human hasn't decided yet */}
                 {(reportModalAssessment.status === "in_progress" || reportModalAssessment.clearanceLevel === "cleared_conditional") && reportModalAssessment.status !== "completed" && (
-                  <div className="border-t pt-4 flex gap-3">
+                  <div className="border-t pt-4 space-y-3">
+                    <Label className="text-sm font-semibold text-gray-900">Clearance Decision</Label>
+                    <Select value={decisionLevel} onValueChange={setDecisionLevel}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select clearance level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="cleared_unconditional">Cleared — Unconditional</SelectItem>
+                        <SelectItem value="cleared_conditional">Cleared — Conditional</SelectItem>
+                        <SelectItem value="cleared_with_restrictions">Cleared — With Restrictions</SelectItem>
+                        <SelectItem value="not_cleared">Not Cleared</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    {(decisionLevel === "cleared_conditional" || decisionLevel === "cleared_with_restrictions") && (
+                      <div className="space-y-1">
+                        <Label className="text-sm text-gray-700">
+                          {decisionLevel === "cleared_conditional" ? "Conditions" : "Restrictions"}
+                        </Label>
+                        <Textarea
+                          placeholder={decisionLevel === "cleared_conditional"
+                            ? "Describe conditions that must be met (e.g., provide GP clearance within 2 weeks)..."
+                            : "Describe restrictions on duties (e.g., no manual lifting over 10kg)..."
+                          }
+                          value={decisionNotes}
+                          onChange={(e) => setDecisionNotes(e.target.value)}
+                          rows={3}
+                        />
+                      </div>
+                    )}
+
                     <Button
-                      className="flex-1 bg-green-600 hover:bg-green-700"
-                      onClick={() => approveAssessmentMutation.mutate(reportModalAssessment.id)}
-                      disabled={approveAssessmentMutation.isPending || rejectAssessmentMutation.isPending}
+                      className="w-full"
+                      disabled={!decisionLevel || clearanceDecisionMutation.isPending}
+                      onClick={() => clearanceDecisionMutation.mutate({
+                        id: reportModalAssessment.id,
+                        clearanceLevel: decisionLevel,
+                        notes: decisionNotes.trim() || undefined,
+                      })}
                     >
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                      {approveAssessmentMutation.isPending ? "Approving..." : "Approve — Cleared to Start"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="flex-1 border-red-300 text-red-700 hover:bg-red-50"
-                      onClick={() => rejectAssessmentMutation.mutate(reportModalAssessment.id)}
-                      disabled={approveAssessmentMutation.isPending || rejectAssessmentMutation.isPending}
-                    >
-                      <XCircle className="w-4 h-4 mr-2" />
-                      {rejectAssessmentMutation.isPending ? "Rejecting..." : "Reject — Not Cleared"}
+                      {clearanceDecisionMutation.isPending ? "Submitting..." : "Confirm Decision"}
                     </Button>
                   </div>
                 )}
 
-                {reportModalAssessment.status === "completed" && (
-                  <div className={`border-t pt-4 text-center text-sm font-medium ${
-                    reportModalAssessment.clearanceLevel === "not_cleared" ? "text-red-600" : "text-green-600"
-                  }`}>
-                    {reportModalAssessment.clearanceLevel === "not_cleared"
-                      ? "✗ This candidate was not cleared"
-                      : "✓ This candidate has been approved"}
+                {reportModalAssessment.status === "completed" && reportModalAssessment.clearanceLevel && (
+                  <div className={`border-t pt-4 text-center text-sm font-medium ${getClearanceColor(reportModalAssessment.clearanceLevel)} rounded-lg p-3`}>
+                    {getClearanceLabel(reportModalAssessment.clearanceLevel)}
                   </div>
                 )}
               </div>
