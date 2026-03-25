@@ -255,6 +255,15 @@ export async function processComplianceForCase(
     );
   }
 
+  // Sync has_certificate flag: true only if there's a currently active certificate
+  const hasActiveCert = compliance.status === "compliant" || compliance.status === "certificate_expiring_soon";
+  const { db } = await import("../db");
+  const { workerCases } = await import("@shared/schema");
+  const { eq, and } = await import("drizzle-orm");
+  await db.update(workerCases)
+    .set({ hasCertificate: hasActiveCert, updatedAt: new Date() })
+    .where(and(eq(workerCases.id, caseId), eq(workerCases.organizationId, organizationId)));
+
   // Auto-advance lifecycle stage if case is stuck at "intake"
   await storage.autoAdvanceLifecycleStage(caseId, organizationId);
 

@@ -720,33 +720,43 @@ class DbStorage implements IStorage {
     const notesByCase = new Map<string, CaseDiscussionNote[]>();
     const insightsByCase = new Map<string, TranscriptInsight[]>();
     if (caseIds.length > 0) {
-      const [noteRows, insightRows] = await Promise.all([
-        db
-          .select()
-          .from(caseDiscussionNotes)
-          .where(inArray(caseDiscussionNotes.caseId, caseIds))
-          .orderBy(desc(caseDiscussionNotes.timestamp)),
-        db
-          .select()
-          .from(caseDiscussionInsights)
-          .where(inArray(caseDiscussionInsights.caseId, caseIds))
-          .orderBy(desc(caseDiscussionInsights.createdAt)),
-      ]);
+      // Use window function to fetch only top 3 notes per case (avoids scanning 400K+ rows)
+      const caseIdList = sql.join(caseIds.map(id => sql`${id}`), sql`,`);
+      const noteRows = await db.execute(sql`
+        SELECT * FROM (
+          SELECT *, ROW_NUMBER() OVER (PARTITION BY case_id ORDER BY timestamp DESC) as rn
+          FROM case_discussion_notes
+          WHERE case_id IN (${caseIdList})
+        ) ranked WHERE rn <= 3
+        ORDER BY timestamp DESC
+      `);
 
-      for (const row of noteRows) {
-        const current = notesByCase.get(row.caseId) ?? [];
-        if (current.length >= 3) {
-          continue;
-        }
-        current.push(mapDiscussionNote(row));
-        notesByCase.set(row.caseId, current);
+      for (const row of noteRows.rows as any[]) {
+        const current = notesByCase.get(row.case_id) ?? [];
+        current.push({
+          id: row.id,
+          caseId: row.case_id,
+          workerName: row.worker_name,
+          timestamp: row.timestamp instanceof Date ? row.timestamp.toISOString() : (row.timestamp ?? new Date().toISOString()),
+          rawText: row.raw_text,
+          summary: row.summary,
+          nextSteps: row.next_steps ?? undefined,
+          riskFlags: row.risk_flags ?? undefined,
+          updatesCompliance: row.updates_compliance ?? false,
+          updatesRecoveryTimeline: row.updates_recovery_timeline ?? false,
+        });
+        notesByCase.set(row.case_id, current);
       }
+
+      const insightRows = await db
+        .select()
+        .from(caseDiscussionInsights)
+        .where(inArray(caseDiscussionInsights.caseId, caseIds))
+        .orderBy(desc(caseDiscussionInsights.createdAt));
 
       for (const row of insightRows) {
         const list = insightsByCase.get(row.caseId) ?? [];
-        if (list.length >= 5) {
-          continue;
-        }
+        if (list.length >= 5) continue;
         list.push(mapDiscussionInsight(row));
         insightsByCase.set(row.caseId, list);
       }
@@ -786,7 +796,7 @@ class DbStorage implements IStorage {
           dateOfInjury: dbCase.dateOfInjury.toISOString().split('T')[0],
           riskLevel: dbCase.riskLevel as any,
           workStatus: dbCase.workStatus as any,
-          hasCertificate: Boolean(dbCase.hasCertificate || latestCertificate),
+          hasCertificate: Boolean(dbCase.hasCertificate),
           certificateUrl: dbCase.certificateUrl || undefined,
           complianceIndicator: dbCase.complianceIndicator as any,
           compliance: dbCase.complianceJson as any, // Parse JSONB compliance object
@@ -877,25 +887,41 @@ class DbStorage implements IStorage {
     const insightsByCase = new Map<string, TranscriptInsight[]>();
 
     if (caseIds.length > 0) {
-      const [noteRows, insightRows] = await Promise.all([
-        db
-          .select()
-          .from(caseDiscussionNotes)
-          .where(inArray(caseDiscussionNotes.caseId, caseIds))
-          .orderBy(desc(caseDiscussionNotes.timestamp)),
-        db
-          .select()
-          .from(caseDiscussionInsights)
-          .where(inArray(caseDiscussionInsights.caseId, caseIds))
-          .orderBy(desc(caseDiscussionInsights.createdAt)),
-      ]);
+      // Use window function to fetch only top 3 notes per case (avoids scanning 400K+ rows)
+      const caseIdList = sql.join(caseIds.map(id => sql`${id}`), sql`,`);
+      const noteRows = await db.execute(sql`
+        SELECT * FROM (
+          SELECT *, ROW_NUMBER() OVER (PARTITION BY case_id ORDER BY timestamp DESC) as rn
+          FROM case_discussion_notes
+          WHERE case_id IN (${caseIdList})
+        ) ranked WHERE rn <= 3
+        ORDER BY timestamp DESC
+      `);
 
-      for (const row of noteRows) {
-        const current = notesByCase.get(row.caseId) ?? [];
-        if (current.length >= 3) continue;
-        current.push(mapDiscussionNote(row));
-        notesByCase.set(row.caseId, current);
+      for (const row of noteRows.rows as any[]) {
+        const current = notesByCase.get(row.case_id) ?? [];
+        // Map snake_case raw SQL row to CaseDiscussionNote
+        current.push({
+          id: row.id,
+          caseId: row.case_id,
+          workerName: row.worker_name,
+          timestamp: row.timestamp instanceof Date ? row.timestamp.toISOString() : (row.timestamp ?? new Date().toISOString()),
+          rawText: row.raw_text,
+          summary: row.summary,
+          nextSteps: row.next_steps ?? undefined,
+          riskFlags: row.risk_flags ?? undefined,
+          updatesCompliance: row.updates_compliance ?? false,
+          updatesRecoveryTimeline: row.updates_recovery_timeline ?? false,
+        });
+        notesByCase.set(row.case_id, current);
       }
+
+      // Insights are typically sparse, simple fetch is fine
+      const insightRows = await db
+        .select()
+        .from(caseDiscussionInsights)
+        .where(inArray(caseDiscussionInsights.caseId, caseIds))
+        .orderBy(desc(caseDiscussionInsights.createdAt));
 
       for (const row of insightRows) {
         const list = insightsByCase.get(row.caseId) ?? [];
@@ -939,7 +965,7 @@ class DbStorage implements IStorage {
           dateOfInjury: dbCase.dateOfInjury.toISOString().split('T')[0],
           riskLevel: dbCase.riskLevel as any,
           workStatus: dbCase.workStatus as any,
-          hasCertificate: Boolean(dbCase.hasCertificate || latestCertificate),
+          hasCertificate: Boolean(dbCase.hasCertificate),
           certificateUrl: dbCase.certificateUrl || undefined,
           complianceIndicator: dbCase.complianceIndicator as any,
           compliance: dbCase.complianceJson as any,
