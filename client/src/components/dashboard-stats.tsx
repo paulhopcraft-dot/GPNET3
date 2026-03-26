@@ -39,7 +39,7 @@ function StatCard({ title, value, icon: Icon, onClick, isActive }: StatCardProps
   return (
     <Card
       data-testid={`card-stat-${title.toLowerCase().replace(/\s+/g, '-')}`}
-      className={`transition-all ${onClick ? 'cursor-pointer hover:border-primary hover:shadow-md' : ''} ${isActive ? 'border-primary bg-primary/5' : ''}`}
+      className={`transition-all ${onClick ? 'cursor-pointer hover:border-primary hover:shadow-md' : ''} ${isActive ? 'ring-2 ring-primary border-primary bg-primary/10 shadow-md' : ''}`}
       onClick={onClick}
     >
       <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
@@ -109,8 +109,15 @@ export function DashboardStats({ cases, activeFilter = 'all', onFilterChange }: 
           title={stat.title}
           value={stat.value}
           icon={stat.icon}
-          onClick={onFilterChange ? () => onFilterChange(stat.filter) : undefined}
-          isActive={activeFilter === stat.filter}
+          onClick={onFilterChange ? () => {
+            // Toggle: clicking active filter clears it; "Total Cases" always resets to 'all'
+            if (stat.filter === 'all' || activeFilter === stat.filter) {
+              onFilterChange('all');
+            } else {
+              onFilterChange(stat.filter);
+            }
+          } : undefined}
+          isActive={activeFilter !== 'all' && activeFilter === stat.filter}
         />
       ))}
     </div>
