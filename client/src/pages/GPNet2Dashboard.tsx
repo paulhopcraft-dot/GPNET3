@@ -413,7 +413,6 @@ export default function GPNet2Dashboard() {
         </div>
       </main>
       
-      <ChatWidget />
       <ContextualHelpSystem mode="floating" showTips={true} userRole="case_manager" />
       {user && <FirstTimeTour userRole={user.role} userId={user.id} />}
     </div>

@@ -10,6 +10,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AdminRoute } from "./components/AdminRoute";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { ChatWidget } from "./components/ChatWidget";
 
 // Loading component
 const PageLoader = () => (
@@ -664,6 +665,7 @@ export default function App() {
                 </Routes>
               </Suspense>
               </ErrorBoundary>
+              <ChatWidget />
               <Toaster />
             </AuthProvider>
           </ThemeProvider>
