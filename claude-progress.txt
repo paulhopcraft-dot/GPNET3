@@ -182,3 +182,43 @@ Target 8/10 by end of Week 1 (15 Mar) after staging deployment.
 ### Notes
 - Symmetry test creds: employer@symmetry.local / ChangeMe123! (after seed runs)
 - All 8 Dockerfile fixes committed to main and pushed
+
+## Session 110 (Mar 24, 2026) — Pre-Employment Health Check Workflow
+
+### Completed
+- Fixed DB connection: .env pointed to wrong postgres password/DB name (now gpnet with Whc@0102030405)
+- Added missing DB columns (worker_id, access_token, job_description, etc.)
+- Fixed org mismatch: admin=org-alpha, seeded data was org-beta
+- Fixed credentials:"include" missing on pre-employment API fetches
+- Built View Report modal on ChecksPage with AI health report display
+- Built Approve/Reject workflow with CSRF-protected mutations
+- Added job description field to assessment creation form
+- Report generator now always sets cleared_conditional (human must approve)
+- Added Claude CLI subprocess as LLM provider (no API key for local dev)
+- Dashboard: max 5 active assessments, newest first, hide fully approved
+- Cleared 16GB on C: drive (26MB → 17GB free)
+- Wrote pre-employment business rules spec (docs/pre-employment-business-rules.md)
+- Saved overnight QA patrol prompt (docs/overnight-qa-prompt.md)
+
+### In Progress
+- View Report button: API returns reportJson, needs server restart + hard refresh to confirm
+- Follow-up email scheduler (day 1/2/3 reminders): discussed, not built
+- SendGrid email integration: discussed, not configured
+
+### Next Steps
+1. Restart server, confirm View Report button on Paul Smith
+2. Build follow-up email scheduler for questionnaire reminders
+3. Configure SendGrid SMTP
+4. Add Completed/Archive tab for approved candidates
+5. Run overnight QA patrol
+6. Fix remaining schema mismatches between code (gpnet3) and DB (gpnet)
+
+### Blockers
+- Server OOM: needs NODE_OPTIONS="--max-old-space-size=4096"
+- No SMTP configured (emails log to console)
+
+### Notes
+- Dev login: admin@gpnet.local / devpass123 (dev bypass in auth controller — remove before prod)
+- LLM_PROVIDER=claude-cli for local, openrouter for production
+- User works from /checks page (not /pre-employment)
+- Overnight QA patrol prompt received — run in future session with Opus 1M

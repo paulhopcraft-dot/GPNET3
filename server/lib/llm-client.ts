@@ -138,18 +138,38 @@ async function callAnthropic(prompt: string, timeoutMs: number): Promise<string>
 // ─── Claude CLI subprocess ────────────────────────────────────────────────────
 
 async function callClaudeCLI(prompt: string, timeoutMs: number): Promise<string> {
-  const { execFile } = await import("child_process");
-  const { promisify } = await import("util");
-  const execFileAsync = promisify(execFile);
+  const { spawn } = await import("child_process");
 
-  const { stdout } = await execFileAsync("claude", ["--print", "--output-format", "text"], {
-    input: prompt,
-    timeout: timeoutMs,
-    maxBuffer: 10 * 1024 * 1024,
-    env: { ...process.env },
+  return new Promise<string>((resolve, reject) => {
+    const child = spawn("claude", ["-p", prompt, "--output-format", "text"], {
+      env: { ...process.env },
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    let stdout = "";
+    let stderr = "";
+    const timer = setTimeout(() => {
+      child.kill("SIGTERM");
+      reject(new Error(`Claude CLI timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+
+    child.stdout.on("data", (chunk: Buffer) => { stdout += chunk.toString(); });
+    child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString(); });
+
+    child.on("close", (code) => {
+      clearTimeout(timer);
+      if (code !== 0) {
+        reject(new Error(`Claude CLI exited ${code}: ${stderr.slice(0, 300)}`));
+      } else {
+        resolve(stdout.trim());
+      }
+    });
+
+    child.on("error", (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
   });
-
-  return stdout.trim();
 }
 
 // ─── Public interface ─────────────────────────────────────────────────────────

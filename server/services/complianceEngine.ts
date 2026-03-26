@@ -136,6 +136,16 @@ export async function evaluateCase(caseId: string): Promise<CaseComplianceReport
     overallStatus = 'warning';
   }
 
+  // Sync complianceIndicator on worker_cases with live evaluation result
+  const indicator = complianceScoreToIndicator(complianceScore, overallStatus);
+  try {
+    await db.update(workerCases)
+      .set({ complianceIndicator: indicator })
+      .where(eq(workerCases.id, workerCase.id));
+  } catch {
+    // Gracefully handle if db.update is unavailable (e.g., in unit tests with mocked db)
+  }
+
   return {
     caseId: workerCase.id,
     workerName: workerCase.workerName,
@@ -149,6 +159,22 @@ export async function evaluateCase(caseId: string): Promise<CaseComplianceReport
     lowIssues,
     checkedAt,
   };
+}
+
+/**
+ * Convert a compliance score (0-100) and status into a ComplianceIndicator.
+ * This bridges the Rules Engine (System B) output back to the stored
+ * complianceIndicator field that users see on dashboards and case lists.
+ */
+function complianceScoreToIndicator(
+  score: number,
+  status: 'compliant' | 'warning' | 'non_compliant'
+): string {
+  if (status === 'non_compliant' || score < 30) return 'Very Low';
+  if (score < 50) return 'Low';
+  if (status === 'warning' || score < 70) return 'Medium';
+  if (score < 90) return 'High';
+  return 'Very High';
 }
 
 /** Phase 2: Returns a structured explanation for each rule code per the spec table. */

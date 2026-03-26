@@ -12,6 +12,7 @@ import {
 } from "../services/recoveryEstimator";
 import { evaluateClinicalEvidence } from "../services/clinicalEvidence";
 import { logger } from "../lib/logger";
+import { logAuditEvent, AuditEventTypes } from "../services/auditLogger";
 import type { MedicalCertificate, WorkCapacity } from "../../shared/schema";
 
 /**
@@ -219,6 +220,8 @@ export function registerTimelineRoutes(app: Express) {
       await db.update(workerCases)
         .set({ clinicalStatusJson: { ...clinStatus, recoveryOverride: override } } as any)
         .where(eq(workerCases.id, id));
+
+      logAuditEvent({ eventType: AuditEventTypes.CASE_UPDATE, userId: (req as any).user?.id ?? null, organizationId: (req as any).user?.organizationId ?? null, resourceType: 'case', resourceId: id, metadata: { action: 'recovery_override', adjustedEstimateWeeks, reason: reason.trim() } });
 
       return res.json({ ok: true, override });
     } catch (error) {

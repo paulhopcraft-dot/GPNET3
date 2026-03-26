@@ -20,6 +20,7 @@ import { authorize, type AuthRequest } from "../middleware/auth";
 import { agentScheduler } from "../agent-runner/triggers";
 import { runSpecialistAgent } from "../agents/agent-runner";
 import { createLogger } from "../lib/logger";
+import { logAuditEvent, AuditEventTypes } from "../services/auditLogger";
 
 const router = Router();
 const logger = createLogger("AgentsRoute");
@@ -177,6 +178,7 @@ router.post("/jobs/:jobId/approve-action", authorize(), async (req: AuthRequest,
       })
       .where(eq(agentActions.id, parsed.data.actionId));
 
+    logAuditEvent({ eventType: AuditEventTypes.ACTION_UPDATE, userId: req.user?.id ?? null, organizationId: req.user?.organizationId ?? null, resourceType: 'agent_action', resourceId: parsed.data.actionId, metadata: { approval: 'approved', jobId: req.params.jobId } });
     res.json({ approved: true, actionId: parsed.data.actionId });
   } catch (err) {
     logger.error("Failed to approve action", {}, err);
@@ -200,6 +202,7 @@ router.post("/jobs/:jobId/reject-action", authorize(), async (req: AuthRequest, 
       })
       .where(eq(agentActions.id, parsed.data.actionId));
 
+    logAuditEvent({ eventType: AuditEventTypes.ACTION_UPDATE, userId: req.user?.id ?? null, organizationId: req.user?.organizationId ?? null, resourceType: 'agent_action', resourceId: parsed.data.actionId, metadata: { approval: 'rejected', jobId: req.params.jobId } });
     res.json({ rejected: true, actionId: parsed.data.actionId });
   } catch (err) {
     logger.error("Failed to reject action", {}, err);
