@@ -3,6 +3,7 @@
  * Displays worker, role, and injury details for RTW plan (OUT-01)
  */
 
+import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { User, Building2, Calendar, Briefcase, FileText } from "lucide-react";
@@ -39,7 +40,7 @@ export function PlanSummaryHeader({
   planType,
   planStatus,
   startDate,
-}: PlanSummaryHeaderProps): JSX.Element {
+}: PlanSummaryHeaderProps): React.JSX.Element {
   const injuryDate = typeof dateOfInjury === "string" ? new Date(dateOfInjury) : dateOfInjury;
   const planStartDate = typeof startDate === "string" ? new Date(startDate) : startDate;
   const statusStyle = STATUS_STYLES[planStatus] || STATUS_STYLES.draft;

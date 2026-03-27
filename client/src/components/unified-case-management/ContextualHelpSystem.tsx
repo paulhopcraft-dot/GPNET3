@@ -401,7 +401,7 @@ export function ContextualHelpSystem({
   }, [location.pathname, dismissedTips, showTips]);
 
   const dismissTip = useCallback((tipId: string) => {
-    setDismissedTips(prev => new Set([...prev, tipId]));
+    setDismissedTips(prev => new Set([...Array.from(prev), tipId]));
     setActiveTips(prev => prev.filter(tip => tip.id !== tipId));
   }, []);
 

@@ -4,6 +4,7 @@
  * Implements OUT-01 through OUT-06
  */
 
+import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -71,7 +72,7 @@ interface PlanDetailsResponse {
 export function PlanDetailView({
   planId,
   showEmailSection = true,
-}: PlanDetailViewProps): JSX.Element {
+}: PlanDetailViewProps): React.JSX.Element {
   const { data, isLoading, error } = useQuery<PlanDetailsResponse>({
     queryKey: ["rtw-plan-detail", planId],
     queryFn: async () => {

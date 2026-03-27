@@ -57,7 +57,7 @@ import { logAuditEvent, AuditEventTypes, getRequestMetadata } from "./services/a
 import { filterCaseByRole, isEmployerRole } from "./lib/rbac";
 import { computeComplianceDeadlines } from "./lib/complianceDeadlines";
 import { db } from "./db";
-import { workerCases } from "@shared/schema";
+import { workerCases as workerCasesTable } from "@shared/schema";
 import { eq, and, isNotNull, count, sql as drizzleSql } from "drizzle-orm";
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
@@ -270,7 +270,7 @@ export async function registerRoutes(app: Express): Promise<void> {
         }
 
         // Certificate expiry monitoring
-        if (workerCase.workStatus === "Off work" && !workerCase.currentCertificateEnd) {
+        if (workerCase.workStatus === "Off work" && !workerCase.latestCertificate?.endDate) {
           smartActions.push({
             id: `cert-${workerCase.id}`,
             title: "Medical Certificate Required",
@@ -1868,26 +1868,26 @@ User question: ${message}`;
 
       const reviewCases = await db
         .select({
-          id: workerCases.id,
-          workerName: workerCases.workerName,
-          company: workerCases.company,
-          dateOfInjury: workerCases.dateOfInjury,
-          dateOfInjuryConfidence: workerCases.dateOfInjuryConfidence,
-          dateOfInjurySource: workerCases.dateOfInjurySource,
-          dateOfInjuryExtractionMethod: workerCases.dateOfInjuryExtractionMethod,
-          dateOfInjurySourceText: workerCases.dateOfInjurySourceText,
-          dateOfInjuryAiReasoning: workerCases.dateOfInjuryAiReasoning,
-          ticketIds: workerCases.ticketIds,
-          createdAt: workerCases.createdAt,
+          id: workerCasesTable.id,
+          workerName: workerCasesTable.workerName,
+          company: workerCasesTable.company,
+          dateOfInjury: workerCasesTable.dateOfInjury,
+          dateOfInjuryConfidence: workerCasesTable.dateOfInjuryConfidence,
+          dateOfInjurySource: workerCasesTable.dateOfInjurySource,
+          dateOfInjuryExtractionMethod: workerCasesTable.dateOfInjuryExtractionMethod,
+          dateOfInjurySourceText: workerCasesTable.dateOfInjurySourceText,
+          dateOfInjuryAiReasoning: workerCasesTable.dateOfInjuryAiReasoning,
+          ticketIds: workerCasesTable.ticketIds,
+          createdAt: workerCasesTable.createdAt,
         })
-        .from(workerCases)
+        .from(workerCasesTable)
         .where(
           and(
-            eq(workerCases.organizationId, organizationId),
-            eq(workerCases.dateOfInjuryRequiresReview, true)
+            eq(workerCasesTable.organizationId, organizationId),
+            eq(workerCasesTable.dateOfInjuryRequiresReview, true)
           )
         )
-        .orderBy(workerCases.createdAt)
+        .orderBy(workerCasesTable.createdAt)
         .limit(100);
 
       const reviewItems = reviewCases.map((row) => ({
@@ -1935,23 +1935,20 @@ User question: ${message}`;
       const organizationId = req.user!.organizationId;
 
       const updateResult = await db
-        .update(workerCases)
+        .update(workerCasesTable)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .set({
           dateOfInjuryRequiresReview: false,
           dateOfInjuryReviewedBy: userId,
           dateOfInjuryReviewedAt: new Date(),
-        })
+        } as any)
         .where(
           and(
-            eq(workerCases.id, caseId),
-            eq(workerCases.organizationId, organizationId)
+            eq(workerCasesTable.id, caseId),
+            eq(workerCasesTable.organizationId, organizationId)
           )
         )
-        .returning({
-          workerName: workerCases.workerName,
-          dateOfInjury: workerCases.dateOfInjury,
-          dateOfInjuryConfidence: workerCases.dateOfInjuryConfidence,
-        });
+        .returning();
 
       if (updateResult.length === 0) {
         return res.status(404).json({
@@ -2035,7 +2032,8 @@ User question: ${message}`;
       }
 
       const updateResult = await db
-        .update(workerCases)
+        .update(workerCasesTable)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .set({
           dateOfInjury: correctionDate,
           dateOfInjurySource: "verified",
@@ -2045,17 +2043,14 @@ User question: ${message}`;
           dateOfInjuryReviewedBy: userId,
           dateOfInjuryReviewedAt: new Date(),
           dateOfInjuryAiReasoning: `Manual correction: ${reason.trim()}`,
-        })
+        } as any)
         .where(
           and(
-            eq(workerCases.id, caseId),
-            eq(workerCases.organizationId, organizationId)
+            eq(workerCasesTable.id, caseId),
+            eq(workerCasesTable.organizationId, organizationId)
           )
         )
-        .returning({
-          workerName: workerCases.workerName,
-          dateOfInjury: workerCases.dateOfInjury,
-        });
+        .returning();
 
       if (updateResult.length === 0) {
         return res.status(404).json({
@@ -2117,15 +2112,15 @@ User question: ${message}`;
       const statsRows = await db
         .select({
           totalCases: drizzleSql<number>`count(*)::int`,
-          pendingReviews: drizzleSql<number>`count(*) filter (where ${workerCases.dateOfInjuryRequiresReview} = true)::int`,
-          highConfidence: drizzleSql<number>`count(*) filter (where ${workerCases.dateOfInjuryConfidence} = 'high')::int`,
-          mediumConfidence: drizzleSql<number>`count(*) filter (where ${workerCases.dateOfInjuryConfidence} = 'medium')::int`,
-          lowConfidence: drizzleSql<number>`count(*) filter (where ${workerCases.dateOfInjuryConfidence} = 'low')::int`,
-          aiExtractions: drizzleSql<number>`count(*) filter (where ${workerCases.dateOfInjuryExtractionMethod} = 'ai_nlp')::int`,
-          reviewedCases: drizzleSql<number>`count(*) filter (where ${workerCases.dateOfInjuryReviewedBy} is not null)::int`,
+          pendingReviews: drizzleSql<number>`count(*) filter (where ${workerCasesTable.dateOfInjuryRequiresReview} = true)::int`,
+          highConfidence: drizzleSql<number>`count(*) filter (where ${workerCasesTable.dateOfInjuryConfidence} = 'high')::int`,
+          mediumConfidence: drizzleSql<number>`count(*) filter (where ${workerCasesTable.dateOfInjuryConfidence} = 'medium')::int`,
+          lowConfidence: drizzleSql<number>`count(*) filter (where ${workerCasesTable.dateOfInjuryConfidence} = 'low')::int`,
+          aiExtractions: drizzleSql<number>`count(*) filter (where ${workerCasesTable.dateOfInjuryExtractionMethod} = 'ai_nlp')::int`,
+          reviewedCases: drizzleSql<number>`count(*) filter (where ${workerCasesTable.dateOfInjuryReviewedBy} is not null)::int`,
         })
-        .from(workerCases)
-        .where(eq(workerCases.organizationId, organizationId));
+        .from(workerCasesTable)
+        .where(eq(workerCasesTable.organizationId, organizationId));
 
       const result = statsRows[0] || {
         totalCases: 0,

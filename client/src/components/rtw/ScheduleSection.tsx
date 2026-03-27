@@ -3,6 +3,7 @@
  * Displays week-by-week schedule for RTW plan (OUT-05)
  */
 
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -29,7 +30,7 @@ interface ScheduleSectionProps {
 export function ScheduleSection({
   schedule,
   startDate,
-}: ScheduleSectionProps): JSX.Element {
+}: ScheduleSectionProps): React.JSX.Element {
   const planStartDate = typeof startDate === "string" ? new Date(startDate) : startDate;
 
   // Calculate date ranges for each week

@@ -3,7 +3,7 @@
  * MED-09: Shows restrictions from current medical certificate(s) on planning screen
  */
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Check, X, AlertTriangle, Minus, HelpCircle } from "lucide-react";
 import type { FunctionalRestrictionsExtracted, RestrictionCapability } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,7 +36,7 @@ interface RestrictionsResponse {
 /**
  * Icon component for capability levels
  */
-function CapabilityIcon({ capability }: { capability: RestrictionCapability }): JSX.Element {
+function CapabilityIcon({ capability }: { capability: RestrictionCapability }): React.JSX.Element {
   const className = `h-4 w-4 ${getCapabilityColor(capability)}`;
   switch (capability) {
     case "can":
@@ -55,7 +55,7 @@ function CapabilityIcon({ capability }: { capability: RestrictionCapability }): 
 /**
  * Loading skeleton for the panel
  */
-function LoadingSkeleton(): JSX.Element {
+function LoadingSkeleton(): React.JSX.Element {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -81,7 +81,7 @@ function LoadingSkeleton(): JSX.Element {
 /**
  * Empty state when no restrictions are found
  */
-function EmptyState(): JSX.Element {
+function EmptyState(): React.JSX.Element {
   return (
     <div className="text-center py-6">
       <span className="material-symbols-outlined text-3xl text-muted-foreground/50 mb-2">
@@ -100,7 +100,7 @@ function EmptyState(): JSX.Element {
 /**
  * Error state component
  */
-function ErrorState({ message }: { message: string }): JSX.Element {
+function ErrorState({ message }: { message: string }): React.JSX.Element {
   return (
     <div className="text-center py-6">
       <span className="material-symbols-outlined text-3xl text-red-400 mb-2">
@@ -127,7 +127,7 @@ function RestrictionItem({
   restrictionKey: string;
   capability: RestrictionCapability;
   restrictions: FunctionalRestrictionsExtracted;
-}): JSX.Element {
+}): React.JSX.Element {
   // Check for weight limits on lifting/carrying
   const weightLimit =
     restrictionKey === "lifting"
@@ -167,7 +167,7 @@ function CategorySection({
 }: {
   category: keyof typeof restrictionCategories;
   restrictions: FunctionalRestrictionsExtracted;
-}): JSX.Element {
+}): React.JSX.Element {
   const items = restrictionCategories[category];
 
   return (
@@ -202,7 +202,7 @@ function TimeLimitsSection({
 }: {
   maxHoursPerDay: number | null;
   maxDaysPerWeek: number | null;
-}): JSX.Element | null {
+}): React.JSX.Element | null {
   const hoursLimit = formatTimeLimit(maxHoursPerDay, "hours");
   const daysLimit = formatTimeLimit(maxDaysPerWeek, "days");
 
@@ -239,7 +239,7 @@ function SourceBadge({
 }: {
   source: "single_certificate" | "combined";
   certificateCount: number;
-}): JSX.Element {
+}): React.JSX.Element {
   if (source === "combined" && certificateCount > 1) {
     return (
       <Badge variant="outline" className="text-[10px] bg-blue-50 text-blue-700 border-blue-200">
@@ -257,7 +257,7 @@ function SourceBadge({
 /**
  * Main component: CurrentRestrictionsPanel
  */
-export function CurrentRestrictionsPanel({ caseId }: CurrentRestrictionsPanelProps): JSX.Element {
+export function CurrentRestrictionsPanel({ caseId }: CurrentRestrictionsPanelProps): React.JSX.Element {
   const [data, setData] = useState<RestrictionsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

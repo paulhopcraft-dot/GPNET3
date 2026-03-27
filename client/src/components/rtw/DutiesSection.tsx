@@ -3,6 +3,7 @@
  * Displays included and excluded duties for RTW plan (OUT-04, OUT-06)
  */
 
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, AlertCircle, Briefcase } from "lucide-react";
@@ -28,7 +29,7 @@ interface DutiesSectionProps {
 export function DutiesSection({
   includedDuties,
   excludedDuties,
-}: DutiesSectionProps): JSX.Element {
+}: DutiesSectionProps): React.JSX.Element {
   const includedCount = includedDuties.length;
   const excludedCount = excludedDuties.length;
 

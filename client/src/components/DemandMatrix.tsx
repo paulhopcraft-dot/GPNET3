@@ -1,3 +1,4 @@
+import React from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -77,7 +78,7 @@ const COGNITIVE_DEMANDS: DemandDefinition[] = [
   { key: "workPace", label: "Work Pace" },
 ];
 
-export function DemandMatrix({ value, onChange, readonly = false }: DemandMatrixProps): JSX.Element {
+export function DemandMatrix({ value, onChange, readonly = false }: DemandMatrixProps): React.JSX.Element {
   const handleFrequencyChange = (key: keyof DemandValues, frequency: DemandFrequency) => {
     const updates: Partial<DemandValues> = { [key]: frequency };
 

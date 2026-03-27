@@ -3,6 +3,7 @@
  * Displays medical restrictions and constraints for RTW plan (OUT-02)
  */
 
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertTriangle, X, Check, Clock } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
@@ -39,7 +40,7 @@ export function MedicalConstraintsCard({
   restrictionReviewDate,
   weightLimits,
   timeRestrictions,
-}: MedicalConstraintsCardProps): JSX.Element {
+}: MedicalConstraintsCardProps): React.JSX.Element {
   const reviewDate = restrictionReviewDate
     ? typeof restrictionReviewDate === "string"
       ? new Date(restrictionReviewDate)

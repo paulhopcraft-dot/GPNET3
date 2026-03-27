@@ -16,7 +16,7 @@
  *             PATCH /api/cases/:id/rtw-assessment (full assessment data)
  */
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PageLayout } from "@/components/PageLayout";
@@ -529,7 +529,7 @@ function defaultState(workerCase?: WorkerCase): WizardState {
   return {
     workerName: workerCase?.workerName ?? "",
     dateOfInjury: workerCase?.dateOfInjury ?? "",
-    injuryType: workerCase?.injuryType ?? "",
+    injuryType: workerCase?.clinical_status_json?.treatmentPlan?.injuryType ?? "",
     treatmentStatus: "",
     currentRestrictions: "",
     hoursPerDay: fc?.maxWorkHoursPerDay ?? 4,
@@ -560,7 +560,7 @@ function defaultState(workerCase?: WorkerCase): WizardState {
   };
 }
 
-export default function RTWAssessmentWizard(): JSX.Element {
+export default function RTWAssessmentWizard(): React.JSX.Element {
   const { id: caseId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();

@@ -4,13 +4,14 @@
  * Full plan display page with print/PDF export
  */
 
+import React from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PlanPrintView } from "@/components/rtw/PlanPrintView";
 import { PlanDetailView } from "@/components/rtw/PlanDetailView";
 
-export default function PlanPage(): JSX.Element {
+export default function PlanPage(): React.JSX.Element {
   const { planId } = useParams<{ planId: string }>();
 
   if (!planId) {

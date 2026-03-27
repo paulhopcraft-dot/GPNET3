@@ -106,7 +106,7 @@ export function StakeholderCoordinationHub({
   const [activeTab, setActiveTab] = useState<"stakeholders" | "actions" | "automation" | "communication">("stakeholders");
 
   // Fetch stakeholders for the case
-  const { data: stakeholders, isLoading } = useQuery<Stakeholder[]>({
+  const { data: stakeholders, isPending: isLoading } = useQuery<Stakeholder[]>({
     queryKey: ["stakeholders", workerCase.id],
     queryFn: async () => {
       // Mock data - in real implementation, this would fetch from API
@@ -116,7 +116,7 @@ export function StakeholderCoordinationHub({
           name: workerCase.workerName,
           role: "worker",
           email: "worker@email.com",
-          phone: workerCase.contactPhone,
+          phone: undefined,
           status: "active",
           lastContact: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
           preferredContact: "phone",
@@ -649,10 +649,10 @@ export function StakeholderCoordinationHub({
             <div className="flex gap-2 pt-4">
               <Button
                 onClick={handleSendMessage}
-                disabled={!newMessage.trim() || messageRecipients.length === 0 || sendMessageMutation.isLoading}
+                disabled={!newMessage.trim() || messageRecipients.length === 0 || sendMessageMutation.isPending}
                 className="flex-1"
               >
-                {sendMessageMutation.isLoading ? (
+                {sendMessageMutation.isPending ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                 ) : (
                   <Send className="w-4 h-4 mr-2" />

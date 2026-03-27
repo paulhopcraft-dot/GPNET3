@@ -5,7 +5,7 @@
  * OUT-08: Email editable only before approval
  */
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,7 +36,7 @@ interface EmailDraft {
   body: string;
 }
 
-export function ManagerEmailSection({ planId, planStatus }: ManagerEmailSectionProps): JSX.Element {
+export function ManagerEmailSection({ planId, planStatus }: ManagerEmailSectionProps): React.JSX.Element {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [subject, setSubject] = useState("");
