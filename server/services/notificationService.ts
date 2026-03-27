@@ -979,28 +979,21 @@ export async function getNotificationsByCase(
  */
 async function getWorkerEmail(storage: IStorage, caseId: string, organizationId: string): Promise<string | null> {
   try {
-    // TODO: Fix this - IStorage doesn't have a query method
-    // const contacts = await storage.query(`
-    //   SELECT email, name
-    //   FROM case_contacts
-    //   WHERE case_id = $1 AND organization_id = $2 AND role = 'worker'
-    //   ORDER BY created_at DESC
-    //   LIMIT 1
-    // `, [caseId, organizationId]);
+    const contacts = await storage.getCaseContactsByRole(caseId, organizationId, 'worker');
 
-    // if (contacts.length === 0) {
-    //   return null;
-    // }
+    if (contacts.length === 0) {
+      return null;
+    }
 
-    // const contact = contacts[0];
-    // const email = contact.email?.trim();
+    // Prefer the primary contact, otherwise take the most recently created
+    const primary = contacts.find(c => c.isPrimary) ?? contacts[0];
+    const email = primary.email?.trim();
 
-    // // Basic email validation
-    // if (email && email.includes('@') && email.includes('.')) {
-    //   return email;
-    // }
+    // Basic email validation
+    if (email && email.includes('@') && email.includes('.')) {
+      return email;
+    }
 
-    // TODO: Return null until proper implementation
     return null;
   } catch (error) {
     logger.notification.error(`Failed to get worker email for case ${caseId}`, {}, error);
