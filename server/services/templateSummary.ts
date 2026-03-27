@@ -109,26 +109,25 @@ export class TemplateSummaryService {
     const complianceIcon = this.getComplianceIcon(workerCase.complianceIndicator);
     sections.push(`**Status:** ${complianceIcon} ${workerCase.complianceIndicator}`);
 
-    // TODO: Fix compliance structure - these properties don't exist on CaseCompliance type
-    // if (workerCase.compliance) {
-    //   const comp = workerCase.compliance;
-    //   if (comp.overdue > 0) {
-    //     sections.push(`⚠️ **${comp.overdue} overdue items**`);
-    //   }
-    //   if (comp.warning > 0) {
-    //     sections.push(`⚡ **${comp.warning} warnings**`);
-    //   }
-    //   if (comp.compliant > 0) {
-    //     sections.push(`✅ **${comp.compliant} compliant items**`);
-    //   }
-    // }
+    if (workerCase.compliance) {
+      const comp = workerCase.compliance;
+      sections.push(`**Reason:** ${comp.reason}`);
+      sections.push(`**Source:** ${comp.source}`);
+      if (comp.lastChecked) {
+        sections.push(`**Last Checked:** ${format(new Date(comp.lastChecked), 'dd MMM yyyy')}`);
+      }
+    }
     sections.push("");
 
     // Return to Work Planning
     if (workerCase.rtwPlanStatus) {
       sections.push("### Return to Work");
       sections.push(`**Plan Status:** ${workerCase.rtwPlanStatus}`);
-      // TODO: Add targetDate and planType from separate fields if available
+      // RTW plan targetDate and planType live in the rtwPlans table, not on WorkerCase directly.
+      // Access via workerCase.clinical_status_json?.rtwPlanTargetEndDate if populated.
+      if (workerCase.clinical_status_json?.rtwPlanTargetEndDate) {
+        sections.push(`**Target End Date:** ${format(new Date(workerCase.clinical_status_json.rtwPlanTargetEndDate), 'dd MMM yyyy')}`);
+      }
       sections.push("");
     }
 
