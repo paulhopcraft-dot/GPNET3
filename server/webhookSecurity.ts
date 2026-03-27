@@ -41,15 +41,20 @@ export function verifyWebhookPassword(formIdParam: string = "formID") {
         });
       }
 
-      // Extract webhook password from query param or header
-      const passwordFromQuery = req.query.webhook_password as string;
+      // Extract webhook password from header only (query param is insecure)
       const passwordFromHeader = req.headers["x-webhook-password"] as string;
-      const providedPassword = passwordFromQuery || passwordFromHeader;
+      const passwordFromQuery = req.query.webhook_password as string;
+
+      if (passwordFromQuery) {
+        console.warn("[webhookSecurity] DEPRECATED: webhook_password passed as URL query parameter — this is insecure and will be rejected in a future release. Use the x-webhook-password header instead.");
+      }
+
+      const providedPassword = passwordFromHeader;
 
       if (!providedPassword) {
         return res.status(401).json({
           error: "Unauthorized",
-          message: "Webhook password is required (via ?webhook_password= or x-webhook-password header)",
+          message: "Webhook password is required via x-webhook-password header",
         });
       }
 

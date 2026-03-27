@@ -445,7 +445,7 @@ export async function registerWebhookForm(req: AuthRequest, res: Response) {
           // Include password in response for initial setup
           // Admin needs this to configure JotForm webhook
           webhookPassword: mapping.webhookPassword,
-          webhookUrl: `${process.env.API_URL || 'http://localhost:5000'}/api/webhooks/jotform?webhook_password=${mapping.webhookPassword}`,
+          webhookUrl: `${process.env.API_URL || 'http://localhost:5000'}/api/webhooks/jotform`,
         },
       },
     });
