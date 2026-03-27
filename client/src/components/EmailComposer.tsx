@@ -60,7 +60,7 @@ const roleLabels: Record<CaseContactRole, string> = {
   specialist: "Specialist",
   orp: "ORP",
   insurer: "Insurer",
-  gpnet: "GPNet Contact",
+  gpnet: "Preventli Contact",
   other: "Other",
 };
 

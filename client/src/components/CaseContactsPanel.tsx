@@ -73,7 +73,7 @@ const contactRoles: { value: CaseContactRole; label: string }[] = [
   { value: "specialist", label: "Specialist" },
   { value: "orp", label: "ORP" },
   { value: "insurer", label: "Insurer" },
-  { value: "gpnet", label: "GPNet Contact" },
+  { value: "gpnet", label: "Preventli Contact" },
   { value: "other", label: "Other" },
 ];
 
@@ -88,7 +88,7 @@ const roleLabels: Record<CaseContactRole, string> = {
   specialist: "Specialist",
   orp: "ORP",
   insurer: "Insurer",
-  gpnet: "GPNet Contact",
+  gpnet: "Preventli Contact",
   other: "Other",
 };
 

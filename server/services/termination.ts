@@ -423,7 +423,7 @@ export class TerminationService {
       medicalExplanation: extra.medicalExplanation ?? "",
       terminationDate,
       entitlementPaymentDate,
-      managerName: extra.managerName ?? "GPNet Manager",
+      managerName: extra.managerName ?? "Preventli Manager",
       managerTitle: extra.managerTitle ?? "Manager",
       managerPhone: extra.managerPhone ?? "",
       noAdditionalMedicalInfo: !process.anyNewMedicalInfoProvided,

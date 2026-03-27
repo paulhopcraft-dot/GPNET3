@@ -77,7 +77,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
       },
     });
 
-    const fromAddress = process.env.SMTP_FROM || process.env.SMTP_USER || "noreply@gpnet.au";
+    const fromAddress = process.env.SMTP_FROM || process.env.SMTP_USER || "noreply@preventli.ai";
 
     const info = await transporter.sendMail({
       from: fromAddress,
@@ -110,8 +110,8 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
 export async function sendTestEmail(recipientEmail: string): Promise<SendEmailResult> {
   return sendEmail({
     to: recipientEmail,
-    subject: "GPNet Notification Test",
-    body: `This is a test email from GPNet Notifications Engine.
+    subject: "Preventli Notification Test",
+    body: `This is a test email from Preventli.
 
 If you received this email, your notification system is working correctly.
 
@@ -133,11 +133,11 @@ export async function sendInviteEmail(
   const appUrl = process.env.APP_URL || "http://localhost:5173";
   const registrationUrl = `${appUrl}/register?token=${inviteToken}`;
 
-  const subject = "You've been invited to GPNet";
+  const subject = "You've been invited to Preventli";
 
   const body = `Hello,
 
-You've been invited to join GPNet as a ${role} by ${invitedByName}.
+You've been invited to join Preventli as a ${role} by ${invitedByName}.
 
 To complete your registration, please click the link below:
 
@@ -148,7 +148,7 @@ This invitation link will expire in 7 days.
 If you did not expect this invitation, you can safely ignore this email.
 
 Best regards,
-The GPNet Team
+The Preventli Team
 `;
 
   const html = `
@@ -160,11 +160,11 @@ The GPNet Team
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
   <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0;">
-    <h1 style="color: white; margin: 0; font-size: 24px;">Welcome to GPNet</h1>
+    <h1 style="color: white; margin: 0; font-size: 24px;">Welcome to Preventli</h1>
   </div>
   <div style="background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
     <p>Hello,</p>
-    <p>You've been invited to join <strong>GPNet</strong> as a <strong>${role}</strong> by ${invitedByName}.</p>
+    <p>You've been invited to join <strong>Preventli</strong> as a <strong>${role}</strong> by ${invitedByName}.</p>
     <p>To complete your registration, please click the button below:</p>
     <div style="text-align: center; margin: 30px 0;">
       <a href="${registrationUrl}" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block;">Complete Registration</a>
@@ -172,7 +172,7 @@ The GPNet Team
     <p style="font-size: 14px; color: #6b7280;">This invitation link will expire in 7 days.</p>
     <p style="font-size: 14px; color: #6b7280;">If you did not expect this invitation, you can safely ignore this email.</p>
     <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
-    <p style="font-size: 12px; color: #9ca3af; margin: 0;">Best regards,<br>The GPNet Team</p>
+    <p style="font-size: 12px; color: #9ca3af; margin: 0;">Best regards,<br>The Preventli Team</p>
   </div>
 </body>
 </html>
@@ -198,11 +198,11 @@ export async function sendPasswordResetEmail(
   const appUrl = process.env.APP_URL || "http://localhost:5173";
   const resetUrl = `${appUrl}/reset-password?token=${resetToken}`;
 
-  const subject = "Reset your GPNet password";
+  const subject = "Reset your Preventli password";
 
   const body = `Hello,
 
-You requested to reset your password for your GPNet account.
+You requested to reset your password for your Preventli account.
 
 To reset your password, please click the link below:
 
@@ -213,7 +213,7 @@ This link will expire in 1 hour.
 If you did not request a password reset, you can safely ignore this email. Your password will not be changed.
 
 Best regards,
-The GPNet Team
+The Preventli Team
 `;
 
   const html = `
@@ -229,7 +229,7 @@ The GPNet Team
   </div>
   <div style="background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
     <p>Hello,</p>
-    <p>You requested to reset your password for your GPNet account.</p>
+    <p>You requested to reset your password for your Preventli account.</p>
     <p>To reset your password, please click the button below:</p>
     <div style="text-align: center; margin: 30px 0;">
       <a href="${resetUrl}" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block;">Reset Password</a>
@@ -237,7 +237,7 @@ The GPNet Team
     <p style="font-size: 14px; color: #6b7280;">This link will expire in 1 hour.</p>
     <p style="font-size: 14px; color: #6b7280;">If you did not request a password reset, you can safely ignore this email. Your password will not be changed.</p>
     <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
-    <p style="font-size: 12px; color: #9ca3af; margin: 0;">Best regards,<br>The GPNet Team</p>
+    <p style="font-size: 12px; color: #9ca3af; margin: 0;">Best regards,<br>The Preventli Team</p>
   </div>
 </body>
 </html>

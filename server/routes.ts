@@ -56,6 +56,9 @@ import { requireCaseOwnership } from "./middleware/caseOwnership";
 import { logAuditEvent, AuditEventTypes, getRequestMetadata } from "./services/auditLogger";
 import { filterCaseByRole, isEmployerRole } from "./lib/rbac";
 import { computeComplianceDeadlines } from "./lib/complianceDeadlines";
+import { db } from "./db";
+import { workerCases } from "@shared/schema";
+import { eq, and, isNotNull, count, sql as drizzleSql } from "drizzle-orm";
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
@@ -914,7 +917,7 @@ ${cases.slice(0, 10).map(c => `- ${c.workerName} (${c.company}): ${c.workStatus}
       }
 
       // Call Claude CLI — Max plan OAuth, no API key needed
-      const fullPrompt = `You are an AI assistant for GPNet, a worker's compensation case management system for WorkSafe Victoria compliance.
+      const fullPrompt = `You are an AI assistant for Preventli, a worker's compensation case management system for WorkSafe Victoria compliance.
 
 You have access to the user's current case data and can answer questions about their specific cases, statistics, and provide actionable "next steps" guidance.
 
@@ -1863,41 +1866,43 @@ User question: ${message}`;
     try {
       const organizationId = req.user!.organizationId;
 
-      // TODO: Fix this - IStorage doesn't have query method
-      // Query cases that require review
-      /* const reviewCases = await storage.query(`
-        SELECT
-          id,
-          worker_name,
-          company,
-          date_of_injury,
-          date_of_injury_confidence,
-          date_of_injury_source,
-          date_of_injury_extraction_method,
-          date_of_injury_source_text,
-          date_of_injury_ai_reasoning,
-          ticket_ids,
-          created_at
-        FROM worker_cases
-        WHERE organization_id = $1
-          AND date_of_injury_requires_review = true
-        ORDER BY created_at DESC
-        LIMIT 100
-      `, [organizationId]); */
+      const reviewCases = await db
+        .select({
+          id: workerCases.id,
+          workerName: workerCases.workerName,
+          company: workerCases.company,
+          dateOfInjury: workerCases.dateOfInjury,
+          dateOfInjuryConfidence: workerCases.dateOfInjuryConfidence,
+          dateOfInjurySource: workerCases.dateOfInjurySource,
+          dateOfInjuryExtractionMethod: workerCases.dateOfInjuryExtractionMethod,
+          dateOfInjurySourceText: workerCases.dateOfInjurySourceText,
+          dateOfInjuryAiReasoning: workerCases.dateOfInjuryAiReasoning,
+          ticketIds: workerCases.ticketIds,
+          createdAt: workerCases.createdAt,
+        })
+        .from(workerCases)
+        .where(
+          and(
+            eq(workerCases.organizationId, organizationId),
+            eq(workerCases.dateOfInjuryRequiresReview, true)
+          )
+        )
+        .orderBy(workerCases.createdAt)
+        .limit(100);
 
-      const reviewItems = [].map((row: any) => ({
+      const reviewItems = reviewCases.map((row) => ({
         id: row.id,
         caseId: row.id,
-        workerName: row.worker_name,
+        workerName: row.workerName,
         company: row.company,
-        currentDate: row.date_of_injury,
-        confidence: row.date_of_injury_confidence || "low",
-        source: row.date_of_injury_source || "unknown",
-        extractionMethod: row.date_of_injury_extraction_method || "fallback",
-        sourceText: row.date_of_injury_source_text,
-        aiReasoning: row.date_of_injury_ai_reasoning,
-        ticketUrl: row.ticket_ids?.[0] ? `https://your-domain.freshdesk.com/a/tickets/${row.ticket_ids[0].replace('FD-', '')}` : undefined,
-        createdAt: row.created_at
+        currentDate: row.dateOfInjury,
+        confidence: row.dateOfInjuryConfidence || "low",
+        source: row.dateOfInjurySource || "unknown",
+        extractionMethod: row.dateOfInjuryExtractionMethod || "fallback",
+        sourceText: row.dateOfInjurySourceText,
+        aiReasoning: row.dateOfInjuryAiReasoning,
+        ticketUrl: row.ticketIds?.[0] ? `https://your-domain.freshdesk.com/a/tickets/${row.ticketIds[0].replace('FD-', '')}` : undefined,
+        createdAt: row.createdAt,
       }));
 
       logger.audit.info("Injury date review queue accessed", {
@@ -1929,20 +1934,25 @@ User question: ${message}`;
       const userId = req.user!.id;
       const organizationId = req.user!.organizationId;
 
-      // TODO: Fix this - IStorage doesn't have query method
-      // Update the case to mark as reviewed and approved
-      /* const updateResult = await storage.query(`
-        UPDATE worker_cases
-        SET
-          date_of_injury_requires_review = false,
-          date_of_injury_reviewed_by = $1,
-          date_of_injury_reviewed_at = NOW(),
-          updated_at = NOW()
-        WHERE id = $2 AND organization_id = $3
-        RETURNING worker_name, date_of_injury, date_of_injury_confidence
-      `, [userId, caseId, organizationId]); */
+      const updateResult = await db
+        .update(workerCases)
+        .set({
+          dateOfInjuryRequiresReview: false,
+          dateOfInjuryReviewedBy: userId,
+          dateOfInjuryReviewedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(workerCases.id, caseId),
+            eq(workerCases.organizationId, organizationId)
+          )
+        )
+        .returning({
+          workerName: workerCases.workerName,
+          dateOfInjury: workerCases.dateOfInjury,
+          dateOfInjuryConfidence: workerCases.dateOfInjuryConfidence,
+        });
 
-      const updateResult: any[] = [];
       if (updateResult.length === 0) {
         return res.status(404).json({
           error: "Case not found",
@@ -1960,9 +1970,9 @@ User question: ${message}`;
         resourceType: "worker_case",
         resourceId: caseId,
         metadata: {
-          workerName: caseInfo.worker_name,
-          dateOfInjury: caseInfo.date_of_injury,
-          confidence: caseInfo.date_of_injury_confidence,
+          workerName: caseInfo.workerName,
+          dateOfInjury: caseInfo.dateOfInjury,
+          confidence: caseInfo.dateOfInjuryConfidence,
           action: "accept"
         },
         ...getRequestMetadata(req),
@@ -1972,8 +1982,8 @@ User question: ${message}`;
         userId,
         organizationId,
         caseId,
-        workerName: caseInfo.worker_name,
-        dateOfInjury: caseInfo.date_of_injury
+        workerName: caseInfo.workerName,
+        dateOfInjury: caseInfo.dateOfInjury,
       });
 
       res.json({
@@ -2024,25 +2034,29 @@ User question: ${message}`;
         });
       }
 
-      // TODO: Fix this - IStorage doesn't have query method
-      // Update the case with corrected date and review status
-      /* const updateResult = await storage.query(`
-        UPDATE worker_cases
-        SET
-          date_of_injury = $1,
-          date_of_injury_source = 'verified',
-          date_of_injury_confidence = 'high',
-          date_of_injury_extraction_method = 'manual_correction',
-          date_of_injury_requires_review = false,
-          date_of_injury_reviewed_by = $2,
-          date_of_injury_reviewed_at = NOW(),
-          date_of_injury_ai_reasoning = $3,
-          updated_at = NOW()
-        WHERE id = $4 AND organization_id = $5
-        RETURNING worker_name, date_of_injury
-      `, [correctionDate, userId, `Manual correction: ${reason.trim()}`, caseId, organizationId]); */
+      const updateResult = await db
+        .update(workerCases)
+        .set({
+          dateOfInjury: correctionDate,
+          dateOfInjurySource: "verified",
+          dateOfInjuryConfidence: "high",
+          dateOfInjuryExtractionMethod: "manual_correction",
+          dateOfInjuryRequiresReview: false,
+          dateOfInjuryReviewedBy: userId,
+          dateOfInjuryReviewedAt: new Date(),
+          dateOfInjuryAiReasoning: `Manual correction: ${reason.trim()}`,
+        })
+        .where(
+          and(
+            eq(workerCases.id, caseId),
+            eq(workerCases.organizationId, organizationId)
+          )
+        )
+        .returning({
+          workerName: workerCases.workerName,
+          dateOfInjury: workerCases.dateOfInjury,
+        });
 
-      const updateResult: any[] = [];
       if (updateResult.length === 0) {
         return res.status(404).json({
           error: "Case not found",
@@ -2060,7 +2074,7 @@ User question: ${message}`;
         resourceType: "worker_case",
         resourceId: caseId,
         metadata: {
-          workerName: caseInfo.worker_name,
+          workerName: caseInfo.workerName,
           oldDate: req.body.oldDate, // Could be passed in request
           newDate: correctionDate.toISOString().split('T')[0],
           reason: reason.trim(),
@@ -2073,9 +2087,9 @@ User question: ${message}`;
         userId,
         organizationId,
         caseId,
-        workerName: caseInfo.worker_name,
+        workerName: caseInfo.workerName,
         newDate: correctionDate.toISOString().split('T')[0],
-        reason: reason.trim()
+        reason: reason.trim(),
       });
 
       res.json({
@@ -2100,42 +2114,39 @@ User question: ${message}`;
     try {
       const organizationId = req.user!.organizationId;
 
-      // TODO: Fix this - IStorage doesn't have query method
-      // Query review statistics
-      /* const stats = await storage.query(`
-        SELECT
-          COUNT(*) as total_cases,
-          COUNT(CASE WHEN date_of_injury_requires_review = true THEN 1 END) as pending_reviews,
-          COUNT(CASE WHEN date_of_injury_confidence = 'high' THEN 1 END) as high_confidence,
-          COUNT(CASE WHEN date_of_injury_confidence = 'medium' THEN 1 END) as medium_confidence,
-          COUNT(CASE WHEN date_of_injury_confidence = 'low' THEN 1 END) as low_confidence,
-          COUNT(CASE WHEN date_of_injury_extraction_method = 'ai_nlp' THEN 1 END) as ai_extractions,
-          COUNT(CASE WHEN date_of_injury_reviewed_by IS NOT NULL THEN 1 END) as reviewed_cases
-        FROM worker_cases
-        WHERE organization_id = $1
-      `, [organizationId]); */
+      const statsRows = await db
+        .select({
+          totalCases: drizzleSql<number>`count(*)::int`,
+          pendingReviews: drizzleSql<number>`count(*) filter (where ${workerCases.dateOfInjuryRequiresReview} = true)::int`,
+          highConfidence: drizzleSql<number>`count(*) filter (where ${workerCases.dateOfInjuryConfidence} = 'high')::int`,
+          mediumConfidence: drizzleSql<number>`count(*) filter (where ${workerCases.dateOfInjuryConfidence} = 'medium')::int`,
+          lowConfidence: drizzleSql<number>`count(*) filter (where ${workerCases.dateOfInjuryConfidence} = 'low')::int`,
+          aiExtractions: drizzleSql<number>`count(*) filter (where ${workerCases.dateOfInjuryExtractionMethod} = 'ai_nlp')::int`,
+          reviewedCases: drizzleSql<number>`count(*) filter (where ${workerCases.dateOfInjuryReviewedBy} is not null)::int`,
+        })
+        .from(workerCases)
+        .where(eq(workerCases.organizationId, organizationId));
 
-      const stats: any[] = [];
-      const result = stats[0] || {
-        total_cases: 0,
-        pending_reviews: 0,
-        high_confidence: 0,
-        medium_confidence: 0,
-        low_confidence: 0,
-        ai_extractions: 0,
-        reviewed_cases: 0
+      const result = statsRows[0] || {
+        totalCases: 0,
+        pendingReviews: 0,
+        highConfidence: 0,
+        mediumConfidence: 0,
+        lowConfidence: 0,
+        aiExtractions: 0,
+        reviewedCases: 0,
       };
 
       res.json({
         success: true,
         data: {
-          totalCases: parseInt(result.total_cases),
-          pendingReviews: parseInt(result.pending_reviews),
-          highConfidence: parseInt(result.high_confidence),
-          mediumConfidence: parseInt(result.medium_confidence),
-          lowConfidence: parseInt(result.low_confidence),
-          aiExtractions: parseInt(result.ai_extractions),
-          reviewedCases: parseInt(result.reviewed_cases)
+          totalCases: result.totalCases,
+          pendingReviews: result.pendingReviews,
+          highConfidence: result.highConfidence,
+          mediumConfidence: result.mediumConfidence,
+          lowConfidence: result.lowConfidence,
+          aiExtractions: result.aiExtractions,
+          reviewedCases: result.reviewedCases,
         }
       });
     } catch (error) {

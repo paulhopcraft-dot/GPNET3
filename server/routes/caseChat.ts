@@ -37,7 +37,7 @@ router.post("/:id/chat", async (req: AuthRequest, res: Response) => {
     const caseContext = buildCaseContext(workerCase, certificates, timeline, discussionNotes);
 
     // Call Claude CLI — Max plan OAuth, no API key needed
-    const prompt = `You are a case management assistant for GPNet, a workers compensation case management system. You help users understand and query specific worker cases.
+    const prompt = `You are a case management assistant for Preventli, a workers compensation case management system. You help users understand and query specific worker cases.
 
 You have access to the following case data. Answer questions accurately based on this data. If the information is not available, say so clearly.
 
