@@ -110,7 +110,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
 export async function sendTestEmail(recipientEmail: string): Promise<SendEmailResult> {
   return sendEmail({
     to: recipientEmail,
-    subject: "Preventli Notification Test",
+    subject: "Preventli — Email Notification Test",
     body: `This is a test email from Preventli.
 
 If you received this email, your notification system is working correctly.
@@ -159,7 +159,7 @@ The Preventli Team
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0;">
+  <div style="background: #0f766e; padding: 30px; border-radius: 10px 10px 0 0;">
     <h1 style="color: white; margin: 0; font-size: 24px;">Welcome to Preventli</h1>
   </div>
   <div style="background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
@@ -167,7 +167,7 @@ The Preventli Team
     <p>You've been invited to join <strong>Preventli</strong> as a <strong>${role}</strong> by ${invitedByName}.</p>
     <p>To complete your registration, please click the button below:</p>
     <div style="text-align: center; margin: 30px 0;">
-      <a href="${registrationUrl}" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block;">Complete Registration</a>
+      <a href="${registrationUrl}" style="background: #0f766e; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block;">Complete Registration</a>
     </div>
     <p style="font-size: 14px; color: #6b7280;">This invitation link will expire in 7 days.</p>
     <p style="font-size: 14px; color: #6b7280;">If you did not expect this invitation, you can safely ignore this email.</p>
@@ -224,7 +224,7 @@ The Preventli Team
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0;">
+  <div style="background: #0f766e; padding: 30px; border-radius: 10px 10px 0 0;">
     <h1 style="color: white; margin: 0; font-size: 24px;">Reset Your Password</h1>
   </div>
   <div style="background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
@@ -232,7 +232,7 @@ The Preventli Team
     <p>You requested to reset your password for your Preventli account.</p>
     <p>To reset your password, please click the button below:</p>
     <div style="text-align: center; margin: 30px 0;">
-      <a href="${resetUrl}" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block;">Reset Password</a>
+      <a href="${resetUrl}" style="background: #0f766e; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block;">Reset Password</a>
     </div>
     <p style="font-size: 14px; color: #6b7280;">This link will expire in 1 hour.</p>
     <p style="font-size: 14px; color: #6b7280;">If you did not request a password reset, you can safely ignore this email. Your password will not be changed.</p>
