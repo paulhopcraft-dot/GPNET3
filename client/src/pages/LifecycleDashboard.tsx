@@ -53,202 +53,114 @@ interface LifecycleStage {
 
 // Fetch employee lifecycle data from pre-employment assessments and existing cases
 const fetchEmployeeLifecycleData = async (): Promise<EmployeeLifecycle[]> => {
-  try {
-    // Fetch pre-employment assessments
-    const assessmentsResponse = await fetch('/api/pre-employment/assessments', {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    });
-    const assessmentsData = await assessmentsResponse.json();
-
-    // Fetch existing worker cases for employment stage data
-    const casesResponse = await fetch('/api/gpnet2/cases', {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    });
-    const casesData = await casesResponse.json();
-
-    // Convert pre-employment assessments to lifecycle format
-    const assessmentLifecycles = assessmentsData.assessments?.map((assessment: any) => ({
-      id: assessment.id,
-      employeeName: assessment.candidateName,
-      positionTitle: assessment.positionTitle,
-      department: assessment.department,
-      hireDate: assessment.completedAt,
-      currentStage: 'pre_employment',
-      stages: {
-        preEmployment: {
-          status: assessment.status === 'completed' ? 'completed' : 'active',
-          completedDate: assessment.completedAt,
-          riskLevel: assessment.riskScore <= 3 ? 'low' : assessment.riskScore <= 7 ? 'medium' : 'high',
-          notes: assessment.clearanceLevel === 'cleared' ? 'Health assessment cleared' : 'Requires review'
-        },
-        prevention: {
-          status: 'scheduled',
-          dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
-          riskLevel: assessment.riskScore <= 3 ? 'low' : assessment.riskScore <= 7 ? 'medium' : 'high'
-        },
-        wellbeing: {
-          status: 'scheduled',
-          dueDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 90 days
-          riskLevel: 'low'
-        },
-        injury: {
-          status: 'not_applicable',
-          riskLevel: 'low'
-        },
-        mentalHealth: {
-          status: 'scheduled',
-          dueDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 6 months
-          riskLevel: 'low'
-        },
-        exit: {
-          status: 'not_applicable',
-          riskLevel: 'low'
-        }
-      },
-      riskScore: assessment.riskScore * 10, // Convert to percentage
-      lastUpdated: assessment.updatedAt || assessment.createdAt
-    })) || [];
-
-    // Convert existing worker cases to lifecycle format (employment stage)
-    const casesLifecycles = casesData.cases?.map((workerCase: any) => ({
-      id: `case-${workerCase.id}`,
-      employeeName: workerCase.workerName,
-      positionTitle: workerCase.jobTitle || 'Not specified',
-      department: workerCase.organization?.name || 'Unknown',
-      hireDate: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Assume hired a year ago
-      currentStage: 'employment',
-      stages: {
-        preEmployment: {
-          status: 'completed',
-          completedDate: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          riskLevel: 'low'
-        },
-        prevention: {
-          status: 'completed',
-          completedDate: new Date(Date.now() - 300 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          riskLevel: 'medium'
-        },
-        wellbeing: {
-          status: 'active',
-          riskLevel: 'medium'
-        },
-        injury: {
-          status: workerCase.status === 'Open' ? 'active' : 'completed',
-          completedDate: workerCase.status === 'Closed' ? workerCase.updatedAt : undefined,
-          riskLevel: workerCase.priority === 'High' ? 'high' : workerCase.priority === 'Medium' ? 'medium' : 'low',
-          notes: `WorkCover case: ${workerCase.injuryType}`,
-          actionRequired: workerCase.status === 'Open'
-        },
-        mentalHealth: {
-          status: 'scheduled',
-          dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          riskLevel: 'low'
-        },
-        exit: {
-          status: 'not_applicable',
-          riskLevel: 'low'
-        }
-      },
-      riskScore: workerCase.priority === 'High' ? 85 : workerCase.priority === 'Medium' ? 60 : 35,
-      lastUpdated: workerCase.updatedAt
-    })) || [];
-
-    return [...assessmentLifecycles, ...casesLifecycles];
-  } catch (error) {
-    console.error('Error fetching employee lifecycle data:', error);
-    return mockEmployeeData; // Fallback to mock data
+  // Fetch pre-employment assessments
+  const assessmentsResponse = await fetch('/api/pre-employment/assessments', {
+    credentials: 'include'
+  });
+  if (!assessmentsResponse.ok) {
+    throw new Error(`Failed to fetch assessments: ${assessmentsResponse.status}`);
   }
+  const assessmentsData = await assessmentsResponse.json();
+
+  // Fetch existing worker cases for employment stage data
+  const casesResponse = await fetch('/api/gpnet2/cases', {
+    credentials: 'include'
+  });
+  if (!casesResponse.ok) {
+    throw new Error(`Failed to fetch cases: ${casesResponse.status}`);
+  }
+  const casesData = await casesResponse.json();
+
+  // Convert pre-employment assessments to lifecycle format
+  const assessmentLifecycles = assessmentsData.assessments?.map((assessment: any) => ({
+    id: assessment.id,
+    employeeName: assessment.candidateName,
+    positionTitle: assessment.positionTitle,
+    department: assessment.department,
+    hireDate: assessment.completedAt,
+    currentStage: 'pre_employment',
+    stages: {
+      preEmployment: {
+        status: assessment.status === 'completed' ? 'completed' : 'active',
+        completedDate: assessment.completedAt,
+        riskLevel: assessment.riskScore <= 3 ? 'low' : assessment.riskScore <= 7 ? 'medium' : 'high',
+        notes: assessment.clearanceLevel === 'cleared' ? 'Health assessment cleared' : 'Requires review'
+      },
+      prevention: {
+        status: 'scheduled',
+        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        riskLevel: assessment.riskScore <= 3 ? 'low' : assessment.riskScore <= 7 ? 'medium' : 'high'
+      },
+      wellbeing: {
+        status: 'scheduled',
+        dueDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        riskLevel: 'low'
+      },
+      injury: {
+        status: 'not_applicable',
+        riskLevel: 'low'
+      },
+      mentalHealth: {
+        status: 'scheduled',
+        dueDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        riskLevel: 'low'
+      },
+      exit: {
+        status: 'not_applicable',
+        riskLevel: 'low'
+      }
+    },
+    riskScore: assessment.riskScore * 10,
+    lastUpdated: assessment.updatedAt || assessment.createdAt
+  })) || [];
+
+  // Convert existing worker cases to lifecycle format (employment stage)
+  const casesLifecycles = casesData.cases?.map((workerCase: any) => ({
+    id: `case-${workerCase.id}`,
+    employeeName: workerCase.workerName,
+    positionTitle: workerCase.jobTitle || 'Not specified',
+    department: workerCase.organization?.name || 'Unknown',
+    hireDate: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    currentStage: 'employment',
+    stages: {
+      preEmployment: {
+        status: 'completed',
+        completedDate: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        riskLevel: 'low'
+      },
+      prevention: {
+        status: 'completed',
+        completedDate: new Date(Date.now() - 300 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        riskLevel: 'medium'
+      },
+      wellbeing: {
+        status: 'active',
+        riskLevel: 'medium'
+      },
+      injury: {
+        status: workerCase.status === 'Open' ? 'active' : 'completed',
+        completedDate: workerCase.status === 'Closed' ? workerCase.updatedAt : undefined,
+        riskLevel: workerCase.priority === 'High' ? 'high' : workerCase.priority === 'Medium' ? 'medium' : 'low',
+        notes: `WorkCover case: ${workerCase.injuryType}`,
+        actionRequired: workerCase.status === 'Open'
+      },
+      mentalHealth: {
+        status: 'scheduled',
+        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        riskLevel: 'low'
+      },
+      exit: {
+        status: 'not_applicable',
+        riskLevel: 'low'
+      }
+    },
+    riskScore: workerCase.priority === 'High' ? 85 : workerCase.priority === 'Medium' ? 60 : 35,
+    lastUpdated: workerCase.updatedAt
+  })) || [];
+
+  return [...assessmentLifecycles, ...casesLifecycles];
 };
 
-// Mock data for development (fallback)
-const mockEmployeeData: EmployeeLifecycle[] = [
-  {
-    id: "emp-001",
-    employeeName: "Sarah Chen",
-    positionTitle: "Warehouse Supervisor",
-    department: "Operations",
-    hireDate: "2026-01-15",
-    currentStage: "employment",
-    stages: {
-      preEmployment: {
-        status: "completed",
-        completedDate: "2026-01-20",
-        riskLevel: "low"
-      },
-      prevention: {
-        status: "completed",
-        completedDate: "2026-01-25",
-        riskLevel: "low"
-      },
-      wellbeing: {
-        status: "scheduled",
-        dueDate: "2026-06-15",
-        riskLevel: "medium"
-      },
-      injury: {
-        status: "active",
-        riskLevel: "high",
-        notes: "Back strain - RTW planning",
-        actionRequired: true
-      },
-      mentalHealth: {
-        status: "scheduled",
-        dueDate: "2026-12-01",
-        riskLevel: "low"
-      },
-      exit: {
-        status: "not_applicable",
-        riskLevel: "low"
-      }
-    },
-    riskScore: 67,
-    lastUpdated: "2026-02-03"
-  },
-  {
-    id: "emp-002",
-    employeeName: "Alex Rodriguez",
-    positionTitle: "Forklift Operator",
-    department: "Logistics",
-    hireDate: "2026-02-01",
-    currentStage: "employment",
-    stages: {
-      preEmployment: {
-        status: "completed",
-        completedDate: "2026-02-05",
-        riskLevel: "low"
-      },
-      prevention: {
-        status: "completed",
-        completedDate: "2026-02-10",
-        riskLevel: "low"
-      },
-      wellbeing: {
-        status: "scheduled",
-        dueDate: "2026-08-01",
-        riskLevel: "low"
-      },
-      injury: {
-        status: "not_applicable",
-        riskLevel: "low"
-      },
-      mentalHealth: {
-        status: "scheduled",
-        dueDate: "2026-12-15",
-        riskLevel: "low"
-      },
-      exit: {
-        status: "not_applicable",
-        riskLevel: "low"
-      }
-    },
-    riskScore: 23,
-    lastUpdated: "2026-02-03"
-  }
-];
 
 const getStageIcon = (stage: keyof EmployeeLifecycle['stages']) => {
   const icons = {
@@ -285,6 +197,14 @@ const getStatusColor = (status: LifecycleStage['status']) => {
   return colors[status];
 };
 
+const calculateStageProgress = (stages: EmployeeLifecycle['stages']): number => {
+  const stageValues = Object.values(stages);
+  const applicable = stageValues.filter(s => s.status !== 'not_applicable');
+  if (applicable.length === 0) return 0;
+  const completed = applicable.filter(s => s.status === 'completed').length;
+  return Math.round((completed / applicable.length) * 100);
+};
+
 const getRiskColor = (riskLevel: LifecycleStage['riskLevel']) => {
   const colors = {
     low: "text-green-600",
@@ -319,7 +239,6 @@ export default function LifecycleDashboard() {
     }
   }, [location]);
 
-  // TODO: Replace with actual API call
   const { data: employees = [], isLoading } = useQuery({
     queryKey: ['employee-lifecycles'],
     queryFn: fetchEmployeeLifecycleData,
@@ -525,7 +444,7 @@ export default function LifecycleDashboard() {
                   <span>Last updated: {new Date(employee.lastUpdated).toLocaleDateString()}</span>
                 </div>
                 <Progress
-                  value={75} // TODO: Calculate based on completed stages
+                  value={calculateStageProgress(employee.stages)}
                   className="mt-1"
                 />
               </div>
