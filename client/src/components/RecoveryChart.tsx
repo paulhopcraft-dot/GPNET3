@@ -10,7 +10,7 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from "recharts";
-import type { MedicalCertificate, WorkCapacity } from "@shared/schema";
+import type { MedicalCertificate, WorkCapacity, RestrictionItem } from "@shared/schema";
 import { formatWeekAsMonthYear } from "@/lib/dateUtils";
 import { TrendingUp, TrendingDown, Minus, Eye, EyeOff } from "lucide-react";
 
@@ -220,10 +220,10 @@ export const RecoveryChart: React.FC<RecoveryChartProps> = ({
           }
         }}
         onMouseEnter={(e) => {
-          e.target.setAttribute('r', '8');
+          (e.target as HTMLElement).setAttribute('r', '8');
         }}
         onMouseLeave={(e) => {
-          e.target.setAttribute('r', '6');
+          (e.target as HTMLElement).setAttribute('r', '6');
         }}
       />
     );
@@ -276,11 +276,13 @@ export const RecoveryChart: React.FC<RecoveryChartProps> = ({
               </div>
             </div>
 
-            {selectedCertificate.restrictions && (
+            {selectedCertificate.restrictions && selectedCertificate.restrictions.length > 0 && (
               <div>
                 <label className="text-sm font-medium text-slate-600">Work Restrictions</label>
                 <div className="mt-1 text-sm text-slate-800 bg-slate-50 p-3 rounded-md">
-                  {selectedCertificate.restrictions}
+                  {selectedCertificate.restrictions.map((r: RestrictionItem, i: number) => (
+                    <div key={i}>{r.description}</div>
+                  ))}
                 </div>
               </div>
             )}
@@ -468,7 +470,7 @@ export const RecoveryChart: React.FC<RecoveryChartProps> = ({
                   strokeDasharray="6 3"
                   label={{
                     value: "Today",
-                    position: "topRight",
+                    position: "top",
                     fill: CHART_COLORS.current,
                     fontSize: 11,
                     fontWeight: 'bold'

@@ -4,7 +4,7 @@
  * Uses node-cron (already in use by complianceScheduler and syncScheduler).
  */
 
-import cron from "node-cron";
+import * as cron from "node-cron";
 import { db } from "../db";
 import { agentJobs, organizations } from "@shared/schema";
 import { eq } from "drizzle-orm";
