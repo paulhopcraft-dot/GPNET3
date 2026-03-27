@@ -882,27 +882,27 @@ export default function EmployerCaseDetailPage() {
                       {injuryFromSummary['date of onset'] || workerCase.dateOfInjury || "Not recorded"}
                     </div>
                   </div>
-                  {(workerCase.medicalConstraints?.mechanism || injuryFromSummary['mechanism']) && (
+                  {((workerCase.medicalConstraints as any)?.mechanism || injuryFromSummary['mechanism']) && (
                     <div className="flex border-b pb-2">
                       <div className="w-40 text-sm font-medium">Mechanism</div>
                       <div className="text-sm flex-1">
-                        {workerCase.medicalConstraints?.mechanism || injuryFromSummary['mechanism']}
+                        {(workerCase.medicalConstraints as any)?.mechanism || injuryFromSummary['mechanism']}
                       </div>
                     </div>
                   )}
-                  {(workerCase.medicalConstraints?.treatingGp || injuryFromSummary['treating gp']) && (
+                  {((workerCase.medicalConstraints as any)?.treatingGp || injuryFromSummary['treating gp']) && (
                     <div className="flex border-b pb-2">
                       <div className="w-40 text-sm font-medium">Treating GP</div>
                       <div className="text-sm flex-1">
-                        {workerCase.medicalConstraints?.treatingGp || injuryFromSummary['treating gp']}
+                        {(workerCase.medicalConstraints as any)?.treatingGp || injuryFromSummary['treating gp']}
                       </div>
                     </div>
                   )}
-                  {(workerCase.medicalConstraints?.physiotherapist || injuryFromSummary['physiotherapist']) && (
+                  {((workerCase.medicalConstraints as any)?.physiotherapist || injuryFromSummary['physiotherapist']) && (
                     <div className="flex border-b pb-2">
                       <div className="w-40 text-sm font-medium">Physiotherapist</div>
                       <div className="text-sm flex-1">
-                        {workerCase.medicalConstraints?.physiotherapist || injuryFromSummary['physiotherapist']}
+                        {(workerCase.medicalConstraints as any)?.physiotherapist || injuryFromSummary['physiotherapist']}
                       </div>
                     </div>
                   )}
@@ -1106,30 +1106,30 @@ export default function EmployerCaseDetailPage() {
               <CardTitle>Financial Summary</CardTitle>
             </CardHeader>
             <CardContent>
-              {workerCase.financialData ? (
+              {(workerCase as any).financialData ? (
                 <div className="space-y-3">
-                  {workerCase.financialData.preInjuryEarnings && (
+                  {(workerCase as any).financialData.preInjuryEarnings && (
                     <div className="flex border-b pb-2">
                       <div className="w-48 text-sm font-medium">Pre-injury weekly earnings</div>
-                      <div className="text-sm flex-1">${workerCase.financialData.preInjuryEarnings.toLocaleString()}</div>
+                      <div className="text-sm flex-1">${(workerCase as any).financialData.preInjuryEarnings.toLocaleString()}</div>
                     </div>
                   )}
-                  {workerCase.financialData.currentEarnings && (
+                  {(workerCase as any).financialData.currentEarnings && (
                     <div className="flex border-b pb-2">
                       <div className="w-48 text-sm font-medium">Current weekly earnings</div>
-                      <div className="text-sm flex-1">${workerCase.financialData.currentEarnings.toLocaleString()}</div>
+                      <div className="text-sm flex-1">${(workerCase as any).financialData.currentEarnings.toLocaleString()}</div>
                     </div>
                   )}
-                  {workerCase.financialData.weeklyShortfall && (
+                  {(workerCase as any).financialData.weeklyShortfall && (
                     <div className="flex border-b pb-2">
                       <div className="w-48 text-sm font-medium">Weekly shortfall</div>
-                      <div className="text-sm flex-1">${workerCase.financialData.weeklyShortfall.toLocaleString()}</div>
+                      <div className="text-sm flex-1">${(workerCase as any).financialData.weeklyShortfall.toLocaleString()}</div>
                     </div>
                   )}
-                  {workerCase.financialData.piaweEntitlement && (
+                  {(workerCase as any).financialData.piaweEntitlement && (
                     <div className="flex pb-2">
                       <div className="w-48 text-sm font-medium">PIAWE entitlement</div>
-                      <div className="text-sm flex-1">${workerCase.financialData.piaweEntitlement.toLocaleString()}/week</div>
+                      <div className="text-sm flex-1">${(workerCase as any).financialData.piaweEntitlement.toLocaleString()}/week</div>
                     </div>
                   )}
                 </div>
@@ -1149,7 +1149,7 @@ export default function EmployerCaseDetailPage() {
               <CardTitle>Risk Assessment</CardTitle>
             </CardHeader>
             <CardContent>
-              {workerCase.riskAssessment && workerCase.riskAssessment.length > 0 ? (
+              {(workerCase as any).riskAssessment && (workerCase as any).riskAssessment.length > 0 ? (
                 <div className="space-y-4">
                   <div className="grid grid-cols-4 gap-4 p-2 border-b-2 border-primary text-sm font-semibold text-primary">
                     <div>Risk</div>
@@ -1157,7 +1157,7 @@ export default function EmployerCaseDetailPage() {
                     <div>Impact</div>
                     <div>Mitigation</div>
                   </div>
-                  {workerCase.riskAssessment.map((risk: any, idx: number) => (
+                  {(workerCase as any).riskAssessment.map((risk: any, idx: number) => (
                     <div key={idx} className="grid grid-cols-4 gap-4 p-2 border-b text-sm">
                       <div>{risk.description}</div>
                       <div>

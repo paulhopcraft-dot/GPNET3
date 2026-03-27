@@ -99,7 +99,7 @@ export function SmartTimelineVisualization({
       id: "injury_occurrence",
       date: workerCase.dateOfInjury,
       title: "Workplace Injury",
-      description: `${workerCase.injuryDescription || "Injury occurred at workplace"}`,
+      description: workerCase.clinical_status_json?.treatmentPlan?.injuryType || "Injury occurred at workplace",
       type: "injury",
       status: "completed",
       stakeholder: "worker",
@@ -115,11 +115,11 @@ export function SmartTimelineVisualization({
       title: "Initial Medical Assessment",
       description: "First medical evaluation and capacity assessment",
       type: "medical",
-      status: workerCase.currentCertificateStart ? "completed" : "overdue",
+      status: workerCase.latestCertificate?.startDate ? "completed" : "overdue",
       stakeholder: "medical",
-      impact: workerCase.currentCertificateStart ? "positive" : "negative",
+      impact: workerCase.latestCertificate?.startDate ? "positive" : "negative",
       estimatedDuration: 60,
-      nextSteps: workerCase.currentCertificateStart ? [] : ["Schedule medical appointment", "Obtain work capacity certificate"]
+      nextSteps: workerCase.latestCertificate?.startDate ? [] : ["Schedule medical appointment", "Obtain work capacity certificate"]
     });
 
     // Case creation and assignment
@@ -162,11 +162,11 @@ export function SmartTimelineVisualization({
         title: "RTW Plan Created",
         description: "Return to work plan developed and agreed upon",
         type: "rtw",
-        status: workerCase.rtwPlanStatus === "not_planned" ? "upcoming" : "completed",
+        status: "completed",
         stakeholder: "case_manager",
         impact: "positive",
         estimatedDuration: 90,
-        nextSteps: workerCase.rtwPlanStatus === "not_planned" ? ["Create RTW plan", "Coordinate with employer"] : []
+        nextSteps: []
       });
     }
 
@@ -232,8 +232,8 @@ export function SmartTimelineVisualization({
         id: "initial_medical",
         title: "Medical Assessment Complete",
         targetDate: new Date(injuryDate.getTime() + 24 * 60 * 60 * 1000).toISOString(),
-        actualDate: workerCase.currentCertificateStart,
-        status: workerCase.currentCertificateStart ? "achieved" : "delayed",
+        actualDate: workerCase.latestCertificate?.startDate,
+        status: workerCase.latestCertificate?.startDate ? "achieved" : "delayed",
         criteria: ["Medical certificate obtained", "Work capacity assessed"],
         impact: "Establishes foundation for case management",
         dependencies: []

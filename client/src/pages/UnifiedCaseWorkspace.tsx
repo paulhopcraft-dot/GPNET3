@@ -30,7 +30,8 @@ import {
   Target,
   Zap,
   ArrowRight,
-  RefreshCw
+  RefreshCw,
+  Lightbulb
 } from "lucide-react";
 import { CaseOverviewCard } from "@/components/unified-case-management/CaseOverviewCard";
 import { SmartActionPanel } from "@/components/unified-case-management/SmartActionPanel";

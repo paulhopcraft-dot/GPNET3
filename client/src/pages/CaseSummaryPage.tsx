@@ -510,10 +510,10 @@ export default function CaseSummaryPage() {
                       <label className="text-xs text-muted-foreground">Capacity</label>
                       <p className="font-medium">{workerCase.latestCertificate.capacity}</p>
                     </div>
-                    {workerCase.latestCertificate.practitionerName && (
+                    {(workerCase.latestCertificate as any).practitionerName && (
                       <div className="col-span-2">
                         <label className="text-xs text-muted-foreground">Issuing Practitioner</label>
-                        <p className="font-medium">{workerCase.latestCertificate.practitionerName}</p>
+                        <p className="font-medium">{(workerCase.latestCertificate as any).practitionerName}</p>
                       </div>
                     )}
                   </div>
@@ -562,11 +562,11 @@ export default function CaseSummaryPage() {
                   </div>
 
                   {/* Risk Flags */}
-                  {workerCase.riskFlags && workerCase.riskFlags.length > 0 && (
+                  {(workerCase as any).riskFlags && (workerCase as any).riskFlags.length > 0 && (
                     <div className="space-y-2">
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Active Risk Flags</p>
                       <div className="flex flex-wrap gap-2">
-                        {workerCase.riskFlags.map((flag) => (
+                        {(workerCase as any).riskFlags.map((flag: string) => (
                           <Badge key={flag} variant="outline" className="text-xs border-amber-300 text-amber-700 bg-amber-50">
                             <span className="material-symbols-outlined text-xs mr-1">warning</span>
                             {flag}

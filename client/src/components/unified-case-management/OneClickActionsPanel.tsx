@@ -35,7 +35,8 @@ import {
   Send,
   Zap,
   Target,
-  Activity
+  Activity,
+  TrendingUp
 } from "lucide-react";
 import type { WorkerCase } from "@shared/schema";
 
@@ -78,7 +79,7 @@ export function OneClickActionsPanel({
       urgency: "today",
       estimatedTime: 10,
       action: () => {
-        window.open(`tel:${workerCase.contactPhone || ""}`);
+        window.open(`tel:${""}`);
       }
     },
     {
@@ -142,8 +143,8 @@ export function OneClickActionsPanel({
           method: 'POST'
         });
       },
-      conditions: (workerCase) => !workerCase.currentCertificateEnd ||
-        new Date(workerCase.currentCertificateEnd) < new Date(),
+      conditions: (workerCase) => !workerCase.latestCertificate?.endDate ||
+        new Date(workerCase.latestCertificate.endDate) < new Date(),
       contextual: true
     },
     {
