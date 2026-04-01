@@ -145,7 +145,7 @@ router.get('/dashboard', authorize(), async (req: Request, res: Response) => {
     // Uses raw SQL to avoid loading full case objects with discussion notes, certificates, etc.
     const { rows: allCases } = await db.execute(
       sql`SELECT id, worker_name AS "workerName", company, work_status AS "workStatus",
-              rtw_plan_status AS "rtwPlanStatus", date_of_injury AS "dateOfInjury",
+              date_of_injury AS "dateOfInjury",
               compliance_indicator AS "complianceIndicator", case_status AS "caseStatus",
               has_certificate AS "hasCertificate"
        FROM worker_cases
