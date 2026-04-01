@@ -39,6 +39,12 @@ type SeedCase = {
   aiSummary: string;
   aiWorkStatusClassification: string;
   attachments: SeedAttachment[];
+  clinicalStatusJson?: { rtwPlanStatus?: string };
+};
+
+// Fixed UUIDs for key demo cases (stable across restarts, used in e2e tests)
+const FIXED_CASE_IDS: Record<string, string> = {
+  "Ethan Wells": "f7cd6639-a713-45ba-b5fd-8a0eb42840d8",
 };
 
 const employers = [
@@ -184,6 +190,7 @@ const alphaCases: SeedCase[] = [
     company: employers[1].name,
     dateOfInjury: "2024-11-15T00:00:00.000Z",
     riskLevel: "Medium",
+    clinicalStatusJson: { rtwPlanStatus: "pending_employer_review" },
     workStatus: "Off work",
     compliance: {
       indicator: "Low",
@@ -468,7 +475,7 @@ async function seed() {
   // Seed cases for Org Alpha
   console.log("Seeding cases for Org Alpha (Symmetry Manufacturing)...");
   for (const seedCase of alphaCases) {
-    const caseId = randomUUID();
+    const caseId = FIXED_CASE_IDS[seedCase.workerName] ?? randomUUID();
     const certificateAttachment = seedCase.attachments.find(
       (attachment) => attachment.type === "medical-certificate",
     );
@@ -499,6 +506,7 @@ async function seed() {
       ticketLastUpdatedAt: new Date(seedCase.ticketLastUpdatedAt),
       clcLastFollowUp: seedCase.clcLastFollowUp,
       clcNextFollowUp: seedCase.clcNextFollowUp,
+      clinicalStatusJson: (seedCase as any).clinicalStatusJson ?? null,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -552,6 +560,7 @@ async function seed() {
       ticketLastUpdatedAt: new Date(seedCase.ticketLastUpdatedAt),
       clcLastFollowUp: seedCase.clcLastFollowUp,
       clcNextFollowUp: seedCase.clcNextFollowUp,
+      clinicalStatusJson: (seedCase as any).clinicalStatusJson ?? null,
       createdAt: new Date(),
       updatedAt: new Date(),
     });

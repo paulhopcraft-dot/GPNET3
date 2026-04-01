@@ -47,6 +47,7 @@ interface UserProgress {
   productivityScore: number;
   currentStreak: number;
   achievements: Achievement[];
+  available?: boolean;
 }
 
 interface Achievement {

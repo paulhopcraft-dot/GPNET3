@@ -22,6 +22,7 @@ import {
   Activity,
   FileText,
   RefreshCw,
+  MessageSquare,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -30,6 +31,7 @@ export interface CaseActionPanelProps {
   caseId: string;
   workerId?: string;
   organizationId?: string;
+  nextStep?: string;
 }
 
 interface ChatMessage {
@@ -48,9 +50,14 @@ function getActionStatusStyle(action: CaseAction): string {
   return "text-blue-600";
 }
 
+function isEmployerFeedback(action: CaseAction): boolean {
+  return !!action.notes?.includes("Employer requested");
+}
+
 function getLeftBorderClass(action: CaseAction): string {
   if (action.status === "done") return "border-l-4 border-green-400";
   if (action.failed) return "border-l-4 border-gray-300";
+  if (isEmployerFeedback(action)) return "border-l-4 border-amber-400";
   if (action.dueDate && new Date(action.dueDate) < new Date())
     return "border-l-4 border-red-400";
   return "border-l-4 border-blue-400";
@@ -69,6 +76,7 @@ function formatRelativeDate(dateStr?: string): string {
 
 function getActionIcon(action: CaseAction): React.ReactElement {
   if (action.status === "done") return <CheckCircle2 className="w-4 h-4 text-green-500" />;
+  if (isEmployerFeedback(action)) return <MessageSquare className="w-4 h-4 text-amber-500" />;
   if (action.dueDate && new Date(action.dueDate) < new Date())
     return <AlertTriangle className="w-4 h-4 text-red-500" />;
   switch (action.type) {
@@ -122,13 +130,13 @@ function LastActionsSection({ actions }: { actions: CaseAction[] }): React.React
                 <p
                   className={cn(
                     "text-xs font-medium truncate",
-                    getActionStatusStyle(action)
+                    isEmployerFeedback(action) ? "text-amber-700 dark:text-amber-400" : getActionStatusStyle(action)
                   )}
                 >
-                  {action.title || action.type.replace(/_/g, " ")}
+                  {isEmployerFeedback(action) ? "Employer feedback — changes requested" : (action.title || action.type.replace(/_/g, " "))}
                 </p>
                 {action.notes && (
-                  <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
+                  <p className={cn("text-xs mt-0.5", isEmployerFeedback(action) ? "text-amber-800 dark:text-amber-300" : "text-muted-foreground line-clamp-1")}>
                     {action.notes}
                   </p>
                 )}
@@ -160,6 +168,7 @@ interface NextActionSectionProps {
   caseId: string;
   onMarkDone: (actionId: string) => void;
   isMarkingDone: boolean;
+  nextStep?: string;
 }
 
 function NextActionSection({
@@ -167,6 +176,7 @@ function NextActionSection({
   caseId,
   onMarkDone,
   isMarkingDone,
+  nextStep,
 }: NextActionSectionProps): React.ReactElement {
   const now = new Date();
 
@@ -182,6 +192,15 @@ function NextActionSection({
     })[0];
 
   if (!next) {
+    // Fall back to the case's nextStep field if available
+    if (nextStep) {
+      return (
+        <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-3 text-sm text-blue-700">
+          <p className="font-medium">{nextStep}</p>
+          <p className="text-xs text-blue-500 mt-1">From case management system</p>
+        </div>
+      );
+    }
     return (
       <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-3 text-sm text-green-700 flex items-center gap-2">
         <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
@@ -456,7 +475,7 @@ function ChatBoxSection({ caseId, workerId, organizationId }: ChatBoxSectionProp
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export function CaseActionPanel({ caseId, workerId, organizationId }: CaseActionPanelProps): React.ReactElement {
+export function CaseActionPanel({ caseId, workerId, organizationId, nextStep }: CaseActionPanelProps): React.ReactElement {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -538,6 +557,7 @@ export function CaseActionPanel({ caseId, workerId, organizationId }: CaseAction
               caseId={caseId}
               onMarkDone={(id) => markDone(id)}
               isMarkingDone={isMarkingDone}
+              nextStep={nextStep}
             />
           )}
         </CardContent>

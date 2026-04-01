@@ -164,6 +164,7 @@ router.get("/", authorize(), async (req: AuthRequest, res: Response) => {
       clearanceLevel: a.clearanceLevel,
       sentAt: a.sentAt,
       createdAt: a.createdAt,
+      reportJson: a.reportJson,
     }));
     res.json({ assessments });
   } catch (error) {

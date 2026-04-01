@@ -79,16 +79,40 @@ function calculateTargetEndDate(plan: TreatmentPlan): string | undefined {
   return undefined;
 }
 
+// WorkSafe RTW Code of Practice cl.4.3: RTW plan required within 10 weeks of serious injury
+const RTW_PLAN_REQUIRED_DAYS = 70; // 10 weeks
+
 /**
  * Compute RTW plan compliance status for a case
  */
 export function computeRTWCompliance(
   plan: TreatmentPlan | undefined,
   rtwPlanStatus: RTWPlanStatus,
-  now: Date = new Date()
+  now: Date = new Date(),
+  dateOfInjury?: string | null
 ): RTWCompliance {
   // No plan or plan not started
   if (!plan || rtwPlanStatus === "not_planned" || rtwPlanStatus === "planned_not_started") {
+    // Time-based escalation: WorkSafe requires RTW plan within 10 weeks
+    let daysSinceInjury: number | undefined;
+    if (dateOfInjury) {
+      const injuryDate = new Date(dateOfInjury);
+      if (!isNaN(injuryDate.getTime())) {
+        daysSinceInjury = daysBetween(injuryDate, now);
+      }
+    }
+
+    const overdueForPlan = daysSinceInjury !== undefined && daysSinceInjury > RTW_PLAN_REQUIRED_DAYS;
+
+    if (overdueForPlan) {
+      const weeksOverdue = Math.floor((daysSinceInjury! - RTW_PLAN_REQUIRED_DAYS) / 7);
+      return {
+        status: "no_plan",
+        requiresReview: true,
+        message: `No RTW plan — WorkSafe cl.4.3 requires plan within 10 weeks. Now ${weeksOverdue} week${weeksOverdue === 1 ? "" : "s"} overdue (${daysSinceInjury} days since injury)`,
+      };
+    }
+
     return {
       status: "no_plan",
       requiresReview: rtwPlanStatus === "planned_not_started",
@@ -182,7 +206,7 @@ export async function getCaseRTWCompliance(
   const treatmentPlan = clinicalStatus?.treatmentPlan;
   const rtwPlanStatus = clinicalStatus?.rtwPlanStatus || workerCase.rtwPlanStatus || "not_planned";
 
-  return computeRTWCompliance(treatmentPlan, rtwPlanStatus);
+  return computeRTWCompliance(treatmentPlan, rtwPlanStatus, new Date(), workerCase.dateOfInjury);
 }
 
 /**
@@ -209,8 +233,15 @@ export function getRTWCompliancePriority(compliance: RTWCompliance): "low" | "me
       } else {
         return "medium";
       }
-    case "no_plan":
-      return compliance.requiresReview ? "medium" : "low";
+    case "no_plan": {
+      if (!compliance.requiresReview) return "low";
+      // Extract days overdue from message to determine severity
+      const daysMatch = compliance.message?.match(/(\d+) days since injury/);
+      const daysSinceInjury = daysMatch ? parseInt(daysMatch[1], 10) : 0;
+      if (daysSinceInjury > 180) return "critical"; // 6+ months
+      if (daysSinceInjury > 70) return "high";       // 10+ weeks
+      return "medium";
+    }
     case "plan_compliant":
     default:
       return "low";

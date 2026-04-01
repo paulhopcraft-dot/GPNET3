@@ -426,7 +426,7 @@ export default function DutyForm() {
                 name="demands"
                 render={({ field }) => (
                   <DemandMatrix
-                    value={field.value as unknown as DutyDemands}
+                    value={field.value as Parameters<typeof DemandMatrix>[0]['value']}
                     onChange={field.onChange}
                   />
                 )}

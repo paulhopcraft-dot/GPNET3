@@ -968,6 +968,29 @@ User question: ${message}`;
       });
 
       const result = await storage.getGPNet2CasesPaginated(organizationId, page, limit);
+
+      // Iteration 9/13: fire-and-forget lifecycle stage advancement.
+      // Covers "intake" cases (iter 9) and "assessment" cases stuck > 28d (iter 13).
+      // Non-blocking — the list returns immediately; next fetch shows updated stages.
+      const ASSESSMENT_ADVANCE_DAYS = 28;
+      const _now = new Date();
+      const staleOrgs = new Set(
+        result.cases
+          .filter(c => {
+            if (c.lifecycleStage === "intake") return true;
+            if (c.lifecycleStage === "assessment" && c.dateOfInjury) {
+              const daysOff = Math.floor((_now.getTime() - new Date(c.dateOfInjury).getTime()) / 86400000);
+              return daysOff > ASSESSMENT_ADVANCE_DAYS;
+            }
+            return false;
+          })
+          .map(c => c.organizationId)
+          .filter((id): id is string => !!id)
+      );
+      for (const orgId of staleOrgs) {
+        storage.autoAssignLifecycleStages(orgId).catch(() => {});
+      }
+
       // Phase 1.8: strip clinical fields for employer-role users
       const role = req.user!.role;
       if (isEmployerRole(role)) {
@@ -1703,8 +1726,94 @@ User question: ${message}`;
       const certEndDate = latestCert?.endDate ? new Date(latestCert.endDate) : null;
       const complianceEvents = computeComplianceDeadlines(workerCase, certEndDate);
 
+      // Inject key case milestones computed from case data
+      const milestoneEvents: typeof events = [];
+      if (workerCase.dateOfInjury) {
+        const injuryDate = new Date(workerCase.dateOfInjury);
+        // Injury occurred
+        milestoneEvents.push({
+          id: `milestone-injury-${workerCase.id}`,
+          caseId: workerCase.id,
+          eventType: "milestone",
+          timestamp: injuryDate.toISOString(),
+          title: "Injury Occurred",
+          description: `Case opened. Worker: ${workerCase.workerName}. Status at injury: ${workerCase.workStatus || "Unknown"}.`,
+          severity: "info",
+          icon: "personal_injury",
+          metadata: {},
+        } as any);
+
+        // Expected RTW (only if still off work)
+        if (workerCase.workStatus === "Off work") {
+          const riskLevel = (workerCase.riskLevel || "").toLowerCase();
+          const estWeeks = riskLevel === "high" ? 26 : riskLevel === "medium" ? 12 : 6;
+          const expectedRtw = new Date(injuryDate);
+          expectedRtw.setDate(expectedRtw.getDate() + estWeeks * 7);
+          const today = new Date();
+          const isOverdue = expectedRtw < today;
+          milestoneEvents.push({
+            id: `milestone-expected-rtw-${workerCase.id}`,
+            caseId: workerCase.id,
+            eventType: "milestone",
+            timestamp: expectedRtw.toISOString(),
+            title: isOverdue ? "Expected RTW (Overdue)" : "Expected Return to Work",
+            description: isOverdue
+              ? `Worker was expected to return by ${expectedRtw.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })} based on ${riskLevel} risk profile. Escalation recommended.`
+              : `Target return to work based on ${riskLevel} risk profile (${estWeeks}-week estimate).`,
+            severity: isOverdue ? "critical" : "info",
+            icon: isOverdue ? "schedule" : "work",
+            metadata: { estimatedWeeks: estWeeks },
+          } as any);
+        }
+
+        // Certificate events from cert history
+        for (const cert of certs) {
+          if (cert.startDate) {
+            milestoneEvents.push({
+              id: `milestone-cert-${cert.id}`,
+              caseId: workerCase.id,
+              eventType: "certificate",
+              timestamp: new Date(cert.startDate).toISOString(),
+              title: "Medical Certificate Issued",
+              description: `Certificate valid ${cert.startDate} to ${cert.endDate}. Capacity: ${(cert as any).workCapacity ?? "Off work"}.`,
+              severity: "info",
+              icon: "description",
+              metadata: {},
+            } as any);
+          }
+        }
+      }
+
+      // RTW plan status milestone — shows coordinator when employer approved / plan changed
+      const rtwStatus = (workerCase as any).rtwPlanStatus as string | undefined;
+      if (rtwStatus && rtwStatus !== "not_planned") {
+        const rtwLabels: Record<string, { title: string; description: string; severity: string; icon: string }> = {
+          planned_not_started: { title: "RTW Plan Created", description: "A return to work plan has been prepared for this case.", severity: "info", icon: "assignment" },
+          pending_employer_review: { title: "RTW Plan — Awaiting Employer Approval", description: "The coordinator submitted the return to work plan for employer sign-off.", severity: "warning", icon: "pending_actions" },
+          in_progress: { title: "RTW Plan — Employer Approved ✓", description: "Employer signed off on the return to work plan. Plan is now active.", severity: "success", icon: "assignment_turned_in" },
+          working_well: { title: "RTW Plan — Working Well", description: "Return to work plan is progressing as planned.", severity: "success", icon: "check_circle" },
+          failing: { title: "RTW Plan — Failing", description: "Return to work plan is not meeting targets. Review required.", severity: "critical", icon: "error" },
+          on_hold: { title: "RTW Plan — On Hold", description: "Return to work plan has been paused pending review.", severity: "warning", icon: "pause_circle" },
+          completed: { title: "RTW Plan — Completed", description: "Worker has successfully returned to work.", severity: "success", icon: "task_alt" },
+        };
+        const label = rtwLabels[rtwStatus];
+        if (label) {
+          milestoneEvents.push({
+            id: `milestone-rtw-status-${workerCase.id}`,
+            caseId: workerCase.id,
+            eventType: "milestone",
+            timestamp: new Date((workerCase as any).updatedAt || workerCase.dateOfInjury).toISOString(),
+            title: label.title,
+            description: label.description,
+            severity: label.severity,
+            icon: label.icon,
+            metadata: { rtwPlanStatus: rtwStatus },
+          } as any);
+        }
+      }
+
       // Merge and sort all events by timestamp (historical + future deadlines)
-      const allEvents = [...events, ...complianceEvents].sort(
+      const allEvents = [...events, ...complianceEvents, ...milestoneEvents].sort(
         (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
       );
 
@@ -1773,6 +1882,20 @@ User question: ${message}`;
     try {
       const workerCase = req.workerCase!; // Populated by requireCaseOwnership middleware
       const force = req.query.force === 'true';
+
+      // Employers cannot access AI summaries (clinical reasoning is confidential)
+      if (isEmployerRole(req.user!.role)) {
+        return res.json({
+          id: workerCase.id,
+          summary: null,
+          cached: true,
+          generatedAt: null,
+          model: null,
+          workStatusClassification: null,
+          discussionNotes: [],
+          discussionInsights: [],
+        });
+      }
 
       // PRD Story 1: Use unified interface with force parameter
       let result;

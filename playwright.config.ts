@@ -13,41 +13,51 @@ import { defineConfig, devices } from "@playwright/test";
  *   test.describe('@smoke Login Tests', () => { ... });
  *   test('@critical should create case', async () => { ... });
  */
+// Connect to Paul's existing Chrome on Windows via CDP when available
+// Run Chrome with: chrome.exe --remote-debugging-port=9222
+// From WSL the host is accessible at the Windows host IP (192.168.0.140)
+const CDP_ENDPOINT = process.env.CDP_ENDPOINT ?? "http://192.168.0.140:9222";
+const USE_CDP = process.env.USE_CDP === "1";
+
 export default defineConfig({
   testDir: "tests/e2e",
   timeout: 60 * 1000,
   retries: 0,
 
-  // Wave-based filtering via grep
-  // Use TEST_GREP env var to filter tests by tag
   grep: process.env.TEST_GREP ? new RegExp(process.env.TEST_GREP) : undefined,
 
-  // Reporter configuration - list for console, html for reports
   reporter: [
     ["list"],
     ["html", { open: "never" }],
   ],
 
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:5000",
+    baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "https://gpnet3.onrender.com",
     trace: "on-first-retry",
-    // Screenshot on failure for debugging
     screenshot: "only-on-failure",
-    // Video on failure for complex debugging
     video: "retain-on-failure",
+    // When USE_CDP=1, attach to Paul's running Chrome instead of launching a new one
+    ...(USE_CDP ? { cdpEndpoint: CDP_ENDPOINT } : {}),
   },
 
-  webServer: {
-    command: "npm run dev",
-    url: "http://localhost:5000",
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
-  },
+  // Skip the dev server when testing against Render or CDP
+  ...(process.env.CI || USE_CDP || process.env.PLAYWRIGHT_BASE_URL?.startsWith("https")
+    ? {}
+    : {
+        webServer: {
+          command: "npm run dev",
+          url: "http://localhost:5000",
+          reuseExistingServer: true,
+          timeout: 120 * 1000,
+        },
+      }),
 
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      use: USE_CDP
+        ? {} // CDP mode — use the connected browser as-is
+        : { ...devices["Desktop Chrome"] },
     },
   ],
 });

@@ -1,37 +1,21 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect, Suspense, lazy } from "react";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { useState, Suspense, lazy } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GlassPanel } from "@/components/ui/glass-panel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, RefreshCw, Sparkles, CheckCircle2, Circle, AlertCircle, Clock, ShieldCheck, ShieldAlert, ShieldX, TrendingUp, TrendingDown, Minus, Flag, CalendarClock } from "lucide-react";
-import { fetchWithCsrf } from "@/lib/queryClient";
 import type { WorkerCase, PaginatedCasesResponse, CaseActionDB } from "@shared/schema";
 import { cn } from "@/lib/utils";
 import { TimelineCard } from "@/components/TimelineCard";
 import { CaseContactsPanel } from "@/components/CaseContactsPanel";
-import { TreatmentPlanCard } from "@/components/TreatmentPlanCard";
 
 // Heavy components - lazy load to reduce initial bundle size
 const DynamicRecoveryTimeline = lazy(() => import("@/components/DynamicRecoveryTimeline").then(m => ({ default: m.DynamicRecoveryTimeline })));
-
-// Lazy loaded markdown component with remark-gfm
-const LazyMarkdownRenderer = lazy(async () => {
-  const [ReactMarkdown, remarkGfm] = await Promise.all([
-    import('react-markdown'),
-    import('remark-gfm')
-  ]);
-
-  return {
-    default: ({ children }: { children: string }) => (
-      <ReactMarkdown.default remarkPlugins={[remarkGfm.default]}>
-        {children}
-      </ReactMarkdown.default>
-    )
-  };
-});
 
 // Date formatting helper
 const formatCertDate = (dateStr: string | undefined): string => {
@@ -65,13 +49,17 @@ interface CaseAction {
   id: string;
   caseId: string;
   type: string;
-  title: string;
+  title: string | null;
   description: string | null;
+  notes: string | null;
   status: 'pending' | 'completed' | 'failed';
-  priority: 'low' | 'medium' | 'high' | 'critical';
+  priority: number | null;                                         // Legacy integer — do not use for display
+  priorityLevel: 'low' | 'medium' | 'high' | 'critical' | null;  // Use this
   dueDate: string | null;
   completedAt: string | null;
   completedBy: string | null;
+  assignedTo?: string | null;
+  assignedToName?: string | null;
   createdAt: string;
 }
 
@@ -134,21 +122,18 @@ function formatRelativeDue(dueDate: string | null): { text: string; overdue: boo
   return { text: `Due in ${diffDays} days`, overdue: false };
 }
 
-function riskLevelToPlain(riskLevel: string | undefined, riskScore?: number): string {
+function riskLevelToPlain(riskLevel: string | undefined, weeksOff?: number): string {
   const level = (riskLevel || "").toLowerCase();
-  if (level === "high" || level === "very high") {
-    return "High probability of long-term incapacity — early intervention needed.";
+  // Duration override: 36+ weeks without RTW = high risk regardless of stored level
+  const longRunning = (weeksOff ?? 0) >= 36;
+  if (level === "high" || level === "very high" || longRunning) {
+    return "High probability of long-term incapacity — immediate RTW intervention required.";
   }
   if (level === "medium") {
     return "Moderate risk of extended time off — monitor closely and keep RTW plan current.";
   }
   if (level === "low") {
     return "Low risk — standard monitoring and cert renewals expected.";
-  }
-  if (riskScore !== undefined) {
-    if (riskScore >= 0.7) return "High probability of long-term incapacity — early intervention needed.";
-    if (riskScore >= 0.4) return "Moderate risk of extended time off — monitor closely.";
-    return "Low risk — standard monitoring expected.";
   }
   return "Risk level not yet assessed.";
 }
@@ -159,6 +144,14 @@ function deriveNextAction(
   weeksOff: number,
   certStatus: ReturnType<typeof certExpiryStatus>
 ): { title: string; owner: string; dueText: string; overdue: boolean } | null {
+  if (workerCase.rtwPlanStatus === "pending_employer_review") {
+    return {
+      title: "Review and approve Return to Work plan",
+      owner: "You (employer sign-off required)",
+      dueText: "Action required",
+      overdue: true,
+    };
+  }
   if (certStatus?.expired) {
     return {
       title: "Chase medical certificate renewal",
@@ -205,7 +198,8 @@ interface CaseFlag {
 function buildCaseFlags(
   workerCase: WorkerCase,
   weeksOff: number,
-  certStatus: ReturnType<typeof certExpiryStatus>
+  certStatus: ReturnType<typeof certExpiryStatus>,
+  effectiveRiskLevel?: string
 ): CaseFlag[] {
   const flags: CaseFlag[] = [];
 
@@ -215,19 +209,21 @@ function buildCaseFlags(
     flags.push({ label: "No medical certificate on file", severity: "red" });
   }
 
-  if (!workerCase.rtwPlanStatus && weeksOff >= 2 && workerCase.workStatus !== "At work") {
+  if (workerCase.rtwPlanStatus === "pending_employer_review") {
+    flags.push({ label: "Action required: RTW plan awaiting your approval", severity: "red" });
+  } else if (!workerCase.rtwPlanStatus && weeksOff >= 2 && workerCase.workStatus !== "At work") {
     flags.push({ label: "No RTW plan — worker off work 2+ weeks", severity: "amber" });
   }
 
   const compliance = (workerCase.complianceIndicator || "").toLowerCase();
   if (compliance === "low" || compliance === "very low") {
-    flags.push({ label: "Compliance indicator: Low", severity: "red" });
-  } else if (compliance === "medium") {
-    flags.push({ label: "Compliance indicator: Medium", severity: "amber" });
+    flags.push({ label: "Compliance: Critical — case file incomplete", severity: "red" });
   }
+  // Medium compliance is not flagged — specific issues (no cert, no RTW plan) are already surfaced above
 
-  if (workerCase.riskLevel === "High") {
-    flags.push({ label: `Risk level: ${workerCase.riskLevel}`, severity: "red" });
+  const riskForFlags = effectiveRiskLevel || workerCase.riskLevel;
+  if (riskForFlags === "High") {
+    flags.push({ label: `Risk level: High`, severity: "red" });
   }
 
   if (flags.length === 0) {
@@ -242,17 +238,31 @@ function buildCaseFlags(
 interface CommandCentreProps {
   workerCase: WorkerCase;
   caseActions: CaseAction[];
-  completeAction: { isPending: boolean };
-  uncompleteAction: { isPending: boolean };
-  toggleAction: (action: CaseAction) => void;
+  effectiveRiskLevel: string;
+  onApproveRtw?: () => void;
+  onRequestChangesRtw?: (feedback: string) => void;
+  rtwApprovePending?: boolean;
 }
 
-function CommandCentre({ workerCase, caseActions, completeAction, uncompleteAction, toggleAction }: CommandCentreProps) {
+function CommandCentre({ workerCase, caseActions, effectiveRiskLevel, onApproveRtw, onRequestChangesRtw, rtwApprovePending }: CommandCentreProps) {
+  const [showChangesInput, setShowChangesInput] = useState(false);
+  const [changesFeedback, setChangesFeedback] = useState("");
   const weeksOff   = calcWeeksOffWork(workerCase.dateOfInjury);
   const daysOff    = calcDaysFromInjury(workerCase.dateOfInjury);
   const checkpoint = nextCheckpoint(daysOff);
   const certStatus = certExpiryStatus(workerCase.latestCertificate);
-  const flags      = buildCaseFlags(workerCase, weeksOff, certStatus);
+  const flags      = buildCaseFlags(workerCase, weeksOff, certStatus, effectiveRiskLevel);
+
+  // Fetch injury-specific recovery estimate (injury type + risk modifier = accurate weeks)
+  const { data: recoveryChartData } = useQuery<{ estimatedWeeks?: number; adjustedEstimateWeeks?: number }>({
+    queryKey: [`/api/cases/${workerCase.id}/recovery-chart`],
+  });
+
+  // Fetch RTW plan summary for employer approval preview
+  const { data: rtwPlanData } = useQuery<{ success: boolean; data: { plan: { planType: string; startDate: string | null }; schedule: { weekNumber: number; hoursPerDay: number; daysPerWeek: number }[]; duties: { dutyName: string; suitability: string }[] } }>({
+    queryKey: [`/api/rtw-plans?caseId=${workerCase.id}`],
+    enabled: workerCase.rtwPlanStatus === "pending_employer_review",
+  });
 
   // Compliance card
   const complianceRaw = (workerCase.complianceIndicator || "").toLowerCase();
@@ -267,11 +277,14 @@ function CommandCentre({ workerCase, caseActions, completeAction, uncompleteActi
     complianceLevel === "non-compliant" ? "One or more obligations not met" :
     "All obligations met";
 
-  // Recovery card — derive expected weeks from risk/injury context
-  const expectedWeeks =
-    workerCase.riskLevel === "Low" ? 6 :
-    workerCase.riskLevel === "Medium" ? 12 :
-    workerCase.riskLevel === "High" ? 26 : 8;
+  // Recovery card — use injury-specific estimate from API; fall back to risk-level heuristic
+  const riskBasedWeeks =
+    effectiveRiskLevel === "Low" ? 6 :
+    effectiveRiskLevel === "Medium" ? 12 :
+    effectiveRiskLevel === "High" ? 26 : 8;
+  const expectedWeeks = recoveryChartData?.adjustedEstimateWeeks
+    ?? recoveryChartData?.estimatedWeeks
+    ?? riskBasedWeeks;
 
   const recoveryStatus: "on-track" | "delayed" =
     weeksOff <= expectedWeeks ? "on-track" : "delayed";
@@ -280,15 +293,26 @@ function CommandCentre({ workerCase, caseActions, completeAction, uncompleteActi
   const pendingActions = caseActions.filter(a => a.status !== "completed");
   const topAction = pendingActions.length > 0
     ? pendingActions.sort((a, b) => {
-        const pOrder = { critical: 0, high: 1, medium: 2, low: 3 };
-        return (pOrder[a.priority] ?? 9) - (pOrder[b.priority] ?? 9);
+        const pOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+        return (pOrder[a.priorityLevel ?? "medium"] ?? 9) - (pOrder[b.priorityLevel ?? "medium"] ?? 9);
       })[0]
     : null;
 
   const derivedAction = !topAction ? deriveNextAction(workerCase, weeksOff, certStatus) : null;
 
-  const nextActionTitle  = topAction?.title ?? derivedAction?.title ?? "No immediate actions";
-  const nextActionOwner  = topAction?.completedBy ?? derivedAction?.owner ?? "Coordinator";
+  const actionTypeLabel = (type: string): string => {
+    switch (type) {
+      case 'review_case': return 'Review Case';
+      case 'chase_certificate': return 'Obtain Medical Certificate';
+      case 'follow_up': return 'Follow Up Required';
+      case 'contact_worker': return 'Contact Worker';
+      case 'update_rtw_plan': return 'Update RTW Plan';
+      default: return type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    }
+  };
+
+  const nextActionTitle  = (topAction ? (topAction.title || actionTypeLabel(topAction.type)) : null) ?? derivedAction?.title ?? "No immediate actions";
+  const nextActionOwner  = topAction?.assignedToName ?? topAction?.assignedTo ?? derivedAction?.owner ?? "Coordinator";
   const nextActionDue    = topAction ? formatRelativeDue(topAction.dueDate) : (derivedAction ? { text: derivedAction.dueText, overdue: derivedAction.overdue } : { text: "", overdue: false });
 
   // Action feed
@@ -310,10 +334,12 @@ function CommandCentre({ workerCase, caseActions, completeAction, uncompleteActi
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {/* Weeks off work */}
+            {/* Weeks since injury — only show "off work" label when worker is actually off work */}
             {weeksOff > 0 && (
               <Badge className="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200 font-medium">
-                Week {weeksOff} off work
+                {workerCase.workStatus === "At work"
+                  ? `Week ${weeksOff} post-injury`
+                  : `Week ${weeksOff} off work`}
               </Badge>
             )}
 
@@ -327,16 +353,16 @@ function CommandCentre({ workerCase, caseActions, completeAction, uncompleteActi
               {workerCase.workStatus}
             </Badge>
 
-            {/* Risk level */}
+            {/* Risk level — uses XGBoost-elevated effectiveRiskLevel if available */}
             <Badge variant="outline" className={cn(
               "font-medium border",
-              workerCase.riskLevel === "High"
+              effectiveRiskLevel === "High"
                 ? "border-red-300 text-red-700 bg-red-50 dark:bg-red-950/30 dark:text-red-300"
-                : workerCase.riskLevel === "Medium"
+                : effectiveRiskLevel === "Medium"
                 ? "border-amber-300 text-amber-700 bg-amber-50 dark:bg-amber-950/30 dark:text-amber-300"
                 : "border-emerald-300 text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-300"
             )}>
-              {workerCase.riskLevel || "Unknown"} risk
+              {effectiveRiskLevel || "Unknown"} risk
             </Badge>
 
             {/* Compliance checkpoint countdown */}
@@ -355,6 +381,51 @@ function CommandCentre({ workerCase, caseActions, completeAction, uncompleteActi
           </div>
         </div>
       </div>
+
+      {/* ── 1b. Employer Brief ────────────────────────────────────────────── */}
+      {(() => {
+        const isOff = workerCase.workStatus !== "At work";
+        const injuryDesc = workerCase.summary
+          ? workerCase.summary.split(/[.;]/)[0].trim().toLowerCase()
+          : "an injury";
+        const injuryDate = formatCertDate(workerCase.dateOfInjury);
+        const riskLabel = (effectiveRiskLevel || workerCase.riskLevel || "unknown").toLowerCase();
+        const overdue = isOff && expectedWeeks > 0 && weeksOff > expectedWeeks;
+        const overdueBy = overdue ? weeksOff - expectedWeeks : 0;
+
+        let statusLine: string;
+        if (!isOff) {
+          statusLine = `${workerCase.workerName} has returned to work and is currently active. The case remains open for monitoring.`;
+        } else if (overdue) {
+          statusLine = `${workerCase.workerName} has been off work for ${weeksOff} weeks — ${overdueBy} week${overdueBy !== 1 ? "s" : ""} beyond the expected ${expectedWeeks}-week recovery window. The claim is classified as ${riskLabel} risk.`;
+        } else {
+          statusLine = `${workerCase.workerName} has been off work for ${weeksOff} week${weeksOff !== 1 ? "s" : ""}. Recovery is within the expected window for a ${riskLabel}-risk claim.`;
+        }
+
+        const barrierParts: string[] = [];
+        if (!workerCase.hasCertificate && isOff) barrierParts.push("no medical certificate on file");
+        if (!workerCase.rtwPlanStatus && weeksOff >= 2 && isOff) barrierParts.push("no RTW plan in place");
+        if (workerCase.rtwPlanStatus === "pending_employer_review") barrierParts.push("RTW plan awaiting your approval");
+        if ((complianceLevel === "non-compliant")) barrierParts.push("compliance obligations not met");
+
+        const activePlan = workerCase.rtwPlanStatus === "in_progress" || workerCase.rtwPlanStatus === "working_well";
+
+        return (
+          <div className="rounded-lg border bg-muted/30 px-4 py-3 text-sm space-y-1">
+            <p className="text-foreground leading-relaxed">{statusLine}</p>
+            {activePlan && (
+              <p className="text-emerald-700 dark:text-emerald-400 leading-relaxed">
+                ✓ Return to work plan is active — your coordinator is managing implementation. Contact them if you have questions.
+              </p>
+            )}
+            {barrierParts.length > 0 && (
+              <p className="text-amber-700 dark:text-amber-400 leading-relaxed">
+                Current barriers: {barrierParts.join("; ")}.
+              </p>
+            )}
+          </div>
+        );
+      })()}
 
       {/* ── 2. Four Status Cards ──────────────────────────────────────────── */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -409,7 +480,7 @@ function CommandCentre({ workerCase, caseActions, completeAction, uncompleteActi
               <>
                 <p className="text-base font-bold text-amber-700 dark:text-amber-400">Delayed</p>
                 <p className="text-xs text-muted-foreground mt-1 leading-snug">
-                  {weeksOff - expectedWeeks} week{weeksOff - expectedWeeks !== 1 ? "s" : ""} beyond expected recovery — assessment needed
+                  {weeksOff - expectedWeeks} week{weeksOff - expectedWeeks !== 1 ? "s" : ""} beyond expected recovery — escalation recommended
                 </p>
               </>
             )}
@@ -434,6 +505,86 @@ function CommandCentre({ workerCase, caseActions, completeAction, uncompleteActi
                 <p className={cn("text-xs font-medium", nextActionDue.overdue ? "text-red-600" : "text-muted-foreground")}>
                   {nextActionDue.text}
                 </p>
+              </div>
+            )}
+            {workerCase?.rtwPlanStatus === "pending_employer_review" && onApproveRtw && (
+              <div className="mt-3 space-y-2">
+                {rtwPlanData?.data && (() => {
+                  const { plan, schedule, duties } = rtwPlanData.data;
+                  const planTypeLabel = plan.planType === "graduated_return" ? "Graduated return" : plan.planType === "partial_hours" ? "Partial hours" : "Normal hours";
+                  const firstWeek = schedule[0];
+                  const lastWeek = schedule[schedule.length - 1];
+                  const includedDuties = duties.filter(d => d.suitability !== "not_suitable");
+                  const startStr = plan.startDate ? new Date(plan.startDate).toLocaleDateString("en-AU", { day: "numeric", month: "short" }) : "TBC";
+                  return (
+                    <div className="rounded-md border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 text-xs space-y-1">
+                      <p className="font-semibold text-amber-900 dark:text-amber-200">Plan summary — please review before approving</p>
+                      <p className="text-amber-800 dark:text-amber-300"><span className="font-medium">Type:</span> {planTypeLabel} · <span className="font-medium">Start:</span> {startStr} · <span className="font-medium">Duration:</span> {schedule.length} week{schedule.length !== 1 ? "s" : ""}</p>
+                      {firstWeek && (
+                        <p className="text-amber-800 dark:text-amber-300">
+                          <span className="font-medium">Schedule:</span> Week 1 — {firstWeek.hoursPerDay}h/day, {firstWeek.daysPerWeek} day{firstWeek.daysPerWeek !== 1 ? "s" : ""}/wk
+                          {lastWeek && lastWeek.weekNumber > 1 && ` → Week ${lastWeek.weekNumber} — ${lastWeek.hoursPerDay}h/day, ${lastWeek.daysPerWeek} day${lastWeek.daysPerWeek !== 1 ? "s" : ""}/wk`}
+                        </p>
+                      )}
+                      {includedDuties.length > 0 && (
+                        <p className="text-amber-800 dark:text-amber-300"><span className="font-medium">Duties:</span> {includedDuties.slice(0, 3).map(d => d.dutyName).join(", ")}{includedDuties.length > 3 ? ` +${includedDuties.length - 3} more` : ""}</p>
+                      )}
+                    </div>
+                  );
+                })()}
+                {!showChangesInput ? (
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      className="bg-emerald-500 hover:bg-emerald-600 text-white"
+                      disabled={rtwApprovePending}
+                      onClick={onApproveRtw}
+                    >
+                      {rtwApprovePending ? "Approving…" : "Approve plan"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={rtwApprovePending}
+                      onClick={() => setShowChangesInput(true)}
+                    >
+                      Request changes
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-foreground">What needs to change?</p>
+                    <textarea
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+                      rows={3}
+                      placeholder="e.g. The schedule is too aggressive — start at 2 days/week, not 4"
+                      value={changesFeedback}
+                      onChange={e => setChangesFeedback(e.target.value)}
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        disabled={!changesFeedback.trim()}
+                        onClick={() => {
+                          onRequestChangesRtw?.(changesFeedback.trim());
+                          setShowChangesInput(false);
+                          setChangesFeedback("");
+                        }}
+                      >
+                        Send feedback
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => { setShowChangesInput(false); setChangesFeedback(""); }}>
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            {(workerCase?.rtwPlanStatus === "in_progress" || workerCase?.rtwPlanStatus === "working_well") && (
+              <div className="mt-2 rounded-md bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700 px-3 py-2 text-xs text-emerald-800 dark:text-emerald-300">
+                ✓ Plan approved — coordinator is managing implementation
               </div>
             )}
           </CardContent>
@@ -483,7 +634,7 @@ function CommandCentre({ workerCase, caseActions, completeAction, uncompleteActi
       {/* Risk plain English row */}
       <div className="rounded-lg border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
         <span className="font-medium text-foreground">Risk outlook: </span>
-        {riskLevelToPlain(workerCase.riskLevel)}
+        {riskLevelToPlain(effectiveRiskLevel, weeksOff)}
       </div>
 
       {/* ── 3. Action Feed ───────────────────────────────────────────────── */}
@@ -502,7 +653,8 @@ function CommandCentre({ workerCase, caseActions, completeAction, uncompleteActi
             {/* Pending / overdue actions */}
             {pendingFeed.map(action => {
               const due = formatRelativeDue(action.dueDate);
-              const isPriorityCriticalOrHigh = action.priority === "critical" || action.priority === "high";
+              const isPriorityCriticalOrHigh = action.priorityLevel === "critical" || action.priorityLevel === "high";
+              const owner = action.assignedToName || action.assignedTo;
               return (
                 <div
                   key={action.id}
@@ -513,23 +665,18 @@ function CommandCentre({ workerCase, caseActions, completeAction, uncompleteActi
                                                "bg-card border-border"
                   )}
                 >
-                  <button
-                    onClick={() => toggleAction(action)}
-                    disabled={completeAction.isPending || uncompleteAction.isPending}
-                    className="mt-0.5 shrink-0"
-                    aria-label="Mark complete"
-                  >
+                  <div className="mt-0.5 shrink-0">
                     <Circle className={cn(
                       "h-4 w-4",
-                      due.overdue ? "text-red-500" : "text-muted-foreground"
+                      due.overdue ? "text-red-400" : "text-muted-foreground/40"
                     )} />
-                  </button>
+                  </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">{action.title}</p>
-                    {action.description && <p className="text-xs text-muted-foreground mt-0.5">{action.description}</p>}
+                    <p className="text-sm font-medium">{action.title || actionTypeLabel(action.type)}</p>
+                    {(action.description || action.notes) && <p className="text-xs text-muted-foreground mt-0.5">{action.description ?? action.notes}</p>}
+                    {owner && <p className="text-xs text-muted-foreground/70 mt-0.5">Assigned to: {owner}</p>}
                   </div>
                   <div className="text-right shrink-0">
-                    {action.completedBy && <p className="text-xs text-muted-foreground">{action.completedBy}</p>}
                     <p className={cn("text-xs font-medium", due.overdue ? "text-red-600" : "text-muted-foreground")}>
                       {due.text}
                     </p>
@@ -548,16 +695,12 @@ function CommandCentre({ workerCase, caseActions, completeAction, uncompleteActi
                     key={action.id}
                     className="flex items-start gap-3 rounded-lg border border-border px-4 py-3 opacity-60"
                   >
-                    <button
-                      onClick={() => toggleAction(action)}
-                      disabled={completeAction.isPending || uncompleteAction.isPending}
-                      className="mt-0.5 shrink-0"
-                      aria-label="Mark incomplete"
-                    >
+                    <div className="mt-0.5 shrink-0">
                       <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                    </button>
+                    </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm line-through">{action.title}</p>
+                      <p className="text-sm line-through">{action.title || actionTypeLabel(action.type)}</p>
+                      {action.completedBy && <p className="text-xs text-muted-foreground/70 mt-0.5">Completed by: {action.completedBy}</p>}
                     </div>
                     {action.completedAt && (
                       <p className="text-xs text-muted-foreground shrink-0">
@@ -580,10 +723,28 @@ function CommandCentre({ workerCase, caseActions, completeAction, uncompleteActi
 export default function EmployerCaseDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const [loadingSummary, setLoadingSummary] = useState(false);
   const [aiSummary, setAiSummary] = useState<string | null>(null);
-  const [summaryLoaded, setSummaryLoaded] = useState(false);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const approveRtwMutation = useMutation({
+    mutationFn: () =>
+      apiRequest("PUT", `/api/cases/${id}/rtw-plan`, {
+        rtwPlanStatus: "in_progress",
+        reason: "Approved by employer",
+      }),
+    onSuccess: async () => {
+      toast({ title: "RTW plan approved", description: "The Return to Work plan is now active." });
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ["/api/gpnet2/cases"] }),
+        queryClient.refetchQueries({ queryKey: ["/api/employer/dashboard"] }),
+      ]);
+      navigate("/employer");
+    },
+    onError: () => {
+      toast({ title: "Failed to approve plan", variant: "destructive" });
+    },
+  });
 
   // Fetch case data - use same approach as CaseSummaryPage
   const { data: paginatedData, isLoading, error } = useQuery<PaginatedCasesResponse>({
@@ -597,89 +758,8 @@ export default function EmployerCaseDetailPage() {
     queryKey: [`/api/actions/case/${id}`],
     enabled: !!id,
   });
+
   const caseActions = actionsData?.data ?? [];
-
-  // Mutation to complete an action
-  const completeAction = useMutation({
-    mutationFn: async (actionId: string) => {
-      const response = await fetchWithCsrf(`/api/actions/case/${id}/actions/${actionId}/complete`, {
-        method: "POST",
-      });
-      if (!response.ok) throw new Error("Failed to complete action");
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/actions/case/${id}`] });
-    },
-  });
-
-  // Mutation to uncomplete an action
-  const uncompleteAction = useMutation({
-    mutationFn: async (actionId: string) => {
-      const response = await fetchWithCsrf(`/api/actions/case/${id}/actions/${actionId}/uncomplete`, {
-        method: "POST",
-      });
-      if (!response.ok) throw new Error("Failed to uncomplete action");
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/actions/case/${id}`] });
-    },
-  });
-
-  const toggleAction = (action: CaseAction) => {
-    if (action.status === 'completed') {
-      uncompleteAction.mutate(action.id);
-    } else {
-      completeAction.mutate(action.id);
-    }
-  };
-
-  // Group actions by priority
-  const groupActionsByPriority = (actions: CaseAction[]) => {
-    const critical = actions.filter(a => a.priority === 'critical' && a.status !== 'completed');
-    const high = actions.filter(a => a.priority === 'high' && a.status !== 'completed');
-    const medium = actions.filter(a => a.priority === 'medium' && a.status !== 'completed');
-    const low = actions.filter(a => a.priority === 'low' && a.status !== 'completed');
-    const completed = actions.filter(a => a.status === 'completed');
-    return { critical, high, medium, low, completed };
-  };
-
-  const groupedActions = groupActionsByPriority(caseActions);
-
-  const generateSummary = async () => {
-    if (!id) return;
-    setLoadingSummary(true);
-    try {
-      const response = await fetchWithCsrf(`/api/cases/${id}/summary`, {
-        method: "POST",
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setAiSummary(data.summary);
-        setSummaryLoaded(true);
-      }
-    } catch (error) {
-      console.error("Error generating summary:", error);
-    } finally {
-      setLoadingSummary(false);
-    }
-  };
-
-  // Auto-load summary when case data is available
-  useEffect(() => {
-    if (workerCase && id && !summaryLoaded && !loadingSummary) {
-      generateSummary();
-    }
-  }, [workerCase, id, summaryLoaded, loadingSummary]);
-
-  const renderMarkdown = (content: string) => (
-    <Suspense fallback={<div className="animate-pulse h-32 bg-gray-100 rounded"></div>}>
-      <LazyMarkdownRenderer>
-        {content}
-      </LazyMarkdownRenderer>
-    </Suspense>
-  );
 
   // Parse injury details from AI summary markdown tables
   const parseInjuryFromSummary = (summary: string | null | undefined) => {
@@ -712,6 +792,20 @@ export default function EmployerCaseDetailPage() {
   };
 
   const injuryFromSummary = parseInjuryFromSummary(aiSummary || workerCase?.aiSummary);
+
+  // Derive risk level from XGBoost score embedded in AI summary (overrides stored riskLevel when present)
+  const parseXGBoostRiskLevel = (summary: string | null | undefined): "High" | "Medium" | "Low" | null => {
+    if (!summary) return null;
+    const match = summary.match(/XGBoost\s+(?:risk(?:\s+index)?|probability|stability score|resilience score)\s+([\d.]+)/i);
+    if (!match) return null;
+    const score = parseFloat(match[1]);
+    if (isNaN(score)) return null;
+    if (score >= 0.61) return "High";
+    if (score >= 0.31) return "Medium";
+    return "Low";
+  };
+
+  const effectiveRiskLevel = parseXGBoostRiskLevel(aiSummary || workerCase?.aiSummary) ?? workerCase?.riskLevel;
 
   if (isLoading) {
     return (
@@ -749,7 +843,7 @@ export default function EmployerCaseDetailPage() {
             <div className="min-w-0">
               <h1 className="text-lg font-bold truncate">{workerCase.workerName}</h1>
               <p className="text-xs text-muted-foreground truncate">
-                {workerCase.company} • {workerCase.dateOfInjury}
+                {workerCase.company} • Injured {formatCertDate(workerCase.dateOfInjury)}
               </p>
             </div>
           </div>
@@ -764,13 +858,13 @@ export default function EmployerCaseDetailPage() {
             </Badge>
             <Badge variant="outline" className={cn(
               "text-xs border",
-              workerCase.complianceIndicator === "Very High" || workerCase.complianceIndicator === "High"
-                ? "border-emerald-300 text-emerald-700"
-                : workerCase.complianceIndicator === "Medium"
+              (effectiveRiskLevel || workerCase.riskLevel || "").toLowerCase() === "high"
+                ? "border-red-300 text-red-700"
+                : (effectiveRiskLevel || workerCase.riskLevel || "").toLowerCase() === "medium"
                 ? "border-yellow-300 text-yellow-700"
-                : "border-red-300 text-red-700"
+                : "border-emerald-300 text-emerald-700"
             )}>
-              {workerCase.complianceIndicator}
+              {effectiveRiskLevel || workerCase.riskLevel || "Unknown"}
             </Badge>
           </div>
         </div>
@@ -853,9 +947,28 @@ export default function EmployerCaseDetailPage() {
           <CommandCentre
             workerCase={workerCase}
             caseActions={caseActions}
-            completeAction={completeAction}
-            uncompleteAction={uncompleteAction}
-            toggleAction={toggleAction}
+            effectiveRiskLevel={effectiveRiskLevel ?? workerCase.riskLevel ?? "Unknown"}
+            onApproveRtw={() => approveRtwMutation.mutate()}
+            onRequestChangesRtw={async (feedback: string) => {
+              const reason = feedback || "Employer requested changes to the RTW plan";
+              await apiRequest("PUT", `/api/cases/${id}/rtw-plan`, {
+                rtwPlanStatus: "planned_not_started",
+                reason,
+              });
+              // Create a coordinator action with Sarah's feedback so it surfaces in their queue
+              await apiRequest("POST", `/api/actions/case/${id}`, {
+                type: "review_case",
+                notes: `Employer requested RTW plan changes: "${reason}"`,
+                priority: 1,
+              }).catch(() => {}); // best-effort
+              toast({ title: "Changes requested", description: "Your feedback has been sent to the coordinator." });
+              await Promise.all([
+                queryClient.refetchQueries({ queryKey: ["/api/gpnet2/cases"] }),
+                queryClient.refetchQueries({ queryKey: ["/api/employer/dashboard"] }),
+              ]);
+              navigate("/employer");
+            }}
+            rtwApprovePending={approveRtwMutation.isPending}
           />
         </TabsContent>
 
@@ -873,36 +986,36 @@ export default function EmployerCaseDetailPage() {
                     <div className="text-sm flex-1">
                       {workerCase.clinical_status_json?.treatmentPlan?.injuryType ||
                        injuryFromSummary['injury'] ||
-                       "Not specified"}
+                       (workerCase.summary ? workerCase.summary.split(/[.;]/)[0].trim() : "Not specified")}
                     </div>
                   </div>
                   <div className="flex border-b pb-2">
                     <div className="w-40 text-sm font-medium">Date of Onset</div>
                     <div className="text-sm flex-1">
-                      {injuryFromSummary['date of onset'] || workerCase.dateOfInjury || "Not recorded"}
+                      {injuryFromSummary['date of onset'] || formatCertDate(workerCase.dateOfInjury) || "Not recorded"}
                     </div>
                   </div>
-                  {((workerCase.medicalConstraints as any)?.mechanism || injuryFromSummary['mechanism']) && (
+                  {((workerCase.medicalConstraints as Record<string, string> | undefined)?.mechanism || injuryFromSummary['mechanism']) && (
                     <div className="flex border-b pb-2">
                       <div className="w-40 text-sm font-medium">Mechanism</div>
                       <div className="text-sm flex-1">
-                        {(workerCase.medicalConstraints as any)?.mechanism || injuryFromSummary['mechanism']}
+                        {(workerCase.medicalConstraints as Record<string, string> | undefined)?.mechanism || injuryFromSummary['mechanism']}
                       </div>
                     </div>
                   )}
-                  {((workerCase.medicalConstraints as any)?.treatingGp || injuryFromSummary['treating gp']) && (
+                  {((workerCase.medicalConstraints as Record<string, string> | undefined)?.treatingGp || injuryFromSummary['treating gp']) && (
                     <div className="flex border-b pb-2">
                       <div className="w-40 text-sm font-medium">Treating GP</div>
                       <div className="text-sm flex-1">
-                        {(workerCase.medicalConstraints as any)?.treatingGp || injuryFromSummary['treating gp']}
+                        {(workerCase.medicalConstraints as Record<string, string> | undefined)?.treatingGp || injuryFromSummary['treating gp']}
                       </div>
                     </div>
                   )}
-                  {((workerCase.medicalConstraints as any)?.physiotherapist || injuryFromSummary['physiotherapist']) && (
+                  {((workerCase.medicalConstraints as Record<string, string> | undefined)?.physiotherapist || injuryFromSummary['physiotherapist']) && (
                     <div className="flex border-b pb-2">
                       <div className="w-40 text-sm font-medium">Physiotherapist</div>
                       <div className="text-sm flex-1">
-                        {(workerCase.medicalConstraints as any)?.physiotherapist || injuryFromSummary['physiotherapist']}
+                        {(workerCase.medicalConstraints as Record<string, string> | undefined)?.physiotherapist || injuryFromSummary['physiotherapist']}
                       </div>
                     </div>
                   )}
@@ -914,7 +1027,7 @@ export default function EmployerCaseDetailPage() {
                       </div>
                     </div>
                   )}
-                  {(injuryFromSummary['case manager'] || workerCase.owner) && (
+                  {(injuryFromSummary['case manager'] || (workerCase.owner && workerCase.owner !== "Unassigned")) && (
                     <div className="flex border-b pb-2">
                       <div className="w-40 text-sm font-medium">Case Manager</div>
                       <div className="text-sm flex-1">
@@ -943,6 +1056,7 @@ export default function EmployerCaseDetailPage() {
                     <p className="text-sm">
                       {workerCase.clinical_status_json?.treatmentPlan?.diagnosisSummary ||
                        workerCase.clinical_status_json?.treatmentPlan?.injuryType ||
+                       workerCase.summary ||
                        "Diagnosis details not yet recorded"}
                     </p>
                   </div>
@@ -976,11 +1090,20 @@ export default function EmployerCaseDetailPage() {
                           </div>
                         );
                       }
+
+                      // Psychological/stress injuries don't require imaging
+                      const summaryLower = (workerCase.summary || workerCase.aiSummary || "").toLowerCase();
+                      const isPsychological = ['psychological', 'mental', 'stress', 'anxiety', 'depression', 'ptsd', 'psychiatric'].some(t => summaryLower.includes(t));
+                      if (isPsychological) {
+                        return (
+                          <p className="text-sm text-muted-foreground">Not applicable for psychological injuries. Medical/psychiatric assessments are managed by the case manager.</p>
+                        );
+                      }
                       return (
                         <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded text-sm">
                           <p className="text-amber-800 dark:text-amber-200">No imaging results on file</p>
                           <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                            Consider requesting X-ray or ultrasound if clinically indicated
+                            Consider requesting X-ray, MRI, or ultrasound if clinically indicated
                           </p>
                         </div>
                       );
@@ -1101,93 +1224,188 @@ export default function EmployerCaseDetailPage() {
 
 
         <TabsContent value="financial" className="flex-1 p-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Financial Summary</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {(workerCase as any).financialData ? (
-                <div className="space-y-3">
-                  {(workerCase as any).financialData.preInjuryEarnings && (
-                    <div className="flex border-b pb-2">
-                      <div className="w-48 text-sm font-medium">Pre-injury weekly earnings</div>
-                      <div className="text-sm flex-1">${(workerCase as any).financialData.preInjuryEarnings.toLocaleString()}</div>
+          {(() => {
+            // Australian workers comp average: ~$1,350/week income replacement
+            const AVG_WEEKLY_COMP = 1350;
+            const weeksOff = calcWeeksOffWork(workerCase.dateOfInjury);
+            const isOffWork = workerCase.workStatus !== "At work";
+            const costToDate = isOffWork ? weeksOff * AVG_WEEKLY_COMP : 0;
+            // Estimated remaining based on risk level heuristic
+            const riskBasedTotalWeeks =
+              (effectiveRiskLevel || workerCase.riskLevel || "").toLowerCase() === "high" ? 26 :
+              (effectiveRiskLevel || workerCase.riskLevel || "").toLowerCase() === "medium" ? 12 : 6;
+            const isLongDuration = isOffWork && weeksOff > riskBasedTotalWeeks;
+            // Long-duration: use 13-week rolling estimate (ongoing); normal: remaining to estimate
+            const remainingWeeks = isOffWork
+              ? (isLongDuration ? 13 : Math.max(0, riskBasedTotalWeeks - weeksOff))
+              : 0;
+            const projectedFutureCost = remainingWeeks * AVG_WEEKLY_COMP;
+            const totalEstimate = costToDate + projectedFutureCost;
+            const fmt = (n: number) => `$${n.toLocaleString()}`;
+            return (
+              <div className="space-y-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">Claim Cost Estimate</CardTitle>
+                    <p className="text-xs text-muted-foreground">Based on Australian average workers compensation ($1,350/week). Actual amounts depend on PIAWE calculation and insurer.</p>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-3 gap-4 mb-4">
+                      <div className="rounded-lg border bg-muted/30 p-4 text-center">
+                        <div className="text-2xl font-bold text-foreground">{fmt(costToDate)}</div>
+                        <div className="text-xs text-muted-foreground mt-1">Est. paid to date</div>
+                        <div className="text-xs text-muted-foreground">{weeksOff} weeks</div>
+                      </div>
+                      <div className="rounded-lg border bg-amber-50 p-4 text-center">
+                        <div className="text-2xl font-bold text-amber-700">{fmt(projectedFutureCost)}</div>
+                        <div className="text-xs text-muted-foreground mt-1">Projected future cost</div>
+                        <div className="text-xs text-muted-foreground">{isLongDuration ? "Ongoing — ~13 wks rolling est." : `${remainingWeeks} weeks remaining (est.)`}</div>
+                      </div>
+                      <div className="rounded-lg border bg-blue-50 p-4 text-center">
+                        <div className="text-2xl font-bold text-blue-700">{fmt(totalEstimate)}</div>
+                        <div className="text-xs text-muted-foreground mt-1">Total claim estimate</div>
+                        <div className="text-xs text-muted-foreground">{isLongDuration ? `${weeksOff}+ weeks (ongoing)` : `${riskBasedTotalWeeks} weeks total (est.)`}</div>
+                      </div>
                     </div>
-                  )}
-                  {(workerCase as any).financialData.currentEarnings && (
-                    <div className="flex border-b pb-2">
-                      <div className="w-48 text-sm font-medium">Current weekly earnings</div>
-                      <div className="text-sm flex-1">${(workerCase as any).financialData.currentEarnings.toLocaleString()}</div>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex border-b pb-2">
+                        <div className="w-56 font-medium text-muted-foreground">Worker status</div>
+                        <div>{workerCase.workStatus}</div>
+                      </div>
+                      <div className="flex border-b pb-2">
+                        <div className="w-56 font-medium text-muted-foreground">Weeks since injury</div>
+                        <div>{weeksOff} weeks</div>
+                      </div>
+                      <div className="flex border-b pb-2">
+                        <div className="w-56 font-medium text-muted-foreground">Estimated weekly rate</div>
+                        <div>$1,350/week (Australian avg)</div>
+                      </div>
+                      <div className="flex">
+                        <div className="w-56 font-medium text-muted-foreground">Risk level</div>
+                        <div>{effectiveRiskLevel || workerCase.riskLevel || "Unknown"}</div>
+                      </div>
                     </div>
-                  )}
-                  {(workerCase as any).financialData.weeklyShortfall && (
-                    <div className="flex border-b pb-2">
-                      <div className="w-48 text-sm font-medium">Weekly shortfall</div>
-                      <div className="text-sm flex-1">${(workerCase as any).financialData.weeklyShortfall.toLocaleString()}</div>
-                    </div>
-                  )}
-                  {(workerCase as any).financialData.piaweEntitlement && (
-                    <div className="flex pb-2">
-                      <div className="w-48 text-sm font-medium">PIAWE entitlement</div>
-                      <div className="text-sm flex-1">${(workerCase as any).financialData.piaweEntitlement.toLocaleString()}/week</div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p className="text-sm">No financial data recorded for this case.</p>
-                  <p className="text-xs mt-1">Financial details will appear when claim data is synced.</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                  </CardContent>
+                </Card>
+                {weeksOff > 26 && (
+                  <Card className="border-red-200 bg-red-50">
+                    <CardContent className="pt-4">
+                      <div className="flex gap-2 text-sm text-red-800">
+                        <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-medium">Long-duration claim</p>
+                          <p className="text-xs text-red-600 mt-1">This case has exceeded 26 weeks. Review with your insurer about claim classification and consider escalating RTW planning.</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            );
+          })()}
         </TabsContent>
 
         <TabsContent value="risk" className="flex-1 p-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Risk Assessment</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {(workerCase as any).riskAssessment && (workerCase as any).riskAssessment.length > 0 ? (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-4 gap-4 p-2 border-b-2 border-primary text-sm font-semibold text-primary">
-                    <div>Risk</div>
-                    <div>Likelihood</div>
-                    <div>Impact</div>
-                    <div>Mitigation</div>
-                  </div>
-                  {(workerCase as any).riskAssessment.map((risk: any, idx: number) => (
-                    <div key={idx} className="grid grid-cols-4 gap-4 p-2 border-b text-sm">
-                      <div>{risk.description}</div>
-                      <div>
-                        <span className={cn(
-                          "px-2 py-1 rounded text-xs",
-                          risk.likelihood === "high" ? "bg-red-100 text-red-800" :
-                          risk.likelihood === "medium" ? "bg-amber-100 text-amber-800" :
-                          "bg-green-100 text-green-800"
-                        )}>{risk.likelihood}</span>
-                      </div>
-                      <div>
-                        <span className={cn(
-                          "px-2 py-1 rounded text-xs",
-                          risk.impact === "high" ? "bg-red-100 text-red-800" :
-                          risk.impact === "medium" ? "bg-amber-100 text-amber-800" :
-                          "bg-green-100 text-green-800"
-                        )}>{risk.impact}</span>
-                      </div>
-                      <div>{risk.mitigation}</div>
+          {(() => {
+            const weeksOff = calcWeeksOffWork(workerCase.dateOfInjury);
+            const isOffWork = workerCase.workStatus !== "At work";
+            const compliance = (workerCase.complianceIndicator || "").toLowerCase();
+            const riskLevel = (effectiveRiskLevel || workerCase.riskLevel || "").toLowerCase();
+
+            type RiskFactor = { label: string; likelihood: "high" | "medium" | "low"; impact: "high" | "medium" | "low"; mitigation: string };
+            const factors: RiskFactor[] = [];
+
+            // 1. Duration risk
+            if (weeksOff >= 26 && isOffWork) {
+              factors.push({ label: "Long-duration absence", likelihood: "high", impact: "high", mitigation: "Escalate to senior case manager. Schedule IME. Review insurer claim classification." });
+            } else if (weeksOff >= 13 && isOffWork) {
+              factors.push({ label: "Extended absence", likelihood: "medium", impact: "high", mitigation: "Confirm RTW plan is active. Review barriers to return." });
+            } else if (weeksOff >= 4 && isOffWork) {
+              factors.push({ label: "Absence exceeding 4 weeks", likelihood: "medium", impact: "medium", mitigation: "Confirm graduated RTW plan is in place with treating GP." });
+            }
+
+            // 2. Certificate / compliance risk
+            if (!workerCase.hasCertificate && isOffWork) {
+              factors.push({ label: "No medical certificate on file", likelihood: "high", impact: "high", mitigation: "Request certificate immediately. Claim may be at risk without valid certification." });
+            } else if (compliance === "low" || compliance === "very low") {
+              factors.push({ label: "Low compliance — case file incomplete", likelihood: "high", impact: "medium", mitigation: "Review missing documentation with case coordinator. Complete claim requirements." });
+            } else if (compliance === "medium") {
+              factors.push({ label: "Partial compliance", likelihood: "medium", impact: "low", mitigation: "Follow up on outstanding items with case coordinator." });
+            }
+
+            // 3. RTW plan risk
+            if (!workerCase.rtwPlanStatus && weeksOff >= 2 && isOffWork) {
+              factors.push({ label: "No return-to-work plan", likelihood: "high", impact: "high", mitigation: "Initiate RTW planning with treating doctor and insurer. Delayed RTW plans increase long-term risk." });
+            }
+
+            // 4. Overall risk level
+            if (riskLevel === "high" || riskLevel === "very high") {
+              factors.push({ label: "High clinical risk classification", likelihood: "high", impact: "high", mitigation: "Monitor weekly. Ensure specialist involvement. Consider vocational assessment." });
+            } else if (riskLevel === "medium") {
+              factors.push({ label: "Moderate clinical risk", likelihood: "medium", impact: "medium", mitigation: "Bi-weekly check-ins with worker. Confirm treatment is progressing." });
+            }
+
+            // 5. Claim complexity (ticket count as proxy)
+            if ((workerCase.ticketCount || 1) >= 5) {
+              factors.push({ label: "High claim complexity", likelihood: "medium", impact: "medium", mitigation: "Multiple updates suggest complex case. Ensure all parties (insurer, GP, employer) are aligned." });
+            }
+
+            const likelihoodColor = (l: string) =>
+              l === "high" ? "bg-red-100 text-red-800" : l === "medium" ? "bg-amber-100 text-amber-800" : "bg-green-100 text-green-800";
+            const impactColor = (i: string) =>
+              i === "high" ? "bg-red-100 text-red-800" : i === "medium" ? "bg-amber-100 text-amber-800" : "bg-green-100 text-green-800";
+
+            const highCount = factors.filter(f => f.likelihood === "high").length;
+            const overallBg = highCount >= 2 ? "border-red-200 bg-red-50" : highCount === 1 ? "border-amber-200 bg-amber-50" : "border-green-200 bg-green-50";
+            const overallText = highCount >= 2 ? "text-red-800" : highCount === 1 ? "text-amber-800" : "text-green-800";
+            const overallLabel = highCount >= 2 ? "High Risk — Immediate Action Required" : highCount === 1 ? "Moderate Risk — Monitor Closely" : "Low Risk — Routine Management";
+
+            return (
+              <div className="space-y-4">
+                <Card className={cn("border", overallBg)}>
+                  <CardContent className="pt-4 pb-3">
+                    <div className="flex items-center gap-2">
+                      {highCount >= 2 ? <ShieldX className={cn("w-5 h-5", overallText)} /> : highCount === 1 ? <ShieldAlert className={cn("w-5 h-5", overallText)} /> : <ShieldCheck className={cn("w-5 h-5", overallText)} />}
+                      <span className={cn("font-semibold text-sm", overallText)}>{overallLabel}</span>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p className="text-sm">No risk assessment recorded for this case.</p>
-                  <p className="text-xs mt-1">Risk factors will be identified during case review.</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    <p className={cn("text-xs mt-1 ml-7", overallText.replace("800", "600"))}>{factors.length} risk factor{factors.length !== 1 ? "s" : ""} identified across duration, compliance, and clinical dimensions.</p>
+                  </CardContent>
+                </Card>
+
+                {factors.length > 0 ? (
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">Risk Factors</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                      <div className="divide-y">
+                        {factors.map((f, idx) => (
+                          <div key={idx} className="grid grid-cols-[2fr_1fr_1fr_3fr] gap-3 p-3 text-sm items-start">
+                            <div className="font-medium">{f.label}</div>
+                            <div><span className={cn("px-2 py-0.5 rounded text-xs capitalize", likelihoodColor(f.likelihood))}>{f.likelihood}</span></div>
+                            <div><span className={cn("px-2 py-0.5 rounded text-xs capitalize", impactColor(f.impact))}>{f.impact}</span></div>
+                            <div className="text-muted-foreground text-xs">{f.mitigation}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Card className="border-green-200 bg-green-50">
+                    <CardContent className="pt-4">
+                      <div className="flex gap-2 text-sm text-green-800">
+                        <ShieldCheck className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-medium">No significant risk factors identified</p>
+                          <p className="text-xs text-green-600 mt-1">This case appears to be progressing within expected parameters. Continue routine management.</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            );
+          })()}
         </TabsContent>
 
         <TabsContent value="contacts" className="flex-1 p-6">
@@ -1195,6 +1413,7 @@ export default function EmployerCaseDetailPage() {
             caseId={id!}
             workerName={workerCase.workerName}
             company={workerCase.company}
+            readOnly
           />
         </TabsContent>
 
@@ -1204,16 +1423,22 @@ export default function EmployerCaseDetailPage() {
             <div className="recovery-hero-section">
               {id && (
                 <Suspense fallback={<ChartLoader />}>
-                  <DynamicRecoveryTimeline caseId={id} />
+                  <DynamicRecoveryTimeline caseId={id} readOnly />
                 </Suspense>
               )}
             </div>
 
             {/* Supporting Information - Treatment Plan & Diagnosis Grid */}
             <div className="treatment-supporting-info grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Treatment Plan Section */}
+              {/* Treatment Plan Section — clinical plans are not accessible to employer accounts */}
               <div className="treatment-left-column">
-                {id && <TreatmentPlanCard caseId={id} />}
+                <GlassPanel className="h-full" variant="gradient">
+                  <div className="p-6 flex flex-col items-center justify-center text-center min-h-[200px]">
+                    <span className="material-symbols-outlined text-4xl text-white/40 mb-3">lock</span>
+                    <h3 className="text-sm font-semibold text-white/80 mb-1">Treatment Plan</h3>
+                    <p className="text-xs text-white/50">Clinical treatment details are managed by the case manager and are not available in the employer view.</p>
+                  </div>
+                </GlassPanel>
               </div>
 
               {/* Diagnosis Section */}
@@ -1230,20 +1455,81 @@ export default function EmployerCaseDetailPage() {
                       <div>
                         <h4 className="text-sm font-semibold text-white/90 mb-2">Primary Diagnosis</h4>
                         <p className="text-sm text-white/80">{workerCase.summary || "Diagnosis details pending"}</p>
-                        <p className="text-sm text-white/60">Injury Date: {workerCase.dateOfInjury}</p>
+                        <p className="text-sm text-white/60">Injury Date: {formatCertDate(workerCase.dateOfInjury)}</p>
                       </div>
                       <div>
                         <h4 className="text-sm font-semibold text-white/90 mb-2">Work Status</h4>
                         <p className="text-sm text-white/80">{workerCase.workStatus}</p>
                       </div>
+                      {workerCase.rtwPlanStatus && (
+                        <div>
+                          <h4 className="text-sm font-semibold text-white/90 mb-2">RTW Plan</h4>
+                          <p className={cn(
+                            "text-sm font-medium",
+                            workerCase.rtwPlanStatus === "pending_employer_review" ? "text-yellow-300" :
+                            workerCase.rtwPlanStatus === "in_progress" || workerCase.rtwPlanStatus === "working_well" ? "text-emerald-300" :
+                            workerCase.rtwPlanStatus === "failing" ? "text-red-300" :
+                            "text-white/80"
+                          )}>
+                            {workerCase.rtwPlanStatus === "pending_employer_review" ? "Awaiting your approval" :
+                             workerCase.rtwPlanStatus === "in_progress" ? "In progress" :
+                             workerCase.rtwPlanStatus === "working_well" ? "On track" :
+                             workerCase.rtwPlanStatus === "failing" ? "Failing — intervention needed" :
+                             workerCase.rtwPlanStatus === "planned_not_started" ? "Planned, not started" :
+                             workerCase.rtwPlanStatus === "on_hold" ? "On hold" :
+                             workerCase.rtwPlanStatus === "completed" ? "Completed" :
+                             workerCase.rtwPlanStatus}
+                          </p>
+                          {workerCase.rtwPlanStatus === "pending_employer_review" && (
+                            <div className="flex gap-2 mt-3">
+                              <Button
+                                size="sm"
+                                className="bg-emerald-500 hover:bg-emerald-600 text-white"
+                                disabled={approveRtwMutation.isPending}
+                                onClick={() => approveRtwMutation.mutate()}
+                              >
+                                {approveRtwMutation.isPending ? "Approving…" : "Approve plan"}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-white/30 text-white/80 hover:bg-white/10"
+                                disabled={approveRtwMutation.isPending}
+                                onClick={async () => {
+                                  const feedback = window.prompt("What changes are needed? (Your feedback goes to the coordinator)");
+                                  if (feedback === null) return; // cancelled
+                                  const reason = feedback.trim() || "Employer requested changes to the RTW plan";
+                                  await apiRequest("PUT", `/api/cases/${id}/rtw-plan`, {
+                                    rtwPlanStatus: "planned_not_started",
+                                    reason,
+                                  });
+                                  await apiRequest("POST", `/api/actions/case/${id}`, {
+                                    type: "review_case",
+                                    notes: `Employer requested RTW plan changes: "${reason}"`,
+                                    priority: 1,
+                                  }).catch(() => {});
+                                  toast({ title: "Changes requested", description: "Your feedback has been sent to the coordinator." });
+                                  await Promise.all([
+                                    queryClient.refetchQueries({ queryKey: ["/api/gpnet2/cases"] }),
+                                    queryClient.refetchQueries({ queryKey: ["/api/employer/dashboard"] }),
+                                  ]);
+                                  navigate("/employer");
+                                }}
+                              >
+                                Request changes
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      )}
                       <div>
                         <h4 className="text-sm font-semibold text-white/90 mb-2">Risk Level</h4>
                         <Badge className={cn(
-                          workerCase.riskLevel === "High" ? "bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-lg shadow-red-500/25" :
-                          workerCase.riskLevel === "Medium" ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/25" :
+                          effectiveRiskLevel === "High" ? "bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-lg shadow-red-500/25" :
+                          effectiveRiskLevel === "Medium" ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/25" :
                           "bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-lg shadow-emerald-500/25"
                         )}>
-                          {workerCase.riskLevel}
+                          {effectiveRiskLevel}
                         </Badge>
                       </div>
                     </div>

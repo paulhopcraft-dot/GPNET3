@@ -1,24 +1,3 @@
-## Session 110 (Mar 22, 2026) — Compliance Milestone Clock
-
-### Completed
-- Built MilestoneClock card (case detail page): progress bar, ●/◑/○ markers, urgency colouring (red≤14d, amber≤30d)
-- Built MilestoneBadge (CasesTable Days Off column): "→ Day 91" with countdown for ≤30d cases, Off Work only
-- Wired MilestoneClock into CaseSummaryPage.tsx between status bar and tabs
-- Fixed CaseSummaryPage queryKey: was "/api/gpnet2/cases" (50 cases), now "/api/gpnet2/cases?limit=200"
-- Committed: d07910c — live tested in Playwright, renders correctly on FD-47007 (Day 60, 31d to Day 91)
-
-### Known Issues / Next
-- /api/gpnet2/cases?limit=200 is SLOW (~44-213s) — needs DB index on (work_status, date_of_injury)
-- Always start server: NODE_OPTIONS="--max-old-space-size=4096" npm run dev
-- Vite HMR does NOT work on WSL2/D: drive — restart server for every code change
-- CaseDetailPanel.tsx is orphaned (has MilestoneClock import but isn't used anywhere)
-
-### Server / Credentials
-- Credentials: admin@gpnet.local / ChangeMe123!
-- DB: postgresql://postgres:Whc%400102030405@localhost:5432/gpnet
-
----
-
 ## Session 109 (Mar 17, 2026) — v1 Testing Scenarios + Telehealth Booking Modal
 
 ### Completed
@@ -204,46 +183,42 @@ Target 8/10 by end of Week 1 (15 Mar) after staging deployment.
 - Symmetry test creds: employer@symmetry.local / ChangeMe123! (after seed runs)
 - All 8 Dockerfile fixes committed to main and pushed
 
----
-
-## Session 4 (UAT) - 2026-03-19
+## Session 110 (Mar 24, 2026) — Pre-Employment Health Check Workflow
 
 ### Completed
-- Removed Call Support button from employer dashboard + summary dashboard (dd9bc99)
-- Fixed 27 text contrast issues — light gray → readable slate throughout (c701e48)
-- Built CaseActionPanel — persistent right sidebar on every coordinator case: last 5 actions, next recommended action with auto/manual badge, AI chat box (23cfe22)
-- Rebuilt RTW Planner — full Option A/B plan creation wizard (3-step), email distribution to all parties, real recovery progress bar using actual weeks off work (b49ee47)
-- Rebuilt employer case Summary tab as Command Centre — live "Week X off work" badge, Victorian compliance countdown (13/26/52-week milestones), 4 status cards (Compliance/Recovery/Next Action/Case Health), plain English risk, action feed; removed stale date/XGBoost jargon/"Generated using Template" (3667de7)
-- Full live UX evaluation as coordinator — walked through Ethan Wells (69 weeks off, 455 days overdue), documented all failure points
-- Analysed 488 anonymised Freshdesk tickets — identified 9 recurring failure patterns
-- Generated: preventli-ux-report.md, freshdesk-pattern-analysis.md, preventli-redesign-proposal.md (all in /mnt/d/Downloads/)
-- All 5 commits pushed and live on gpnet3.onrender.com
+- Fixed DB connection: .env pointed to wrong postgres password/DB name (now gpnet with Whc@0102030405)
+- Added missing DB columns (worker_id, access_token, job_description, etc.)
+- Fixed org mismatch: admin=org-alpha, seeded data was org-beta
+- Fixed credentials:"include" missing on pre-employment API fetches
+- Built View Report modal on ChecksPage with AI health report display
+- Built Approve/Reject workflow with CSRF-protected mutations
+- Added job description field to assessment creation form
+- Report generator now always sets cleared_conditional (human must approve)
+- Added Claude CLI subprocess as LLM provider (no API key for local dev)
+- Dashboard: max 5 active assessments, newest first, hide fully approved
+- Cleared 16GB on C: drive (26MB → 17GB free)
+- Wrote pre-employment business rules spec (docs/pre-employment-business-rules.md)
+- Saved overnight QA patrol prompt (docs/overnight-qa-prompt.md)
 
 ### In Progress
-- Nothing — all work committed and pushed
+- View Report button: API returns reportJson, needs server restart + hard refresh to confirm
+- Follow-up email scheduler (day 1/2/3 reminders): discussed, not built
+- SendGrid email integration: discussed, not configured
 
-### Next Steps (priority order)
-1. Milestone clock — nightly job: Day 14 RTW plan required, Day 91 supervisor review, Day 182 compliance escalation, Day 364 annual review
-2. Cases list → priority sort (Critical/Urgent/Routine/Monitoring) + quick action buttons per row
-3. Cert expiry field — change from free text to structured date picker + 7-day warning + expiry alert
-4. Contact attempt log — "attempted contact" button with date/method/outcome; 3 failures → auto-escalate
-5. Fix 5 fake Checks tabs (Prevention/Injury/Wellness/Mental Health/Exit — all mock data)
-6. Non-compliance detection + Victorian WorkCover Act references + insurer notification draft
-7. New Case → two-pathway flow (WorkCover vs non-work-related)
-8. Talk with an Expert — wire org + case context
+### Next Steps
+1. Restart server, confirm View Report button on Paul Smith
+2. Build follow-up email scheduler for questionnaire reminders
+3. Configure SendGrid SMTP
+4. Add Completed/Archive tab for approved candidates
+5. Run overnight QA patrol
+6. Fix remaining schema mismatches between code (gpnet3) and DB (gpnet)
 
 ### Blockers
-- Unodisc Discord bot token invalid (unrelated to Preventli)
-- Domain knowledge still needed from Paul:
-  - The 6 check types and when to use each
-  - Ideal Victorian RTW workflow step by step
-  - New Case Pathway 2 fields (who/what/why/where/when/how)
-  - Human-judgment non-compliance questions
+- Server OOM: needs NODE_OPTIONS="--max-old-space-size=4096"
+- No SMTP configured (emails log to console)
 
 ### Notes
-- CaseActionPanel is in coordinator view (/summary/:id) — NOT yet in employer view (/employer/case/:id)
-- RTW Plans backend requires: medical cert with restrictions + RTW role with duties for full plan creation; fallback is status update
-- 488 Freshdesk tickets analysed at /mnt/d/Downloads/freshdesk-anonymised.json
-- Cert expiry free-text field is root cause of 20 cert stall cases — must become structured date
-- RICH-001 Freshdesk thread is the gold standard case to emulate
-- Render keep-alive cron running every 10 min
+- Dev login: admin@gpnet.local / devpass123 (dev bypass in auth controller — remove before prod)
+- LLM_PROVIDER=claude-cli for local, openrouter for production
+- User works from /checks page (not /pre-employment)
+- Overnight QA patrol prompt received — run in future session with Opus 1M

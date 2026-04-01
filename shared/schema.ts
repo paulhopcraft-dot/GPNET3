@@ -434,6 +434,7 @@ export interface MedicalCertificate {
   createdAt?: string;
   updatedAt?: string;
   restrictions?: RestrictionItem[];
+  practitionerName?: string;
 }
 
 export interface MedicalCertificateInput {
@@ -716,6 +717,12 @@ export interface WorkerCase {
   clcNextFollowUp?: string;
   latestCertificate?: MedicalCertificate;
   certificateHistory?: MedicalCertificateInput[];
+  riskFlags?: string[];
+  injuryDescription?: string;
+  injuryType?: string;
+  contactPhone?: string;
+  currentCertificateStart?: string;
+  currentCertificateEnd?: string;
   latestDiscussionNotes?: CaseDiscussionNote[];
   discussionInsights?: TranscriptInsight[];
   employmentStatus?: EmploymentStatus;

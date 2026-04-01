@@ -558,7 +558,7 @@ export interface IStorage {
   uncompleteAction(id: string): Promise<CaseActionDB>;
   failAction(id: string, reason: string): Promise<CaseActionDB>;
   findPendingActionByTypeAndCase(caseId: string, type: CaseActionType): Promise<CaseActionDB | null>;
-  upsertAction(caseId: string, type: CaseActionType, dueDate?: Date, notes?: string): Promise<CaseActionDB>;
+  upsertAction(caseId: string, type: CaseActionType, dueDate?: Date, notes?: string, priorityLevel?: "critical" | "high" | "medium" | "low"): Promise<CaseActionDB>;
 
   // Email Drafter v1 - Email Draft management - UPDATED for multi-tenant isolation
   createEmailDraft(draft: InsertEmailDraft): Promise<EmailDraftDB>;
@@ -598,6 +598,7 @@ export interface IStorage {
   ): Promise<void>;
   getLifecycleLog(caseId: string, organizationId: string): Promise<CaseLifecycleLogDB[]>;
   autoAssignLifecycleStages(organizationId: string): Promise<Array<{ caseId: string; stage: CaseLifecycleStage }>>;
+  autoAdvanceLifecycleStage(caseId: string, organizationId: string): Promise<CaseLifecycleStage | null>;
 
   // Case management - close/override/merge
   closeCase(caseId: string, organizationId: string, reason?: string): Promise<void>;
@@ -639,6 +640,7 @@ export interface IStorage {
   getDutiesByIds(dutyIds: string[], organizationId: string): Promise<RTWDutyWithDemands[]>;
 
   // RTW Plan Output - Plan Details (OUT-01 to OUT-06)
+  getLatestRTWPlanByCase(caseId: string, organizationId: string): Promise<RTWPlanWithDetails | null>;
   getRTWPlanFullDetails(planId: string, organizationId: string): Promise<RTWPlanFullDetails | null>;
   getRoleById(roleId: string, organizationId: string): Promise<RTWRoleDB | null>;
 
@@ -718,33 +720,43 @@ class DbStorage implements IStorage {
     const notesByCase = new Map<string, CaseDiscussionNote[]>();
     const insightsByCase = new Map<string, TranscriptInsight[]>();
     if (caseIds.length > 0) {
-      const [noteRows, insightRows] = await Promise.all([
-        db
-          .select()
-          .from(caseDiscussionNotes)
-          .where(inArray(caseDiscussionNotes.caseId, caseIds))
-          .orderBy(desc(caseDiscussionNotes.timestamp)),
-        db
-          .select()
-          .from(caseDiscussionInsights)
-          .where(inArray(caseDiscussionInsights.caseId, caseIds))
-          .orderBy(desc(caseDiscussionInsights.createdAt)),
-      ]);
+      // Use window function to fetch only top 3 notes per case (avoids scanning 400K+ rows)
+      const caseIdList = sql.join(caseIds.map(id => sql`${id}`), sql`,`);
+      const noteRows = await db.execute(sql`
+        SELECT * FROM (
+          SELECT *, ROW_NUMBER() OVER (PARTITION BY case_id ORDER BY timestamp DESC) as rn
+          FROM case_discussion_notes
+          WHERE case_id IN (${caseIdList})
+        ) ranked WHERE rn <= 3
+        ORDER BY timestamp DESC
+      `);
 
-      for (const row of noteRows) {
-        const current = notesByCase.get(row.caseId) ?? [];
-        if (current.length >= 3) {
-          continue;
-        }
-        current.push(mapDiscussionNote(row));
-        notesByCase.set(row.caseId, current);
+      for (const row of noteRows.rows as any[]) {
+        const current = notesByCase.get(row.case_id) ?? [];
+        current.push({
+          id: row.id,
+          caseId: row.case_id,
+          workerName: row.worker_name,
+          timestamp: row.timestamp instanceof Date ? row.timestamp.toISOString() : (row.timestamp ?? new Date().toISOString()),
+          rawText: row.raw_text,
+          summary: row.summary,
+          nextSteps: row.next_steps ?? undefined,
+          riskFlags: row.risk_flags ?? undefined,
+          updatesCompliance: row.updates_compliance ?? false,
+          updatesRecoveryTimeline: row.updates_recovery_timeline ?? false,
+        });
+        notesByCase.set(row.case_id, current);
       }
+
+      const insightRows = await db
+        .select()
+        .from(caseDiscussionInsights)
+        .where(inArray(caseDiscussionInsights.caseId, caseIds))
+        .orderBy(desc(caseDiscussionInsights.createdAt));
 
       for (const row of insightRows) {
         const list = insightsByCase.get(row.caseId) ?? [];
-        if (list.length >= 5) {
-          continue;
-        }
+        if (list.length >= 5) continue;
         list.push(mapDiscussionInsight(row));
         insightsByCase.set(row.caseId, list);
       }
@@ -784,7 +796,7 @@ class DbStorage implements IStorage {
           dateOfInjury: dbCase.dateOfInjury.toISOString().split('T')[0],
           riskLevel: dbCase.riskLevel as any,
           workStatus: dbCase.workStatus as any,
-          hasCertificate: Boolean(dbCase.hasCertificate || latestCertificate),
+          hasCertificate: Boolean(dbCase.hasCertificate),
           certificateUrl: dbCase.certificateUrl || undefined,
           complianceIndicator: dbCase.complianceIndicator as any,
           compliance: dbCase.complianceJson as any, // Parse JSONB compliance object
@@ -875,25 +887,41 @@ class DbStorage implements IStorage {
     const insightsByCase = new Map<string, TranscriptInsight[]>();
 
     if (caseIds.length > 0) {
-      const [noteRows, insightRows] = await Promise.all([
-        db
-          .select()
-          .from(caseDiscussionNotes)
-          .where(inArray(caseDiscussionNotes.caseId, caseIds))
-          .orderBy(desc(caseDiscussionNotes.timestamp)),
-        db
-          .select()
-          .from(caseDiscussionInsights)
-          .where(inArray(caseDiscussionInsights.caseId, caseIds))
-          .orderBy(desc(caseDiscussionInsights.createdAt)),
-      ]);
+      // Use window function to fetch only top 3 notes per case (avoids scanning 400K+ rows)
+      const caseIdList = sql.join(caseIds.map(id => sql`${id}`), sql`,`);
+      const noteRows = await db.execute(sql`
+        SELECT * FROM (
+          SELECT *, ROW_NUMBER() OVER (PARTITION BY case_id ORDER BY timestamp DESC) as rn
+          FROM case_discussion_notes
+          WHERE case_id IN (${caseIdList})
+        ) ranked WHERE rn <= 3
+        ORDER BY timestamp DESC
+      `);
 
-      for (const row of noteRows) {
-        const current = notesByCase.get(row.caseId) ?? [];
-        if (current.length >= 3) continue;
-        current.push(mapDiscussionNote(row));
-        notesByCase.set(row.caseId, current);
+      for (const row of noteRows.rows as any[]) {
+        const current = notesByCase.get(row.case_id) ?? [];
+        // Map snake_case raw SQL row to CaseDiscussionNote
+        current.push({
+          id: row.id,
+          caseId: row.case_id,
+          workerName: row.worker_name,
+          timestamp: row.timestamp instanceof Date ? row.timestamp.toISOString() : (row.timestamp ?? new Date().toISOString()),
+          rawText: row.raw_text,
+          summary: row.summary,
+          nextSteps: row.next_steps ?? undefined,
+          riskFlags: row.risk_flags ?? undefined,
+          updatesCompliance: row.updates_compliance ?? false,
+          updatesRecoveryTimeline: row.updates_recovery_timeline ?? false,
+        });
+        notesByCase.set(row.case_id, current);
       }
+
+      // Insights are typically sparse, simple fetch is fine
+      const insightRows = await db
+        .select()
+        .from(caseDiscussionInsights)
+        .where(inArray(caseDiscussionInsights.caseId, caseIds))
+        .orderBy(desc(caseDiscussionInsights.createdAt));
 
       for (const row of insightRows) {
         const list = insightsByCase.get(row.caseId) ?? [];
@@ -937,7 +965,7 @@ class DbStorage implements IStorage {
           dateOfInjury: dbCase.dateOfInjury.toISOString().split('T')[0],
           riskLevel: dbCase.riskLevel as any,
           workStatus: dbCase.workStatus as any,
-          hasCertificate: Boolean(dbCase.hasCertificate || latestCertificate),
+          hasCertificate: Boolean(dbCase.hasCertificate),
           certificateUrl: dbCase.certificateUrl || undefined,
           complianceIndicator: dbCase.complianceIndicator as any,
           compliance: dbCase.complianceJson as any,
@@ -1748,27 +1776,43 @@ class DbStorage implements IStorage {
   }
 
   /**
-   * Auto-assign lifecycle stages to existing cases that still have the default "intake" stage.
+   * Auto-assign lifecycle stages to cases still at "intake" or stuck at "assessment".
    * Uses heuristics from the remediation spec (Phase 3.1 migration rules).
+   * Iteration 13: also advances "assessment" cases that are > 28 days old.
    */
   async autoAssignLifecycleStages(organizationId: string): Promise<Array<{ caseId: string; stage: CaseLifecycleStage }>> {
+    const now = new Date();
+    const ASSESSMENT_ADVANCE_MS = 28 * 24 * 60 * 60 * 1000; // 28 days
+
+    // Fetch both "intake" cases AND "assessment" cases that may need advancement
     const cases = await db
       .select({
         id: workerCases.id,
         lifecycleStage: workerCases.lifecycleStage,
-        daysOffWork: workerCases.currentStatus,
         caseStatus: workerCases.caseStatus,
+        dateOfInjury: workerCases.dateOfInjury,
       })
       .from(workerCases)
       .where(and(
         eq(workerCases.organizationId, organizationId),
-        eq(workerCases.lifecycleStage, "intake")
+        inArray(workerCases.lifecycleStage, ["intake", "assessment"])
       ));
 
     if (cases.length === 0) return [];
 
+    // Only process "assessment" cases that are genuinely stale (> 28 days off work)
+    const eligibleCases = cases.filter(c => {
+      if (c.lifecycleStage === "intake") return true;
+      if (c.lifecycleStage === "assessment" && c.dateOfInjury) {
+        return (now.getTime() - new Date(c.dateOfInjury).getTime()) > ASSESSMENT_ADVANCE_MS;
+      }
+      return false;
+    });
+
+    if (eligibleCases.length === 0) return [];
+
     // Fetch RTW plans for these cases in one query
-    const caseIds = cases.map(c => c.id);
+    const caseIds = eligibleCases.map(c => c.id);
     const plans = await db
       .select({ caseId: rtwPlans.caseId, status: rtwPlans.status })
       .from(rtwPlans)
@@ -1788,8 +1832,9 @@ class DbStorage implements IStorage {
 
     const results: Array<{ caseId: string; stage: CaseLifecycleStage }> = [];
 
-    for (const c of cases) {
-      let stage: CaseLifecycleStage = "intake";
+    for (const c of eligibleCases) {
+      const fromStage = c.lifecycleStage as CaseLifecycleStage;
+      let stage: CaseLifecycleStage = fromStage;
 
       if (c.caseStatus === "closed") {
         stage = "closed_rtw";
@@ -1800,34 +1845,42 @@ class DbStorage implements IStorage {
         } else if (rtwStatus === "in_progress" || rtwStatus === "working_well") {
           stage = "rtw_transition";
         } else if (casesWithActiveCert.has(c.id)) {
-          // Heuristic: check if case is "long-running" (>4 weeks) → active_treatment, else assessment
-          // We don't have daysOffWork as a reliable number here, default to active_treatment
           stage = "active_treatment";
+        } else if (c.dateOfInjury) {
+          // Duration-based fallback: no cert, no RTW plan → use days off work
+          const daysOff = Math.floor((now.getTime() - new Date(c.dateOfInjury).getTime()) / 86400000);
+          if (daysOff > 180) {
+            stage = "maintenance"; // 6+ months: chronic / maintenance phase
+          } else if (daysOff > 28) {
+            stage = "active_treatment"; // 4+ weeks: active treatment underway
+          } else {
+            stage = "assessment"; // < 4 weeks: still in initial assessment
+          }
         } else {
           stage = "assessment";
         }
       }
 
-      if ((stage as CaseLifecycleStage) !== "intake") {
-        // Set directly (bypass transition validation since this is initial migration)
+      if ((stage as CaseLifecycleStage) !== fromStage) {
+        // Set directly (bypass transition validation since this is bulk migration)
         await db
           .update(workerCases)
           .set({
             lifecycleStage: stage,
-            lifecycleStageChangedAt: new Date(),
+            lifecycleStageChangedAt: now,
             lifecycleStageChangedBy: "system:migration",
-            lifecycleStageReason: "Auto-assigned during initial lifecycle stage migration",
-            updatedAt: new Date(),
+            lifecycleStageReason: "Auto-advanced by duration heuristic",
+            updatedAt: now,
           })
           .where(and(eq(workerCases.id, c.id), eq(workerCases.organizationId, organizationId)));
 
         await db.insert(caseLifecycleLogs).values({
           caseId: c.id,
           organizationId,
-          fromStage: "intake",
+          fromStage,
           toStage: stage,
           changedBy: "system:migration",
-          reason: "Auto-assigned during initial lifecycle stage migration",
+          reason: "Auto-advanced by duration heuristic",
           automated: true,
         } satisfies Omit<InsertCaseLifecycleLog, "id" | "changedAt">);
 
@@ -1836,6 +1889,67 @@ class DbStorage implements IStorage {
     }
 
     return results;
+  }
+
+  /**
+   * Auto-advance lifecycle stage for a single case if it's stuck at "intake".
+   * Uses the same heuristics as autoAssignLifecycleStages.
+   * Returns the new stage if advanced, null if no change needed.
+   */
+  async autoAdvanceLifecycleStage(caseId: string, organizationId: string): Promise<CaseLifecycleStage | null> {
+    const [c] = await db
+      .select({ id: workerCases.id, lifecycleStage: workerCases.lifecycleStage, caseStatus: workerCases.caseStatus })
+      .from(workerCases)
+      .where(and(eq(workerCases.id, caseId), eq(workerCases.organizationId, organizationId)))
+      .limit(1);
+
+    if (!c || c.lifecycleStage !== "intake") return null;
+
+    let stage: CaseLifecycleStage = "intake";
+
+    if (c.caseStatus === "closed") {
+      stage = "closed_rtw";
+    } else {
+      const [rtwPlan] = await db
+        .select({ status: rtwPlans.status })
+        .from(rtwPlans)
+        .where(eq(rtwPlans.caseId, caseId))
+        .limit(1);
+
+      const rtwStatus = rtwPlan?.status;
+
+      if (rtwStatus === "completed") {
+        stage = "maintenance";
+      } else if (rtwStatus === "in_progress" || rtwStatus === "working_well") {
+        stage = "rtw_transition";
+      } else {
+        const [activeCert] = await db
+          .select({ id: medicalCertificates.id })
+          .from(medicalCertificates)
+          .where(and(eq(medicalCertificates.caseId, caseId), gte(medicalCertificates.endDate, new Date())))
+          .limit(1);
+
+        stage = activeCert ? "active_treatment" : "assessment";
+      }
+    }
+
+    // stage is now guaranteed to be a non-intake stage
+    await db
+      .update(workerCases)
+      .set({ lifecycleStage: stage, lifecycleStageChangedAt: new Date(), lifecycleStageChangedBy: "system:compliance", lifecycleStageReason: "Auto-advanced by compliance sync", updatedAt: new Date() })
+      .where(and(eq(workerCases.id, caseId), eq(workerCases.organizationId, organizationId)));
+
+    await db.insert(caseLifecycleLogs).values({
+      caseId,
+      organizationId,
+      fromStage: "intake",
+      toStage: stage,
+      changedBy: "system:compliance",
+      reason: "Auto-advanced by compliance sync",
+      automated: true,
+    } satisfies Omit<InsertCaseLifecycleLog, "id" | "changedAt">);
+
+    return stage;
   }
 
   async assignCase(
@@ -2509,16 +2623,20 @@ class DbStorage implements IStorage {
     return result || null;
   }
 
-  async upsertAction(caseId: string, type: CaseActionType, dueDate?: Date, notes?: string): Promise<CaseActionDB> {
+  async upsertAction(caseId: string, type: CaseActionType, dueDate?: Date, notes?: string, priorityLevel?: "critical" | "high" | "medium" | "low"): Promise<CaseActionDB> {
     // Check if a pending action of this type already exists for the case
     const existing = await this.findPendingActionByTypeAndCase(caseId, type);
 
     if (existing) {
-      // Update the existing action if needed (e.g., new due date)
-      if (dueDate || notes) {
+      // Update the existing action — also escalate priority if new priority is higher
+      const priorityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
+      const existingPriority = (existing.priorityLevel ?? "medium") as "critical" | "high" | "medium" | "low";
+      const newPriorityHigher = priorityLevel && priorityOrder[priorityLevel] > priorityOrder[existingPriority];
+      if (dueDate || notes || newPriorityHigher) {
         return await this.updateAction(existing.id, {
           dueDate: dueDate ?? existing.dueDate ?? undefined,
           notes: notes ?? existing.notes ?? undefined,
+          ...(newPriorityHigher ? { priorityLevel } : {}),
         });
       }
       return existing;
@@ -2543,6 +2661,7 @@ class DbStorage implements IStorage {
       dueDate,
       notes,
       priority: 1,
+      priorityLevel: priorityLevel ?? "medium",
     });
   }
 
@@ -3118,6 +3237,20 @@ class DbStorage implements IStorage {
       schedule,
       duties,
     };
+  }
+
+  async getLatestRTWPlanByCase(caseId: string, organizationId: string): Promise<RTWPlanWithDetails | null> {
+    const [plan] = await db.select()
+      .from(rtwPlans)
+      .where(and(
+        eq(rtwPlans.caseId, caseId),
+        eq(rtwPlans.organizationId, organizationId)
+      ))
+      .orderBy(desc(rtwPlans.createdAt))
+      .limit(1);
+
+    if (!plan) return null;
+    return this.getRTWPlanById(plan.id, organizationId);
   }
 
   /**

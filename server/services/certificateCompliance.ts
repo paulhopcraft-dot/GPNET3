@@ -15,6 +15,7 @@ import type {
   MedicalCertificateDB
 } from "@shared/schema";
 import type { IStorage } from "../storage";
+import { getCaseRTWCompliance, requiresRTWAction, getRTWCompliancePriority } from "./rtwCompliance";
 
 // Configuration
 const EXPIRING_SOON_DAYS = 7;
@@ -240,6 +241,32 @@ export async function processComplianceForCase(
 ): Promise<CertificateCompliance> {
   const compliance = await getCaseCompliance(storage, caseId, organizationId);
   await syncComplianceActions(storage, caseId, compliance);
+
+  // Also check RTW plan compliance and create review_case action if needed
+  const rtwCompliance = await getCaseRTWCompliance(storage, caseId, organizationId);
+  if (requiresRTWAction(rtwCompliance)) {
+    const priority = getRTWCompliancePriority(rtwCompliance);
+    await storage.upsertAction(
+      caseId,
+      "review_case",
+      new Date(),
+      rtwCompliance.message,
+      priority
+    );
+  }
+
+  // Sync has_certificate flag: true only if there's a currently active certificate
+  const hasActiveCert = compliance.status === "compliant" || compliance.status === "certificate_expiring_soon";
+  const { db } = await import("../db");
+  const { workerCases } = await import("@shared/schema");
+  const { eq, and } = await import("drizzle-orm");
+  await db.update(workerCases)
+    .set({ hasCertificate: hasActiveCert, updatedAt: new Date() })
+    .where(and(eq(workerCases.id, caseId), eq(workerCases.organizationId, organizationId)));
+
+  // Auto-advance lifecycle stage if case is stuck at "intake"
+  await storage.autoAdvanceLifecycleStage(caseId, organizationId);
+
   return compliance;
 }
 

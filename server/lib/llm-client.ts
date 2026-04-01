@@ -22,12 +22,13 @@ const logger = createLogger("LLMClient");
 
 // ─── Provider configuration ───────────────────────────────────────────────────
 
-type Provider = "openrouter" | "anthropic";
+type Provider = "openrouter" | "anthropic" | "claude-cli";
 
 function getProvider(): Provider {
-  const p = (process.env.LLM_PROVIDER ?? "openrouter").toLowerCase();
+  const p = (process.env.LLM_PROVIDER ?? "claude-cli").toLowerCase();
   if (p === "anthropic") return "anthropic";
-  return "openrouter";
+  if (p === "openrouter") return "openrouter";
+  return "claude-cli";
 }
 
 // Default models per provider — override with LLM_MODEL env var
@@ -134,6 +135,43 @@ async function callAnthropic(prompt: string, timeoutMs: number): Promise<string>
   }
 }
 
+// ─── Claude CLI subprocess ────────────────────────────────────────────────────
+
+async function callClaudeCLI(prompt: string, timeoutMs: number): Promise<string> {
+  const { spawn } = await import("child_process");
+
+  return new Promise<string>((resolve, reject) => {
+    const child = spawn("claude", ["-p", prompt, "--output-format", "text"], {
+      env: { ...process.env },
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    let stdout = "";
+    let stderr = "";
+    const timer = setTimeout(() => {
+      child.kill("SIGTERM");
+      reject(new Error(`Claude CLI timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+
+    child.stdout.on("data", (chunk: Buffer) => { stdout += chunk.toString(); });
+    child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString(); });
+
+    child.on("close", (code) => {
+      clearTimeout(timer);
+      if (code !== 0) {
+        reject(new Error(`Claude CLI exited ${code}: ${stderr.slice(0, 300)}`));
+      } else {
+        resolve(stdout.trim());
+      }
+    });
+
+    child.on("error", (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+  });
+}
+
 // ─── Public interface ─────────────────────────────────────────────────────────
 
 /**
@@ -159,7 +197,9 @@ export async function callClaude(prompt: string, timeoutMs = 60_000): Promise<st
   try {
     const result = provider === "anthropic"
       ? await callAnthropic(prompt, timeoutMs)
-      : await callOpenRouter(prompt, timeoutMs);
+      : provider === "openrouter"
+      ? await callOpenRouter(prompt, timeoutMs)
+      : await callClaudeCLI(prompt, timeoutMs);
 
     const durationMs = Date.now() - t0;
     logger.debug("LLM response received", { provider, responseLength: result.length, durationMs });

@@ -18,6 +18,7 @@ import {
   deleteEmailDraft,
   getEmailTypes,
 } from "../services/emailDraftService";
+import { sendEmail } from "../services/emailService";
 
 const router = express.Router();
 
@@ -261,6 +262,79 @@ router.delete(
       res.status(500).json({
         success: false,
         error: "Failed to delete email draft",
+        message: error.message,
+      });
+    }
+  }
+);
+
+/**
+ * POST /api/cases/:caseId/email-drafts/:draftId/send
+ * Send an email draft via SMTP (or log in dev mode)
+ */
+router.post(
+  "/cases/:caseId/email-drafts/:draftId/send",
+  authorize(),
+  requireCaseOwnership(),
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { draftId } = req.params;
+      const workerCase = req.workerCase!;
+      const { recipientEmail, subject, body } = req.body;
+
+      if (!recipientEmail || !subject || !body) {
+        return res.status(400).json({
+          success: false,
+          error: "Missing required fields: recipientEmail, subject, body",
+        });
+      }
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(recipientEmail)) {
+        return res.status(400).json({
+          success: false,
+          error: "Invalid email address format",
+        });
+      }
+
+      // Validate draft exists and belongs to case
+      const existing = await getEmailDraftById(storage, draftId);
+      if (!existing || existing.caseId !== workerCase.id) {
+        return res.status(404).json({
+          success: false,
+          error: "Email draft not found",
+        });
+      }
+
+      const result = await sendEmail({ to: recipientEmail, subject, body });
+
+      if (!result.success) {
+        logger.api.error("Failed to send email draft", { draftId, recipientEmail, error: result.error });
+        return res.status(500).json({
+          success: false,
+          error: result.error || "Failed to send email",
+        });
+      }
+
+      // Update draft with final content and mark as sent
+      await updateEmailDraft(storage, draftId, {
+        subject,
+        body,
+        recipientEmail,
+        status: "sent",
+      } as any);
+
+      logger.api.info("Email draft sent successfully", { draftId, recipientEmail, messageId: result.messageId });
+
+      return res.json({
+        success: true,
+        data: { messageId: result.messageId, recipientEmail },
+      });
+    } catch (error: any) {
+      logger.api.error("Error sending email draft", { draftId: req.params.draftId }, error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to send email",
         message: error.message,
       });
     }

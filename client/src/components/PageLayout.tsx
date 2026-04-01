@@ -1,4 +1,5 @@
 import { ReactNode, useState } from "react";
+import preventliLogo from "@/assets/preventli-logo.svg";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { ThemeToggle } from "./theme-toggle";
@@ -72,11 +73,8 @@ export function PageLayout({ children, title, subtitle }: PageLayoutProps) {
     <div className="flex h-screen">
       <aside className="hidden lg:block w-64 flex-shrink-0 bg-sidebar p-4 border-r border-sidebar-border">
         <div className="mb-8">
-          <Link to="/" className="flex items-center gap-3">
-            <div className="bg-primary/20 rounded-full size-10 flex items-center justify-center">
-              <span className="material-symbols-outlined text-primary">corporate_fare</span>
-            </div>
-            <h1 className="text-sidebar-foreground text-xl font-bold">Preventli</h1>
+          <Link to="/">
+            <img src={preventliLogo} alt="Preventli" className="h-12 w-auto" />
           </Link>
         </div>
         <nav className="space-y-1">

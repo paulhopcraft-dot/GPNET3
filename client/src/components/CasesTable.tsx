@@ -54,10 +54,30 @@ function daysOffWork(c: WorkerCase): number {
   return Math.floor((Date.now() - new Date(c.dateOfInjury).getTime()) / 86_400_000);
 }
 
+/** Extract XGBoost probability score from the AI summary text field.
+ *  Returns a 0–1 float or null if not present. */
+function extractXGBoostScore(aiSummaryText: string | null | undefined): number | null {
+  if (!aiSummaryText) return null;
+  const match = aiSummaryText.match(/xgboost\s+risk\s+([\d.]+)/i);
+  if (!match || !match[1]) return null;
+  const val = parseFloat(match[1]);
+  return isNaN(val) ? null : val;
+}
+
+/** Derive effective risk level — XGBoost overrides the stored value when it signals higher risk. */
+function effectiveRiskLevel(c: WorkerCase): "High" | "Medium" | "Low" {
+  const stored: "High" | "Medium" | "Low" = c.riskLevel ?? "Medium";
+  const xgb = extractXGBoostScore(c.aiSummary);
+  if (xgb === null) return stored;
+  if (xgb >= 0.8) return "High";
+  if (xgb >= 0.6) return stored === "Low" ? "Medium" : stored;
+  return stored;
+}
+
 function urgencyScore(c: WorkerCase): number {
   // Higher = more urgent. Overdue red flag cases get highest score.
   const compliance = c.complianceIndicator?.toLowerCase() ?? "";
-  const risk = c.riskLevel?.toLowerCase() ?? "";
+  const risk = effectiveRiskLevel(c).toLowerCase();
   let score = 0;
   if (compliance === "low" || compliance === "very low") score += 100;
   else if (compliance === "medium") score += 50;
@@ -100,9 +120,16 @@ const CaseRow = memo(function CaseRow({ c, isSelected, onCaseClick }: CaseRowPro
         <div className="text-xs text-muted-foreground">{c.company}</div>
       </td>
       <td className="px-4 py-3">
-        <span className={cn("px-2 py-0.5 rounded-full text-xs font-medium border", LIFECYCLE_COLORS[stage])}>
-          {LIFECYCLE_STAGE_LABELS[stage]}
-        </span>
+        <div className="flex flex-col gap-1">
+          <span className={cn("px-2 py-0.5 rounded-full text-xs font-medium border", LIFECYCLE_COLORS[stage])}>
+            {LIFECYCLE_STAGE_LABELS[stage]}
+          </span>
+          {c.rtwPlanStatus === "pending_employer_review" && (
+            <span className="px-2 py-0.5 rounded-full text-xs font-medium border bg-yellow-50 text-yellow-700 border-yellow-300 w-fit">
+              ⏳ Awaiting employer
+            </span>
+          )}
+        </div>
       </td>
       <td className="px-4 py-3">
         <div className="flex flex-col gap-0.5">
@@ -115,7 +142,7 @@ const CaseRow = memo(function CaseRow({ c, isSelected, onCaseClick }: CaseRowPro
         </div>
       </td>
       <td className="px-4 py-3">
-        <RiskBadge level={c.riskLevel} type="risk" explanation={c.compliance?.reason} />
+        <RiskBadge level={effectiveRiskLevel(c)} type="risk" explanation={c.compliance?.reason} />
       </td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-1">

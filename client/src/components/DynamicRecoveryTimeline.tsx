@@ -140,6 +140,7 @@ interface RecoveryTimelineChartData {
 interface DynamicRecoveryTimelineProps {
   caseId: string;
   className?: string;
+  readOnly?: boolean;
 }
 
 // Enhanced custom tooltip for the chart with modern styling
@@ -213,6 +214,7 @@ const TrendIcon = ({ trend }: { trend: string }) => {
 export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = ({
   caseId,
   className,
+  readOnly = false,
 }) => {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -496,27 +498,36 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
           </p>
         </div>
         <div className="flex flex-wrap gap-2 items-center">
-          <Badge className={getStatusColor(data.analysis.comparedToExpected)}>
-            {data.analysis.comparedToExpected === "ahead"
-              ? "Ahead of Schedule"
-              : data.analysis.comparedToExpected === "on_track"
-              ? "On Track"
-              : data.analysis.comparedToExpected === "behind"
-              ? "Behind Schedule"
-              : "Assessment Needed"}
-          </Badge>
+          {(() => {
+            // When cert data is absent, fall back to elapsed vs estimated to determine status
+            const overdue = data.weeksElapsed > (data.estimatedWeeks || 0);
+            const derivedStatus = data.analysis.comparedToExpected === "ahead" ? "ahead"
+              : data.analysis.comparedToExpected === "on_track" ? "on_track"
+              : (data.analysis.comparedToExpected === "behind" || overdue) ? "behind"
+              : "unknown";
+            return (
+              <Badge className={getStatusColor(derivedStatus)}>
+                {derivedStatus === "ahead" ? "Ahead of Schedule"
+                  : derivedStatus === "on_track" ? "On Track"
+                  : derivedStatus === "behind" ? "Behind Schedule"
+                  : "Assessment Needed"}
+              </Badge>
+            );
+          })()}
           <Badge className={getConfidenceColor(data.confidence)}>
             {data.confidence.charAt(0).toUpperCase() + data.confidence.slice(1)} Confidence
           </Badge>
-          <Button
-            size="sm"
-            variant="outline"
-            className="bg-white/10 border-white/30 text-white hover:bg-white/20"
-            onClick={() => setShowOverrideForm(true)}
-          >
-            <SlidersHorizontal className="h-4 w-4 mr-1" />
-            Adjust Timeline
-          </Button>
+          {!readOnly && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="bg-white/10 border-white/30 text-white hover:bg-white/20"
+              onClick={() => setShowOverrideForm(true)}
+            >
+              <SlidersHorizontal className="h-4 w-4 mr-1" />
+              Adjust Timeline
+            </Button>
+          )}
         </div>
       </div>
 
@@ -728,9 +739,8 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
                 ))}
               </div>
             ) : (
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
-                <strong>Debug:</strong> No certificate markers found in data. 
-                Check if medical certificates exist for this case and are being properly processed by the API.
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600">
+                No medical certificates uploaded yet. Upload a certificate to see recovery milestones on the timeline.
               </div>
             )}
           </div>
@@ -985,12 +995,24 @@ export const DynamicRecoveryTimeline: React.FC<DynamicRecoveryTimelineProps> = (
       </div>
 
         {/* Estimated RTW */}
-        <div className="text-center text-sm text-slate-600 border-t pt-4">
-          <p>
-            Estimated Return to Work: <strong>{formatDate(data.estimatedRTWDate)}</strong>
-            {" "}({data.estimatedWeeks} weeks from injury)
-          </p>
-          <p className="text-xs mt-1">
+        <div className="text-center text-sm border-t pt-4">
+          {data.estimatedRTWDate && new Date(data.estimatedRTWDate) < new Date() ? (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-left">
+              <p className="font-semibold text-red-700">
+                RTW Not Achieved — {Math.round((Date.now() - new Date(data.estimatedRTWDate).getTime()) / (7 * 24 * 60 * 60 * 1000))} weeks overdue
+              </p>
+              <p className="text-xs text-red-600 mt-1">
+                Expected return was <strong>{formatDate(data.estimatedRTWDate)}</strong> ({data.adjustedEstimateWeeks || data.estimatedWeeks} weeks from injury).
+                Case has significantly exceeded the estimated recovery timeline — immediate escalation and case review required.
+              </p>
+            </div>
+          ) : (
+            <p className="text-slate-600">
+              Estimated Return to Work: <strong>{formatDate(data.estimatedRTWDate)}</strong>
+              {" "}({data.adjustedEstimateWeeks || data.estimatedWeeks} weeks from injury)
+            </p>
+          )}
+          <p className="text-xs mt-1 text-slate-500">
             This timeline is advisory only and based on typical recovery patterns for{" "}
             {data.injuryTypeLabel.toLowerCase()}. Individual recovery may vary.
           </p>

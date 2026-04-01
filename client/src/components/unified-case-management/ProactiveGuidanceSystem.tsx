@@ -186,11 +186,11 @@ export function ProactiveGuidanceSystem({
     onGuidanceInteraction?.(guidance.id, `action:${action.label}`);
 
     // Mark guidance as interacted with
-    setDismissedGuidances(prev => new Set([...Array.from(prev), guidance.id]));
+    setDismissedGuidances(prev => new Set(Array.from(prev).concat(guidance.id)));
   }, [onGuidanceInteraction]);
 
   const dismissGuidance = useCallback((guidanceId: string) => {
-    setDismissedGuidances(prev => new Set([...Array.from(prev), guidanceId]));
+    setDismissedGuidances(prev => new Set(Array.from(prev).concat(guidanceId)));
     onGuidanceInteraction?.(guidanceId, "dismissed");
   }, [onGuidanceInteraction]);
 
@@ -352,7 +352,7 @@ export function ProactiveGuidanceSystem({
         </div>
       )}
 
-      <style jsx>{`
+      <style>{`
         @keyframes slideInRight {
           from {
             transform: translateX(100%);

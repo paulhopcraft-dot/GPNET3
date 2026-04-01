@@ -359,6 +359,30 @@ router.post("/", async (req: AuthRequest, res) => {
 });
 
 /**
+ * GET /api/rtw-plans?caseId=X
+ * Get the latest RTW plan for a case (for employer approval preview)
+ */
+router.get("/", async (req: AuthRequest, res) => {
+  try {
+    const { caseId } = req.query;
+    if (!caseId || typeof caseId !== "string") {
+      return res.status(400).json({ error: "caseId query parameter required" });
+    }
+
+    const organizationId = req.user!.organizationId;
+    const plan = await storage.getLatestRTWPlanByCase(caseId, organizationId);
+    if (!plan) {
+      return res.status(404).json({ error: "No RTW plan found for this case" });
+    }
+
+    res.json({ success: true, data: plan });
+  } catch (err) {
+    logger.api.error("RTW plan list by case failed", { caseId: req.query.caseId }, err);
+    res.status(500).json({ error: "Failed to fetch plan", details: err instanceof Error ? err.message : "Unknown error" });
+  }
+});
+
+/**
  * GET /api/rtw-plans/:planId
  * Get plan details by ID
  */

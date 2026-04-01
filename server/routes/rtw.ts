@@ -17,7 +17,7 @@ const router = Router();
 const VALID_TRANSITIONS: Record<RTWPlanStatus, RTWPlanStatus[]> = {
   not_planned: ["planned_not_started"],
   pending_employer_review: ["in_progress", "not_planned", "on_hold"],
-  planned_not_started: ["in_progress", "on_hold", "not_planned"],
+  planned_not_started: ["in_progress", "on_hold", "not_planned", "pending_employer_review"],
   in_progress: ["working_well", "failing", "on_hold", "completed", "pending_employer_review"],
   working_well: ["in_progress", "completed", "on_hold"],
   failing: ["in_progress", "on_hold", "not_planned"],
@@ -46,6 +46,7 @@ const RTW_STATUS_VALUES: RTWPlanStatus[] = [
   "failing",
   "on_hold",
   "completed",
+  "pending_employer_review",
 ];
 
 const updateRtwStatusSchema = z.object({
@@ -133,6 +134,20 @@ router.put("/:id/rtw-plan", authorize(), requireCaseOwnership(), async (req: Aut
     await storage.updateClinicalStatus(workerCase.id, workerCase.organizationId, {
       rtwPlanStatus,
     });
+
+    // When plan becomes active, clear any stale "No RTW plan" review actions
+    const ACTIVE_STATUSES: RTWPlanStatus[] = ["in_progress", "working_well", "completed"];
+    if (ACTIVE_STATUSES.includes(rtwPlanStatus as RTWPlanStatus)) {
+      const caseActionsAll = await storage.getActionsByCase(workerCase.id, workerCase.organizationId);
+      const staleRtwActions = caseActionsAll.filter(
+        a => a.type === "review_case" &&
+             a.status === "pending" &&
+             (a.notes?.includes("RTW plan") || a.notes?.includes("No RTW"))
+      );
+      await Promise.all(
+        staleRtwActions.map(a => storage.completeAction(a.id, req.user!.id, req.user!.email))
+      );
+    }
 
     // Log audit event with transition details
     await logAuditEvent({

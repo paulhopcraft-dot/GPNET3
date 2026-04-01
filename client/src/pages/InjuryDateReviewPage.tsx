@@ -56,7 +56,7 @@ export default function InjuryDateReviewPage() {
 
   const acceptMutation = useMutation({
     mutationFn: (caseId: string) =>
-      apiRequest("POST", `/api/injury-dates/${caseId}/accept`),
+      apiRequest('POST', `/api/injury-dates/${caseId}/accept`),
     onSuccess: () => {
       toast({ title: "Date accepted", description: "The extracted date has been approved." });
       queryClient.invalidateQueries({ queryKey: ["/api/injury-dates/review-queue"] });

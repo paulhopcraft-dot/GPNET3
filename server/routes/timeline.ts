@@ -2,6 +2,7 @@ import type { Express, Request, Response } from "express";
 import { db } from "../db";
 import { workerCases, medicalCertificates } from "../../shared/schema";
 import { eq, desc } from "drizzle-orm";
+import { authorize } from "../middleware/auth";
 import {
   calculateRecoveryTimeline,
   generateRecoveryTimelineChartData,
@@ -11,6 +12,7 @@ import {
 } from "../services/recoveryEstimator";
 import { evaluateClinicalEvidence } from "../services/clinicalEvidence";
 import { logger } from "../lib/logger";
+import { logAuditEvent, AuditEventTypes } from "../services/auditLogger";
 import type { MedicalCertificate, WorkCapacity } from "../../shared/schema";
 
 /**
@@ -112,8 +114,9 @@ export function registerTimelineRoutes(app: Express) {
       // Evaluate clinical evidence to get flags
       const clinicalEvidence = evaluateClinicalEvidence(workerCase);
 
-      // Use AI summary (rich medical text) for injury type detection, fall back to ticket subject
-      const diagnosisText = workerCase.aiSummary || workerCase.summary || "";
+      // Use human-readable summary for injury type detection (not the XGBoost aiSummary which lacks diagnosis keywords).
+      // aiSummary is reserved for XGBoost score extraction; summary contains the clinical description.
+      const diagnosisText = workerCase.summary || workerCase.aiSummary || "";
       logger.api.info("Injury type detection input", {
         caseId: id,
         hasAiSummary: !!workerCase.aiSummary,
@@ -122,13 +125,32 @@ export function registerTimelineRoutes(app: Express) {
         diagnosisTextLen: diagnosisText.length,
       });
 
+      // Derive effective risk level: XGBoost score in aiSummary overrides stored riskLevel (score ≥0.8 → High);
+      // cases off work ≥36 weeks always escalate to High regardless of stored level.
+      const weeksOffWork = workerCase.dateOfInjury
+        ? Math.floor((Date.now() - new Date(workerCase.dateOfInjury).getTime()) / (7 * 24 * 60 * 60 * 1000))
+        : 0;
+      const xgboostSource = workerCase.aiSummary || workerCase.summary || "";
+      const xgboostMatch = xgboostSource.match(
+        /XGBoost\s+(?:risk(?:\s+index)?|probability|stability score|resilience score)\s+([\d.]+)/i
+      );
+      const xgboostScore = xgboostMatch ? parseFloat(xgboostMatch[1]) : null;
+      let effectiveRiskLevel: "High" | "Medium" | "Low" =
+        (workerCase.riskLevel as "High" | "Medium" | "Low") || "Medium";
+      if (xgboostScore !== null && xgboostScore >= 0.8) {
+        effectiveRiskLevel = "High";
+      }
+      if (weeksOffWork >= 36) {
+        effectiveRiskLevel = "High";
+      }
+
       // Generate comprehensive chart data
       const chartData = generateRecoveryTimelineChartData(
         id,
         workerCase.workerName,
         workerCase.dateOfInjury.toISOString(),
         diagnosisText,
-        workerCase.riskLevel as "High" | "Medium" | "Low",
+        effectiveRiskLevel,
         clinicalEvidence.flags || [],
         certificates
       );
@@ -154,7 +176,8 @@ export function registerTimelineRoutes(app: Express) {
   });
 
   // POST /api/cases/:id/recovery-override — AHR clinical timeline adjustment (Phase 6.2)
-  app.post("/api/cases/:id/recovery-override", async (req: Request, res: Response) => {
+  // Restricted to non-employer roles (coordinators, admins only)
+  app.post("/api/cases/:id/recovery-override", authorize(["admin", "coordinator", "clinician"]), async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const { adjustedEstimateWeeks, reason, factors } = req.body;
@@ -197,6 +220,8 @@ export function registerTimelineRoutes(app: Express) {
       await db.update(workerCases)
         .set({ clinicalStatusJson: { ...clinStatus, recoveryOverride: override } } as any)
         .where(eq(workerCases.id, id));
+
+      logAuditEvent({ eventType: AuditEventTypes.CASE_UPDATE, userId: (req as any).user?.id ?? null, organizationId: (req as any).user?.organizationId ?? null, resourceType: 'case', resourceId: id, metadata: { action: 'recovery_override', adjustedEstimateWeeks, reason: reason.trim() } });
 
       return res.json({ ok: true, override });
     } catch (error) {

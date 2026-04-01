@@ -14,10 +14,11 @@ import { z } from "zod";
 import type { GenerateTreatmentPlanRequest, UpdateTreatmentPlanRequest } from "../services/treatmentPlanService";
 import { generateTreatmentPlan, getTreatmentPlan, updateTreatmentPlan } from "../services/treatmentPlanService";
 import type { IStorage } from "../storage";
-import { authorize } from "../middleware/auth";
+import { authorize, type AuthRequest } from "../middleware/auth";
 import { requireCaseOwnership } from "../middleware/caseOwnership";
 import { csrfProtection, aiRateLimiter } from "../middleware/security";
 import { logger } from "../lib/logger";
+import { isEmployerRole } from "../lib/rbac";
 
 // Input validation schemas
 const GeneratePlanSchema = z.object({
@@ -44,13 +45,18 @@ export function registerTreatmentPlanRoutes(app: Express, storage: IStorage) {
     csrfProtection,
     authorize(),
     requireCaseOwnership(),
-    async (req: Request, res: Response) => {
+    async (req: AuthRequest, res: Response) => {
       try {
         const { id: caseId } = req.params;
         const organizationId = (req.user as any)?.organizationId;
 
         if (!organizationId) {
           return res.status(401).json({ error: "Unauthorized" });
+        }
+
+        // Treatment plan clinical content is not accessible to employer accounts
+        if (isEmployerRole(req.user!.role)) {
+          return res.status(403).json({ error: "Forbidden", message: "Treatment plan generation is not accessible to employer accounts" });
         }
 
         // Validate input
@@ -87,13 +93,18 @@ export function registerTreatmentPlanRoutes(app: Express, storage: IStorage) {
     "/api/cases/:id/treatment-plan",
     authorize(),
     requireCaseOwnership(),
-    async (req: Request, res: Response) => {
+    async (req: AuthRequest, res: Response) => {
       try {
         const { id: caseId } = req.params;
         const organizationId = (req.user as any)?.organizationId;
 
         if (!organizationId) {
           return res.status(401).json({ error: "Unauthorized" });
+        }
+
+        // Treatment plan clinical content is not accessible to employer accounts
+        if (isEmployerRole(req.user!.role)) {
+          return res.status(403).json({ error: "Forbidden", message: "Treatment plan is not accessible to employer accounts" });
         }
 
         const plan = await getTreatmentPlan(storage, caseId, organizationId);

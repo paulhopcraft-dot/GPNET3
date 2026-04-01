@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { fetchWithCsrf } from "@/lib/queryClient";
 import { PageLayout } from "@/components/PageLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,8 +22,20 @@ import {
   Calendar,
   FileText,
   TrendingUp,
-  Search
+  Search,
+  XCircle
 } from "lucide-react";
+
+interface ReportJson {
+  executiveSummary: string;
+  healthStatus: string;
+  fitnessAssessment: string;
+  flags: string[];
+  clearanceRecommendation: string;
+  aiRecommendation?: string;
+  conditions?: string | null;
+  notes?: string;
+}
 
 interface Assessment {
   id: string;
@@ -32,6 +46,7 @@ interface Assessment {
   clearanceLevel?: string | null;
   sentAt?: string | null;
   createdAt: string;
+  reportJson?: ReportJson | null;
 }
 
 interface WorkerSummary {
@@ -72,6 +87,34 @@ function formatDate(s?: string | null): string {
 
 export default function ChecksPage() {
   const [activeTab, setActiveTab] = useState("pre-employment");
+  const [reportModal, setReportModal] = useState<Assessment | null>(null);
+  const queryClient = useQueryClient();
+
+  const approveMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const r = await fetchWithCsrf(`/api/pre-employment/assessments/${id}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "completed", clearanceLevel: "cleared_unconditional" }),
+      });
+      if (!r.ok) throw new Error("Failed to approve");
+      return r.json();
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["assessments"] }); setReportModal(null); },
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const r = await fetchWithCsrf(`/api/pre-employment/assessments/${id}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "completed", clearanceLevel: "not_cleared" }),
+      });
+      if (!r.ok) throw new Error("Failed to reject");
+      return r.json();
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["assessments"] }); setReportModal(null); },
+  });
 
   const { data: assessmentsData, isLoading: assessmentsLoading } = useQuery<{ assessments: Assessment[] }>({
     queryKey: ["assessments"],
@@ -86,12 +129,19 @@ export default function ChecksPage() {
   const [assessmentSearch, setAssessmentSearch] = useState("");
   const assessments = assessmentsData?.assessments ?? [];
   const workers = workersData?.workers ?? [];
+
+  // Only show assessments that still need action (exclude fully cleared/completed ones)
+  const activeAssessments = assessments
+    .filter(a => !(a.status === "completed" && a.clearanceLevel === "cleared_unconditional"))
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 5);
+
   const filteredAssessments = assessmentSearch
-    ? assessments.filter(a =>
+    ? activeAssessments.filter(a =>
         a.candidateName.toLowerCase().includes(assessmentSearch.toLowerCase()) ||
         a.positionTitle.toLowerCase().includes(assessmentSearch.toLowerCase())
       )
-    : assessments;
+    : activeAssessments;
 
   const overdueWorkers = workers.filter(w => w.recheckUrgency === "overdue");
   const dueSoonWorkers = workers.filter(w => w.recheckUrgency === "due_soon");
@@ -99,7 +149,7 @@ export default function ChecksPage() {
 
   const peStats = {
     total: assessments.length,
-    pending: assessments.filter(a => a.status === "created" || a.status === "sent").length,
+    pending: assessments.filter(a => a.status === "created" || a.status === "sent" || a.status === "pending" || a.status === "in_progress").length,
     completed: assessments.filter(a => a.status === "completed").length,
     cleared: assessments.filter(a => {
       const l = (a.clearanceLevel ?? "").toUpperCase().replace(/-/g, "_");
@@ -172,9 +222,9 @@ export default function ChecksPage() {
                 color="blue"
               />
               <StatCard
-                title="Awaiting Response"
+                title="Awaiting Action"
                 value={assessmentsLoading ? "…" : peStats.pending}
-                description="Created or sent"
+                description="Pending or awaiting approval"
                 icon={Clock}
                 color="yellow"
               />
@@ -260,38 +310,55 @@ export default function ChecksPage() {
                         className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
-                    {filteredAssessments.map((a) => {
-                      const row = (
-                        <div className="py-3 flex items-start justify-between gap-4">
-                          <div className="min-w-0">
-                            <p className="font-medium text-sm truncate">{a.candidateName}</p>
-                            <p className="text-xs text-slate-600 truncate">{a.positionTitle}</p>
-                            <p className="text-xs text-slate-600 mt-0.5">
-                              {a.sentAt ? `Sent ${formatDate(a.sentAt)}` : `Created ${formatDate(a.createdAt)}`}
-                            </p>
-                          </div>
-                          <div className="flex flex-col items-end gap-1 shrink-0">
-                            <Badge className={`text-xs border ${statusBadgeClass(a.status)}`}>
-                              {a.status}
+                    {filteredAssessments.map((a) => (
+                      <div key={a.id} className="py-3 flex items-start justify-between gap-4 border-b last:border-0">
+                        <Link
+                          to={a.workerId ? `/workers/${a.workerId}` : `/assessments/${a.id}`}
+                          className="min-w-0 flex-1 hover:opacity-75 transition-opacity"
+                        >
+                          <p className="font-medium text-sm truncate">{a.candidateName}</p>
+                          <p className="text-xs text-slate-600 truncate">{a.positionTitle}</p>
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            {a.sentAt ? `Sent ${formatDate(a.sentAt)}` : `Created ${formatDate(a.createdAt)}`}
+                          </p>
+                        </Link>
+                        <div className="flex flex-col items-end gap-1.5 shrink-0">
+                          <Badge className={`text-xs border ${statusBadgeClass(a.status)}`}>
+                            {a.status === "in_progress" ? "Questionnaire Received" : a.status}
+                          </Badge>
+                          {a.clearanceLevel && (
+                            <Badge className={`text-xs border ${clearanceBadgeClass(a.clearanceLevel)}`}>
+                              {a.clearanceLevel === "cleared_conditional" ? "⏳ Awaiting Approval"
+                                : a.clearanceLevel === "cleared_unconditional" ? "✓ Approved"
+                                : a.clearanceLevel === "not_cleared" ? "✗ Not Cleared"
+                                : a.clearanceLevel.replace(/_/g, " ")}
                             </Badge>
-                            {a.clearanceLevel && (
-                              <Badge className={`text-xs border ${clearanceBadgeClass(a.clearanceLevel)}`}>
-                                {a.clearanceLevel.replace(/_/g, " ")}
-                              </Badge>
-                            )}
-                          </div>
+                          )}
+                          {a.reportJson && a.status !== "completed" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs text-blue-700 border-blue-300 hover:bg-blue-50 mt-0.5"
+                              onClick={() => setReportModal(a)}
+                            >
+                              <FileText className="w-3 h-3 mr-1" />
+                              View Report
+                            </Button>
+                          )}
+                          {a.status === "completed" && a.reportJson && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 text-xs text-slate-500"
+                              onClick={() => setReportModal(a)}
+                            >
+                              <FileText className="w-3 h-3 mr-1" />
+                              View Report
+                            </Button>
+                          )}
                         </div>
-                      );
-                      return a.workerId ? (
-                        <Link key={a.id} to={`/workers/${a.workerId}`} className="block hover:bg-muted/40 transition-colors rounded">
-                          {row}
-                        </Link>
-                      ) : (
-                        <Link key={a.id} to={`/assessments/${a.id}`} className="block hover:bg-muted/40 transition-colors rounded">
-                          {row}
-                        </Link>
-                      );
-                    })}
+                      </div>
+                    ))}
                     {filteredAssessments.length === 0 && assessmentSearch && (
                       <p className="text-xs text-slate-600 pt-3 text-center">No results for "{assessmentSearch}"</p>
                     )}
@@ -595,6 +662,106 @@ export default function ChecksPage() {
         </Tabs>
 
       </div>
+
+      {/* Report Modal */}
+      {reportModal && (
+        <Dialog open={!!reportModal} onOpenChange={(open) => !open && setReportModal(null)}>
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-xl">Pre-Employment Health Report</DialogTitle>
+              <DialogDescription>{reportModal.candidateName} — {reportModal.positionTitle}</DialogDescription>
+            </DialogHeader>
+            {reportModal.reportJson ? (
+              <div className="space-y-5 py-2">
+                {/* Clearance banner */}
+                <div className={`rounded-lg p-4 border-2 ${clearanceBadgeClass(reportModal.reportJson.clearanceRecommendation)}`}>
+                  <div className="flex items-center gap-2">
+                    {reportModal.reportJson.clearanceRecommendation === "not_cleared"
+                      ? <XCircle className="w-5 h-5 text-red-700" />
+                      : <CheckCircle className="w-5 h-5 text-green-700" />}
+                    <span className="font-semibold text-sm uppercase tracking-wide">
+                      AI Recommendation: {reportModal.reportJson.clearanceRecommendation.replace(/_/g, " ")}
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-2">Summary</h3>
+                  <p className="text-sm text-gray-700 leading-relaxed">{reportModal.reportJson.executiveSummary}</p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Health Status</p>
+                    <p className="text-sm text-gray-800">{reportModal.reportJson.healthStatus}</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Fitness Assessment</p>
+                    <p className="text-sm text-gray-800">{reportModal.reportJson.fitnessAssessment}</p>
+                  </div>
+                </div>
+                {reportModal.reportJson.flags?.length > 0 ? (
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-1">
+                      <AlertTriangle className="w-4 h-4 text-orange-500" /> Flags / Concerns
+                    </h3>
+                    <ul className="space-y-1">
+                      {reportModal.reportJson.flags.map((flag, i) => (
+                        <li key={i} className="text-sm text-orange-800 bg-orange-50 rounded px-3 py-2">• {flag}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <div className="text-sm text-green-700 bg-green-50 rounded px-3 py-2">✓ No health flags or concerns identified</div>
+                )}
+                {reportModal.reportJson.conditions && (
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-1">Conditions / Restrictions</h3>
+                    <p className="text-sm text-gray-700 bg-yellow-50 rounded px-3 py-2">{reportModal.reportJson.conditions}</p>
+                  </div>
+                )}
+                {reportModal.reportJson.notes && (
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-1">Notes</h3>
+                    <p className="text-sm text-gray-600">{reportModal.reportJson.notes}</p>
+                  </div>
+                )}
+                {/* Final approval buttons */}
+                {reportModal.status !== "completed" && (
+                  <div className="border-t pt-4 flex gap-3">
+                    <Button
+                      className="flex-1 bg-green-600 hover:bg-green-700"
+                      onClick={() => approveMutation.mutate(reportModal.id)}
+                      disabled={approveMutation.isPending || rejectMutation.isPending}
+                    >
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      {approveMutation.isPending ? "Approving..." : "Approve — Cleared to Start"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="flex-1 border-red-300 text-red-700 hover:bg-red-50"
+                      onClick={() => rejectMutation.mutate(reportModal.id)}
+                      disabled={approveMutation.isPending || rejectMutation.isPending}
+                    >
+                      <XCircle className="w-4 h-4 mr-2" />
+                      {rejectMutation.isPending ? "Rejecting..." : "Reject — Not Cleared"}
+                    </Button>
+                  </div>
+                )}
+                {reportModal.status === "completed" && (
+                  <div className={`border-t pt-4 text-center text-sm font-medium ${reportModal.clearanceLevel === "not_cleared" ? "text-red-600" : "text-green-600"}`}>
+                    {reportModal.clearanceLevel === "not_cleared" ? "✗ This candidate was not cleared" : "✓ This candidate has been approved"}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="py-8 text-center text-gray-500">
+                <FileText className="w-10 h-10 mx-auto mb-3 text-gray-300" />
+                <p>Report not yet generated</p>
+                <p className="text-xs mt-1">Generated automatically when the candidate submits their questionnaire</p>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      )}
     </PageLayout>
   );
 }

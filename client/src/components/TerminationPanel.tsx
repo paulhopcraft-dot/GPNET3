@@ -703,8 +703,7 @@ export function TerminationPanel({ workerCase }: TerminationPanelProps) {
               if (process) {
                 lines.push("TERMINATION PROCESS", `Status: ${process.status}`, "");
                 if (process.preInjuryRole) lines.push(`Pre-injury role: ${process.preInjuryRole}`);
-                if (process.rtwAttemptsSummary) lines.push(`RTW attempts: ${process.rtwAttemptsSummary}`);
-                if (process.alternativesConsidered) lines.push(`Alternatives considered: ${process.alternativesConsidered}`);
+                if (process.rtWAttemptsSummary) lines.push(`RTW attempts: ${process.rtWAttemptsSummary}`);
                 if (process.decisionRationale) lines.push(`Decision rationale: ${process.decisionRationale}`);
                 lines.push("");
               }

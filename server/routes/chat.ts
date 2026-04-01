@@ -219,7 +219,7 @@ router.post("/message", authorize(), async (req: AuthRequest, res: Response) => 
       ]).catch((err) => logger.error("Failed to save chat memory:", undefined, err));
     }
 
-    res.json({ reply, sessionId, suggestBooking });
+    res.json({ data: { response: reply, sessionId, suggestBooking }, reply, sessionId, suggestBooking });
   } catch (error) {
     logger.error("Chat error:", undefined, error);
     res.status(500).json({ error: "Failed to process message" });

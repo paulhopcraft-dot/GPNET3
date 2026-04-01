@@ -8,7 +8,7 @@ import { authorize } from '../middleware/auth';
 import { storage } from '../storage';
 import { db } from '../db';
 import { organizations } from '../../shared/schema';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { createLogger } from '../lib/logger';
 import { z } from 'zod';
 import multer from 'multer';
@@ -141,9 +141,20 @@ router.get('/dashboard', authorize(), async (req: Request, res: Response) => {
     const orgRow = await db.select({ name: organizations.name }).from(organizations).where(eq(organizations.id, organizationId)).limit(1);
     const organizationName = orgRow[0]?.name ?? 'Your Organization';
 
-    // Batch fetch all data upfront (3 queries instead of N*2)
-    const [allCases, allActions, allCertificates] = await Promise.all([
-      storage.getGPNet2Cases(organizationId),
+    // Lightweight case query — dashboard only needs basic fields, not notes/attachments/insights
+    // Uses raw SQL to avoid loading full case objects with discussion notes, certificates, etc.
+    const { rows: allCases } = await db.execute(
+      sql`SELECT id, worker_name AS "workerName", company, work_status AS "workStatus",
+              rtw_plan_status AS "rtwPlanStatus", date_of_injury AS "dateOfInjury",
+              compliance_indicator AS "complianceIndicator", case_status AS "caseStatus",
+              has_certificate AS "hasCertificate"
+       FROM worker_cases
+       WHERE organization_id = ${organizationId}
+         AND (case_status = 'open' OR case_status IS NULL)`
+    ) as { rows: any[] };
+
+    // Batch fetch actions and certificates in parallel
+    const [allActions, allCertificates] = await Promise.all([
       storage.getAllActionsWithCaseInfo(organizationId, { status: 'pending' }),
       storage.getCertificatesByOrganization(organizationId)
     ]);
@@ -250,12 +261,24 @@ router.get('/dashboard', authorize(), async (req: Request, res: Response) => {
         }
       }
 
-      // Check for missing RTW plans (for cases off work > 4 weeks)
-      if (workerCase.workStatus === 'Off work') {
+      // RTW plan awaiting employer sign-off — surfaces as critical action for Sarah
+      if (workerCase.rtwPlanStatus === 'pending_employer_review') {
+        priorityActions.push({
+          id: `rtw-approval-${caseId}`,
+          workerName,
+          action: `RTW plan requires your approval`,
+          priority: 'critical',
+          daysOverdue: 0,
+          type: 'rtw_plan',
+          caseId,
+          workStatus: workerCase.workStatus || 'Unknown'
+        });
+      } else if (workerCase.workStatus === 'Off work') {
+        // Check for missing RTW plans (for cases off work > 4 weeks without any plan)
         const injuryDate = new Date(workerCase.dateOfInjury);
         const weeksSinceInjury = Math.floor((now.getTime() - injuryDate.getTime()) / (1000 * 60 * 60 * 24 * 7));
 
-        if (weeksSinceInjury >= 4) {
+        if (weeksSinceInjury >= 4 && !workerCase.rtwPlanStatus) {
           priorityActions.push({
             id: `rtw-${caseId}`,
             workerName,
@@ -288,26 +311,30 @@ router.get('/dashboard', authorize(), async (req: Request, res: Response) => {
     // Sort all actions by days overdue (most urgent first)
     priorityActions.sort((a, b) => (b.daysOverdue || 0) - (a.daysOverdue || 0));
 
-    // Reassign priority based on relative position to ensure distribution
-    // Top 40% = critical, next 30% = urgent, bottom 30% = routine
-    const totalActions = priorityActions.length;
-    const criticalCutoff = Math.floor(totalActions * 0.4);
-    const urgentCutoff = Math.floor(totalActions * 0.7);
-
-    priorityActions.forEach((action, index) => {
-      if (index < criticalCutoff) {
-        action.priority = 'critical';
-      } else if (index < urgentCutoff) {
-        action.priority = 'urgent';
-      } else {
-        action.priority = 'routine';
+    // Deduplicate: each worker appears once — keep their highest-priority action.
+    // A worker with Critical + Routine actions should only surface the Critical one.
+    // Sarah Chen doesn't need to see the same worker 3 times; she clicks through to the case.
+    const priorityOrder: Record<string, number> = { critical: 0, urgent: 1, routine: 2 };
+    const bestByCase = new Map<string, PriorityAction>();
+    for (const action of priorityActions) {
+      const existing = bestByCase.get(action.caseId);
+      if (
+        !existing ||
+        priorityOrder[action.priority] < priorityOrder[existing.priority] ||
+        (action.priority === existing.priority && (action.daysOverdue || 0) > (existing.daysOverdue || 0))
+      ) {
+        bestByCase.set(action.caseId, action);
       }
-    });
+    }
+    const deduplicatedActions = Array.from(bestByCase.values());
+    deduplicatedActions.sort((a, b) => (b.daysOverdue || 0) - (a.daysOverdue || 0));
 
-    // Update statistics with redistributed action counts
-    statistics.criticalActions = priorityActions.filter(a => a.priority === 'critical').length;
-    statistics.urgentActions = priorityActions.filter(a => a.priority === 'urgent').length;
-    statistics.routineActions = priorityActions.filter(a => a.priority === 'routine').length;
+    // Use threshold-based priorities set during generation — do NOT redistribute by
+    // relative position. Redistribution incorrectly downgrades genuinely critical cases
+    // (e.g. Ava Thompson at 413 days) just because Ethan Wells is ranked higher.
+    statistics.criticalActions = deduplicatedActions.filter(a => a.priority === 'critical').length;
+    statistics.urgentActions = deduplicatedActions.filter(a => a.priority === 'urgent').length;
+    statistics.routineActions = deduplicatedActions.filter(a => a.priority === 'routine').length;
 
     // Build complete worker list for filtering (not just those with actions)
     const allWorkersInfo: WorkerInfo[] = allCases.map(c => ({
@@ -319,9 +346,9 @@ router.get('/dashboard', authorize(), async (req: Request, res: Response) => {
     }));
 
     // Take up to 20 critical, 15 urgent, 15 routine for display (50 total max)
-    const criticalActions = priorityActions.filter(a => a.priority === 'critical').slice(0, 20);
-    const urgentActions = priorityActions.filter(a => a.priority === 'urgent').slice(0, 15);
-    const routineActions = priorityActions.filter(a => a.priority === 'routine').slice(0, 15);
+    const criticalActions = deduplicatedActions.filter(a => a.priority === 'critical').slice(0, 20);
+    const urgentActions = deduplicatedActions.filter(a => a.priority === 'urgent').slice(0, 15);
+    const routineActions = deduplicatedActions.filter(a => a.priority === 'routine').slice(0, 15);
     const distributedActions = [...criticalActions, ...urgentActions, ...routineActions];
 
     const dashboardData: DashboardData = {
