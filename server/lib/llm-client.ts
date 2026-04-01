@@ -33,8 +33,9 @@ function getProvider(): Provider {
 
 // Default models per provider — override with LLM_MODEL env var
 const DEFAULT_MODELS: Record<Provider, string> = {
-  openrouter: "anthropic/claude-sonnet-4-5",
-  anthropic: "claude-sonnet-4-5-20250929",
+  openrouter: "anthropic/claude-3.5-sonnet",
+  anthropic: "claude-3-5-sonnet-20241022",
+  "claude-cli": "",
 };
 
 function getModel(): string {
