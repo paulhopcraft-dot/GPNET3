@@ -84,9 +84,9 @@ router.post("/message", authorize(), async (req: AuthRequest, res: Response) => 
         const pastMessages = await storage.getChatMemory(memoryKey, 8);
         if (pastMessages.length > 0) {
           const lines = pastMessages.map((m) =>
-            m.role === "user" ? `Clinician: ${m.content}` : `Dr. Alex: ${m.content}`
+            m.role === "user" ? `Clinician: ${m.content}` : `Alex: ${m.content}`
           );
-          memoryBlock = `\n\n---\nPrevious conversation with this ${context?.caseId ? "case" : "worker"}:\n${lines.join("\n")}\n---`;
+          memoryBlock = `\n\n---\nPrevious conversation with this ${context?.caseId ? "case" : "worker"} (DO NOT repeat issues already acknowledged in this history — only add new information or next actions):\n${lines.join("\n")}\n---`;
         }
       } catch {
         // memory load failure is non-fatal

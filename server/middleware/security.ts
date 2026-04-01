@@ -9,6 +9,17 @@ import { logger } from "../lib/logger";
  * Rate Limiting Configuration
  */
 
+/**
+ * Returns true if the request is from an E2E test runner.
+ * Requires E2E_TEST_SECRET env var to be set — plain NODE_ENV check would
+ * allow any request in a test-mode deploy to skip limits.
+ */
+function isE2ETestRequest(req: Request): boolean {
+  const secret = process.env.E2E_TEST_SECRET;
+  if (!secret) return false;
+  return req.headers["x-e2e-test-secret"] === secret;
+}
+
 // General API rate limiter
 export const generalRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -20,10 +31,9 @@ export const generalRateLimiter = rateLimit({
   },
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  // Skip rate limiting for certain IPs (e.g., internal health checks)
   skip: (req) => {
-    // Skip rate limiting for health check endpoints
-    return req.path === "/api/health" || req.path === "/health";
+    if (req.path === "/api/health" || req.path === "/health") return true;
+    return isE2ETestRequest(req);
   },
 });
 
@@ -39,6 +49,7 @@ export const authRateLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: true, // Don't count successful requests against the limit
+  skip: (req) => isE2ETestRequest(req),
 });
 
 // Webhook rate limiter (already defined in webhookSecurity.ts, but exported here for consistency)
