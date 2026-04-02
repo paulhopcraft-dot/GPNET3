@@ -167,7 +167,7 @@ Rules:
         result: result as Record<string, unknown>,
         autoExecuted: action.autoExecute !== false,
         approvalStatus: action.autoExecute === false ? "pending" : null,
-      })
+      } as any)
       .catch((dbErr) => {
         logger.warn("Failed to persist agent action", { tool: action.tool }, dbErr);
       });

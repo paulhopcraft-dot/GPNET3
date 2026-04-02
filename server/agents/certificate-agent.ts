@@ -43,7 +43,7 @@ export async function runCertificateExpiryAgent(
 
   await db
     .update(agentJobs)
-    .set({ status: "running", startedAt: new Date() })
+    .set({ status: "running", startedAt: new Date() } as any)
     .where(eq(agentJobs.id, jobId));
 
   try {
@@ -90,7 +90,7 @@ Only act on expiry. Do not make RTW decisions.
 
     await db
       .update(agentJobs)
-      .set({ status: "completed", completedAt: new Date(), summary: result.result })
+      .set({ status: "completed", completedAt: new Date(), summary: result.result } as any)
       .where(eq(agentJobs.id, jobId));
 
     logger.info("Certificate expiry agent completed", { jobId, caseId, actionsCount: result.actionsCount });
@@ -102,7 +102,7 @@ Only act on expiry. Do not make RTW decisions.
         status: "failed",
         completedAt: new Date(),
         error: err instanceof Error ? err.message : String(err),
-      })
+      } as any)
       .where(eq(agentJobs.id, jobId));
     throw err;
   }
@@ -118,7 +118,7 @@ export async function runCertificateInboundAgent(
 
   await db
     .update(agentJobs)
-    .set({ status: "running", startedAt: new Date() })
+    .set({ status: "running", startedAt: new Date() } as any)
     .where(eq(agentJobs.id, jobId));
 
   try {
@@ -152,7 +152,7 @@ Do not send emails for inbound certificates — just record and notify if signif
 
     await db
       .update(agentJobs)
-      .set({ status: "completed", completedAt: new Date(), summary: result.result })
+      .set({ status: "completed", completedAt: new Date(), summary: result.result } as any)
       .where(eq(agentJobs.id, jobId));
 
     logger.info("Certificate inbound agent completed", { jobId, caseId });
@@ -164,7 +164,7 @@ Do not send emails for inbound certificates — just record and notify if signif
         status: "failed",
         completedAt: new Date(),
         error: err instanceof Error ? err.message : String(err),
-      })
+      } as any)
       .where(eq(agentJobs.id, jobId));
     throw err;
   }

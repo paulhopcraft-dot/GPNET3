@@ -44,7 +44,7 @@ export const triggerAgentTool: AgentTool = {
         status: "queued",
         triggeredBy: "agent",
         context: (context as Record<string, unknown>) || {},
-      })
+      } as any)
       .returning();
 
     logger.info("Agent job queued", { agentType, caseId, jobId: job.id });

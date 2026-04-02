@@ -75,7 +75,7 @@ export const generateRTWPlanTool: AgentTool = {
     return {
       planType: recommendation,
       filteredDutiesCount: filteredDuties.length,
-      medicalConstraints: workerCase.clinicalStatusJson?.medicalConstraints ?? null,
+      medicalConstraints: workerCase.clinical_status_json?.medicalConstraints ?? null,
       recommendation: `Based on medical evidence, recommend plan type: ${recommendation}`,
     };
   },
@@ -108,7 +108,7 @@ export const updateRTWPlanStatusTool: AgentTool = {
 
     await db
       .update(rtwPlans)
-      .set({ status: status as any, updatedAt: new Date() })
+      .set({ status: status as any, updatedAt: new Date() } as any)
       .where(eq(rtwPlans.id, plan.id));
 
     return { updated: true, planId: plan.id, newStatus: status };
@@ -128,7 +128,7 @@ export const getSuitableDutiesTool: AgentTool = {
   async execute({ caseId }) {
     const workerCase = await storage.getGPNet2CaseByIdAdmin(caseId as string);
     if (!workerCase) throw new Error(`Case not found: ${caseId}`);
-    const clinical = workerCase.clinicalStatusJson;
+    const clinical = workerCase.clinical_status_json;
     return {
       suitableDutiesOffered: clinical?.suitableDutiesOffered ?? false,
       suitableDutiesDate: clinical?.suitableDutiesDate ?? null,

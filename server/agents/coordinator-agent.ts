@@ -38,7 +38,7 @@ export async function runCoordinatorAgent(
 
   await db
     .update(agentJobs)
-    .set({ status: "running", startedAt: new Date() })
+    .set({ status: "running", startedAt: new Date() } as any)
     .where(eq(agentJobs.id, jobId));
 
   try {
@@ -76,7 +76,7 @@ IMPORTANT: Trigger at most 5 specialist agents per run. Pick the highest-priorit
 
     await db
       .update(agentJobs)
-      .set({ status: "completed", completedAt: new Date(), summary: result.result })
+      .set({ status: "completed", completedAt: new Date(), summary: result.result } as any)
       .where(eq(agentJobs.id, jobId));
 
     logger.info("Coordinator agent completed", { jobId, actionsCount: result.actionsCount });
@@ -88,7 +88,7 @@ IMPORTANT: Trigger at most 5 specialist agents per run. Pick the highest-priorit
         status: "failed",
         completedAt: new Date(),
         error: err instanceof Error ? err.message : String(err),
-      })
+      } as any)
       .where(eq(agentJobs.id, jobId));
     throw err;
   }

@@ -65,7 +65,7 @@ export const notifyCaseManagerTool: AgentTool = {
       priority: priority === "critical" ? 4 : priority === "high" ? 3 : priority === "medium" ? 2 : 1,
       notes: `[Agent] ${message}`,
       isBlocker: priority === "critical",
-    });
+    } as any);
 
     return { notified: true, caseId, priority };
   },
@@ -103,7 +103,7 @@ export const scheduleFollowupTool: AgentTool = {
         context: context || {},
         scheduledFor: dueDate.toISOString(),
       }),
-    });
+    } as any);
 
     return { scheduled: true, caseId, agentType, dueDate: dueDate.toISOString() };
   },
@@ -123,7 +123,7 @@ export const updateJobSummaryTool: AgentTool = {
   async execute({ jobId, summary }) {
     await db
       .update(agentJobs)
-      .set({ summary: summary as string })
+      .set({ summary: summary as string } as any)
       .where(eq(agentJobs.id, jobId as string));
     return { updated: true, jobId };
   },

@@ -47,7 +47,8 @@ export const draftEmailTool: AgentTool = {
         recipient: recipient as any,
         recipientName: recipientName as string | undefined,
         additionalContext: additionalContext as string | undefined,
-      }
+      },
+      "agent"
     );
 
     return {

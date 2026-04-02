@@ -32,7 +32,7 @@ export const getCaseTool: AgentTool = {
       dueDate: workerCase.dueDate,
       hasCertificate: workerCase.hasCertificate,
       currentCertificateEnd: workerCase.currentCertificateEnd,
-      clinicalStatusJson: workerCase.clinicalStatusJson,
+      clinicalStatusJson: workerCase.clinical_status_json,
       caseStatus: workerCase.caseStatus,
       organizationId: workerCase.organizationId,
     };
@@ -67,7 +67,7 @@ export const getCasesForOrgTool: AgentTool = {
         currentCertificateEnd: c.currentCertificateEnd,
         dueDate: c.dueDate,
         dateOfInjury: c.dateOfInjury,
-        clinicalStatusJson: c.clinicalStatusJson,
+        clinicalStatusJson: c.clinical_status_json,
       })),
     };
   },
@@ -104,7 +104,7 @@ export const getMedicalConstraintsTool: AgentTool = {
   async execute({ caseId }) {
     const workerCase = await storage.getGPNet2CaseByIdAdmin(caseId as string);
     if (!workerCase) throw new Error(`Case not found: ${caseId}`);
-    const clinical = workerCase.clinicalStatusJson;
+    const clinical = workerCase.clinical_status_json;
     return {
       medicalConstraints: clinical?.medicalConstraints ?? null,
       functionalCapacity: clinical?.functionalCapacity ?? null,
@@ -138,7 +138,7 @@ export const flagCaseForReviewTool: AgentTool = {
       priority: priority === "critical" ? 4 : priority === "high" ? 3 : priority === "medium" ? 2 : 1,
       notes: `[Agent Flag] ${reason}`,
       isBlocker: priority === "critical" || priority === "high",
-    });
+    } as any);
     return { flagged: true, caseId, reason, priority };
   },
 };

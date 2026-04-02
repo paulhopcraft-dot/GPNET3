@@ -44,7 +44,7 @@ export async function runRTWAgent(
 
   await db
     .update(agentJobs)
-    .set({ status: "running", startedAt: new Date() })
+    .set({ status: "running", startedAt: new Date() } as any)
     .where(eq(agentJobs.id, jobId));
 
   try {
@@ -95,7 +95,7 @@ ESCALATE TO HUMAN (use notify_case_manager, set autoExecute: false):
 
     await db
       .update(agentJobs)
-      .set({ status: "completed", completedAt: new Date(), summary: result.result })
+      .set({ status: "completed", completedAt: new Date(), summary: result.result } as any)
       .where(eq(agentJobs.id, jobId));
 
     logger.info("RTW agent completed", { jobId, caseId, actionsCount: result.actionsCount });
@@ -107,7 +107,7 @@ ESCALATE TO HUMAN (use notify_case_manager, set autoExecute: false):
         status: "failed",
         completedAt: new Date(),
         error: err instanceof Error ? err.message : String(err),
-      })
+      } as any)
       .where(eq(agentJobs.id, jobId));
     throw err;
   }
