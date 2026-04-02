@@ -61,21 +61,35 @@ async function performLogin(page: Page): Promise<void> {
   await passwordInput.fill(EMPLOYER_CREDENTIALS.password);
   await submitButton.click();
 
-  // Wait for successful authentication
-  // Try multiple indicators for robustness
-  try {
-    await page.waitForURL(URL_PATTERNS.dashboard, { timeout: TEST_TIMEOUTS.medium });
-  } catch {
-    // URL pattern might not match, check for dashboard content instead
-    const dashboardLoaded = await page.locator('h1:has-text("Preventli")').isVisible({ timeout: TEST_TIMEOUTS.medium }).catch(() => false);
-    if (!dashboardLoaded) {
-      // Check for error messages
-      const errorMessage = await page.getByText(/error|failed|invalid/i).first().textContent().catch(() => null);
-      if (errorMessage) {
-        throw new Error(`Login failed: ${errorMessage}`);
+  // Wait for successful authentication — check for any dashboard indicator
+  // Admin redirects to /, employer/RTW user to /employer. Both show stat cards.
+  const dashboardSelectors = [
+    'text=/cases loaded/i',
+    'text=/Total Cases/i',
+    '[data-testid="stat-card"]',
+    'text=/Off Work/i',
+    'button:has-text("Log Out")',
+  ];
+
+  let dashboardLoaded = false;
+  const deadline = Date.now() + TEST_TIMEOUTS.medium;
+
+  while (Date.now() < deadline && !dashboardLoaded) {
+    for (const selector of dashboardSelectors) {
+      if (await page.locator(selector).first().isVisible({ timeout: 1000 }).catch(() => false)) {
+        dashboardLoaded = true;
+        break;
       }
-      throw new Error('Login timeout: Dashboard did not load. Check database and user credentials.');
     }
+    if (!dashboardLoaded) await page.waitForTimeout(500);
+  }
+
+  if (!dashboardLoaded) {
+    const errorMessage = await page.getByText(/invalid.*credential|incorrect.*password|login.*failed/i).first().textContent().catch(() => null);
+    if (errorMessage) {
+      throw new Error(`Login failed: ${errorMessage}`);
+    }
+    throw new Error('Login timeout: Dashboard did not load. Check database and user credentials.');
   }
 }
 

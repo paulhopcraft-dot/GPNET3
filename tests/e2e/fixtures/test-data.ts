@@ -15,10 +15,11 @@ export const ADMIN_CREDENTIALS = {
 } as const;
 
 // Employer role credentials (limited access)
+// Uses admin creds as fallback — override with E2E_EMAIL / E2E_PASSWORD env vars
 export const EMPLOYER_CREDENTIALS = {
-  email: 'employer@test.com',
-  password: 'password123',
-} as const;
+  email: process.env.E2E_EMAIL ?? 'admin@gpnet.local',
+  password: process.env.E2E_PASSWORD ?? 'ChangeMe123!',
+};
 
 // Known valid case IDs from seed data
 // These are cases that exist in the test database and can be used for navigation tests
