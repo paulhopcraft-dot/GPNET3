@@ -4,6 +4,7 @@ import { storage } from "../storage";
 import { authorize, type AuthRequest } from "../middleware/auth";
 import { insertTelehealthBookingSchema, type TelehealthBookingStatus, type InsertTelehealthBooking } from "@shared/schema";
 import { createLogger } from "../lib/logger";
+import { sendEmail } from "../services/emailService";
 
 const logger = createLogger("BookingsRoutes");
 const router: Router = express.Router();
@@ -39,6 +40,30 @@ router.post("/", authorize(), async (req: AuthRequest, res: Response) => {
     }) as InsertTelehealthBooking;
     const booking = await storage.createTelehealthBooking(validatedData);
     logger.info("Telehealth booking created", { bookingId: booking.id, organizationId });
+
+    // Notify Preventli team of new booking (fire-and-forget)
+    const notifyEmail = process.env.BOOKING_NOTIFY_EMAIL ?? "jacinta@preventli.ai";
+    const serviceLabel = validatedData.serviceType ?? "telehealth consultation";
+    const appointmentLabel = (validatedData.appointmentType ?? "appointment").replace(/_/g, " ");
+    sendEmail({
+      to: notifyEmail,
+      subject: `New Telehealth Booking — ${validatedData.workerName}`,
+      body: `A new telehealth booking has been submitted.
+
+Worker: ${validatedData.workerName}
+Email: ${validatedData.workerEmail ?? "not provided"}
+Employer: ${validatedData.employerName ?? "not provided"}
+Service: ${serviceLabel}
+Appointment type: ${appointmentLabel}
+Referral requested: ${validatedData.requestReferral ? "Yes" : "No"}
+Notes: ${validatedData.employerNotes ?? "none"}
+
+Booking ID: ${booking.id}
+Submitted: ${new Date().toLocaleString("en-AU", { timeZone: "Australia/Melbourne" })}
+
+Log in to Preventli to confirm or manage this booking.`,
+    }).catch((err) => logger.error("Failed to send booking notification email", undefined, err));
+
     res.status(201).json({ booking });
   } catch (error) {
     if (error instanceof z.ZodError) {
