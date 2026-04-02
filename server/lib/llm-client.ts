@@ -173,6 +173,114 @@ async function callClaudeCLI(prompt: string, timeoutMs: number): Promise<string>
   });
 }
 
+// ─── Anthropic tool-use loop ──────────────────────────────────────────────────
+
+export interface AnthropicTool {
+  name: string;
+  description: string;
+  input_schema: {
+    type: "object";
+    properties: Record<string, { type: string; description: string; enum?: string[] }>;
+    required?: string[];
+  };
+}
+
+/**
+ * Run an agentic tool-use loop via OpenRouter (OpenAI-compatible format).
+ * Uses OPENROUTER_API_KEY — no Anthropic API key required.
+ *
+ * @param systemPrompt  System prompt (Alex soul + context)
+ * @param userMessage   The user's message
+ * @param tools         Tool definitions (Anthropic format — converted internally)
+ * @param toolExecutor  Called for each tool call — receives (name, input), returns result
+ * @param maxIterations Safety limit on tool call rounds (default: 10)
+ */
+export async function callClaudeWithTools(
+  systemPrompt: string,
+  userMessage: string,
+  tools: AnthropicTool[],
+  toolExecutor: (name: string, input: Record<string, unknown>) => Promise<unknown>,
+  maxIterations = 10,
+): Promise<string> {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) throw new Error("OPENROUTER_API_KEY is required for tool use");
+
+  const baseUrl = process.env.OPENROUTER_BASE_URL ?? "https://openrouter.ai/api/v1";
+  const model = process.env.LLM_MODEL ?? "anthropic/claude-sonnet-4-5";
+
+  // Convert Anthropic tool format → OpenAI function format
+  const openAiTools = tools.map((t) => ({
+    type: "function" as const,
+    function: {
+      name: t.name,
+      description: t.description,
+      parameters: t.input_schema,
+    },
+  }));
+
+  type OAIMessage = { role: string; content: string | null; tool_calls?: unknown[]; tool_call_id?: string; name?: string };
+  const messages: OAIMessage[] = [
+    { role: "system", content: systemPrompt },
+    { role: "user", content: userMessage },
+  ];
+
+  for (let i = 0; i < maxIterations; i++) {
+    const response = await fetch(`${baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": process.env.APP_URL ?? "https://preventli.com.au",
+        "X-Title": "Preventli",
+      },
+      body: JSON.stringify({ model, messages, tools: openAiTools, tool_choice: "auto", temperature: 0.1 }),
+    });
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => "(no body)");
+      throw new Error(`OpenRouter tool-use error ${response.status}: ${body.slice(0, 300)}`);
+    }
+
+    const data = await response.json() as {
+      choices?: Array<{
+        finish_reason: string;
+        message: { role: string; content: string | null; tool_calls?: Array<{ id: string; function: { name: string; arguments: string } }> };
+      }>;
+    };
+
+    const choice = data.choices?.[0];
+    if (!choice) throw new Error("OpenRouter returned empty choices");
+
+    const assistantMsg = choice.message;
+
+    if (choice.finish_reason === "stop" || !assistantMsg.tool_calls?.length) {
+      return (assistantMsg.content ?? "").trim();
+    }
+
+    // Add assistant message with tool_calls
+    messages.push({ role: "assistant", content: assistantMsg.content, tool_calls: assistantMsg.tool_calls });
+
+    // Execute each tool call and add results
+    for (const toolCall of assistantMsg.tool_calls ?? []) {
+      let result: unknown;
+      try {
+        const input = JSON.parse(toolCall.function.arguments) as Record<string, unknown>;
+        result = await toolExecutor(toolCall.function.name, input);
+      } catch (err) {
+        result = { error: err instanceof Error ? err.message : String(err) };
+      }
+      messages.push({
+        role: "tool",
+        tool_call_id: toolCall.id,
+        name: toolCall.function.name,
+        content: typeof result === "string" ? result : JSON.stringify(result),
+      });
+    }
+  }
+
+  return "I reached the tool call limit for this request. Please try a simpler query.";
+}
+
 // ─── Public interface ─────────────────────────────────────────────────────────
 
 /**

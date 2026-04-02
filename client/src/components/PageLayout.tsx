@@ -41,7 +41,8 @@ export function PageLayout({ children, title, subtitle }: PageLayoutProps) {
   const [bookingOpen, setBookingOpen] = useState(false);
 
   // Extract caseId or workerId from current URL for context-aware chat
-  const caseIdMatch = location.pathname.match(/\/cases\/([^/]+)/);
+  // Match /cases/:id, /summary/:id, and /employer/case/:id
+  const caseIdMatch = location.pathname.match(/\/(?:cases|summary|employer\/case)\/([^/]+)/);
   const workerIdMatch = location.pathname.match(/\/workers\/([^/]+)/);
   const caseContext = caseIdMatch
     ? { caseId: caseIdMatch[1] }

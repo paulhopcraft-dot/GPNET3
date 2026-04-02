@@ -4,7 +4,8 @@ import { join } from "path";
 import { authorize, type AuthRequest } from "../middleware/auth";
 import { storage } from "../storage";
 import { createLogger } from "../lib/logger";
-import { callClaude } from "../lib/llm-client";
+import { callClaude, callClaudeWithTools } from "../lib/llm-client";
+import { ALEX_TOOLS, executeAlexTool } from "../tools/alex-tools";
 import { getCaseCompliance } from "../services/certificateCompliance";
 import { getCaseRTWCompliance } from "../services/rtwCompliance";
 
@@ -198,9 +199,23 @@ router.post("/message", authorize(), async (req: AuthRequest, res: Response) => 
       }
     }
 
-    // Use Claude CLI subprocess — Max plan OAuth, no API key needed
-    const prompt = `${SOUL}${orgCasesBlock}${memoryBlock}${contextBlock}\n\n---\nUser message: ${message}\n\nRespond as Alex. Keep it concise (2-4 sentences). If you want to suggest a booking, end your response with [SUGGEST_BOOKING].`;
-    let reply = await callClaude(prompt);
+    // Use tool-use loop when Anthropic provider is configured, otherwise plain prompt
+    const systemPrompt = `${SOUL}${orgCasesBlock}${memoryBlock}${contextBlock}\n\n---\nRespond as Alex. Keep it concise (2-4 sentences). If you want to suggest a booking, end your response with [SUGGEST_BOOKING].`;
+    const provider = (process.env.LLM_PROVIDER ?? "claude-cli").toLowerCase();
+    const useTools = (provider === "anthropic" || provider === "openrouter") && !!process.env.OPENROUTER_API_KEY;
+
+    let reply: string;
+    if (useTools) {
+      reply = await callClaudeWithTools(
+        systemPrompt,
+        message,
+        ALEX_TOOLS,
+        (toolName, toolInput) => executeAlexTool(toolName, toolInput, { organizationId: orgId }),
+      );
+    } else {
+      const prompt = `${systemPrompt}\n\nUser message: ${message}`;
+      reply = await callClaude(prompt);
+    }
 
     // Detect booking suggestion signal from soul
     const suggestBooking = reply.includes("[SUGGEST_BOOKING]");
