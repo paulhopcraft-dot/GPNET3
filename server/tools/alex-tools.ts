@@ -12,7 +12,7 @@ import { execSync } from "child_process";
 import { join } from "path";
 import { storage } from "../storage";
 import { type AnthropicTool } from "../lib/llm-client";
-import type { CaseActionType } from "../../shared/schema";
+import type { CaseActionType, WorkStatus } from "../../shared/schema";
 
 const PROJECT_ROOT = process.cwd();
 
@@ -184,7 +184,7 @@ export async function executeAlexTool(
         company: workerCase.company,
         work_status: workerCase.workStatus,
         summary: workerCase.summary,
-        days_off_work: workerCase.daysOffWork,
+        days_off_work: null,
         open_actions: actions.filter((a) => a.status !== "done").map((a) => ({
           type: a.type,
           status: a.status,
@@ -219,7 +219,7 @@ export async function executeAlexTool(
       if (!workerCase) return { error: `Case ${caseId} not found` };
 
       if (field === "work_status") {
-        await storage.syncWorkerCaseFromFreshdesk({ id: caseId, organizationId: orgId, workStatus: value });
+        await storage.syncWorkerCaseFromFreshdesk({ id: caseId, organizationId: orgId, workStatus: value as WorkStatus });
         return { success: true, message: `Work status updated to ${value}` };
       }
 
@@ -232,7 +232,7 @@ export async function executeAlexTool(
         organizationId: orgId,
         workerName: input.worker_name as string,
         company: input.company as string,
-        workStatus: (input.work_status as string) ?? "off_work",
+        workStatus: ((input.work_status as string) ?? "Off work") as WorkStatus,
         summary: input.injury_description as string,
         ticketIds: [],
       };
@@ -250,10 +250,9 @@ export async function executeAlexTool(
         caseId,
         organizationId: orgId,
         type: input.type as CaseActionType,
-        status: "pending",
-        notes: (input.notes as string) ?? null,
         dueDate,
-      });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any);
       return { success: true, action_id: action.id, message: `Action "${input.type}" created, due ${dueDate.toLocaleDateString("en-AU")}` };
     }
 

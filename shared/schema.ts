@@ -1118,38 +1118,17 @@ export const webhookFormMappings = pgTable("webhook_form_mappings", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const insertWorkerCaseSchema = createInsertSchema(workerCases).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+export const insertWorkerCaseSchema = createInsertSchema(workerCases);
 
-export const insertCaseAttachmentSchema = createInsertSchema(caseAttachments).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertCaseAttachmentSchema = createInsertSchema(caseAttachments);
 
-export const insertUserSchema = createInsertSchema(users).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertUserSchema = createInsertSchema(users);
 
-export const insertUserInviteSchema = createInsertSchema(userInvites).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+export const insertUserInviteSchema = createInsertSchema(userInvites);
 
-export const insertWebhookFormMappingSchema = createInsertSchema(webhookFormMappings).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+export const insertWebhookFormMappingSchema = createInsertSchema(webhookFormMappings);
 
-export const insertRefreshTokenSchema = createInsertSchema(refreshTokens).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertRefreshTokenSchema = createInsertSchema(refreshTokens);
 
 export type InsertWorkerCase = z.infer<typeof insertWorkerCaseSchema>;
 export type WorkerCaseDB = typeof workerCases.$inferSelect;
@@ -1476,11 +1455,7 @@ export const caseActions = pgTable("case_actions", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const insertCaseActionSchema = createInsertSchema(caseActions).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+export const insertCaseActionSchema = createInsertSchema(caseActions);
 
 export type InsertCaseAction = typeof caseActions.$inferInsert;
 export type CaseActionDB = typeof caseActions.$inferSelect;
@@ -1744,11 +1719,7 @@ export const insurers = pgTable("insurers", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const insertInsurerSchema = createInsertSchema(insurers).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+export const insertInsurerSchema = createInsertSchema(insurers);
 
 export type Insurer = typeof insurers.$inferSelect;
 export type InsertInsurer = z.infer<typeof insertInsurerSchema>;
@@ -1770,11 +1741,7 @@ export const organizations = pgTable("organizations", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const insertOrganizationSchema = createInsertSchema(organizations).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+export const insertOrganizationSchema = createInsertSchema(organizations);
 
 export type Organization = typeof organizations.$inferSelect;
 export type InsertOrganization = z.infer<typeof insertOrganizationSchema>;
@@ -1829,11 +1796,7 @@ export const caseContacts = pgTable("case_contacts", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const insertCaseContactSchema = createInsertSchema(caseContacts).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+export const insertCaseContactSchema = createInsertSchema(caseContacts);
 
 export type CaseContactDB = typeof caseContacts.$inferSelect;
 export type InsertCaseContact = z.infer<typeof insertCaseContactSchema>;
@@ -2185,49 +2148,21 @@ export type RTWAuditEventType =
   | "rtw_duty_updated";
 
 // Zod schemas for RTW Planner
-export const insertRTWRoleSchema = createInsertSchema(rtwRoles).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+export const insertRTWRoleSchema = createInsertSchema(rtwRoles);
 
-export const insertRTWDutySchema = createInsertSchema(rtwDuties).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+export const insertRTWDutySchema = createInsertSchema(rtwDuties);
 
-export const insertRTWDutyDemandsSchema = createInsertSchema(rtwDutyDemands).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+export const insertRTWDutyDemandsSchema = createInsertSchema(rtwDutyDemands);
 
-export const insertRTWPlanSchema = createInsertSchema(rtwPlans).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+export const insertRTWPlanSchema = createInsertSchema(rtwPlans);
 
-export const insertRTWPlanVersionSchema = createInsertSchema(rtwPlanVersions).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertRTWPlanVersionSchema = createInsertSchema(rtwPlanVersions);
 
-export const insertRTWPlanDutySchema = createInsertSchema(rtwPlanDuties).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertRTWPlanDutySchema = createInsertSchema(rtwPlanDuties);
 
-export const insertRTWPlanScheduleSchema = createInsertSchema(rtwPlanSchedule).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertRTWPlanScheduleSchema = createInsertSchema(rtwPlanSchedule);
 
-export const insertRTWApprovalSchema = createInsertSchema(rtwApprovals).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertRTWApprovalSchema = createInsertSchema(rtwApprovals);
 
 // =============================================================================
 // Pre-Employment Health Checks Module
@@ -2251,11 +2186,7 @@ export const workers = pgTable("workers", {
 export type WorkerDB = typeof workers.$inferSelect;
 export type InsertWorker = typeof workers.$inferInsert;
 
-export const insertWorkerSchema = createInsertSchema(workers).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+export const insertWorkerSchema = createInsertSchema(workers);
 
 // Pre-Employment Assessment Status Types
 export type PreEmploymentAssessmentStatus =
@@ -2450,28 +2381,13 @@ export type PreEmploymentHealthHistoryDB = typeof preEmploymentHealthHistory.$in
 export type InsertPreEmploymentHealthHistory = typeof preEmploymentHealthHistory.$inferInsert;
 
 // Zod schemas for Pre-Employment module
-export const insertPreEmploymentAssessmentSchema = createInsertSchema(preEmploymentAssessments).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+export const insertPreEmploymentAssessmentSchema = createInsertSchema(preEmploymentAssessments);
 
-export const insertPreEmploymentHealthRequirementSchema = createInsertSchema(preEmploymentHealthRequirements).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+export const insertPreEmploymentHealthRequirementSchema = createInsertSchema(preEmploymentHealthRequirements);
 
-export const insertPreEmploymentAssessmentComponentSchema = createInsertSchema(preEmploymentAssessmentComponents).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertPreEmploymentAssessmentComponentSchema = createInsertSchema(preEmploymentAssessmentComponents);
 
-export const insertPreEmploymentHealthHistorySchema = createInsertSchema(preEmploymentHealthHistory).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+export const insertPreEmploymentHealthHistorySchema = createInsertSchema(preEmploymentHealthHistory);
 
 // =============================================================================
 // Inbound Email System - Direct email ingestion (bypasses Freshdesk)
@@ -2519,15 +2435,9 @@ export type InsertCaseEmail = typeof caseEmails.$inferInsert;
 export type EmailAttachmentDB = typeof emailAttachments.$inferSelect;
 export type InsertEmailAttachment = typeof emailAttachments.$inferInsert;
 
-export const insertCaseEmailSchema = createInsertSchema(caseEmails).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertCaseEmailSchema = createInsertSchema(caseEmails);
 
-export const insertEmailAttachmentSchema = createInsertSchema(emailAttachments).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertEmailAttachmentSchema = createInsertSchema(emailAttachments);
 
 // =============================================================================
 // Agentic System — Agent Jobs & Actions
@@ -2576,10 +2486,7 @@ export const agentJobs = pgTable("agent_jobs", {
 export type AgentJobDB = typeof agentJobs.$inferSelect;
 export type InsertAgentJob = typeof agentJobs.$inferInsert;
 
-export const insertAgentJobSchema = createInsertSchema(agentJobs).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertAgentJobSchema = createInsertSchema(agentJobs);
 
 // One action = one tool call made by an agent during a job
 export const agentActions = pgTable("agent_actions", {
@@ -2600,10 +2507,7 @@ export const agentActions = pgTable("agent_actions", {
 export type AgentActionDB = typeof agentActions.$inferSelect;
 export type InsertAgentAction = typeof agentActions.$inferInsert;
 
-export const insertAgentActionSchema = createInsertSchema(agentActions).omit({
-  id: true,
-  executedAt: true,
-});
+export const insertAgentActionSchema = createInsertSchema(agentActions);
 
 // ============================================
 // TELEHEALTH BOOKINGS TABLE
@@ -2632,11 +2536,7 @@ export const telehealthBookings = pgTable("telehealth_bookings", {
 export type TelehealthBookingDB = typeof telehealthBookings.$inferSelect;
 export type InsertTelehealthBooking = typeof telehealthBookings.$inferInsert;
 
-export const insertTelehealthBookingSchema = createInsertSchema(telehealthBookings).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+export const insertTelehealthBookingSchema = createInsertSchema(telehealthBookings);
 
 // ============================================
 // CASE DOCUMENTS TABLE
@@ -2659,10 +2559,7 @@ export const caseDocuments = pgTable("case_documents", {
 export type CaseDocumentDB = typeof caseDocuments.$inferSelect;
 export type InsertCaseDocument = typeof caseDocuments.$inferInsert;
 
-export const insertCaseDocumentSchema = createInsertSchema(caseDocuments).omit({
-  id: true,
-  uploadedAt: true,
-});
+export const insertCaseDocumentSchema = createInsertSchema(caseDocuments);
 
 // ============================================
 // CHAT MEMORY TABLE (Dr. Alex per-case/worker memory)

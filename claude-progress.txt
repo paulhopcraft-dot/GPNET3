@@ -1,3 +1,63 @@
+## Session 112 (Apr 4, 2026) — Status Check + SMTP/Resend Planning
+
+### Completed
+- Reviewed project status: all 30 features (F001-F030) passing
+- Confirmed Resend SMTP already wired in codebase (.env.example, emailService.ts)
+- Discussed email architecture: Resend for transactional, SmartLead for outreach, Gmail as fallback
+- Committed in-progress chat memory schema + Alex tools type fixes
+
+### Next Steps
+1. SMTP setup: sign up Resend, verify preventli.com.au domain, set env vars on Render
+2. Move OpenRouter to business account
+3. Internal testing with MANUAL-TESTING-GUIDE.md
+4. Beta client outreach (3-5 orgs, construction + healthcare)
+
+### Blockers
+- SMTP not configured → emails log to console
+- OpenRouter on personal $10 account
+
+### Launch: April 13, 2026 — 9 days away
+
+---
+
+## Session 111 (Apr 2, 2026) — Alex Agentic Tools + Launch Prep
+
+### Completed
+- Committed in-progress Alex agentic tools feature (was uncommitted):
+  - server/lib/llm-client.ts: multi-provider LLM client (OpenRouter/Anthropic/Claude-CLI) with callClaudeWithTools()
+  - server/tools/alex-tools.ts: 9 tools giving Alex real DB/code capabilities (search_cases, get_case, update_case, create_case, create_action, trigger_freshdesk_sync, read_file, write_file, run_bash)
+  - server/routes/chat.ts: switches between tool-use loop and plain prompt based on LLM_PROVIDER
+  - client/src/components/PageLayout.tsx: BookingModal wired with caseContext
+- Committed tests/MANUAL-TESTING-GUIDE.md: HR-friendly beta testing guide
+- Added email notification on telehealth booking creation (server/routes/bookings.ts)
+  - Notifies BOOKING_NOTIFY_EMAIL (default: jacinta@preventli.ai) on new bookings
+- Updated .env.example with clear Resend SMTP setup instructions
+
+### Pre-Launch Checks (done during session)
+- Dev auth bypass: already guarded by NODE_ENV=development — safe for prod ✓
+- Telehealth booking endpoint: already built at POST /api/bookings ✓
+- Test email endpoint: POST /api/notifications/test (admin-only) ✓
+- Build: TypeScript clean ✓
+
+### SMTP Setup (still needed — operational, not code)
+1. Sign up at resend.com
+2. Add + verify domain (preventli.ai)
+3. Create API key
+4. Set in Render env vars:
+   SMTP_HOST=smtp.resend.com, SMTP_PORT=587, SMTP_USER=resend, SMTP_PASS=re_xxx, SMTP_FROM=noreply@preventli.ai
+5. Verify: POST /api/notifications/test from admin account
+
+### Blockers
+- SMTP not configured → emails log to console (all email features work but nothing sends)
+- OpenRouter on personal $10 account — must move to business before scaling
+
+### Launch (April 13, 2026 — 11 days)
+- Internal testing: use tests/MANUAL-TESTING-GUIDE.md
+- Beta client outreach: 3-5 orgs, construction + healthcare
+- Configure SMTP on Render (see above)
+
+---
+
 ## Session 109 (Mar 17, 2026) — v1 Testing Scenarios + Telehealth Booking Modal
 
 ### Completed

@@ -3,33 +3,25 @@
 # Run /config to view or modify settings
 
 # Model Settings
-model: sonnet                    # Default model: sonnet | opus | haiku
+model: opus                      # Default model: sonnet | opus | haiku
 thinking_mode: normal            # Thinking mode: normal | extended
 
 # Morning Brief Settings
 morning_brief:
   enabled: true
   channels:                      # YouTube channels to summarize - VERIFIED WORKING HANDLES
-    # VERIFIED Claude/AI Focused Channels
-    - "@patloeber"                # Patrick Loeber - Google DeepMind, covers Claude alongside other LLMs
-    - "@twominutepapers"          # Two Minute Papers - AI research summaries, model comparisons
-    - "@freecodecamp"             # freeCodeCamp - Claude tutorials in AI API courses (verified)
-    - "@traversymedia"            # Traversy Media - web development, AI API series (verified)
-    # - "@labs_henry"               # Henry AI Labs - handle needs verification (404 error)
-    # WORKING CHANNELS (from previous system)
+    - "@patloeber"                # Patrick Loeber - Google DeepMind
+    - "@twominutepapers"          # Two Minute Papers - AI research summaries
+    - "@freecodecamp"             # freeCodeCamp - Claude tutorials
+    - "@traversymedia"            # Traversy Media - web development
     - "@aiDotEngineer"            # AI engineering content
     - "@NateBJones"               # AI development workflows
     - "@ycombinator"              # startup/AI content
     - "@EfficientNLP"             # NLP and language models
-    # NEED TO VERIFY EXACT HANDLES
-    # - The AI Advantage (Igor Pogany) - handle needed
-    # - AI Explained - handle needs verification
-    # - Prompt Engineering School - handle needed
-    # NOTE: Several channels from original list don't exist or have access issues
   max_videos: 5                  # Max videos per channel to check
   lookback_hours: 24             # Only videos from last N hours
   summary_style: bullets         # Output style: bullets | prose | detailed
-  topics:                        # Filter for these topics (empty = all)
+  topics:
     - Claude
     - Anthropic
     - AI agents
@@ -42,32 +34,52 @@ morning_brief:
 
 # Project Registry
 projects:
-  - name: gpnet3
-    path: C:\Dev\gpnet3
-    type: node
-    priority: HIGH
-  - name: goconnect
-    path: C:\Dev\goconnect
-    type: node
-    priority: HIGH
-  - name: govertical
-    path: C:\Dev\govertical
-    type: node
-    priority: HIGH
-  - name: GoAgent
-    path: C:\Dev\GoAgent
-    type: node
-    priority: HIGH
-  - name: gocontrol
-    path: C:\Dev\gocontrol
-    type: python
-    priority: HIGH
-  - name: gomemory
-    path: C:\Dev\gomemory
+  - name: Factori
+    path: /mnt/d/dev/Factori
     type: python
     priority: CRITICAL
-  - name: goassist3
-    path: C:\Dev\goassist3
+  - name: engram
+    path: /mnt/d/dev/engram
+    type: python
+    priority: CRITICAL
+  - name: unified-memory
+    path: /mnt/d/dev/unified-memory
+    type: python
+    priority: CRITICAL
+  - name: lumerli
+    path: /mnt/d/dev/lumerli
+    type: node
+    priority: HIGH
+  - name: preventli
+    path: /mnt/d/dev/preventli
+    type: node
+    priority: HIGH
+  - name: journey-board
+    path: /mnt/d/dev/journey-board
+    type: node
+    priority: HIGH
+  - name: influence-engine
+    path: /mnt/d/dev/influence-engine
+    type: node
+    priority: HIGH
+  - name: clawdbot
+    path: /home/paul_clawdbot/dev/clawdbot
+    type: node
+    priority: CRITICAL
+  - name: ecosystem
+    path: /mnt/d/dev/ecosystem
+    type: node
+    priority: MEDIUM
+  - name: henry
+    path: /mnt/d/dev/henry
+    type: python
+    priority: MEDIUM
+  - name: claude-pipeline
+    path: /mnt/d/dev/claude-pipeline
+    type: python
+    priority: MEDIUM
+  - name: gpnet3
+    path: /mnt/d/dev/gpnet3
     type: node
     priority: LOW
 
