@@ -65,6 +65,7 @@ export function ChatWidget({ caseContext }: ChatWidgetProps) {
           message: text,
           sessionId: sessionId.current,
           context: caseContext,
+          history: messages,
         }),
       });
 

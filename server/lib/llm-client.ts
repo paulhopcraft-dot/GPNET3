@@ -201,6 +201,7 @@ export async function callClaudeWithTools(
   tools: AnthropicTool[],
   toolExecutor: (name: string, input: Record<string, unknown>) => Promise<unknown>,
   maxIterations = 10,
+  historyMessages?: ChatMessage[],
 ): Promise<string> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new Error("OPENROUTER_API_KEY is required for tool use");
@@ -221,6 +222,7 @@ export async function callClaudeWithTools(
   type OAIMessage = { role: string; content: string | null; tool_calls?: unknown[]; tool_call_id?: string; name?: string };
   const messages: OAIMessage[] = [
     { role: "system", content: systemPrompt },
+    ...(historyMessages ?? []).map((m) => ({ role: m.role, content: m.content })),
     { role: "user", content: userMessage },
   ];
 
@@ -282,6 +284,87 @@ export async function callClaudeWithTools(
 }
 
 // ─── Public interface ─────────────────────────────────────────────────────────
+
+export interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+/**
+ * Multi-turn chat — send a system prompt + full conversation history to the LLM.
+ * The last message in `messages` should be the current user message.
+ */
+export async function callClaudeMultiTurn(
+  systemPrompt: string,
+  messages: ChatMessage[],
+  timeoutMs = 60_000,
+): Promise<string> {
+  const provider = getProvider();
+
+  if (provider === "openrouter") {
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    if (!apiKey) throw new Error("OPENROUTER_API_KEY is not set");
+
+    const baseUrl = process.env.OPENROUTER_BASE_URL ?? "https://openrouter.ai/api/v1";
+    const model = getModel();
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const response = await fetch(`${baseUrl}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": process.env.APP_URL ?? "https://preventli.com.au",
+          "X-Title": "Preventli",
+        },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: "system", content: systemPrompt }, ...messages],
+          temperature: 0.1,
+        }),
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        const err = await response.text().catch(() => "(no body)");
+        throw new Error(`OpenRouter error ${response.status}: ${err.slice(0, 300)}`);
+      }
+
+      const data = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
+      return (data.choices?.[0]?.message?.content ?? "").trim();
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  if (provider === "anthropic") {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not set");
+
+    const { default: Anthropic } = await import("@anthropic-ai/sdk");
+    const client = new Anthropic({ apiKey });
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const message = await client.messages.create(
+        { model: getModel(), max_tokens: 4096, system: systemPrompt, messages },
+        { signal: controller.signal }
+      );
+      const content = message.content[0];
+      if (!content || content.type !== "text") throw new Error("Unexpected Anthropic content type");
+      return content.text.trim();
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  // claude-cli fallback — collapse to single prompt
+  const collapsed = messages.map((m) => `${m.role === "user" ? "User" : "Alex"}: ${m.content}`).join("\n");
+  return callClaudeCLI(`${systemPrompt}\n\n${collapsed}`, timeoutMs);
+}
 
 /**
  * Send a prompt to the configured LLM provider and return the response text.

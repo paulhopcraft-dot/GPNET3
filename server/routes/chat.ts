@@ -4,7 +4,7 @@ import { join } from "path";
 import { authorize, type AuthRequest } from "../middleware/auth";
 import { storage } from "../storage";
 import { createLogger } from "../lib/logger";
-import { callClaude, callClaudeWithTools } from "../lib/llm-client";
+import { callClaude, callClaudeMultiTurn, callClaudeWithTools, type ChatMessage } from "../lib/llm-client";
 import { ALEX_TOOLS, executeAlexTool } from "../tools/alex-tools";
 import { getCaseCompliance } from "../services/certificateCompliance";
 import { getCaseRTWCompliance } from "../services/rtwCompliance";
@@ -33,10 +33,11 @@ const SOUL = loadSoul();
  */
 router.post("/message", authorize(), async (req: AuthRequest, res: Response) => {
   try {
-    const { message, sessionId, context } = req.body as {
+    const { message, sessionId, context, history } = req.body as {
       message: string;
       sessionId: string;
       context?: { caseId?: string; workerId?: string };
+      history?: ChatMessage[];
     };
 
     if (!message || typeof message !== "string") {
@@ -205,6 +206,11 @@ router.post("/message", authorize(), async (req: AuthRequest, res: Response) => 
     const provider = (process.env.LLM_PROVIDER ?? "claude-cli").toLowerCase();
     const useTools = (provider === "anthropic" || provider === "openrouter") && !!process.env.OPENROUTER_API_KEY;
 
+    // Sanitise history — only keep user/assistant turns, cap at last 10 messages
+    const sessionHistory: ChatMessage[] = (history ?? [])
+      .filter((m) => m.role === "user" || m.role === "assistant")
+      .slice(-10);
+
     let reply: string;
     if (useTools) {
       reply = await callClaudeWithTools(
@@ -212,7 +218,11 @@ router.post("/message", authorize(), async (req: AuthRequest, res: Response) => 
         message,
         ALEX_TOOLS,
         (toolName, toolInput) => executeAlexTool(toolName, toolInput, { organizationId: orgId, isAdmin }),
+        10,
+        sessionHistory,
       );
+    } else if (provider === "anthropic" || provider === "openrouter") {
+      reply = await callClaudeMultiTurn(systemPrompt, [...sessionHistory, { role: "user", content: message }]);
     } else {
       const prompt = `${systemPrompt}\n\nUser message: ${message}`;
       reply = await callClaude(prompt);

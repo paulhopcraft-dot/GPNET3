@@ -96,6 +96,43 @@ export const ALEX_TOOLS: AnthropicTool[] = [
     },
   },
   {
+    name: "complete_action",
+    description: "Mark a case action as completed (done). Use when the user confirms an action has been carried out.",
+    input_schema: {
+      type: "object",
+      properties: {
+        action_id: { type: "string", description: "The action ID to mark as done" },
+      },
+      required: ["action_id"],
+    },
+  },
+  {
+    name: "update_action",
+    description: "Update a case action's due date or notes.",
+    input_schema: {
+      type: "object",
+      properties: {
+        action_id: { type: "string", description: "The action ID to update" },
+        due_days: { type: "string", description: "New due date as number of days from today" },
+        notes: { type: "string", description: "Updated notes for the action" },
+      },
+      required: ["action_id"],
+    },
+  },
+  {
+    name: "add_case_note",
+    description: "Add a discussion note to a worker case (e.g. from a phone call, meeting, or clinical observation).",
+    input_schema: {
+      type: "object",
+      properties: {
+        case_id: { type: "string", description: "The worker case ID" },
+        note: { type: "string", description: "The note content — what was discussed or observed" },
+        next_steps: { type: "array", items: { type: "string" }, description: "Optional list of next steps arising from this note" },
+      },
+      required: ["case_id", "note"],
+    },
+  },
+  {
     name: "trigger_freshdesk_sync",
     description: "Trigger a Freshdesk ticket sync to pull in the latest tickets and update worker cases.",
     input_schema: {
@@ -255,6 +292,45 @@ export async function executeAlexTool(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any);
       return { success: true, action_id: action.id, message: `Action "${input.type}" created, due ${dueDate.toLocaleDateString("en-AU")}` };
+    }
+
+    case "complete_action": {
+      const actionId = input.action_id as string;
+      await storage.completeAction(actionId, "alex-ai", "Dr. Alex");
+      return { success: true, message: `Action ${actionId} marked as completed` };
+    }
+
+    case "update_action": {
+      const actionId = input.action_id as string;
+      const updates: Record<string, unknown> = {};
+      if (input.notes) updates.notes = input.notes;
+      if (input.due_days) {
+        const dueDate = new Date();
+        dueDate.setDate(dueDate.getDate() + parseInt(input.due_days as string, 10));
+        updates.dueDate = dueDate;
+      }
+      await storage.updateAction(actionId, updates as Parameters<typeof storage.updateAction>[1]);
+      return { success: true, message: `Action ${actionId} updated` };
+    }
+
+    case "add_case_note": {
+      const caseId = input.case_id as string;
+      const workerCase = await storage.getGPNet2CaseById(caseId, orgId);
+      if (!workerCase) return { error: `Case ${caseId} not found` };
+      const noteId = crypto.randomUUID();
+      await storage.upsertCaseDiscussionNotes([{
+        id: noteId,
+        organizationId: orgId,
+        caseId,
+        workerName: workerCase.workerName,
+        rawText: input.note as string,
+        summary: input.note as string,
+        nextSteps: (input.next_steps as string[] | undefined) ?? [],
+        riskFlags: [],
+        updatesCompliance: false,
+        updatesRecoveryTimeline: false,
+      }]);
+      return { success: true, note_id: noteId, message: `Note added to case for ${workerCase.workerName}` };
     }
 
     case "trigger_freshdesk_sync": {
