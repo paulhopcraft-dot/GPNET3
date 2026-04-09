@@ -489,7 +489,7 @@ export interface PaginatedCasesResult {
 
 export interface IStorage {
   // Case methods - UPDATED for multi-tenant isolation
-  getGPNet2Cases(organizationId: string): Promise<WorkerCase[]>;
+  getGPNet2Cases(organizationId: string, isAdmin?: boolean): Promise<WorkerCase[]>;
   getGPNet2CasesPaginated(organizationId: string | undefined, page: number, limit: number): Promise<PaginatedCasesResult>;
   getGPNet2CaseById(id: string, organizationId: string): Promise<WorkerCase | null>;
   getGPNet2CaseByIdAdmin(id: string): Promise<WorkerCase | null>; // Admin-only, no org filter
@@ -707,18 +707,20 @@ export interface IStorage {
 }
 
 class DbStorage implements IStorage {
-  async getGPNet2Cases(organizationId: string): Promise<WorkerCase[]> {
+  async getGPNet2Cases(organizationId: string, isAdmin?: boolean): Promise<WorkerCase[]> {
     const dbCases = await db
       .select()
       .from(workerCases)
-      .where(and(
-        eq(workerCases.organizationId, organizationId),
-        // Filter out closed cases - only show open cases by default
-        or(
-          eq(workerCases.caseStatus, "open"),
-          isNull(workerCases.caseStatus)
-        )
-      ));
+      .where(isAdmin
+        ? or(eq(workerCases.caseStatus, "open"), isNull(workerCases.caseStatus))
+        : and(
+          eq(workerCases.organizationId, organizationId),
+          // Filter out closed cases - only show open cases by default
+          or(
+            eq(workerCases.caseStatus, "open"),
+            isNull(workerCases.caseStatus)
+          )
+        ));
     const caseIds = dbCases.map((dbCase) => dbCase.id);
 
     const notesByCase = new Map<string, CaseDiscussionNote[]>();

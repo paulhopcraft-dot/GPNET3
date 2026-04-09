@@ -145,15 +145,16 @@ export const ALEX_TOOLS: AnthropicTool[] = [
 export async function executeAlexTool(
   name: string,
   input: Record<string, unknown>,
-  context: { organizationId: string },
+  context: { organizationId: string; isAdmin?: boolean },
 ): Promise<unknown> {
   const orgId = context.organizationId;
+  const isAdmin = context.isAdmin ?? false;
 
   switch (name) {
     case "search_cases": {
       const query = (input.query as string | undefined)?.toLowerCase() ?? "";
       const statusFilter = input.status as string | undefined;
-      const cases = await storage.getGPNet2Cases(orgId);
+      const cases = await storage.getGPNet2Cases(orgId, isAdmin);
       const filtered = cases.filter((c) => {
         const matchesQuery = !query
           || c.workerName.toLowerCase().includes(query)

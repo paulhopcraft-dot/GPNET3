@@ -47,6 +47,7 @@ router.post("/message", authorize(), async (req: AuthRequest, res: Response) => 
     }
 
     const orgId = req.user!.organizationId;
+    const isAdmin = req.user!.role === "admin";
     const memoryKey = context?.caseId
       ? { caseId: context.caseId }
       : context?.workerId
@@ -56,7 +57,7 @@ router.post("/message", authorize(), async (req: AuthRequest, res: Response) => 
     // Load org-wide case summary so Alex knows the full portfolio
     let orgCasesBlock = "";
     try {
-      const allCases = await storage.getGPNet2Cases(orgId);
+      const allCases = await storage.getGPNet2Cases(orgId, isAdmin);
       if (allCases.length > 0) {
         const statusCounts: Record<string, number> = {};
         for (const c of allCases) {
@@ -210,7 +211,7 @@ router.post("/message", authorize(), async (req: AuthRequest, res: Response) => 
         systemPrompt,
         message,
         ALEX_TOOLS,
-        (toolName, toolInput) => executeAlexTool(toolName, toolInput, { organizationId: orgId }),
+        (toolName, toolInput) => executeAlexTool(toolName, toolInput, { organizationId: orgId, isAdmin }),
       );
     } else {
       const prompt = `${systemPrompt}\n\nUser message: ${message}`;
