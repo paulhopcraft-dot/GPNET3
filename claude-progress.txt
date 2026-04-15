@@ -1,284 +1,57 @@
-## Session 112 (Apr 4, 2026) — Status Check + SMTP/Resend Planning
+## Session 108 (Apr 15, 2026) — CSRF Bug Fix Sprint
 
 ### Completed
-- Reviewed project status: all 30 features (F001-F030) passing
-- Confirmed Resend SMTP already wired in codebase (.env.example, emailService.ts)
-- Discussed email architecture: Resend for transactional, SmartLead for outreach, Gmail as fallback
-- Committed in-progress chat memory schema + Alex tools type fixes
-
-### Next Steps
-1. SMTP setup: sign up Resend, verify preventli.com.au domain, set env vars on Render
-2. Move OpenRouter to business account
-3. Internal testing with MANUAL-TESTING-GUIDE.md
-4. Beta client outreach (3-5 orgs, construction + healthcare)
-
-### Blockers
-- SMTP not configured → emails log to console
-- OpenRouter on personal $10 account
-
-### Launch: April 13, 2026 — 9 days away
-
----
-
-## Session 111 (Apr 2, 2026) — Alex Agentic Tools + Launch Prep
-
-### Completed
-- Committed in-progress Alex agentic tools feature (was uncommitted):
-  - server/lib/llm-client.ts: multi-provider LLM client (OpenRouter/Anthropic/Claude-CLI) with callClaudeWithTools()
-  - server/tools/alex-tools.ts: 9 tools giving Alex real DB/code capabilities (search_cases, get_case, update_case, create_case, create_action, trigger_freshdesk_sync, read_file, write_file, run_bash)
-  - server/routes/chat.ts: switches between tool-use loop and plain prompt based on LLM_PROVIDER
-  - client/src/components/PageLayout.tsx: BookingModal wired with caseContext
-- Committed tests/MANUAL-TESTING-GUIDE.md: HR-friendly beta testing guide
-- Added email notification on telehealth booking creation (server/routes/bookings.ts)
-  - Notifies BOOKING_NOTIFY_EMAIL (default: jacinta@preventli.ai) on new bookings
-- Updated .env.example with clear Resend SMTP setup instructions
-
-### Pre-Launch Checks (done during session)
-- Dev auth bypass: already guarded by NODE_ENV=development — safe for prod ✓
-- Telehealth booking endpoint: already built at POST /api/bookings ✓
-- Test email endpoint: POST /api/notifications/test (admin-only) ✓
-- Build: TypeScript clean ✓
-
-### SMTP Setup (still needed — operational, not code)
-1. Sign up at resend.com
-2. Add + verify domain (preventli.ai)
-3. Create API key
-4. Set in Render env vars:
-   SMTP_HOST=smtp.resend.com, SMTP_PORT=587, SMTP_USER=resend, SMTP_PASS=re_xxx, SMTP_FROM=noreply@preventli.ai
-5. Verify: POST /api/notifications/test from admin account
-
-### Blockers
-- SMTP not configured → emails log to console (all email features work but nothing sends)
-- OpenRouter on personal $10 account — must move to business before scaling
-
-### Launch (April 13, 2026 — 11 days)
-- Internal testing: use tests/MANUAL-TESTING-GUIDE.md
-- Beta client outreach: 3-5 orgs, construction + healthcare
-- Configure SMTP on Render (see above)
-
----
-
-## Session 109 (Mar 17, 2026) — v1 Testing Scenarios + Telehealth Booking Modal
-
-### Completed
-- Confirmed live site (https://gpnet3.onrender.com/) is working — login and dashboard functional
-- Added TelehealthBookingModal component (client/src/components/TelehealthBookingModal.tsx)
-  - Book telehealth appointment form with validation, file upload, confirmation state
-  - Posts to /api/telehealth/booking
-- Created comprehensive v1 testing scenarios doc (docs/V1_TESTING_SCENARIOS.md)
-  - 18 modules covering all v1 features
-  - Updated for live URL and current credentials
-  - Includes bug report template and summary checklist
+- **BUG-01**: Fixed CSRF 403 on `POST /api/employer/cases` (EmployerNewCasePage.tsx — raw fetch missing X-CSRF-Token header) [commit: 05df7c9]
+- **CSRF audit**: Audited all ~40 POST fetch calls across frontend — found and fixed 4 more missing fetchWithCsrf calls:
+  - BookingModal.tsx (POST /api/bookings)
+  - ManagerEmailSection.tsx (POST /api/rtw-plans/:id/email/regenerate + send)
+  - PlanGeneratorWizard.tsx (POST /api/rtw-plans)
+  [commit: c2d642e]
+- **CSRF middleware**: Fixed `security.ts` — switched `getSessionIdentifier` from `req.ip` to constant (Render proxy makes IP inconsistent across requests); changed `sameSite` from "strict" to "lax" [commit: c2d642e]
+- **BUG-05**: Added `/employer/dashboard` → `/employer` redirect alias + catch-all 404 redirect in App.tsx [commit: 339ab30]
+- **BUG-03**: Built NotificationBell component — polls `/api/notifications/recent` every 60s, shows unread badge, popover list; wired into PageLayout header [commit: 1ef5e68]
+- All committed and pushed to main → Render auto-deploys
 
 ### In Progress
-- Nothing in progress
-
-### Next Steps
-1. Wire TelehealthBookingModal into the UI (find where the "Book Telehealth" button should live)
-2. Create /api/telehealth/booking endpoint on the server
-3. Configure SMTP/Resend so emails actually send to telehealth providers
-4. Run internal testing week (16–22 Mar) using docs/V1_TESTING_SCENARIOS.md
-5. Fix pre-existing TS errors in agent-tools (currentCertificateEnd, clinicalStatusJson)
-6. Beta client outreach (23–29 Mar)
-
-### Blockers
-- SMTP not configured — telehealth booking notifications won't send
-- /api/telehealth/booking endpoint not yet created
-
-### Test Credentials
-- URL: https://gpnet3.onrender.com/
-- Email: employer@symmetry.local
-- Password: ChangeMe123!
-
-### Active Worktrees
-- main: /mnt/d/dev/gpnet3 [clean after commit]
-
----
-
-## Session 106 (Mar 6–7, 2026) — Go-to-Market Planning + Production Readiness
-
-### Completed
-
-**Production readiness fix**
-- Fixed fileUpload.ts logger errors (logger.info/warn → logger.storage.info/warn)
-- Added `storage: createLogger("Storage")` to logger.ts
-- Build: exit code 0, all 5 critical production issues now resolved
-
-**Go-to-market docs (all committed)**
-- `docs/LAUNCH_PLAN.md` — 6-phase launch plan, 27 tasks, target 13 Apr 2026
-- `docs/V1_FEATURES.md` — v1 scope locked (staff-only, employer portal → v1.1)
-- `docs/TARGET_CLIENT_PROFILE.md` — ICP: SME 50-200, construction/healthcare, HR Manager buyer
-- `docs/PRICING_STRUCTURE.md` — two-track: pay-per-case ($349) + subscription ($799/$1,999/month)
-- `.claude/v3/memory/launch-milestones.json` — machine-readable milestone JSON
-
-**Worktree cleanup**
-- Removed Windows path artifact files from feature/onboarding worktree (committed)
-- All 3 worktrees clean
-
-### In Progress
-- Week 1 tasks remaining: website messaging, terms of service + privacy policy
+- E2E re-run pending — Render deploy should be live, Co-Work tests not yet re-run after fixes
 
 ### Next Steps (PRIORITY ORDER)
-1. Choose hosting: Railway (recommended) — deploy to staging
-3. Run db:push from Windows (RTW pathway fields) against staging DB
-4. Run npx tsx server/seed-compliance-rules.ts from Windows against staging DB
-5. Configure SMTP or Resend (emails silently failing)
-6. Internal testing week (16-22 Mar)
-7. Beta client outreach — 3-5 orgs, construction + healthcare (23-29 Mar)
+1. **Re-run Co-Work E2E suite** — TEST-09 (Create Case) and TEST-03 (Create Assessment) were blocked by CSRF 403; expect TEST-09 to pass now
+2. **Notifications API** — NotificationBell polls `/api/notifications/recent` — confirm this route exists or needs to be added
+3. **Resend DNS records** — 4 records still need adding to preventli.ai domain registrar:
+   - DKIM TXT: resend._domainkey.preventli.ai
+   - MX: send.preventli.ai → feedback-smtp.us-east-1.amazonses.com
+   - SPF TXT: send.preventli.ai → v=spf1 include:amazonses.com ~all
+   - DMARC TXT: _dmarc.preventli.ai → v=DMARC1; p=none
+4. **Clean up stale test record** — jane.smith@email.com assessment UUID db5f56e7-1570-43dd-a920-a9c662505f51
+5. **UAT: Leo Gutierrez scenario** — Navigate /employer/cases → Leo → run complex-rtw 6-phase scenario
 
 ### Blockers
-- AI provider for production not decided yet (OpenRouter / Claude CLI / other) — TBD
-- SMTP not configured → invites, password resets, notifications silently fail
-- No hosting platform chosen yet → can't test staging
+- Co-Work tests: need to verify Render deploy is live before re-running
+- Resend DNS: requires domain registrar access (not a code change)
 
 ### Active Worktrees
-- main: /mnt/d/dev/gpnet3 [clean]
-- feature/onboarding: /mnt/c/Dev/worktrees/onboarding [clean]
-- wip-deployment: /mnt/d/dev/gpnet3-deploy [clean — Control Tower + deployment stack]
+- main: /mnt/d/dev/preventli (clean after all commits)
+- testing/e2e-suite: /mnt/d/dev/preventli/preventli-testing
 
-### Production Readiness Score: 6.5/10
-All 5 critical issues resolved. Gaps: no hosting, no API key, no SMTP.
-Target 8/10 by end of Week 1 (15 Mar) after staging deployment.
-
-### Key Decisions This Session
-- v1 = Preventli staff only; employer portal = v1.1
-- Pricing: per-case $349 for low-volume; subscription $799/month for 5+ concurrent claims
-- ICP: SME 50-200 (construction, healthcare). Buyer: HR Manager.
-- Launch date: 13 April 2026. Target: 3-5 paying clients.
+### Notes
+- Root cause of all CSRF 403s: raw fetch() calls without X-CSRF-Token in form submissions
+- `TelehealthBookingModal.tsx` is dead code — never imported — can be deleted
+- `BookingModal.tsx` is the live telehealth modal used everywhere
+- Live URL: https://gpnet3.onrender.com (Render auto-deploys from main)
+- Test email targets: lisah@preventli.ai, paul.hopcraft@gmail.com
 
 ---
 
-## Session (Mar 5, 2026) — Control Tower + Production Deployment Stack
+## Session 107 (Apr 15, 2026) — SMTP Fix + E2E Testing Setup
 
 ### Completed
-
-**Control Tower Dashboard (full stack)**
-- /api/control/overview, agents, ai, uploads, auth, alerts, performance — 7 admin-only endpoints
-- /admin/control-tower — React page with 7 panels, 30s auto-refresh, lazy-loaded, AdminRoute protected
-- MetricCard — reusable component (default/success/warning/danger variants)
-- AdminSidebar updated with Control Tower nav item
-
-**Alert Service (server/services/alertService.ts)**
-- Types: ai_provider_failure, agent_failure_rate, database_failure, storage_failure, email_failure, health_check_degraded
-- Channels: console (always), Slack (ALERT_SLACK_WEBHOOK), Telegram (ALERT_TELEGRAM_WEBHOOK)
-- In-memory ring buffer (100 alerts) exposed at /api/control/alerts
-- Health endpoint fires alerts on subsystem failures
-- VALIDATED LIVE — alerts fired correctly when DB/AI missing
-
-**Metrics Service (server/services/metricsService.ts)**
-- RingBuffer class with avg(), p95(), max()
-- Tracks: API request duration (1000 samples, per-route), agent job duration (500), AI latency (500)
-- Express middleware auto-records every /api request
-- callClaude() patched to record AI latency
-- /api/control/performance back-fills agent durations from DB on first request
-
-**Deployment Scripts (all executable, LF line endings)**
-- scripts/validate-env.sh — validates all required vars with clear pass/fail output
-- scripts/deploy-staging.sh — 7 phases: validate → build → start → health poll → migrate → tests
-- scripts/deploy-production.sh — rollback tagging, confirmation prompt, auto-rollback on failure
-- scripts/test-staging.sh — ~30 assertions across 8 sections
-- scripts/load-test.sh — bash-only, configurable concurrency/duration, error rate threshold
-
-**Config / Docs**
-- .env.staging, .env.production.example, .env.example (alerting section added)
-- .gitignore updated (.env.staging, .env.production)
-- docs/preventli-launch-checklist.md
-- docs/production-readiness-report.md
-
-**Commit:** 990b994
-
-### Known Pre-existing TypeScript Errors (NOT introduced by us)
-- server/agent-runner/triggers.ts — cron namespace (TS2503)
-- server/agents/agent-tools/*.ts — wrong property names (currentCertificateEnd, clinicalStatusJson)
-- server/routes.ts — index type errors, implicit any
-
-### Next Steps (priority order)
-1. Provide real staging credentials → fill .env.staging → run deploy-staging.sh end-to-end
-2. Fix pre-existing TS errors in agent-tools (currentCertificateEnd → correct field, clinicalStatusJson → clinical_status_json)
-3. Discord webhook — needs bot token from Discord Developer Portal (server: 1468776337496997960, channel: 1478978031040200866)
-4. Managed PostgreSQL — current docker postgres has no automated backups
-5. Redis for rate limiter state — in-memory resets on restart
-
-### Blockers
-- No local PostgreSQL server (only client installed) — dev env DB-dependent tests can't run locally
-- .env.staging has CHANGE_ME placeholders — deploy-staging.sh will reject until filled
-
-### Key Architecture Notes
-- workerCases.caseStatus = "open" | "closed" (NOT .status — caught this bug)
-- audit_events.eventType: "user.login", "user.register", "user.login_failed"
-- All Control Tower endpoints: authorize(["admin"])
-- alertService: in-memory only, resets on restart — acceptable for single-instance
-- metricsService ring buffers reset on restart; perf endpoint back-fills from DB (1h window)
-- validate-env.sh: exits 1 on errors, warns (not fails) on missing SENTRY_DSN, SMTP
-
-## Session 108 - 2026-03-12/13
-
-### Completed
-- Fixed Render Docker deployment (was completely broken — 7 sequential fixes)
-  1. Dockerfile missing server/ in runner stage → added COPY
-  2. vite.config.ts missing from runner → added COPY
-  3. server/vite.ts serveStatic path wrong (dist vs dist/public) → fixed path
-  4. tsconfig.json missing from runner (tsx can't resolve @shared alias) → added COPY
-  5. transcripts/ directory permission denied → created in Dockerfile before non-root switch
-  6. dist/public path fix (Vite outputs to dist/public not dist)
-  7. Merge conflicts resolved throughout
-- Preventli is now LIVE at https://gpnet3.onrender.com/ — login screen displays
-- Started Uno bot (was dead, watchdog+startup.sh already in place)
-
-### In Progress
-- Render PostgreSQL setup — Paul is creating the DB on Render free tier
-- Next: link DB URL as DATABASE_URL env var → redeploy → run db:push → run seed
-
-### Next Steps
-1. Create Render Postgres → copy Internal Database URL → set as DATABASE_URL env var on web service → redeploy
-2. Run `npm run db:push` against live DB to create tables
-3. Run `npm run seed` to create test accounts (employer@symmetry.local / ChangeMe123!)
-4. Test login on https://gpnet3.onrender.com/
-
-### Blockers
-- No DATABASE_URL on Render yet — login will fail until DB is connected
-- Discord bot (claude-code-discord) timing out on responses — needs investigation
+- Fixed silent email failure in assessments.ts send route (returned 200 even when SMTP failed)
+  - Now captures emailResult and returns HTTP 502 if delivery fails (committed: 55319b6)
+- Gmail App Password obtained for SMTP: gdddttejngnqizvt
+- Testing worktree created at /mnt/d/dev/preventli/preventli-testing (branch: testing/e2e-suite)
+- COWORK-STATUS.md created for inter-session test tracking
 
 ### Notes
-- Symmetry test creds: employer@symmetry.local / ChangeMe123! (after seed runs)
-- All 8 Dockerfile fixes committed to main and pushed
-
-## Session 110 (Mar 24, 2026) — Pre-Employment Health Check Workflow
-
-### Completed
-- Fixed DB connection: .env pointed to wrong postgres password/DB name (now gpnet with Whc@0102030405)
-- Added missing DB columns (worker_id, access_token, job_description, etc.)
-- Fixed org mismatch: admin=org-alpha, seeded data was org-beta
-- Fixed credentials:"include" missing on pre-employment API fetches
-- Built View Report modal on ChecksPage with AI health report display
-- Built Approve/Reject workflow with CSRF-protected mutations
-- Added job description field to assessment creation form
-- Report generator now always sets cleared_conditional (human must approve)
-- Added Claude CLI subprocess as LLM provider (no API key for local dev)
-- Dashboard: max 5 active assessments, newest first, hide fully approved
-- Cleared 16GB on C: drive (26MB → 17GB free)
-- Wrote pre-employment business rules spec (docs/pre-employment-business-rules.md)
-- Saved overnight QA patrol prompt (docs/overnight-qa-prompt.md)
-
-### In Progress
-- View Report button: API returns reportJson, needs server restart + hard refresh to confirm
-- Follow-up email scheduler (day 1/2/3 reminders): discussed, not built
-- SendGrid email integration: discussed, not configured
-
-### Next Steps
-1. Restart server, confirm View Report button on Paul Smith
-2. Build follow-up email scheduler for questionnaire reminders
-3. Configure SendGrid SMTP
-4. Add Completed/Archive tab for approved candidates
-5. Run overnight QA patrol
-6. Fix remaining schema mismatches between code (gpnet3) and DB (gpnet)
-
-### Blockers
-- Server OOM: needs NODE_OPTIONS="--max-old-space-size=4096"
-- No SMTP configured (emails log to console)
-
-### Notes
-- Dev login: admin@gpnet.local / devpass123 (dev bypass in auth controller — remove before prod)
-- LLM_PROVIDER=claude-cli for local, openrouter for production
-- User works from /checks page (not /pre-employment)
-- Overnight QA patrol prompt received — run in future session with Opus 1M
+- Staging URL: https://staging.preventli.com.au
+- Test email target: lisah@preventli.ai (TEST-08 full email round-trip)
