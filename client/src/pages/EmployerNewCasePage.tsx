@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, getCsrfToken } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import {
   AlertCircle,
@@ -269,10 +269,12 @@ export default function EmployerNewCasePage() {
         submitData.append(`document_${index}_type`, doc.type);
       });
 
+      const csrfToken = await getCsrfToken();
       const response = await fetch("/api/employer/cases", {
         method: "POST",
         body: submitData,
         credentials: "include",
+        headers: { "X-CSRF-Token": csrfToken },
       });
 
       if (!response.ok) {
