@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { ThemeToggle } from "./theme-toggle";
 import { ChatWidget } from "./ChatWidget";
 import { BookingModal } from "./BookingModal";
+import { NotificationBell } from "./NotificationBell";
 import { Button } from "./ui/button";
 import { Phone, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -120,6 +121,7 @@ export function PageLayout({ children, title, subtitle }: PageLayoutProps) {
               <Phone className="w-4 h-4 mr-2" />
               Book Telehealth
             </Button>
+            <NotificationBell />
             <ThemeToggle />
             <Button variant="ghost" size="sm" onClick={logout} title="Log out" className="lg:hidden">
               <LogOut className="w-4 h-4" />
