@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Mail, Copy, RefreshCw, Loader2, Lock, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { fetchWithCsrf } from "@/lib/queryClient";
 
 interface ManagerEmailSectionProps {
   planId: string;
@@ -71,7 +72,7 @@ export function ManagerEmailSection({ planId, planStatus }: ManagerEmailSectionP
   // Regenerate email mutation
   const regenerateMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/rtw-plans/${planId}/email/regenerate`, {
+      const response = await fetchWithCsrf(`/api/rtw-plans/${planId}/email/regenerate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
@@ -95,7 +96,7 @@ export function ManagerEmailSection({ planId, planStatus }: ManagerEmailSectionP
   // Send email mutation
   const sendMutation = useMutation({
     mutationFn: async (data: { recipientEmail: string; subject: string; body: string }) => {
-      const response = await fetch(`/api/rtw-plans/${planId}/email/send`, {
+      const response = await fetchWithCsrf(`/api/rtw-plans/${planId}/email/send`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),

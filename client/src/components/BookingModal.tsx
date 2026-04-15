@@ -5,6 +5,7 @@ import { Label } from "./ui/label";
 import { Checkbox } from "./ui/checkbox";
 import { Phone, Video } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { fetchWithCsrf } from "@/lib/queryClient";
 
 type ServiceType = "pre_employment" | "injury" | "mental_health" | "exit" | "wellbeing";
 type AppointmentType = "video" | "face_to_face";
@@ -56,7 +57,7 @@ export function BookingModal({ open, onClose, caseContext }: BookingModalProps) 
         ...(!hasCase ? { workerName, workerEmail } : { workerName: "Case worker" }),
       };
 
-      const res = await fetch("/api/bookings", {
+      const res = await fetchWithCsrf("/api/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

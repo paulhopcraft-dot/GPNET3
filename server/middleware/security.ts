@@ -96,10 +96,13 @@ const {
   doubleCsrfProtection,
 } = doubleCsrf({
   getSecret: () => CSRF_SECRET,
-  getSessionIdentifier: (req) => req.ip || "unknown", // For stateless JWT auth, use IP as session ID
+  // Use a constant session identifier — req.ip is unreliable behind Render.com's proxy
+  // (multi-layer routing means GET /api/csrf-token and POST requests can see different IPs).
+  // Security is maintained by the HMAC secret + httpOnly cookie + double-submit check.
+  getSessionIdentifier: () => "preventli-csrf-session",
   cookieName: "x-csrf-token",
   cookieOptions: {
-    sameSite: "strict",
+    sameSite: "lax", // lax is sufficient (blocks cross-origin POST); strict blocked cookie on some Render routes
     path: "/",
     secure: process.env.NODE_ENV === "production", // HTTPS only in production
     httpOnly: true,

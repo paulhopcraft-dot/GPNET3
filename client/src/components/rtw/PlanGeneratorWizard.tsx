@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
+import { fetchWithCsrf } from "@/lib/queryClient";
 import { usePlanDraft, PlanDraftData } from "@/hooks/usePlanDraft";
 import { PlanTypeSelector } from "./PlanTypeSelector";
 import { ScheduleEditor } from "./ScheduleEditor";
@@ -150,7 +151,7 @@ export function PlanGeneratorWizard({ caseId, roleId, onComplete, onCancel }: Pr
   // Save mutation
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch("/api/rtw-plans", {
+      const response = await fetchWithCsrf("/api/rtw-plans", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
