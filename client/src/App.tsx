@@ -661,6 +661,15 @@ export default function App() {
                       </ProtectedRoute>
                     }
                   />
+
+                  {/* Alias: /employer/dashboard → /employer (common URL in QA/external links) */}
+                  <Route
+                    path="/employer/dashboard"
+                    element={<Navigate to="/employer" replace />}
+                  />
+
+                  {/* Catch-all: redirect unknown paths to root (ProtectedRoute handles auth redirect) */}
+                  <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </Suspense>
               </ErrorBoundary>
