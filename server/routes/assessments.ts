@@ -115,7 +115,7 @@ router.post("/:id/send", authorize(), async (req: AuthRequest, res: Response) =>
     const appUrl = process.env.APP_URL ?? "http://localhost:5000";
     const link = `${appUrl}/check/${assessment.accessToken}`;
 
-    await sendEmail({
+    const emailResult = await sendEmail({
       to: assessment.candidateEmail,
       subject: `Pre-Employment Health Check — ${assessment.positionTitle}`,
       body: `Hi ${assessment.candidateName},
@@ -130,6 +130,11 @@ If you have any questions, please contact us.
 
 — Preventli Health Team`,
     });
+
+    if (!emailResult.success) {
+      logger.error("Email delivery failed", undefined, { assessmentId: id, error: emailResult.error });
+      return res.status(502).json({ error: "Failed to deliver email. Please check SMTP configuration." });
+    }
 
     await storage.updatePreEmploymentAssessmentStatus(id, organizationId, {
       status: "sent",
