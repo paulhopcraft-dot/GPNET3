@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { getCsrfToken } from "@/lib/queryClient";
 import { PageLayout } from "@/components/PageLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -19,8 +19,47 @@ interface AssessmentDraft {
   status: string;
 }
 
+type CheckCategory = "pre_employment" | "exit" | "wellness" | "mental_health" | "prevention" | "injury";
+
+const CHECK_META: Record<CheckCategory, { label: string; description: string; requiresJD: boolean }> = {
+  pre_employment: {
+    label: "Pre-Employment Health Check",
+    description: "Send a health questionnaire to a candidate before they start.",
+    requiresJD: true,
+  },
+  exit: {
+    label: "Exit Health Check",
+    description: "Send a final health assessment to a departing worker.",
+    requiresJD: false,
+  },
+  wellness: {
+    label: "General Wellness Assessment",
+    description: "Send a wellness check to a worker.",
+    requiresJD: false,
+  },
+  mental_health: {
+    label: "Mental Health Assessment",
+    description: "Send a mental health check to a worker.",
+    requiresJD: false,
+  },
+  prevention: {
+    label: "Prevention & Safety Check",
+    description: "Send a proactive prevention check to a worker.",
+    requiresJD: false,
+  },
+  injury: {
+    label: "Injury Assessment",
+    description: "Send an injury assessment to a worker.",
+    requiresJD: false,
+  },
+};
+
 export default function NewAssessmentPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const rawType = searchParams.get("type") ?? "pre_employment";
+  const checkCategory: CheckCategory = (rawType in CHECK_META ? rawType : "pre_employment") as CheckCategory;
+  const meta = CHECK_META[checkCategory];
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<"form" | "created" | "sent">("form");
   const [assessment, setAssessment] = useState<AssessmentDraft | null>(null);
@@ -55,8 +94,8 @@ export default function NewAssessmentPage() {
     e.preventDefault();
     setError(null);
 
-    // Require at least a text description or a file
-    if (!fields.jobDescription.trim() && !jdFile) {
+    // Pre-employment requires job description; other types don't
+    if (meta.requiresJD && !fields.jobDescription.trim() && !jdFile) {
       setError("Please add a role description or attach a job description document.");
       return;
     }
@@ -67,6 +106,7 @@ export default function NewAssessmentPage() {
       formData.append("candidateName", fields.candidateName);
       formData.append("candidateEmail", fields.candidateEmail);
       formData.append("positionTitle", fields.positionTitle);
+      formData.append("checkCategory", checkCategory);
       if (fields.startDate) formData.append("startDate", fields.startDate);
       if (fields.jobDescription.trim()) formData.append("jobDescription", fields.jobDescription);
       if (jdFile) formData.append("jobDescriptionFile", jdFile);
@@ -126,7 +166,7 @@ export default function NewAssessmentPage() {
 
   if (step === "sent") {
     return (
-      <PageLayout title="Assessment Sent" subtitle="Pre-employment health check">
+      <PageLayout title="Assessment Sent" subtitle={meta.label}>
         <div className="max-w-lg mx-auto">
           <Card>
             <CardContent className="pt-8 pb-8 text-center space-y-4">
@@ -160,7 +200,7 @@ export default function NewAssessmentPage() {
 
   if (step === "created" && assessment) {
     return (
-      <PageLayout title="Assessment Created" subtitle="Pre-employment health check">
+      <PageLayout title="Assessment Created" subtitle={meta.label}>
         <div className="max-w-lg mx-auto space-y-4">
           <Card>
             <CardHeader>
@@ -219,7 +259,7 @@ export default function NewAssessmentPage() {
   }
 
   return (
-    <PageLayout title="New Pre-Employment Assessment" subtitle="Send a health questionnaire to a candidate">
+    <PageLayout title={`New ${meta.label}`} subtitle={meta.description}>
       <div className="max-w-lg mx-auto">
         <Card>
           <CardHeader>
@@ -276,8 +316,8 @@ export default function NewAssessmentPage() {
                 </div>
               </div>
 
-              {/* Job Description — text + file, at least one required */}
-              <div className="space-y-3 rounded-lg border p-4 bg-muted/30">
+              {/* Job Description — text + file, only required for pre-employment */}
+              {meta.requiresJD && <div className="space-y-3 rounded-lg border p-4 bg-muted/30">
                 <div>
                   <Label className="text-sm font-medium">
                     Job Description / Physical Demands <span className="text-destructive">*</span>
@@ -340,7 +380,7 @@ export default function NewAssessmentPage() {
                     </div>
                   )}
                 </div>
-              </div>
+              </div>}
 
               {error && <p className="text-sm text-destructive">{error}</p>}
 

@@ -416,7 +416,7 @@ export default function ChecksPage() {
                 <div className="mt-4 flex gap-2">
                   <Button variant="outline">Manage Programs</Button>
                   <Button asChild>
-                    <Link to="/prevention-assessment-form">New Assessment</Link>
+                    <Link to="/assessments/new?type=prevention">New Assessment</Link>
                   </Button>
                 </div>
               </CardContent>
@@ -468,7 +468,7 @@ export default function ChecksPage() {
                       <Link to="/cases">View All Cases</Link>
                     </Button>
                     <Button asChild>
-                      <Link to="/injury-assessment-form">New Injury Report</Link>
+                      <Link to="/assessments/new?type=injury">New Injury Assessment</Link>
                     </Button>
                   </div>
                 </div>
@@ -537,7 +537,7 @@ export default function ChecksPage() {
                 <div className="mt-4 flex gap-2">
                   <Button variant="outline">Wellness Dashboard</Button>
                   <Button asChild>
-                    <Link to="/wellness-form">New Wellness Assessment</Link>
+                    <Link to="/assessments/new?type=wellness">New Wellness Assessment</Link>
                   </Button>
                 </div>
               </CardContent>
@@ -592,7 +592,7 @@ export default function ChecksPage() {
                 <div className="mt-4 flex gap-2">
                   <Button variant="outline">Mental Health Dashboard</Button>
                   <Button asChild>
-                    <Link to="/mental-health-form">New MH Assessment</Link>
+                    <Link to="/assessments/new?type=mental_health">New MH Assessment</Link>
                   </Button>
                 </div>
               </CardContent>
@@ -653,7 +653,7 @@ export default function ChecksPage() {
                 </div>
                 <div className="mt-4">
                   <Button asChild>
-                    <Link to="/exit-health-check-form">New Exit Health Check</Link>
+                    <Link to="/assessments/new?type=exit">New Exit Health Check</Link>
                   </Button>
                 </div>
               </CardContent>

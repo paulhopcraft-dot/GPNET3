@@ -11,12 +11,25 @@ import { createLogger } from "../lib/logger";
 const logger = createLogger("AssessmentsRoutes");
 const router: Router = express.Router();
 
+const CHECK_CATEGORIES = ["pre_employment", "exit", "wellness", "mental_health", "prevention", "injury"] as const;
+type CheckCategory = typeof CHECK_CATEGORIES[number];
+
+const CHECK_LABELS: Record<CheckCategory, string> = {
+  pre_employment: "Pre-Employment Health Check",
+  exit: "Exit Health Check",
+  wellness: "General Wellness Assessment",
+  mental_health: "Mental Health Assessment",
+  prevention: "Prevention & Safety Check",
+  injury: "Injury Assessment",
+};
+
 const createAssessmentSchema = z.object({
   candidateName: z.string().min(1),
   candidateEmail: z.string().email(),
   positionTitle: z.string().min(1),
   startDate: z.string().optional(),
   jobDescription: z.string().optional(),
+  checkCategory: z.enum(CHECK_CATEGORIES).optional().default("pre_employment"),
 });
 
 /**
@@ -44,10 +57,10 @@ router.post("/", authorize(), uploadJd, async (req: AuthRequest, res: Response) 
 
     const body = createAssessmentSchema.parse(req.body);
 
-    // Require at least a text description OR a file attachment
+    // Pre-employment requires job description; other types don't
     const hasText = !!(body.jobDescription?.trim());
     const hasFile = !!req.file;
-    if (!hasText && !hasFile) {
+    if (body.checkCategory === "pre_employment" && !hasText && !hasFile) {
       return res.status(400).json({
         error: "Please provide a role description or attach a job description document.",
       });
@@ -65,6 +78,9 @@ router.post("/", authorize(), uploadJd, async (req: AuthRequest, res: Response) 
     // Generate unique access token
     const accessToken = crypto.randomBytes(32).toString("hex");
 
+    // Map check category to assessmentType stored in DB
+    const assessmentType = body.checkCategory === "pre_employment" ? "baseline_health" : body.checkCategory;
+
     // Create assessment record
     const assessment = await storage.createPreEmploymentAssessment({
       organizationId,
@@ -72,7 +88,7 @@ router.post("/", authorize(), uploadJd, async (req: AuthRequest, res: Response) 
       candidateName: body.candidateName,
       candidateEmail: body.candidateEmail,
       positionTitle: body.positionTitle,
-      assessmentType: "baseline_health",
+      assessmentType,
       status: "created",
       accessToken,
       jobDescription: body.jobDescription,
@@ -115,12 +131,15 @@ router.post("/:id/send", authorize(), async (req: AuthRequest, res: Response) =>
     const appUrl = process.env.APP_URL ?? "http://localhost:5000";
     const link = `${appUrl}/check/${assessment.accessToken}`;
 
+    const checkLabel = CHECK_LABELS[(assessment.assessmentType as CheckCategory) ?? "pre_employment"]
+      ?? CHECK_LABELS.pre_employment;
+
     const emailResult = await sendEmail({
       to: assessment.candidateEmail,
-      subject: `Pre-Employment Health Check — ${assessment.positionTitle}`,
+      subject: `${checkLabel} — ${assessment.positionTitle}`,
       body: `Hi ${assessment.candidateName},
 
-Please complete your pre-employment health questionnaire using the secure link below:
+Please complete your ${checkLabel.toLowerCase()} using the secure link below:
 
 ${link}
 
