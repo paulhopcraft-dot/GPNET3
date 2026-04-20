@@ -124,7 +124,9 @@ test.describe('PROD-1: Pre-Employment Health Check', { tag: ['@smoke', '@critica
 
     // Worker-facing response must contain enough info for the form
     const data = checkJson.assessment ?? checkJson.data ?? checkJson;
-    expect(data).toHaveProperty('id');
+    // API returns assessmentId (not id) on the public check endpoint
+    const hasId = !!(data.id ?? data.assessmentId);
+    expect(hasId).toBe(true);
 
     await ctx.dispose();
     await publicCtx.dispose();
@@ -149,8 +151,8 @@ authTest.describe('PROD-2: New Injury Case Creation', { tag: ['@smoke', '@critic
   authTest('new case form loads with WorkSafe gateway question', async ({ authenticatedPage: page }) => {
     await page.goto('/employer/new-case');
     await page.waitForLoadState('domcontentloaded');
-    // Wait for Suspense/lazy chunk to finish loading
-    await page.locator('text=Loading...').waitFor({ state: 'hidden', timeout: 20000 }).catch(() => {});
+    // Wait for Suspense/lazy chunk to finish loading (spinner is .animate-spin, no text)
+    await page.locator('.animate-spin').waitFor({ state: 'hidden', timeout: 20000 }).catch(() => {});
 
     // Page must not be a 404
     const content = await page.content();
@@ -165,8 +167,8 @@ authTest.describe('PROD-2: New Injury Case Creation', { tag: ['@smoke', '@critic
   authTest('new case form accepts worker name and email', async ({ authenticatedPage: page }) => {
     await page.goto('/employer/new-case');
     await page.waitForLoadState('domcontentloaded');
-    // Wait for Suspense/lazy chunk to finish loading
-    await page.locator('text=Loading...').waitFor({ state: 'hidden', timeout: 20000 }).catch(() => {});
+    // Wait for Suspense/lazy chunk to finish loading (spinner is .animate-spin, no text)
+    await page.locator('.animate-spin').waitFor({ state: 'hidden', timeout: 20000 }).catch(() => {});
 
     // Navigate past gateway if shown
     const noOption = page.locator('label:has-text("No"), button:has-text("No")').first();
