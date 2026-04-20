@@ -373,8 +373,10 @@ export async function registerRoutes(app: Express): Promise<void> {
       sendAlert({ type: "storage_failure", severity: "critical", message: storageStatus.error ?? "Storage unreachable" }).catch(() => {});
     }
 
-    const allOk = dbOk && aiStatus.ok && storageStatus.ok;
-    res.status(allOk ? 200 : 503).json({
+    // Storage is non-critical — unconfigured S3 doesn't block core functionality
+    const criticalOk = dbOk && aiStatus.ok;
+    const allOk = criticalOk && storageStatus.ok;
+    res.status(criticalOk ? 200 : 503).json({
       status: allOk ? "ok" : "degraded",
       version: process.env.npm_package_version ?? "unknown",
       uptime: Math.floor(process.uptime()),

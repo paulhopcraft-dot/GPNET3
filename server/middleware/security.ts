@@ -193,6 +193,11 @@ export function conditionalCsrfProtection(
     return next();
   }
 
+  // Bearer token requests are intrinsically CSRF-safe (can't be forged by cross-site form submissions)
+  if (req.headers.authorization?.startsWith("Bearer ")) {
+    return next();
+  }
+
   return csrfProtection(req, res, next);
 }
 
