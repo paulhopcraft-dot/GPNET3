@@ -514,6 +514,7 @@ export default function EmployerNewCasePage() {
                         type="date"
                         value={formData.workerDob}
                         onChange={(e) => updateField("workerDob", e.target.value)}
+                        max={new Date().toISOString().split("T")[0]}
                         required
                       />
                     </div>
@@ -559,6 +560,7 @@ export default function EmployerNewCasePage() {
                       type="date"
                       value={formData.dateOfIncident}
                       onChange={(e) => updateField("dateOfIncident", e.target.value)}
+                      max={new Date().toISOString().split("T")[0]}
                       required
                     />
                   </div>
