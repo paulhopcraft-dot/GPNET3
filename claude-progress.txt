@@ -1,3 +1,28 @@
+## Session 109 (Apr 20, 2026) — Smoke Suite Green
+
+### Completed
+- **Production readiness smoke suite**: All 17/17 tests passing against https://gpnet3.onrender.com
+  - Fixed spinner wait: `text=Loading...` → `.animate-spin` (CSS spinner has no text)
+  - Fixed PROD-1 magic link assertion: API returns `assessmentId` not `id`
+  - Previous session fixes confirmed working: CSRF Bearer bypass, health endpoint split, Suspense wait
+- **Task #80 added**: "Port Preventli bugs & changes into Preventli Dashboard" in master task list
+
+### In Progress
+- none
+
+### Next Steps (PRIORITY ORDER)
+1. **Verify notifications API** — NotificationBell polls `/api/notifications/recent` — confirm route works end-to-end
+2. **Resend DNS records** — 4 records for preventli.ai (DKIM, MX, SPF, DMARC) — manual registrar step
+3. **UAT: Leo Gutierrez scenario** — Navigate /employer/cases → Leo → complex-rtw 6-phase scenario
+4. **Clean stale test record** — jane.smith@email.com / db5f56e7-1570-43dd-a920-a9c662505f51
+5. **Port to Dashboard** — task #80: port CSRF fixes + features into preventli-dashboard repo
+
+### Notes
+- Smoke suite gate: `PLAYWRIGHT_BASE_URL=https://gpnet3.onrender.com npx playwright test tests/e2e/smoke/production-readiness.spec.ts`
+- 17 tests, ~45s, all passing — safe to run before every deploy
+
+---
+
 ## Session 108 (Apr 15, 2026) — CSRF Bug Fix Sprint
 
 ### Completed

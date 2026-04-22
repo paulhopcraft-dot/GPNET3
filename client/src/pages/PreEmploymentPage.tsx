@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PlusCircle, Search, Activity, Users, CheckCircle, AlertCircle, FileText, XCircle, ClipboardList } from "lucide-react";
+import { PlusCircle, Search, Activity, Users, CheckCircle, AlertCircle, FileText, XCircle, ClipboardList, Link2 } from "lucide-react";
 import { fetchWithCsrf } from "@/lib/queryClient";
 
 interface PreEmploymentAssessment {
@@ -34,6 +34,7 @@ interface PreEmploymentAssessment {
   scheduledDate?: string;
   completedDate?: string;
   createdAt: string;
+  accessToken?: string;
   reportJson?: {
     executiveSummary: string;
     healthStatus: string;
@@ -67,6 +68,7 @@ export default function PreEmploymentPage() {
   const [reportModalAssessment, setReportModalAssessment] = useState<PreEmploymentAssessment | null>(null);
   const [decisionLevel, setDecisionLevel] = useState<string>("");
   const [decisionNotes, setDecisionNotes] = useState("");
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const clearanceDecisionMutation = useMutation({
@@ -231,11 +233,11 @@ export default function PreEmploymentPage() {
             <div className="space-y-4 pt-4">
               <div className="space-y-2">
                 <Label htmlFor="candidateName">Candidate Name *</Label>
-                <Input id="candidateName" placeholder="John Smith" value={newCandidateName} onChange={(e) => setNewCandidateName(e.target.value)} />
+                <Input id="candidateName" placeholder="John Smith" value={newCandidateName} onChange={(e) => setNewCandidateName(e.target.value)} maxLength={100} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="position">Position Title *</Label>
-                <Input id="position" placeholder="Warehouse Operator" value={newPositionTitle} onChange={(e) => setNewPositionTitle(e.target.value)} />
+                <Input id="position" placeholder="Warehouse Operator" value={newPositionTitle} onChange={(e) => setNewPositionTitle(e.target.value)} maxLength={100} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="assessmentType">Assessment Type *</Label>
@@ -262,6 +264,7 @@ export default function PreEmploymentPage() {
                   onChange={(e) => setNewJobDescription(e.target.value)}
                   rows={5}
                   className="text-sm"
+                  maxLength={10000}
                 />
               </div>
               {formError && <p className="text-sm text-red-600">{formError}</p>}
@@ -360,6 +363,25 @@ export default function PreEmploymentPage() {
                       )}
 
                       <div className="flex gap-2 mt-1">
+                        {/* Copy Link button — shown for pending/scheduled assessments that have an access token */}
+                        {(assessment.status === "pending" || assessment.status === "scheduled") && assessment.accessToken && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-indigo-700 border-indigo-300 hover:bg-indigo-50"
+                            onClick={() => {
+                              const url = `${window.location.origin}/check/${assessment.accessToken}`;
+                              navigator.clipboard.writeText(url).then(() => {
+                                setCopiedId(assessment.id);
+                                setTimeout(() => setCopiedId(null), 2000);
+                              });
+                            }}
+                          >
+                            <Link2 className="w-3 h-3 mr-1" />
+                            {copiedId === assessment.id ? "Copied!" : "Copy Link"}
+                          </Button>
+                        )}
+
                         {/* View Report button — shown when questionnaire is received or completed */}
                         {(assessment.status === "in_progress" || assessment.status === "completed") && hasReport(assessment) && (
                           <Button

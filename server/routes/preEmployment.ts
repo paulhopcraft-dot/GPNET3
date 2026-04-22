@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import express, { type Request, type Response, type Router } from "express";
 import { z } from "zod";
 import { storage } from "../storage";
@@ -199,6 +200,8 @@ router.post("/assessments", authorize(), async (req: AuthRequest, res: Response)
       ...req.body,
       organizationId,
       createdBy: userId,
+      // BUG-002 fix: generate access token so worker-facing /check/{token} link can be built
+      accessToken: crypto.randomBytes(32).toString('hex'),
       // Set completedDate as Date object when status is completed
       ...(req.body.status === 'completed' ? { completedDate: new Date() } : {}),
       ...(req.body.scheduledDate ? { scheduledDate: new Date(req.body.scheduledDate) } : {}),
@@ -297,6 +300,28 @@ router.put("/assessments/:id/status", authorize(), async (req: AuthRequest, res:
     });
 
     const validatedData = updateSchema.parse(req.body);
+
+    // BUG-001 fix: enforce state-machine transitions — no jumping to arbitrary statuses
+    const VALID_TRANSITIONS: Record<string, string[]> = {
+      pending:     ['scheduled', 'cancelled'],
+      scheduled:   ['in_progress', 'cancelled'],
+      in_progress: ['completed', 'failed', 'cancelled'],
+      completed:   [],
+      failed:      ['pending'],
+      cancelled:   [],
+    };
+
+    const current = await storage.getPreEmploymentAssessmentById(assessmentId, organizationId);
+    if (!current) {
+      return res.status(404).json({ error: "Assessment not found" });
+    }
+    const allowed = VALID_TRANSITIONS[current.status] ?? [];
+    if (!allowed.includes(validatedData.status)) {
+      return res.status(422).json({
+        error: `Invalid status transition`,
+        detail: `Cannot move assessment from '${current.status}' to '${validatedData.status}'. Allowed: [${allowed.join(', ') || 'none'}]`,
+      });
+    }
 
     const assessment = await storage.updatePreEmploymentAssessmentStatus(
       assessmentId,
