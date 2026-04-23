@@ -129,7 +129,10 @@ app.use("/api/docs", (_req, res, next) => {
   );
   next();
 });
-app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(openApiSpec, {
+// Swagger UI static assets (CSS, JS bundles)
+app.use("/api/docs", swaggerUi.serve);
+// Swagger UI HTML page — explicit GET so it doesn't fall through to the catch-all
+app.get("/api/docs", swaggerUi.setup(openApiSpec, {
   customSiteTitle: "Preventli API Docs",
   customCss: ".swagger-ui .topbar { display: none }",
   swaggerOptions: { persistAuthorization: true },
