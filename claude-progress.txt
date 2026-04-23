@@ -78,5 +78,5 @@
 - COWORK-STATUS.md created for inter-session test tracking
 
 ### Notes
-- Staging URL: https://staging.preventli.com.au
+- Staging URL: https://staging.preventli.ai
 - Test email target: lisah@preventli.ai (TEST-08 full email round-trip)

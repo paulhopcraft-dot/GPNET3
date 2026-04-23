@@ -71,7 +71,7 @@ Sent via Preventli in-app support form.
 
   try {
     const result = await sendEmail({
-      to: "support@preventli.com.au",
+      to: "support@preventli.ai",
       subject: `[Support] ${subject}`,
       body: bodyText,
       html: htmlBody,

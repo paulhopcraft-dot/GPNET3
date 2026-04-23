@@ -29,7 +29,7 @@ interface SupportModalProps {
 
 type Status = "idle" | "submitting" | "success" | "error";
 
-const SUPPORT_EMAIL = "support@preventli.com.au";
+const SUPPORT_EMAIL = "support@preventli.ai";
 
 export function SupportModal({ open, onClose }: SupportModalProps) {
   const { user } = useAuth();

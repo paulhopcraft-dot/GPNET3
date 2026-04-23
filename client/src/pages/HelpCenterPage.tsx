@@ -587,7 +587,7 @@ export default function HelpCenterPage() {
               className="w-full text-xs gap-1.5"
               asChild
             >
-              <a href="mailto:support@preventli.com.au">
+              <a href="mailto:support@preventli.ai">
                 <ExternalLink size={12} />
                 Contact Support
               </a>
