@@ -34,6 +34,7 @@ const navItems = [
   { path: "/risk", label: "Risk", icon: "warning" },
   { path: "/audit", label: "Audit Log", icon: "history" },
   { path: "/agents", label: "Agents", icon: "smart_toy" },
+  { path: "/help", label: "Help", icon: "help" },
 ];
 
 export function PageLayout({ children, title, subtitle }: PageLayoutProps) {

@@ -75,6 +75,7 @@ const WorkerProfile = lazy(() => import("./pages/WorkerProfile"));
 const WorkersListPage = lazy(() => import("./pages/WorkersListPage"));
 const NewAssessmentPage = lazy(() => import("./pages/NewAssessmentPage"));
 const AssessmentDetailPage = lazy(() => import("./pages/AssessmentDetailPage"));
+const HelpCenterPage = lazy(() => import("./pages/HelpCenterPage"));
 
 // LogoutRedirect component - triggers logout and redirects to login
 function LogoutRedirect() {
@@ -657,6 +658,18 @@ export default function App() {
                       <ProtectedRoute>
                         <Suspense fallback={<PageLoader />}>
                           <AssessmentDetailPage />
+                        </Suspense>
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  {/* Help Centre */}
+                  <Route
+                    path="/help"
+                    element={
+                      <ProtectedRoute>
+                        <Suspense fallback={<PageLoader />}>
+                          <HelpCenterPage />
                         </Suspense>
                       </ProtectedRoute>
                     }
