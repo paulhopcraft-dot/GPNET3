@@ -110,33 +110,9 @@ app.get("/api/csrf-token", getCsrfToken);
 import inboundEmailRoutes from "./routes/inbound-email";
 app.use("/api/inbound-email", inboundEmailRoutes);
 
-// API docs (must be before CSRF — no auth required, read-only)
+// API docs imports (used inside startServer, after routes)
 import swaggerUi from "swagger-ui-express";
 import { openApiSpec } from "./lib/openapi";
-// Override CSP for Swagger UI — it requires 'unsafe-inline' for its bundled scripts/styles.
-// This is safe: the docs route is read-only and serves no user data.
-app.use("/api/docs", (_req, res, next) => {
-  res.setHeader(
-    "Content-Security-Policy",
-    [
-      "default-src 'self'",
-      "script-src 'self' 'unsafe-inline'",
-      "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob:",
-      "font-src 'self' data:",
-      "connect-src 'self'",
-    ].join("; ")
-  );
-  next();
-});
-// Swagger UI static assets (CSS, JS bundles)
-app.use("/api/docs", swaggerUi.serve);
-// Swagger UI HTML page — explicit GET so it doesn't fall through to the catch-all
-app.get("/api/docs", swaggerUi.setup(openApiSpec, {
-  customSiteTitle: "Preventli API Docs",
-  customCss: ".swagger-ui .topbar { display: none }",
-  swaggerOptions: { persistAuthorization: true },
-}));
 
 // CSRF protection middleware
 // Skips login, register, webhooks, and health checks
@@ -214,6 +190,29 @@ const startServer = async () => {
   }
 
   await registerRoutes(app);
+
+  // API docs — registered after all routes so it wins over the catch-all below.
+  // Override CSP: Swagger UI requires 'unsafe-inline' for its bundled scripts/styles.
+  app.use("/api/docs", (_req, res, next) => {
+    res.setHeader(
+      "Content-Security-Policy",
+      [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline'",
+        "style-src 'self' 'unsafe-inline'",
+        "img-src 'self' data: blob:",
+        "font-src 'self' data:",
+        "connect-src 'self'",
+      ].join("; ")
+    );
+    next();
+  });
+  app.use("/api/docs", swaggerUi.serve);
+  app.get("/api/docs", swaggerUi.setup(openApiSpec, {
+    customSiteTitle: "Preventli API Docs",
+    customCss: ".swagger-ui .topbar { display: none }",
+    swaggerOptions: { persistAuthorization: true },
+  }));
 
   // Catch-all for unmatched /api/* routes — return JSON 404 instead of Vite HTML fallback
   app.all('/api/*', (_req, res) => {
