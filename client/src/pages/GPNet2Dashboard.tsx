@@ -14,6 +14,7 @@ import { ComponentErrorBoundary } from "@/components/ErrorBoundary";
 import { ContextualHelpSystem } from "@/components/unified-case-management/ContextualHelpSystem";
 import { FirstTimeTour } from "@/components/FirstTimeTour";
 import { ComplianceDashboardWidget } from "@/components/ComplianceDashboardWidget";
+import { GettingStartedChecklist } from "@/components/GettingStartedChecklist";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -396,6 +397,11 @@ export default function GPNet2Dashboard() {
                 })}
               </div>
             </div>
+          )}
+
+          {/* Getting Started — shown only when org has no cases yet */}
+          {cases.length === 0 && !isLoading && user && (
+            <GettingStartedChecklist userId={user.id} />
           )}
 
           {/* Main Content: Cases Table + Action Queue Sidebar */}
