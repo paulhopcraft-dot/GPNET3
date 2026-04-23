@@ -113,6 +113,22 @@ app.use("/api/inbound-email", inboundEmailRoutes);
 // API docs (must be before CSRF — no auth required, read-only)
 import swaggerUi from "swagger-ui-express";
 import { openApiSpec } from "./lib/openapi";
+// Override CSP for Swagger UI — it requires 'unsafe-inline' for its bundled scripts/styles.
+// This is safe: the docs route is read-only and serves no user data.
+app.use("/api/docs", (_req, res, next) => {
+  res.setHeader(
+    "Content-Security-Policy",
+    [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline'",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: blob:",
+      "font-src 'self' data:",
+      "connect-src 'self'",
+    ].join("; ")
+  );
+  next();
+});
 app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(openApiSpec, {
   customSiteTitle: "Preventli API Docs",
   customCss: ".swagger-ui .topbar { display: none }",
