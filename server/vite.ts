@@ -71,9 +71,12 @@ export function serveStatic(app: Express) {
   const distPath = path.resolve(import.meta.dirname, "..", "dist", "public");
 
   if (!fs.existsSync(distPath)) {
-    throw new Error(
-      `Could not find the build directory: ${distPath}, make sure to build the client first`,
+    // API-only mode: dist/ not present (e.g. Render deploy without vite build).
+    // Frontend is served from Vercel; this service is backend-API-only.
+    console.warn(
+      `[serveStatic] dist/ not found at ${distPath} — running in API-only mode. Frontend must be served from Vercel.`,
     );
+    return;
   }
 
   app.use(express.static(distPath));
