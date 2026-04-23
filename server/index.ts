@@ -110,6 +110,15 @@ app.get("/api/csrf-token", getCsrfToken);
 import inboundEmailRoutes from "./routes/inbound-email";
 app.use("/api/inbound-email", inboundEmailRoutes);
 
+// API docs (must be before CSRF — no auth required, read-only)
+import swaggerUi from "swagger-ui-express";
+import { openApiSpec } from "./lib/openapi";
+app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(openApiSpec, {
+  customSiteTitle: "Preventli API Docs",
+  customCss: ".swagger-ui .topbar { display: none }",
+  swaggerOptions: { persistAuthorization: true },
+}));
+
 // CSRF protection middleware
 // Skips login, register, webhooks, and health checks
 app.use(conditionalCsrfProtection);
