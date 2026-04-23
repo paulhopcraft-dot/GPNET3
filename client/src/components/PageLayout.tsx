@@ -7,8 +7,9 @@ import { ChatWidget } from "./ChatWidget";
 import { BookingModal } from "./BookingModal";
 import { NotificationBell } from "./NotificationBell";
 import { Button } from "./ui/button";
-import { Phone, LogOut } from "lucide-react";
+import { Phone, LogOut, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SupportModal } from "./SupportModal";
 
 interface PageLayoutProps {
   children: ReactNode;
@@ -41,6 +42,7 @@ export function PageLayout({ children, title, subtitle }: PageLayoutProps) {
   const location = useLocation();
   const { user, logout } = useAuth();
   const [bookingOpen, setBookingOpen] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
 
   // Extract caseId or workerId from current URL for context-aware chat
   // Match /cases/:id, /summary/:id, and /employer/case/:id
@@ -100,6 +102,13 @@ export function PageLayout({ children, title, subtitle }: PageLayoutProps) {
         <div className="mt-auto pt-4 border-t border-sidebar-border">
           <div className="px-3 py-2 text-xs text-sidebar-foreground/60 truncate">{user?.email}</div>
           <button
+            onClick={() => setSupportOpen(true)}
+            className="flex items-center gap-2 w-full px-3 py-2 rounded-md text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent/50 transition-colors"
+          >
+            <HelpCircle className="w-4 h-4" />
+            Contact Support
+          </button>
+          <button
             onClick={logout}
             className="flex items-center gap-2 w-full px-3 py-2 rounded-md text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent/50 transition-colors"
           >
@@ -143,6 +152,9 @@ export function PageLayout({ children, title, subtitle }: PageLayoutProps) {
 
       {/* Floating Health Assistant Chat Widget */}
       <ChatWidget caseContext={caseContext} />
+
+      {/* Support Contact Modal */}
+      <SupportModal open={supportOpen} onClose={() => setSupportOpen(false)} />
     </div>
   );
 }
