@@ -189,6 +189,85 @@ The Preventli Team
 }
 
 /**
+ * Send a welcome email to a newly registered user
+ */
+export async function sendWelcomeEmail(
+  email: string,
+  role: string,
+  organizationName?: string
+): Promise<SendEmailResult> {
+  const appUrl = process.env.APP_URL || "http://localhost:5173";
+  const orgDisplay = organizationName || "your organisation";
+
+  const subject = "Welcome to Preventli — you're all set";
+
+  const roleLabel = role === "admin" ? "Administrator" : role === "manager" ? "Manager" : role;
+
+  const body = `Welcome to Preventli,
+
+Your account is ready. You've been added to ${orgDisplay} as a ${roleLabel}.
+
+Sign in to get started:
+${appUrl}
+
+What you can do with Preventli:
+  • Manage WorkCover cases and track return-to-work progress
+  • Generate AI-powered RTW plans from medical certificates
+  • Run pre-employment health assessments
+  • Stay on top of WorkSafe compliance obligations
+
+If you have any questions or run into trouble, reply to this email or contact us at support@preventli.com.au.
+
+The Preventli Team
+`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(135deg, #0A1628 0%, #0f766e 100%); padding: 36px 30px; border-radius: 10px 10px 0 0;">
+    <h1 style="color: white; margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.5px;">Welcome to Preventli</h1>
+    <p style="color: rgba(255,255,255,0.75); margin: 8px 0 0; font-size: 15px;">Your account is ready to use.</p>
+  </div>
+  <div style="background: #f9fafb; padding: 32px 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
+    <p style="margin-top: 0;">Hi there,</p>
+    <p>You've been added to <strong>${orgDisplay}</strong> as a <strong>${roleLabel}</strong>. Your Preventli account is active and ready to go.</p>
+    <div style="text-align: center; margin: 32px 0;">
+      <a href="${appUrl}" style="background: #0f766e; color: white; padding: 14px 32px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 15px; display: inline-block;">Sign in to Preventli →</a>
+    </div>
+    <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px 24px; margin: 24px 0;">
+      <p style="margin: 0 0 12px; font-weight: 600; color: #0A1628; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">What you can do</p>
+      <ul style="margin: 0; padding-left: 20px; color: #4b5563; font-size: 14px; line-height: 1.8;">
+        <li>Manage WorkCover cases and track return-to-work progress</li>
+        <li>Generate AI-powered RTW plans from medical certificates</li>
+        <li>Run pre-employment health assessments</li>
+        <li>Stay on top of WorkSafe compliance obligations</li>
+      </ul>
+    </div>
+    <p style="font-size: 14px; color: #6b7280; margin-bottom: 0;">Questions? Reply to this email or contact us at <a href="mailto:support@preventli.com.au" style="color: #0f766e;">support@preventli.com.au</a></p>
+    <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0 16px;">
+    <p style="font-size: 12px; color: #9ca3af; margin: 0;">The Preventli Team<br>
+    <a href="https://preventli.com.au" style="color: #9ca3af;">preventli.com.au</a></p>
+  </div>
+</body>
+</html>
+`;
+
+  logger.email.info("Sending welcome email", { email, role });
+
+  return sendEmail({
+    to: email,
+    subject,
+    body,
+    html,
+  });
+}
+
+/**
  * Send a password reset email
  */
 export async function sendPasswordResetEmail(

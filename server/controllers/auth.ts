@@ -18,6 +18,7 @@ import {
   getUserSessions,
   revokeSession,
 } from "../services/refreshTokenService";
+import { sendWelcomeEmail } from "../services/emailService";
 
 const SALT_ROUNDS = 10;
 const JWT_EXPIRES_IN = "8h"; // 8 hours for development (was 15m)
@@ -175,6 +176,11 @@ export async function register(req: Request, res: Response) {
 
     // Mark invite as used
     await useInvite(inviteToken);
+
+    // Send welcome email (fire-and-forget — must not block or fail registration)
+    sendWelcomeEmail(user.email, user.role).catch((err) => {
+      logger.email.error("Failed to send welcome email", {}, err);
+    });
 
     // Log successful registration
     await logAuditEvent({
