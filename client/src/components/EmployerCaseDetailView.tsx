@@ -5,7 +5,7 @@ import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { ScrollArea } from "./ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { Sparkles, X, RefreshCw } from "lucide-react";
+import { Sparkles, X, RefreshCw, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
 import { CaseActionPlanCard } from "./CaseActionPlanCard";
 import { RecoveryChart } from "./RecoveryChart";
 import { ComplianceReportCard } from "./ComplianceReportCard";
@@ -30,6 +30,22 @@ interface SummaryData {
     assignedTo?: string;
     dueDate?: string;
   }>;
+}
+
+interface HRDecisionItem {
+  id: string;
+  caseId: string;
+  workerName: string;
+  company: string;
+  injuryType: string;
+  daysOffWork: number;
+  triggerCode: string;
+  label: string;
+  rationale: string;
+  legislativeRef?: string;
+  deadline?: string;
+  urgency: 'critical' | 'high' | 'medium';
+  actions: string[];
 }
 
 // Helper function to parse markdown summary into sections
@@ -88,6 +104,21 @@ export function EmployerCaseDetailView({ workerCase, onClose }: EmployerCaseDeta
       return response.json();
     },
   });
+
+  // Fetch HR decisions for this case
+  const { data: hrDecisionsData, isLoading: hrDecisionsLoading } = useQuery<{ decisions: HRDecisionItem[] }>({
+    queryKey: [`/api/hr/decisions`, workerCase.id],
+    queryFn: async () => {
+      const response = await fetchWithCsrf(`/api/hr/decisions`);
+      if (!response.ok) throw new Error("Failed to fetch HR decisions");
+      return response.json();
+    },
+  });
+
+  // Filter HR decisions to this specific case
+  const caseHrDecisions = hrDecisionsData?.decisions?.filter(
+    (d) => d.caseId === workerCase.id
+  ) || [];
 
   // Filter actions for this specific case
   const caseActions = pendingActionsData?.data?.filter((action: CaseAction) =>
@@ -461,6 +492,129 @@ export function EmployerCaseDetailView({ workerCase, onClose }: EmployerCaseDeta
                       ) : (
                         <div className="text-sm text-muted-foreground py-4">
                           No summary available yet. Click Refresh to generate.
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* HR Decisions Card */}
+                  <Card className="mt-4">
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="flex items-center gap-2 text-lg">
+                          <AlertTriangle className="h-5 w-5 text-amber-500" />
+                          HR Actions Required
+                        </CardTitle>
+                        {!hrDecisionsLoading && (
+                          caseHrDecisions.length > 0 ? (
+                            <span className="inline-flex items-center rounded-full bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 text-xs font-semibold px-2.5 py-0.5 min-w-[1.5rem]">
+                              {caseHrDecisions.length} pending
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 text-xs font-semibold px-2.5 py-0.5">
+                              <CheckCircle2 className="h-3 w-3" />
+                              All clear
+                            </span>
+                          )
+                        )}
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      {hrDecisionsLoading ? (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
+                          <RefreshCw className="h-4 w-4 animate-spin" />
+                          <span>Loading HR decisions…</span>
+                        </div>
+                      ) : caseHrDecisions.length === 0 ? (
+                        <div className="flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-400 py-2">
+                          <CheckCircle2 className="h-4 w-4 shrink-0" />
+                          <span>No pending HR actions for this case.</span>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {caseHrDecisions.map((decision) => {
+                            const urgencyConfig = {
+                              critical: {
+                                badge: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300',
+                                border: 'border-red-200 dark:border-red-800',
+                                icon: <AlertTriangle className="h-3.5 w-3.5 text-red-500 shrink-0" />,
+                                label: 'Critical',
+                              },
+                              high: {
+                                badge: 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300',
+                                border: 'border-orange-200 dark:border-orange-800',
+                                icon: <AlertTriangle className="h-3.5 w-3.5 text-orange-500 shrink-0" />,
+                                label: 'High',
+                              },
+                              medium: {
+                                badge: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300',
+                                border: 'border-amber-200 dark:border-amber-800',
+                                icon: <Clock className="h-3.5 w-3.5 text-amber-500 shrink-0" />,
+                                label: 'Medium',
+                              },
+                            }[decision.urgency];
+
+                            return (
+                              <div
+                                key={decision.id}
+                                className={cn(
+                                  'rounded-lg border p-3 space-y-2',
+                                  urgencyConfig.border
+                                )}
+                              >
+                                {/* Urgency + trigger row */}
+                                <div className="flex items-center gap-2">
+                                  <span
+                                    className={cn(
+                                      'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+                                      urgencyConfig.badge
+                                    )}
+                                  >
+                                    {urgencyConfig.icon}
+                                    {urgencyConfig.label}
+                                  </span>
+                                  <span className="text-[10px] font-mono text-muted-foreground">
+                                    {decision.triggerCode}
+                                  </span>
+                                </div>
+
+                                {/* Decision label */}
+                                <p className="text-sm font-medium text-foreground leading-snug">
+                                  {decision.label}
+                                </p>
+
+                                {/* Rationale */}
+                                <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+                                  {decision.rationale}
+                                </p>
+
+                                {/* Deadline + legislative ref */}
+                                <div className="flex items-center gap-3 text-[11px] text-muted-foreground flex-wrap">
+                                  {decision.deadline && (
+                                    <span className="flex items-center gap-1">
+                                      <Clock className="h-3 w-3" />
+                                      Due {new Date(decision.deadline).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                    </span>
+                                  )}
+                                  {decision.legislativeRef && (
+                                    <span className="font-mono opacity-70">{decision.legislativeRef}</span>
+                                  )}
+                                </div>
+
+                                {/* Required actions */}
+                                {decision.actions && decision.actions.length > 0 && (
+                                  <ul className="mt-1 space-y-0.5">
+                                    {decision.actions.map((action, i) => (
+                                      <li key={i} className="text-xs text-foreground flex items-start gap-1.5">
+                                        <span className="mt-0.5 text-muted-foreground shrink-0">•</span>
+                                        {action}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
                     </CardContent>
