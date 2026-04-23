@@ -13,6 +13,7 @@ import { ActionQueueCard } from "@/components/ActionQueueCard";
 import { ComponentErrorBoundary } from "@/components/ErrorBoundary";
 import { ContextualHelpSystem } from "@/components/unified-case-management/ContextualHelpSystem";
 import { FirstTimeTour } from "@/components/FirstTimeTour";
+import { ComplianceDashboardWidget } from "@/components/ComplianceDashboardWidget";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -310,6 +311,11 @@ export default function GPNet2Dashboard() {
               activeFilter={statFilter}
               onFilterChange={setStatFilter}
             />
+          </div>
+
+          {/* Compliance Overview */}
+          <div className="mb-4">
+            <ComplianceDashboardWidget className="col-span-1" />
           </div>
 
           {/* Search and Sync Row - Full width */}
