@@ -20,7 +20,7 @@ export const openApiSpec = {
   },
   servers: [
     {
-      url: "https://gpnet3.onrender.com",
+      url: "https://app.preventli.ai",
       description: "Production",
     },
     {

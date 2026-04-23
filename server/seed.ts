@@ -385,6 +385,13 @@ const betaCases: SeedCase[] = [
 async function seed() {
   console.log("Seeding GPNet multi-tenant demo data...");
 
+  // Idempotency guard: skip if data already exists (prevents deploy failures on re-runs)
+  const existingUsers = await db.select().from(users).limit(1);
+  if (existingUsers.length > 0) {
+    console.log("Database already seeded — skipping.");
+    return;
+  }
+
   // Clear existing data in correct order (respecting FK constraints)
   await db.delete(caseAttachments);
   await db.delete(workerCases);
