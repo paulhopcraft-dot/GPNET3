@@ -34,7 +34,7 @@ services:
       - key: DEFAULT_ORGANIZATION_ID
         value: preventli-org
       - key: NOTIFICATION_DEFAULT_EMAIL
-        value: admin@preventli.au
+        value: admin@preventli.ai
       - key: LOG_LEVEL
         value: info
       - key: LOG_REQUESTS
