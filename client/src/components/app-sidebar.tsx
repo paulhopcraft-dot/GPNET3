@@ -91,7 +91,7 @@ export function AppSidebar() {
             </svg>
           </div>
           <div>
-            <div className="font-semibold text-lg">Preventli</div>
+            <div className="font-semibold text-lg">Preventli<span className="brand-wordmark-dot">.</span></div>
             <div className="text-xs text-muted-foreground">Employee Health Intelligence</div>
           </div>
         </div>

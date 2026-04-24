@@ -1,0 +1,54 @@
+/*
+ * Preventli brand tokens — shared with preventli.ai marketing site.
+ * Extracted from the live marketing site CSS custom properties on 2026-04-24.
+ *
+ * These are ADDITIVE — they do not override shadcn's design-system tokens
+ * (--primary, --ring, --card, etc.). Use them for brand moments only:
+ * logo wordmark, top-nav accent, primary CTA variant, feature-card accents.
+ *
+ * Source of truth: preventli.ai :root custom properties.
+ */
+
+:root {
+  /* Core brand palette (shared with preventli.ai) */
+  --brand-navy: #0a1628;
+  --brand-green: #00e676;
+  --brand-amber: #ff8f00;
+
+  /* Softer surfaces derived from the palette */
+  --brand-bg: #f8f9fa;
+  --brand-text: #1a1a2e;
+
+  /* Brand glow — used on hero sections, primary CTAs */
+  --brand-green-glow: rgba(0, 230, 118, 0.25);
+  --brand-navy-glow: rgba(10, 22, 40, 0.12);
+
+  /* Shadow that matches marketing site's elevated cards (green-tinted) */
+  --brand-shadow-lg: 0 10px 15px -3px var(--brand-green-glow),
+                     0 4px 6px -4px var(--brand-green-glow);
+}
+
+/* Utility class: apply mint-green to logo wordmark / text highlights */
+.brand-green {
+  color: var(--brand-green);
+}
+
+.brand-bg-green {
+  background-color: var(--brand-green);
+  color: var(--brand-navy);
+}
+
+.brand-bg-navy {
+  background-color: var(--brand-navy);
+  color: white;
+}
+
+/* Logo word-mark variant: the dot in "Preventli." is always mint green. */
+.brand-wordmark-dot {
+  color: var(--brand-green);
+}
+
+/* Subtle brand accent stripe for top nav — 2px mint green bottom border */
+.brand-accent-stripe {
+  border-bottom: 2px solid var(--brand-green);
+}
