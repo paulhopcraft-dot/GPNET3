@@ -19,7 +19,7 @@ This guide walks you through setting up real infrastructure for Preventli's prod
 
 ## Prerequisites
 
-- GitHub account with access to GPNET3 repository
+- GitHub account with access to preventli repository
 - Node.js 20+ installed locally
 - Command-line access (Terminal, PowerShell, or WSL)
 
@@ -54,7 +54,7 @@ Neon creates the database automatically. No manual setup required.
 2. Sign in with GitHub
 3. Click **"New Project"**
 4. Select **"Deploy from GitHub repo"**
-5. Choose `GPNET3` repository
+5. Choose `preventli` repository
 
 ### 2.2 Configure Build & Start
 
@@ -220,7 +220,7 @@ const DEFAULT_MODEL = "anthropic/claude-3.5-sonnet";
 
 1. Visit: https://vercel.com
 2. Click **"Add New Project"**
-3. Import `GPNET3` from GitHub
+3. Import `preventli` from GitHub
 4. **Framework Preset:** Vite
 5. **Root Directory:** `./`
 6. **Build Command:** `npm run build`

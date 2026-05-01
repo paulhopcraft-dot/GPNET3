@@ -227,5 +227,5 @@ A: Yes, all connections use HTTPS, passwords are bcrypt hashed.
 ## Contact
 
 For technical questions or demo requests:
-- Project: GPNet3 Claims MVP
-- Repository: github.com/paulhopcraft-dot/GPNET3
+- Project: Preventli Claims MVP
+- Repository: github.com/paulhopcraft-dot/preventli

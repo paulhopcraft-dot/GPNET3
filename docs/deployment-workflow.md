@@ -37,7 +37,7 @@ Preventli uses a **split deployment** architecture:
 
 ### Prerequisites
 
-- [ ] GitHub repository with GPNET3 code
+- [ ] GitHub repository with Preventli code
 - [ ] Neon account with database created
 - [ ] Railway account with project created
 - [ ] Vercel account with project created

@@ -54,6 +54,6 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
-[Unreleased]: https://github.com/paulhopcraft-dot/GPNET3/compare/v0.9.0-beta...HEAD
-[0.9.0-beta]: https://github.com/paulhopcraft-dot/GPNET3/releases/tag/v0.9.0-beta
-[0.1.0]: https://github.com/paulhopcraft-dot/GPNET3/releases/tag/v0.1.0
+[Unreleased]: https://github.com/paulhopcraft-dot/preventli/compare/v0.9.0-beta...HEAD
+[0.9.0-beta]: https://github.com/paulhopcraft-dot/preventli/releases/tag/v0.9.0-beta
+[0.1.0]: https://github.com/paulhopcraft-dot/preventli/releases/tag/v0.1.0

@@ -35,7 +35,7 @@ incident triage, and environment configuration.
 | Marketing site | Vercel | Global CDN | `preventli-site` repo, auto-deploy |
 
 **Repos:**
-- App: `https://github.com/paulhopcraft-dot/GPNET3`
+- App: `https://github.com/paulhopcraft-dot/preventli`
 - Site: `https://github.com/paulhopcraft-dot/preventli-site`
 
 ---
