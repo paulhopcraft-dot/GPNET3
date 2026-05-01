@@ -30,7 +30,7 @@ export default function CaseSummaryPage() {
   const { id } = useParams<{ id: string }>();
 
   const { data: paginatedData, isLoading } = useQuery<PaginatedCasesResponse>({
-    queryKey: ["/api/gpnet2/cases?limit=200"],
+    queryKey: ["/api/cases?limit=200"],
   });
   const cases = paginatedData?.cases ?? [];
 

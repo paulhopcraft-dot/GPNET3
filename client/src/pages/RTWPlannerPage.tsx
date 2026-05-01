@@ -168,7 +168,7 @@ export default function RTWPlannerPage() {
   const [selectedCase, setSelectedCase] = useState<WorkerCase | null>(null);
 
   const { data: paginatedData, isLoading } = useQuery<PaginatedCasesResponse>({
-    queryKey: ["/api/gpnet2/cases"],
+    queryKey: ["/api/cases"],
   });
   const cases = paginatedData?.cases ?? [];
 
@@ -190,7 +190,7 @@ export default function RTWPlannerPage() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/gpnet2/cases"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
       setSelectedCase(null);
     },
   });

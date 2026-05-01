@@ -40,7 +40,7 @@ export default function ReportsPage() {
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
 
   const { data: paginatedData, isLoading } = useQuery<PaginatedCasesResponse>({
-    queryKey: ["/api/gpnet2/cases"],
+    queryKey: ["/api/cases"],
   });
   const cases = paginatedData?.cases ?? [];
 

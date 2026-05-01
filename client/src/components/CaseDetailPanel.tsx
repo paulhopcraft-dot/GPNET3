@@ -405,7 +405,7 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
       });
 
       // Refresh the cases list
-      queryClient.invalidateQueries({ queryKey: ["/api/gpnet2/cases"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
 
       // Close the detail panel
       onClose();
@@ -448,7 +448,7 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
         description: `Compliance status set to ${complianceValue}.`,
       });
 
-      queryClient.invalidateQueries({ queryKey: ["/api/gpnet2/cases"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
       setShowComplianceForm(false);
       setComplianceValue("");
       setComplianceReason("");
@@ -496,7 +496,7 @@ export function CaseDetailPanel({ workerCase, onClose }: CaseDetailPanelProps) {
         description: `Master ticket: ${masterTicketId}. Closed ${result.closedTickets?.length || 0} other ticket(s).`,
       });
 
-      queryClient.invalidateQueries({ queryKey: ["/api/gpnet2/cases"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
     } catch (error) {
       console.error("Error merging tickets:", error);
       toast({

@@ -228,7 +228,7 @@ authTest.describe('PROD-3: Injury RTW Dashboard', { tag: ['@smoke', '@critical']
   authTest('API: cases endpoint returns valid response', async () => {
     const { headers } = await getAuthToken();
     const ctx = await playwrightRequest.newContext({ baseURL: BASE_URL });
-    const res = await ctx.get('/api/gpnet2/cases', { headers });
+    const res = await ctx.get('/api/cases', { headers });
     expect(res.status()).toBe(200);
     const json = await res.json();
     // Response must be an array or object with cases array
@@ -366,7 +366,7 @@ test.describe('INFRA: API health', { tag: ['@smoke', '@critical'] }, () => {
 
   test('unauthenticated request to protected endpoint returns 401 not 500', async () => {
     const ctx = await playwrightRequest.newContext({ baseURL: BASE_URL });
-    const res = await ctx.get('/api/gpnet2/cases');
+    const res = await ctx.get('/api/cases');
     expect(res.status()).toBe(401);
     await ctx.dispose();
   });

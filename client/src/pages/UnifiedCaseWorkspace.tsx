@@ -86,7 +86,7 @@ export default function UnifiedCaseWorkspace() {
   const { data: casesResponse, isLoading } = useQuery<{ cases: WorkerCase[] }>({
     queryKey: ["cases-workspace"],
     queryFn: async () => {
-      const response = await fetch("/api/gpnet2/cases");
+      const response = await fetch("/api/cases");
       if (!response.ok) throw new Error("Failed to fetch cases");
       return response.json();
     }

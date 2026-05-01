@@ -287,7 +287,7 @@ export default function EmployerNewCasePage() {
       localStorage.removeItem("employer-new-case-draft");
 
       // Invalidate queries
-      await queryClient.invalidateQueries({ queryKey: ["/api/gpnet2/cases"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
 
       toast({
         title: "Case Created Successfully",

@@ -42,7 +42,7 @@ describe('API Response Time Benchmarks', () => {
 
   const endpoints = [
     { path: '/employer/dashboard', target: PERFORMANCE_TARGET_MS, name: 'Employer Dashboard' },
-    { path: '/gpnet2/cases', target: PERFORMANCE_TARGET_MS, name: 'Cases List' },
+    { path: '/cases', target: PERFORMANCE_TARGET_MS, name: 'Cases List' },
     { path: '/employer/workers', target: PERFORMANCE_TARGET_MS, name: 'Workers List' },
     { path: '/auth/me', target: 2000, name: 'Auth Check' },
   ];
@@ -74,7 +74,7 @@ describe('API Response Time Benchmarks', () => {
 
     const endpointsToCheck = [
       '/employer/dashboard',
-      '/gpnet2/cases',
+      '/cases',
       '/employer/workers',
       '/notifications',
       '/actions',
@@ -104,7 +104,7 @@ describe('API Response Time Benchmarks', () => {
 
   it('case detail endpoint responds within target', async () => {
     // First get a case ID
-    const casesRes = await fetch(`${API_BASE}/gpnet2/cases`, {
+    const casesRes = await fetch(`${API_BASE}/cases`, {
       headers: { Cookie: authCookie }
     });
 

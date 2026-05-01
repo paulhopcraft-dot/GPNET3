@@ -25,7 +25,7 @@ export default function CasesPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
   const { data: paginatedData, isLoading } = useQuery<PaginatedCasesResponse>({
-    queryKey: ["/api/gpnet2/cases"],
+    queryKey: ["/api/cases"],
   });
   const cases = paginatedData?.cases ?? [];
 

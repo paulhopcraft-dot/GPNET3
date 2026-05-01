@@ -157,7 +157,7 @@ assert_status "Login rejection" "${RESP}" "401" "400"
 # Auth-protected endpoint without token (save and clear token)
 SAVED_TOKEN="${TOKEN}"
 TOKEN=""
-RESP=$(api GET /api/gpnet2/cases)
+RESP=$(api GET /api/cases)
 assert_status "Unauthenticated rejection" "${RESP}" "401" "403"
 TOKEN="${SAVED_TOKEN}"
 
@@ -165,7 +165,7 @@ TOKEN="${SAVED_TOKEN}"
 
 info "3. Core Data"
 
-RESP=$(api GET "/api/gpnet2/cases?page=1&limit=5")
+RESP=$(api GET "/api/cases?page=1&limit=5")
 assert_status "Case list" "${RESP}" "200"
 assert_field  "Case list shape" "${RESP}" '"total"'
 

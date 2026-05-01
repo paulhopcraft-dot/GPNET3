@@ -89,7 +89,7 @@ run_worker() {
   # Define workload: (method path [body])
   declare -a REQUESTS=(
     "GET /api/system/health"
-    "GET /api/gpnet2/cases?page=1&limit=10"
+    "GET /api/cases?page=1&limit=10"
     "GET /api/workers?page=1&limit=5"
     "GET /api/notifications/recent"
     "GET /api/agents/jobs"
