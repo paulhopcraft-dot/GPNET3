@@ -90,22 +90,22 @@ const alphaCases: SeedCase[] = [
       {
         name: "Medical Certificate - Initial 03 Jan",
         type: "medical-certificate",
-        url: "https://files.gpnet.local/certificates/ava-thompson-initial.pdf",
+        url: "https://files.preventli.local/certificates/ava-thompson-initial.pdf",
       },
       {
         name: "Medical Certificate - Extension 18 Jan",
         type: "medical-certificate",
-        url: "https://files.gpnet.local/certificates/ava-thompson-extension.pdf",
+        url: "https://files.preventli.local/certificates/ava-thompson-extension.pdf",
       },
       {
         name: "RTW Plan - Graduated Duties",
         type: "rtw-plan",
-        url: "https://files.gpnet.local/rtw/ava-thompson-plan.pdf",
+        url: "https://files.preventli.local/rtw/ava-thompson-plan.pdf",
       },
       {
         name: "Case Notes - Site Supervisor",
         type: "case-note",
-        url: "https://files.gpnet.local/notes/ava-thompson-2025-01-20.txt",
+        url: "https://files.preventli.local/notes/ava-thompson-2025-01-20.txt",
       },
     ],
   },
@@ -138,12 +138,12 @@ const alphaCases: SeedCase[] = [
       {
         name: "Medical Certificate - Stabilisation",
         type: "medical-certificate",
-        url: "https://files.gpnet.local/certificates/marcus-reid-stabilisation.pdf",
+        url: "https://files.preventli.local/certificates/marcus-reid-stabilisation.pdf",
       },
       {
         name: "Case Notes - Shift Debrief",
         type: "case-note",
-        url: "https://files.gpnet.local/notes/marcus-reid-2025-01-24.txt",
+        url: "https://files.preventli.local/notes/marcus-reid-2025-01-24.txt",
       },
     ],
   },
@@ -176,12 +176,12 @@ const alphaCases: SeedCase[] = [
       {
         name: "Medical Certificate - Duty review",
         type: "medical-certificate",
-        url: "https://files.gpnet.local/certificates/noah-bennett-duty.pdf",
+        url: "https://files.preventli.local/certificates/noah-bennett-duty.pdf",
       },
       {
         name: "Case Notes - Toolbox Talk",
         type: "case-note",
-        url: "https://files.gpnet.local/notes/noah-bennett-2025-02-05.txt",
+        url: "https://files.preventli.local/notes/noah-bennett-2025-02-05.txt",
       },
     ],
   },
@@ -215,12 +215,12 @@ const alphaCases: SeedCase[] = [
       {
         name: "Medical Certificate - Expired",
         type: "medical-certificate",
-        url: "https://files.gpnet.local/certificates/ethan-wells-expired.pdf",
+        url: "https://files.preventli.local/certificates/ethan-wells-expired.pdf",
       },
       {
         name: "Case Notes - Worksite Attempt",
         type: "case-note",
-        url: "https://files.gpnet.local/notes/ethan-wells-2024-12-20.txt",
+        url: "https://files.preventli.local/notes/ethan-wells-2024-12-20.txt",
       },
     ],
   },
@@ -257,17 +257,17 @@ const betaCases: SeedCase[] = [
       {
         name: "Medical Certificate - Orthopedic",
         type: "medical-certificate",
-        url: "https://files.gpnet.local/certificates/priya-nair-ortho.pdf",
+        url: "https://files.preventli.local/certificates/priya-nair-ortho.pdf",
       },
       {
         name: "RTW Plan - Dock Support",
         type: "rtw-plan",
-        url: "https://files.gpnet.local/rtw/priya-nair-plan.pdf",
+        url: "https://files.preventli.local/rtw/priya-nair-plan.pdf",
       },
       {
         name: "Case Notes - Hydrotherapy Update",
         type: "case-note",
-        url: "https://files.gpnet.local/notes/priya-nair-2025-02-07.txt",
+        url: "https://files.preventli.local/notes/priya-nair-2025-02-07.txt",
       },
     ],
   },
@@ -300,7 +300,7 @@ const betaCases: SeedCase[] = [
       {
         name: "Medical Certificate - RTW clearance",
         type: "medical-certificate",
-        url: "https://files.gpnet.local/certificates/leo-gutierrez-clearance.pdf",
+        url: "https://files.preventli.local/certificates/leo-gutierrez-clearance.pdf",
       },
     ],
   },
@@ -333,12 +333,12 @@ const betaCases: SeedCase[] = [
       {
         name: "RTW Plan - Host Placement",
         type: "rtw-plan",
-        url: "https://files.gpnet.local/rtw/harper-lin-plan.pdf",
+        url: "https://files.preventli.local/rtw/harper-lin-plan.pdf",
       },
       {
         name: "Medical Certificate - Psych Consult",
         type: "medical-certificate",
-        url: "https://files.gpnet.local/certificates/harper-lin-psych.pdf",
+        url: "https://files.preventli.local/certificates/harper-lin-psych.pdf",
       },
     ],
   },
@@ -371,19 +371,19 @@ const betaCases: SeedCase[] = [
       {
         name: "Medical Certificate - Psychiatrist",
         type: "medical-certificate",
-        url: "https://files.gpnet.local/certificates/sofia-marin-psych.pdf",
+        url: "https://files.preventli.local/certificates/sofia-marin-psych.pdf",
       },
       {
         name: "Case Notes - Escalation",
         type: "case-note",
-        url: "https://files.gpnet.local/notes/sofia-marin-2025-01-10.txt",
+        url: "https://files.preventli.local/notes/sofia-marin-2025-01-10.txt",
       },
     ],
   },
 ];
 
 async function seed() {
-  console.log("Seeding GPNet multi-tenant demo data...");
+  console.log("Seeding Preventli multi-tenant demo data...");
 
   // Idempotency guard: skip if data already exists (prevents deploy failures on re-runs)
   const existingUsers = await db.select().from(users).limit(1);

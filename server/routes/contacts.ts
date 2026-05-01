@@ -112,7 +112,7 @@ router.get(
             name: wc.owner,
             phone: null,
             email: null,
-            company: "GPNet Case Management",
+            company: "Preventli Case Management",
             isPrimary: false,
             isActive: true,
             notes: "Auto-generated from case data",

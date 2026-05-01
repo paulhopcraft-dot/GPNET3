@@ -182,7 +182,7 @@ EXPERTISE AREAS:
 - Strategic planning and decision support
 
 BUSINESS CONTEXT:
-- GPNet3/Preventli platform: Injury management and workers' compensation
+- Preventli platform: Injury management and workers' compensation
 - Current metrics: 174 active cases, 15+ employers
 - Revenue model: $500/month + $50/case
 - Market opportunity: 600,000+ Victorian businesses, $2B market

@@ -1,5 +1,5 @@
 /**
- * Structured Logger for GPNet3
+ * Structured Logger for Preventli
  *
  * Features:
  * - Log levels: debug, info, warn, error

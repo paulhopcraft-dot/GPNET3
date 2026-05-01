@@ -210,7 +210,7 @@ EXPERTISE AREAS:
 
 INTEGRATION LANDSCAPE:
 1. CORE SYSTEMS:
-   - GPNet3 case management platform
+   - Preventli case management platform
    - PostgreSQL database
    - Anthropic Claude AI services
    - Email and notification services
@@ -345,7 +345,7 @@ Remember: Reliable integrations are critical for seamless case management and op
     return `Analyze integration orchestration and system connectivity for the Preventli platform:
 
 PLATFORM CONTEXT:
-- Current System: GPNet3 with PostgreSQL database
+- Current System: Preventli with PostgreSQL database
 - AI Integration: Anthropic Claude API
 - Case Volume: 174 active cases across 15+ employers
 - Analysis Focus: ${context.focusArea}
@@ -497,7 +497,7 @@ Focus on both immediate optimizations and strategic integration planning.`;
           ],
           integrationDependencies: [
             {
-              source: 'GPNet3 Application',
+              source: 'Preventli Application',
               target: 'PostgreSQL Database',
               dependencyType: 'required',
               impact: 'critical',

@@ -955,7 +955,7 @@ User question: ${message}`;
       });
     }
   });
-  // GPNet 2 Dashboard - Get all cases (paginated)
+  // Preventli Dashboard - Get all cases (paginated)
   app.get("/api/gpnet2/cases", authorize(), async (req: AuthRequest, res) => {
     try {
       // Admin users can see all organizations' cases, others only see their own
