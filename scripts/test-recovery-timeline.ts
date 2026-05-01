@@ -1,11 +1,11 @@
-import "dotenv/config";
+﻿import "dotenv/config";
 import { storage } from "../server/storage";
 
 async function testRecoveryTimeline() {
   console.log("\n=== Testing Recovery Timeline API ===\n");
 
   // Get a case that has certificates
-  const cases = await storage.getGPNet2CasesPaginated(undefined, 1, 10);
+  const cases = await storage.getCasesPaginated(undefined, 1, 10);
   const caseWithCert = cases.cases.find(c => c.hasCertificate);
 
   if (!caseWithCert) {

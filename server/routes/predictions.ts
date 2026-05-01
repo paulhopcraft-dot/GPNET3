@@ -1,4 +1,4 @@
-import { Router, type Response } from "express";
+﻿import { Router, type Response } from "express";
 import { authorize, type AuthRequest } from "../middleware/auth";
 import { requireCaseOwnership } from "../middleware/caseOwnership";
 import { storage } from "../storage";
@@ -17,7 +17,7 @@ const router = Router();
 router.get("/", authorize(), async (req: AuthRequest, res: Response) => {
   try {
     const organizationId = req.user!.organizationId;
-    const cases = await storage.getGPNet2Cases(organizationId);
+    const cases = await storage.getCases(organizationId);
 
     // Only predict on legitimate cases (not test/deleted)
     const legitimateCases = cases.filter(isLegitimateCase);

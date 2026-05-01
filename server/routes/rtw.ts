@@ -1,4 +1,4 @@
-import { Router, type Response } from "express";
+﻿import { Router, type Response } from "express";
 import { z } from "zod";
 import { authorize, type AuthRequest } from "../middleware/auth";
 import { requireCaseOwnership } from "../middleware/caseOwnership";
@@ -190,7 +190,7 @@ router.put("/:id/rtw-plan", authorize(), requireCaseOwnership(), async (req: Aut
 router.get("/overview", authorize(), async (req: AuthRequest, res: Response) => {
   try {
     const organizationId = req.user!.organizationId;
-    const cases = await storage.getGPNet2Cases(organizationId);
+    const cases = await storage.getCases(organizationId);
 
     const stats = {
       total: cases.length,
@@ -255,7 +255,7 @@ router.get("/expiry-overview/:organizationId", authorize(), async (req: AuthRequ
 
     logger.api.info("Fetching RTW expiry overview", { organizationId });
 
-    const cases = await storage.getGPNet2Cases(organizationId);
+    const cases = await storage.getCases(organizationId);
 
     // Process all cases to get RTW compliance status
     const expiringCases = [];
@@ -345,7 +345,7 @@ router.put("/cases/:id/rtw-plan/extend", authorize(), requireCaseOwnership, asyn
     logger.api.info("Extending RTW plan", { caseId, additionalWeeks, reason });
 
     // Get current case with clinical status
-    const cases = await storage.getGPNet2Cases(organizationId);
+    const cases = await storage.getCases(organizationId);
     const workerCase = cases.find(c => c.id === caseId);
     if (!workerCase) {
       return res.status(404).json({ error: "Case not found" });

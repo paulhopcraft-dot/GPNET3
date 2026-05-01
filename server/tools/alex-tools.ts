@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Alex AI Tools — gives Alex agentic capabilities over Preventli data and codebase.
  *
  * Data tools:  search_cases, get_case, update_case, create_case, create_action, trigger_freshdesk_sync
@@ -191,7 +191,7 @@ export async function executeAlexTool(
     case "search_cases": {
       const query = (input.query as string | undefined)?.toLowerCase() ?? "";
       const statusFilter = input.status as string | undefined;
-      const cases = await storage.getGPNet2Cases(orgId, isAdmin);
+      const cases = await storage.getCases(orgId, isAdmin);
       const filtered = cases.filter((c) => {
         const matchesQuery = !query
           || c.workerName.toLowerCase().includes(query)

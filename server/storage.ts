@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   WorkerCase,
   WorkerCaseDB,
   MedicalCertificate,
@@ -489,8 +489,8 @@ export interface PaginatedCasesResult {
 
 export interface IStorage {
   // Case methods - UPDATED for multi-tenant isolation
-  getGPNet2Cases(organizationId: string, isAdmin?: boolean): Promise<WorkerCase[]>;
-  getGPNet2CasesPaginated(organizationId: string | undefined, page: number, limit: number): Promise<PaginatedCasesResult>;
+  getCases(organizationId: string, isAdmin?: boolean): Promise<WorkerCase[]>;
+  getCasesPaginated(organizationId: string | undefined, page: number, limit: number): Promise<PaginatedCasesResult>;
   getGPNet2CaseById(id: string, organizationId: string): Promise<WorkerCase | null>;
   getGPNet2CaseByIdAdmin(id: string): Promise<WorkerCase | null>; // Admin-only, no org filter
   syncWorkerCaseFromFreshdesk(caseData: Partial<WorkerCase>): Promise<void>;
@@ -707,7 +707,7 @@ export interface IStorage {
 }
 
 class DbStorage implements IStorage {
-  async getGPNet2Cases(organizationId: string, isAdmin?: boolean): Promise<WorkerCase[]> {
+  async getCases(organizationId: string, isAdmin?: boolean): Promise<WorkerCase[]> {
     const dbCases = await db
       .select()
       .from(workerCases)
@@ -854,7 +854,7 @@ class DbStorage implements IStorage {
     return casesWithAttachments;
   }
 
-  async getGPNet2CasesPaginated(organizationId: string | undefined, page: number, limit: number): Promise<PaginatedCasesResult> {
+  async getCasesPaginated(organizationId: string | undefined, page: number, limit: number): Promise<PaginatedCasesResult> {
     // Build where conditions - admin users (organizationId = undefined) see all cases
     const conditions = organizationId
       ? and(

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * List available cases for testing summaries
  */
 
@@ -12,7 +12,7 @@ async function listCases() {
   console.log(`📋 Available Cases for Testing (${orgId}):\n`);
 
   try {
-    const cases = await storage.getGPNet2Cases(orgId);
+    const cases = await storage.getCases(orgId);
 
     console.log(`Total cases: ${cases.length}\n`);
 

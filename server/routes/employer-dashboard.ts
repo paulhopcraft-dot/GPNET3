@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Employer Dashboard API Routes
  * Provides summary statistics and priority actions for employer landing page
  */
@@ -391,7 +391,7 @@ router.get('/workers', authorize(), async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Organization ID required' });
     }
 
-    const allCases = await storage.getGPNet2Cases(organizationId);
+    const allCases = await storage.getCases(organizationId);
 
     // Build list of unique workers with their case status
     const workersMap = new Map<string, {
@@ -454,7 +454,7 @@ router.post('/cases', authorize(), upload.any(), async (req: Request, res: Respo
 
     if (formData.workerType === 'existing' && formData.existingWorkerId) {
       // Fetch existing worker info
-      const allCases = await storage.getGPNet2Cases(organizationId);
+      const allCases = await storage.getCases(organizationId);
       const existingCase = allCases.find(c => c.id === formData.existingWorkerId);
       if (!existingCase) {
         return res.status(404).json({ error: 'Worker not found' });
@@ -472,7 +472,7 @@ router.post('/cases', authorize(), upload.any(), async (req: Request, res: Respo
     // Get company name from user context or first existing case
     let companyName = 'Unknown Company';
     try {
-      const existingCases = await storage.getGPNet2Cases(organizationId);
+      const existingCases = await storage.getCases(organizationId);
       if (existingCases.length > 0) {
         companyName = existingCases[0].company;
       }

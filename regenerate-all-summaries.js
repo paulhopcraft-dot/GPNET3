@@ -1,4 +1,4 @@
-// Regenerate all AI summaries with new Sonnet model and improved prompt
+﻿// Regenerate all AI summaries with new Sonnet model and improved prompt
 import 'dotenv/config';
 import { storage } from './server/storage.ts';
 import { summaryService } from './server/services/summary.ts';
@@ -9,7 +9,7 @@ async function regenerateAllSummaries() {
   try {
     // Get all cases using pagination (admin mode: organizationId = undefined)
     const limit = 1000;
-    const result = await storage.getGPNet2CasesPaginated(undefined, 1, limit);
+    const result = await storage.getCasesPaginated(undefined, 1, limit);
     const cases = result.cases;
     console.log(`📋 Found ${cases.length} cases to process (${result.total} total)\n`);
 

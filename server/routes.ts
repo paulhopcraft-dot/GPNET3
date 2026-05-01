@@ -1,4 +1,4 @@
-import type { Express } from "express";
+﻿import type { Express } from "express";
 import { z } from "zod";
 import { storage } from "./storage";
 import { FreshdeskService } from "./services/freshdesk";
@@ -198,7 +198,7 @@ export async function registerRoutes(app: Express): Promise<void> {
   app.get("/api/smart-actions", authorize(), async (req: AuthRequest, res) => {
     try {
       const organizationId = req.user!.role === 'admin' ? undefined : req.user!.organizationId;
-      const paginatedData = await storage.getGPNet2CasesPaginated(organizationId, 1, 200);
+      const paginatedData = await storage.getCasesPaginated(organizationId, 1, 200);
       const cases = paginatedData.cases;
 
       const smartActions: any[] = [];
@@ -317,7 +317,7 @@ export async function registerRoutes(app: Express): Promise<void> {
   app.get("/api/workspace/stats", authorize(), async (req: AuthRequest, res) => {
     try {
       const organizationId = req.user!.role === 'admin' ? undefined : req.user!.organizationId;
-      const paginatedData = await storage.getGPNet2CasesPaginated(organizationId, 1, 200);
+      const paginatedData = await storage.getCasesPaginated(organizationId, 1, 200);
       const cases = paginatedData.cases;
 
       const stats = {
@@ -406,7 +406,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       let caseContext = "";
 
       if (context.currentCase) {
-        const paginatedData = await storage.getGPNet2CasesPaginated(organizationId, 1, 200);
+        const paginatedData = await storage.getCasesPaginated(organizationId, 1, 200);
         const currentCase = paginatedData.cases.find(c => c.id === context.currentCase.id);
 
         if (currentCase) {
@@ -525,7 +525,7 @@ Keep responses concise but comprehensive (2-3 paragraphs max). If suggesting act
 
       // Get user's cases for contextual analysis
       const organizationId = req.user!.role === 'admin' ? undefined : req.user!.organizationId;
-      const paginatedData = await storage.getGPNet2CasesPaginated(organizationId, 1, 200);
+      const paginatedData = await storage.getCasesPaginated(organizationId, 1, 200);
       const cases = paginatedData.cases;
 
       const currentHour = new Date().getHours();
@@ -721,7 +721,7 @@ Keep responses concise but comprehensive (2-3 paragraphs max). If suggesting act
   app.get("/api/ai/intelligent-summary", authorize(), async (req: AuthRequest, res) => {
     try {
       const organizationId = req.user!.role === 'admin' ? undefined : req.user!.organizationId;
-      const paginatedData = await storage.getGPNet2CasesPaginated(organizationId, 1, 200);
+      const paginatedData = await storage.getCasesPaginated(organizationId, 1, 200);
       const cases = paginatedData.cases;
 
       // Calculate comprehensive metrics
@@ -871,7 +871,7 @@ Keep responses concise but comprehensive (2-3 paragraphs max). If suggesting act
     try {
       // Get user's cases for context
       const organizationId = req.user!.role === 'admin' ? undefined : req.user!.organizationId;
-      const paginatedData = await storage.getGPNet2CasesPaginated(organizationId, 1, 200);
+      const paginatedData = await storage.getCasesPaginated(organizationId, 1, 200);
       const cases = paginatedData.cases;
 
       // Build context summary
@@ -973,7 +973,7 @@ User question: ${message}`;
         ...getRequestMetadata(req),
       });
 
-      const result = await storage.getGPNet2CasesPaginated(organizationId, page, limit);
+      const result = await storage.getCasesPaginated(organizationId, page, limit);
 
       // Iteration 9/13: fire-and-forget lifecycle stage advancement.
       // Covers "intake" cases (iter 9) and "assessment" cases stuck > 28d (iter 13).

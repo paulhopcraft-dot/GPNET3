@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Compliance Scheduler Service
  *
  * Automatically checks certificate compliance for all active cases
@@ -156,7 +156,7 @@ export class ComplianceScheduler {
 
         try {
           // Get all active cases for this organization (excluding closed/archived)
-          const activeCases = await storage.getGPNet2Cases(org.id);
+          const activeCases = await storage.getCases(org.id);
 
           logger.compliance.info("Found active cases", {
             organizationId: org.id,

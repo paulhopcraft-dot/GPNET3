@@ -3,14 +3,14 @@ import { queryClient } from "./lib/queryClient";
 import { Toaster } from "./components/ui/toaster";
 import { TooltipProvider } from "./components/ui/tooltip";
 import { ThemeProvider } from "./components/theme-provider";
-import GPNet2Dashboard from "./pages/GPNet2Dashboard";
+import CasesDashboard from "./pages/CasesDashboard";
 
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <ThemeProvider defaultTheme="light">
-          <GPNet2Dashboard />
+          <CasesDashboard />
           <Toaster />
         </ThemeProvider>
       </TooltipProvider>

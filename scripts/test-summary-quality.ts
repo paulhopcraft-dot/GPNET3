@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Test improved AI summary quality on a specific case
  */
 
@@ -14,7 +14,7 @@ async function testSummaryQuality() {
 
   try {
     // Find the case
-    const cases = await storage.getGPNet2Cases(orgId);
+    const cases = await storage.getCases(orgId);
     const workerCase = cases.find(c => c.workerName.toLowerCase().includes(workerName.toLowerCase()));
 
     if (!workerCase) {

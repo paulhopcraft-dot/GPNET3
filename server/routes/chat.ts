@@ -1,4 +1,4 @@
-import express, { type Response, type Router } from "express";
+﻿import express, { type Response, type Router } from "express";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { authorize, type AuthRequest } from "../middleware/auth";
@@ -58,7 +58,7 @@ router.post("/message", authorize(), async (req: AuthRequest, res: Response) => 
     // Load org-wide case summary so Alex knows the full portfolio
     let orgCasesBlock = "";
     try {
-      const allCases = await storage.getGPNet2Cases(orgId, isAdmin);
+      const allCases = await storage.getCases(orgId, isAdmin);
       if (allCases.length > 0) {
         const statusCounts: Record<string, number> = {};
         for (const c of allCases) {

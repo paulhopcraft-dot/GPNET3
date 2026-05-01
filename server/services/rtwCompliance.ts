@@ -1,4 +1,4 @@
-/**
+﻿/**
  * RTW Plan Compliance Engine v1
  *
  * Computes RTW plan compliance status following certificate compliance patterns:
@@ -191,7 +191,7 @@ export async function getCaseRTWCompliance(
   organizationId: string
 ): Promise<RTWCompliance> {
   // Get all cases for the organization and find the specific case
-  const cases = await storage.getGPNet2Cases(organizationId);
+  const cases = await storage.getCases(organizationId);
   const workerCase = cases.find(c => c.id === caseId);
 
   if (!workerCase) {

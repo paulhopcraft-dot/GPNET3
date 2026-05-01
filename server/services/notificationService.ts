@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Notification Service v1
  *
  * Core service for generating and sending automated email notifications.
@@ -382,7 +382,7 @@ async function generateCertificateNotifications(
   let created = 0;
 
   // Get all cases for the organization
-  const cases = await storage.getGPNet2Cases(organizationId);
+  const cases = await storage.getCases(organizationId);
 
   for (const workerCase of cases) {
     try {
@@ -464,7 +464,7 @@ async function generateRTWPlanNotifications(
   let created = 0;
 
   // Get all cases for the organization
-  const cases = await storage.getGPNet2Cases(organizationId);
+  const cases = await storage.getCases(organizationId);
 
   for (const workerCase of cases) {
     try {
@@ -644,7 +644,7 @@ async function generateCheckInNotifications(
   const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
   // Get all cases for the organization
-  const cases = await storage.getGPNet2Cases(organizationId);
+  const cases = await storage.getCases(organizationId);
 
   for (const workerCase of cases) {
     try {
@@ -1016,7 +1016,7 @@ export async function sendWorkerCertificateAlerts(
 
   try {
     // Get all cases for the organization
-    const cases = await storage.getGPNet2Cases(organizationId);
+    const cases = await storage.getCases(organizationId);
 
     for (const workerCase of cases) {
       try {

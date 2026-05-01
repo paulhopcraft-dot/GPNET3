@@ -46,7 +46,7 @@ function fmtDate(s: string | null | undefined) {
   return new Date(s).toLocaleDateString("en-AU", { day: "numeric", month: "short" });
 }
 
-export default function GPNet2Dashboard() {
+export default function CasesDashboard() {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);

@@ -1,5 +1,5 @@
 import { useAuth } from "@/hooks/useAuth";
-import GPNet2Dashboard from "@/pages/GPNet2Dashboard";
+import CasesDashboard from "@/pages/CasesDashboard";
 import { EmployerDashboardPage } from "@/pages/EmployerDashboardPage";
 
 export function RoleBasedDashboard() {
@@ -11,5 +11,5 @@ export function RoleBasedDashboard() {
   }
 
   // Default: show admin/clinician dashboard
-  return <GPNet2Dashboard />;
+  return <CasesDashboard />;
 }

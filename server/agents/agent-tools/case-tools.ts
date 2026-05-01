@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Case Tools — wraps existing storage.ts functions
  */
 
@@ -51,7 +51,7 @@ export const getCasesForOrgTool: AgentTool = {
   },
   async execute({ organizationId }) {
     const orgId = organizationId as string | undefined;
-    const result = await storage.getGPNet2CasesPaginated(orgId, 1, 200);
+    const result = await storage.getCasesPaginated(orgId, 1, 200);
     const cases = result.cases.filter((c) => c.caseStatus !== "closed");
     return {
       totalCases: cases.length,

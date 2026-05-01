@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Coordinator Tools — used by the coordinator agent to trigger specialist agents
  */
 
@@ -80,7 +80,7 @@ export const getPortfolioHealthTool: AgentTool = {
   },
   async execute({ organizationId }) {
     const { storage } = await import("../../storage");
-    const result = await storage.getGPNet2CasesPaginated(
+    const result = await storage.getCasesPaginated(
       organizationId as string | undefined,
       1,
       500

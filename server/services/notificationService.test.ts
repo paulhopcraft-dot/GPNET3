@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+﻿import { describe, it, expect, beforeEach, vi } from "vitest";
 import { generatePendingNotifications } from "./notificationService";
 import type { IStorage } from "../storage";
 import type { WorkerCase, InsertNotification } from "@shared/schema";
@@ -9,7 +9,7 @@ function createMockStorage(): IStorage {
   const dedupeKeys = new Set<string>();
 
   return {
-    getGPNet2Cases: vi.fn(async () => []),
+    getCases: vi.fn(async () => []),
     createNotification: vi.fn(async (notification: InsertNotification) => {
       notifications.push(notification);
       if (notification.dedupeKey) {
@@ -63,7 +63,7 @@ describe("Check-in Notification Generation", () => {
       } as WorkerCase,
     ];
 
-    vi.mocked(storage.getGPNet2Cases).mockResolvedValue(cases);
+    vi.mocked(storage.getCases).mockResolvedValue(cases);
 
     await generatePendingNotifications(storage, organizationId);
 
@@ -104,7 +104,7 @@ describe("Check-in Notification Generation", () => {
       } as WorkerCase,
     ];
 
-    vi.mocked(storage.getGPNet2Cases).mockResolvedValue(cases);
+    vi.mocked(storage.getCases).mockResolvedValue(cases);
 
     await generatePendingNotifications(storage, organizationId);
 
@@ -141,7 +141,7 @@ describe("Check-in Notification Generation", () => {
       } as WorkerCase,
     ];
 
-    vi.mocked(storage.getGPNet2Cases).mockResolvedValue(cases);
+    vi.mocked(storage.getCases).mockResolvedValue(cases);
 
     await generatePendingNotifications(storage, organizationId);
 
@@ -178,7 +178,7 @@ describe("Check-in Notification Generation", () => {
       } as WorkerCase,
     ];
 
-    vi.mocked(storage.getGPNet2Cases).mockResolvedValue(cases);
+    vi.mocked(storage.getCases).mockResolvedValue(cases);
 
     await generatePendingNotifications(storage, organizationId);
 
@@ -215,7 +215,7 @@ describe("Check-in Notification Generation", () => {
       } as WorkerCase,
     ];
 
-    vi.mocked(storage.getGPNet2Cases).mockResolvedValue(cases);
+    vi.mocked(storage.getCases).mockResolvedValue(cases);
 
     await generatePendingNotifications(storage, organizationId);
 
@@ -254,7 +254,7 @@ describe("Check-in Notification Generation", () => {
       } as WorkerCase,
     ];
 
-    vi.mocked(storage.getGPNet2Cases).mockResolvedValue(cases);
+    vi.mocked(storage.getCases).mockResolvedValue(cases);
 
     // First generation should create notification
     await generatePendingNotifications(storage, organizationId);
@@ -295,7 +295,7 @@ describe("Check-in Notification Generation", () => {
       } as WorkerCase,
     ];
 
-    vi.mocked(storage.getGPNet2Cases).mockResolvedValue(cases);
+    vi.mocked(storage.getCases).mockResolvedValue(cases);
 
     await generatePendingNotifications(storage, organizationId);
 
