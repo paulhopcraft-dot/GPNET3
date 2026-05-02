@@ -45,6 +45,33 @@ function hashToken(token: string): string {
 }
 
 /**
+ * Look up the token family for a refresh token without rotating it.
+ */
+export async function getRefreshTokenFamily(token: string): Promise<string | undefined> {
+  const tokenHash = hashToken(token);
+  const tokenRecords = await db
+    .select({
+      tokenFamily: refreshTokens.tokenFamily,
+      expiresAt: refreshTokens.expiresAt,
+    })
+    .from(refreshTokens)
+    .where(
+      and(
+        eq(refreshTokens.tokenHash, tokenHash),
+        isNull(refreshTokens.revokedAt)
+      )
+    )
+    .limit(1);
+
+  const tokenRecord = tokenRecords[0];
+  if (!tokenRecord || new Date() > tokenRecord.expiresAt) {
+    return undefined;
+  }
+
+  return tokenRecord.tokenFamily;
+}
+
+/**
  * Generate a new token family ID
  */
 function generateTokenFamily(): string {
