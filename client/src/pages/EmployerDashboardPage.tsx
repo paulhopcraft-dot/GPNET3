@@ -13,11 +13,8 @@ import {
   AlertTriangle,
   Clock,
   CheckCircle,
-  Phone,
-  Mail,
   ArrowRight,
   Calendar,
-  Building,
   Activity
 } from 'lucide-react';
 import type { PaginatedCasesResponse } from '@shared/schema';
@@ -464,21 +461,6 @@ function EmployerDashboardContent() {
         </Card>
       )}
 
-      {/* Quick Actions Footer */}
-      <div className="bg-card rounded-xl shadow-lg p-6">
-        <div className="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
-          <div>
-            <h3 className="text-lg font-semibold text-foreground">Need help managing cases?</h3>
-            <p className="text-muted-foreground">Contact your case management team or access support resources</p>
-          </div>
-          <div className="flex space-x-3">
-            <Button variant="outline">
-              <Mail className="w-4 h-4 mr-2" />
-              Email Support
-            </Button>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
