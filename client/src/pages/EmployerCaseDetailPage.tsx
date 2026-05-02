@@ -736,7 +736,7 @@ export default function EmployerCaseDetailPage() {
     onSuccess: async () => {
       toast({ title: "RTW plan approved", description: "The Return to Work plan is now active." });
       await Promise.all([
-        queryClient.refetchQueries({ queryKey: ["/api/gpnet2/cases"] }),
+        queryClient.refetchQueries({ queryKey: ["/api/cases"] }),
         queryClient.refetchQueries({ queryKey: ["/api/employer/dashboard"] }),
       ]);
       navigate("/employer");
@@ -748,7 +748,7 @@ export default function EmployerCaseDetailPage() {
 
   // Fetch case data - use same approach as CaseSummaryPage
   const { data: paginatedData, isLoading, error } = useQuery<PaginatedCasesResponse>({
-    queryKey: ["/api/gpnet2/cases"],
+    queryKey: ["/api/cases"],
   });
   const cases = paginatedData?.cases ?? [];
   const workerCase = cases.find((c) => c.id === id);
@@ -963,7 +963,7 @@ export default function EmployerCaseDetailPage() {
               }).catch(() => {}); // best-effort
               toast({ title: "Changes requested", description: "Your feedback has been sent to the coordinator." });
               await Promise.all([
-                queryClient.refetchQueries({ queryKey: ["/api/gpnet2/cases"] }),
+                queryClient.refetchQueries({ queryKey: ["/api/cases"] }),
                 queryClient.refetchQueries({ queryKey: ["/api/employer/dashboard"] }),
               ]);
               navigate("/employer");
@@ -1510,7 +1510,7 @@ export default function EmployerCaseDetailPage() {
                                   }).catch(() => {});
                                   toast({ title: "Changes requested", description: "Your feedback has been sent to the coordinator." });
                                   await Promise.all([
-                                    queryClient.refetchQueries({ queryKey: ["/api/gpnet2/cases"] }),
+                                    queryClient.refetchQueries({ queryKey: ["/api/cases"] }),
                                     queryClient.refetchQueries({ queryKey: ["/api/employer/dashboard"] }),
                                   ]);
                                   navigate("/employer");

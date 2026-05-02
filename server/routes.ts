@@ -95,6 +95,69 @@ export async function registerRoutes(app: Express): Promise<void> {
   // Action Queue v1 routes (JWT-protected)
   app.use("/api/actions", actionRoutes);
 
+  // Cases list (paginated) — must be registered BEFORE the `/api/cases` router mounts
+  // below, because `predictionRoutes` has a `router.get("/")` that would otherwise
+  // catch `GET /api/cases` and shadow this handler.
+  const casesListHandler = async (req: AuthRequest, res: any) => {
+    try {
+      // Admin users can see all organizations' cases, others only see their own
+      const organizationId = req.user!.role === 'admin' ? undefined : req.user!.organizationId;
+
+      // Parse pagination params (defaults: page=1, limit=50, max limit=200)
+      const page = Math.max(1, parseInt(req.query.page as string) || 1);
+      const limit = Math.min(200, Math.max(1, parseInt(req.query.limit as string) || 50));
+
+      // Log access
+      await logAuditEvent({
+        userId: req.user!.id,
+        organizationId: req.user!.organizationId,
+        eventType: AuditEventTypes.CASE_LIST,
+        ...getRequestMetadata(req),
+      });
+
+      const result = await storage.getCasesPaginated(organizationId, page, limit);
+
+      // Iteration 9/13: fire-and-forget lifecycle stage advancement.
+      // Covers "intake" cases (iter 9) and "assessment" cases stuck > 28d (iter 13).
+      // Non-blocking — the list returns immediately; next fetch shows updated stages.
+      const ASSESSMENT_ADVANCE_DAYS = 28;
+      const _now = new Date();
+      const staleOrgs = new Set(
+        result.cases
+          .filter(c => {
+            if (c.lifecycleStage === "intake") return true;
+            if (c.lifecycleStage === "assessment" && c.dateOfInjury) {
+              const daysOff = Math.floor((_now.getTime() - new Date(c.dateOfInjury).getTime()) / 86400000);
+              return daysOff > ASSESSMENT_ADVANCE_DAYS;
+            }
+            return false;
+          })
+          .map(c => c.organizationId)
+          .filter((id): id is string => !!id)
+      );
+      for (const orgId of staleOrgs) {
+        storage.autoAssignLifecycleStages(orgId).catch(() => {});
+      }
+
+      // Phase 1.8: strip clinical fields for employer-role users
+      const role = req.user!.role;
+      if (isEmployerRole(role)) {
+        result.cases = result.cases.map(c => filterCaseByRole(c, role));
+      }
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch cases" });
+    }
+  };
+  app.get("/api/cases", authorize(), casesListHandler);
+  // Deprecated alias — remove after rebrand Tier 3 follow-up (~1 week post-deploy)
+  app.get("/api/gpnet2/cases", authorize(), (req: AuthRequest, res) => {
+    routeLogger.warn("Deprecated route hit: /api/gpnet2/cases — migrate caller to /api/cases", {
+      userAgent: req.headers["user-agent"],
+    });
+    return casesListHandler(req, res);
+  });
+
   // Smart Summary Engine v1 routes (JWT-protected)
   app.use("/api/cases", smartSummaryRoutes);
 
@@ -955,58 +1018,9 @@ User question: ${message}`;
       });
     }
   });
-  // Preventli Dashboard - Get all cases (paginated)
-  app.get("/api/gpnet2/cases", authorize(), async (req: AuthRequest, res) => {
-    try {
-      // Admin users can see all organizations' cases, others only see their own
-      const organizationId = req.user!.role === 'admin' ? undefined : req.user!.organizationId;
-
-      // Parse pagination params (defaults: page=1, limit=50, max limit=200)
-      const page = Math.max(1, parseInt(req.query.page as string) || 1);
-      const limit = Math.min(200, Math.max(1, parseInt(req.query.limit as string) || 50));
-
-      // Log access
-      await logAuditEvent({
-        userId: req.user!.id,
-        organizationId: req.user!.organizationId,
-        eventType: AuditEventTypes.CASE_LIST,
-        ...getRequestMetadata(req),
-      });
-
-      const result = await storage.getCasesPaginated(organizationId, page, limit);
-
-      // Iteration 9/13: fire-and-forget lifecycle stage advancement.
-      // Covers "intake" cases (iter 9) and "assessment" cases stuck > 28d (iter 13).
-      // Non-blocking — the list returns immediately; next fetch shows updated stages.
-      const ASSESSMENT_ADVANCE_DAYS = 28;
-      const _now = new Date();
-      const staleOrgs = new Set(
-        result.cases
-          .filter(c => {
-            if (c.lifecycleStage === "intake") return true;
-            if (c.lifecycleStage === "assessment" && c.dateOfInjury) {
-              const daysOff = Math.floor((_now.getTime() - new Date(c.dateOfInjury).getTime()) / 86400000);
-              return daysOff > ASSESSMENT_ADVANCE_DAYS;
-            }
-            return false;
-          })
-          .map(c => c.organizationId)
-          .filter((id): id is string => !!id)
-      );
-      for (const orgId of staleOrgs) {
-        storage.autoAssignLifecycleStages(orgId).catch(() => {});
-      }
-
-      // Phase 1.8: strip clinical fields for employer-role users
-      const role = req.user!.role;
-      if (isEmployerRole(role)) {
-        result.cases = result.cases.map(c => filterCaseByRole(c, role));
-      }
-      res.json(result);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch cases" });
-    }
-  });
+  // Cases list endpoint (paginated) — registered earlier in this function (above the
+  // `app.use("/api/cases", ...)` router mounts) so it wins over `predictionRoutes`'
+  // `router.get("/")` which would otherwise shadow `GET /api/cases`.
 
   // Create new case (claims intake)
   const createCaseSchema = z.object({

@@ -460,7 +460,7 @@ test.describe("@critical Dr. Alex Chat", () => {
     const { headers } = await apiSession(request);
 
     // Get a case ID
-    const casesRes = await request.get(`${BASE}/api/gpnet2/cases`, { headers });
+    const casesRes = await request.get(`${BASE}/api/cases`, { headers });
     const casesJson = await casesRes.json();
     const cases = casesJson.cases ?? (Array.isArray(casesJson) ? casesJson : casesJson.data ?? []);
     if (!cases.length) { test.skip(true, "No cases"); return; }
@@ -507,7 +507,7 @@ test.describe("@critical Dr. Alex Chat", () => {
   test("API: chat memory persists across messages for same case", async ({ request }) => {
     const { headers } = await apiSession(request);
 
-    const casesRes = await request.get(`${BASE}/api/gpnet2/cases`, { headers });
+    const casesRes = await request.get(`${BASE}/api/cases`, { headers });
     const casesJson = await casesRes.json();
     const cases = casesJson.cases ?? (Array.isArray(casesJson) ? casesJson : casesJson.data ?? []);
     if (!cases.length) { test.skip(true, "No cases"); return; }
@@ -553,7 +553,7 @@ test.describe("@critical Dr. Alex Chat", () => {
     const { headers } = await apiSession(request);
 
     // Find a case with expired certificate to trigger booking suggestion
-    const casesRes = await request.get(`${BASE}/api/gpnet2/cases`, { headers });
+    const casesRes = await request.get(`${BASE}/api/cases`, { headers });
     const casesJson = await casesRes.json();
     const cases = casesJson.cases ?? (Array.isArray(casesJson) ? casesJson : casesJson.data ?? []);
     if (!cases.length) { test.skip(true, "No cases"); return; }
@@ -665,7 +665,7 @@ test.describe("@critical Telehealth Bookings", () => {
     const { headers } = await apiSession(request);
 
     // Get a case to link
-    const casesRes = await request.get(`${BASE}/api/gpnet2/cases`, { headers });
+    const casesRes = await request.get(`${BASE}/api/cases`, { headers });
     const casesJson = await casesRes.json();
     const cases = casesJson.cases ?? (Array.isArray(casesJson) ? casesJson : casesJson.data ?? []);
     if (!cases.length) { test.skip(true, "No cases"); return; }
@@ -712,7 +712,7 @@ test.describe("@critical Case Compliance", () => {
   test("API: cases list returns compliance data", async ({ request }) => {
     const { headers } = await apiSession(request);
 
-    const res = await request.get(`${BASE}/api/gpnet2/cases`, { headers });
+    const res = await request.get(`${BASE}/api/cases`, { headers });
     expect(res.status()).toBe(200);
     const json = await res.json();
     // Response shape: { cases: [...], total, page, limit, hasMore }
@@ -727,7 +727,7 @@ test.describe("@critical Case Compliance", () => {
   test("API: case detail returns certificate and RTW compliance", async ({ request }) => {
     const { headers } = await apiSession(request);
 
-    const casesRes = await request.get(`${BASE}/api/gpnet2/cases`, { headers });
+    const casesRes = await request.get(`${BASE}/api/cases`, { headers });
     const cases = await casesRes.json();
     const list = cases.cases ?? (Array.isArray(cases) ? cases : cases.data ?? []);
     if (!list.length) { test.skip(true, "No cases"); return; }
@@ -741,7 +741,7 @@ test.describe("@critical Case Compliance", () => {
   test("UI: case page shows Dr. Alex context chat", async ({ page, request }) => {
     await loginUI(page);
     const { headers } = await apiSession(request);
-    const casesRes = await request.get(`${BASE}/api/gpnet2/cases`, { headers });
+    const casesRes = await request.get(`${BASE}/api/cases`, { headers });
     const cases = await casesRes.json();
     const list = cases.cases ?? (Array.isArray(cases) ? cases : cases.data ?? []);
     if (!list.length) { test.skip(true, "No cases"); return; }

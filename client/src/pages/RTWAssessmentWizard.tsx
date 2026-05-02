@@ -569,7 +569,7 @@ export default function RTWAssessmentWizard(): React.JSX.Element {
 
   // Load case data for pre-population
   const { data: workerCase, isLoading } = useQuery<WorkerCase>({
-    queryKey: [`/api/gpnet2/cases/${caseId}`],
+    queryKey: [`/api/cases/${caseId}`],
     enabled: !!caseId,
   });
 
@@ -625,7 +625,7 @@ export default function RTWAssessmentWizard(): React.JSX.Element {
     },
     onSuccess: () => {
       toast({ title: "RTW Assessment Submitted", description: "The return-to-work plan has been recorded." });
-      queryClient.invalidateQueries({ queryKey: [`/api/gpnet2/cases/${caseId}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/cases/${caseId}`] });
       navigate(`/employer/case/${caseId}`);
     },
     onError: (err: Error) => {

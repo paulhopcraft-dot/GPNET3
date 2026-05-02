@@ -17,7 +17,7 @@ export default function EmployerDashboard() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
   const { data: paginatedData, isLoading } = useQuery<PaginatedCasesResponse>({
-    queryKey: ["/api/gpnet2/cases"],
+    queryKey: ["/api/cases"],
     refetchInterval: 60000,
   });
   const cases = paginatedData?.cases ?? [];

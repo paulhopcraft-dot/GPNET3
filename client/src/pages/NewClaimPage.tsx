@@ -55,7 +55,7 @@ export default function NewClaimPage() {
       const newCase = await response.json();
 
       // Invalidate cases query to refresh the list
-      await queryClient.invalidateQueries({ queryKey: ["/api/gpnet2/cases"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
 
       toast({
         title: "Claim Created",

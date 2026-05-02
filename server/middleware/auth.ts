@@ -35,7 +35,8 @@ export interface JWTPayload {
   companyId?: string | null; // Deprecated - fallback for old tokens
 }
 
-const COOKIE_NAME = "gpnet_auth";
+const COOKIE_NAME = "preventli_auth";
+const LEGACY_COOKIE_NAME = "gpnet_auth"; // Pre-rebrand; read-only fallback for in-flight sessions
 
 export function authorize(allowedRoles?: UserRole[]) {
   return async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -44,8 +45,9 @@ export function authorize(allowedRoles?: UserRole[]) {
       // Fall back to Authorization header for backwards compatibility
       let token: string | undefined;
 
-      if (req.cookies && req.cookies[COOKIE_NAME]) {
-        token = req.cookies[COOKIE_NAME];
+      const cookieToken = req.cookies?.[COOKIE_NAME] ?? req.cookies?.[LEGACY_COOKIE_NAME];
+      if (cookieToken) {
+        token = cookieToken;
       } else {
         const authHeader = req.headers.authorization;
         if (authHeader && authHeader.startsWith("Bearer ")) {
