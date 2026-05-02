@@ -5,6 +5,7 @@ import { FirstTimeTour } from "@/components/FirstTimeTour";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { PageSpinner } from '@/components/typography';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -128,26 +129,29 @@ function EmployerDashboardContent() {
     <div className="space-y-6">
       {/* RTW Approval Banner — only shown when employer action is needed */}
       {pendingApprovals.length > 0 && (
-        <div className="rounded-lg border-2 border-yellow-400 bg-yellow-50 px-5 py-4 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <AlertTriangle className="w-5 h-5 text-yellow-600 shrink-0" />
+        <Alert variant="warning" className="flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 shrink-0" />
+          <div className="flex-1 ml-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <p className="font-semibold text-yellow-900">
+              <AlertTitle>
                 {pendingApprovals.length === 1
                   ? `Return to Work plan requires your approval — ${pendingApprovals[0].workerName}`
                   : `${pendingApprovals.length} Return to Work plans awaiting your approval`}
-              </p>
-              <p className="text-xs text-yellow-700 mt-0.5">Your sign-off is required before the plan can proceed.</p>
+              </AlertTitle>
+              <AlertDescription>
+                Your sign-off is required before the plan can proceed.
+              </AlertDescription>
             </div>
+            <Button
+              size="sm"
+              variant="warning"
+              className="shrink-0"
+              onClick={() => navigate(`/employer/case/${pendingApprovals[0].id}`)}
+            >
+              Review now
+            </Button>
           </div>
-          <Button
-            size="sm"
-            className="bg-yellow-500 hover:bg-yellow-600 text-white shrink-0"
-            onClick={() => navigate(`/employer/case/${pendingApprovals[0].id}`)}
-          >
-            Review now
-          </Button>
-        </div>
+        </Alert>
       )}
 
       {/* Statistics Grid */}
