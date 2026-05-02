@@ -10,6 +10,7 @@ import {
   DialogTrigger,
 } from "./ui/dialog";
 import type { WorkCapacity } from "@shared/schema";
+import { Stethoscope, Loader2, AlertTriangle, FileText, ExternalLink, Calendar, CalendarRange } from "lucide-react";
 import { fetchWithCsrf } from "../lib/queryClient";
 
 interface CertificateWithStatus {
@@ -134,30 +135,28 @@ export const CertificateCard = memo(function CertificateCard({ caseId }: Certifi
     <Card data-testid="card-certificates">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
-          <span className="material-symbols-outlined text-primary">clinical_notes</span>
+          <Stethoscope className="w-5 h-5 text-primary" />
           Medical Certificates
         </CardTitle>
       </CardHeader>
       <CardContent>
         {loading && (
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
-            <span className="material-symbols-outlined animate-spin text-primary">progress_activity</span>
+            <Loader2 className="w-5 h-5 animate-spin text-primary" />
             <span>Loading certificates...</span>
           </div>
         )}
 
         {error && (
           <div className="text-sm text-muted-foreground flex items-center gap-2">
-            <span className="material-symbols-outlined text-warning text-base">error</span>
+            <AlertTriangle className="w-4 h-4 text-amber-600" />
             {error}
           </div>
         )}
 
         {!loading && !error && certificates.length === 0 && (
           <div className="text-center py-4">
-            <span className="material-symbols-outlined text-3xl text-muted-foreground/50 mb-2">
-              description
-            </span>
+            <FileText className="w-8 h-8 text-muted-foreground/50 mb-2 mx-auto" />
             <p className="text-sm text-muted-foreground">
               No medical certificates on file for this case.
             </p>
@@ -195,20 +194,20 @@ export const CertificateCard = memo(function CertificateCard({ caseId }: Certifi
                       className="text-primary hover:text-primary/80"
                       title="View document"
                     >
-                      <span className="material-symbols-outlined text-base">open_in_new</span>
+                      <ExternalLink className="w-4 h-4" />
                     </a>
                   )}
                 </div>
 
                 <div className="mt-2 text-xs text-muted-foreground space-y-1">
                   <div className="flex items-center gap-1">
-                    <span className="material-symbols-outlined text-sm">event</span>
+                    <Calendar className="w-4 h-4" />
                     <span>
                       Issued: {formatDate(cert.issueDate)}
                     </span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <span className="material-symbols-outlined text-sm">date_range</span>
+                    <CalendarRange className="w-4 h-4" />
                     <span>
                       {formatDate(cert.startDate)} - {formatDate(cert.endDate)}
                     </span>

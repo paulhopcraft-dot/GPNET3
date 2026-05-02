@@ -1,7 +1,7 @@
 import type { WorkerCase } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { cn } from "@/lib/utils";
-import { CheckCircle2, XCircle, Clock, Info } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, Info, ClipboardList } from "lucide-react";
 
 interface CurrentCapacityCardProps {
   workerCase: WorkerCase;
@@ -57,7 +57,7 @@ export function CurrentCapacityCard({ workerCase, className }: CurrentCapacityCa
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center justify-between text-sm font-semibold">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-lg text-primary">assignment</span>
+            <ClipboardList className="w-5 h-5 text-primary" />
             Current Capacity
           </div>
           {certDate && (

@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Wallet, Landmark, PieChart, StickyNote, CheckCircle, Info, Clock } from "lucide-react";
 
 interface FinancialSummaryPanelProps {
   caseId: string;
@@ -74,7 +75,7 @@ export function FinancialSummaryPanel({ caseId, workerName }: FinancialSummaryPa
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary">payments</span>
+            <Wallet className="w-5 h-5 text-primary" />
             Weekly Earnings & Compensation
           </CardTitle>
         </CardHeader>
@@ -114,7 +115,7 @@ export function FinancialSummaryPanel({ caseId, workerName }: FinancialSummaryPa
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary">account_balance</span>
+            <Landmark className="w-5 h-5 text-primary" />
             Claim Costs Summary
           </CardTitle>
         </CardHeader>
@@ -157,7 +158,7 @@ export function FinancialSummaryPanel({ caseId, workerName }: FinancialSummaryPa
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary">pie_chart</span>
+            <PieChart className="w-5 h-5 text-primary" />
             Cost Breakdown
           </CardTitle>
         </CardHeader>
@@ -212,22 +213,22 @@ export function FinancialSummaryPanel({ caseId, workerName }: FinancialSummaryPa
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary">note</span>
+            <StickyNote className="w-5 h-5 text-primary" />
             Financial Notes
           </CardTitle>
         </CardHeader>
         <CardContent>
           <ul className="space-y-2 text-sm text-muted-foreground">
             <li className="flex items-start gap-2">
-              <span className="material-symbols-outlined text-base text-emerald-500">check_circle</span>
+              <CheckCircle className="w-4 h-4 text-emerald-500" />
               Worker receiving weekly top-up payments as per entitlement
             </li>
             <li className="flex items-start gap-2">
-              <span className="material-symbols-outlined text-base text-blue-500">info</span>
+              <Info className="w-4 h-4 text-blue-500" />
               Physiotherapy sessions ongoing - 2x per week
             </li>
             <li className="flex items-start gap-2">
-              <span className="material-symbols-outlined text-base text-amber-500">schedule</span>
+              <Clock className="w-4 h-4 text-amber-500" />
               Next review of PIAWE calculation due in 4 weeks
             </li>
           </ul>

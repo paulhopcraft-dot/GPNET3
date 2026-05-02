@@ -17,6 +17,7 @@ import { Badge } from "./ui/badge";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
+import { Loader2 } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -284,7 +285,7 @@ export function CaseContactsPanel({
       <Card>
         <CardContent className="p-6">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span className="material-symbols-outlined animate-spin text-primary">progress_activity</span>
+            <Loader2 className="w-4 h-4 animate-spin text-primary" />
             Loading contacts...
           </div>
         </CardContent>
