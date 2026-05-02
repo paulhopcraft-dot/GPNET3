@@ -1,5 +1,5 @@
 import { ReactNode, useState } from "react";
-import preventliLogo from "@/assets/preventli-logo.svg";
+import { PreventliLogo } from "@/components/PreventliLogo";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { ThemeToggle } from "./theme-toggle";
@@ -79,7 +79,7 @@ export function PageLayout({ children, title, subtitle }: PageLayoutProps) {
       <aside className="hidden lg:block w-64 flex-shrink-0 bg-sidebar p-4 border-r border-sidebar-border">
         <div className="mb-8">
           <Link to="/">
-            <img src={preventliLogo} alt="Preventli" className="h-12 w-auto" />
+            <PreventliLogo className="h-10 w-auto text-sidebar-foreground" />
           </Link>
         </div>
         <nav className="space-y-1">
@@ -120,11 +120,16 @@ export function PageLayout({ children, title, subtitle }: PageLayoutProps) {
 
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="flex items-center justify-between p-4 border-b border-border bg-card">
-          <div>
-            <h1 className="text-xl font-bold text-card-foreground">{title}</h1>
-            {subtitle && (
-              <p className="text-sm text-muted-foreground">{subtitle}</p>
-            )}
+          <div className="flex items-center gap-3">
+            <Link to="/" className="lg:hidden" aria-label="Preventli home">
+              <PreventliLogo className="h-7 w-auto text-card-foreground" />
+            </Link>
+            <div>
+              <h1 className="text-xl font-bold text-card-foreground">{title}</h1>
+              {subtitle && (
+                <p className="text-sm text-muted-foreground">{subtitle}</p>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <Button variant="outline" size="sm" onClick={() => setBookingOpen(true)}>
