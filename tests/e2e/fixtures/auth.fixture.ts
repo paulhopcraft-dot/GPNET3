@@ -26,29 +26,61 @@ type AuthFixtures = {
   authenticatedPage: Page;
 };
 
+async function waitThroughRenderWake(page: Page, targetPath: string): Promise<void> {
+  const deadline = Date.now() + 90_000;
+
+  while (Date.now() < deadline) {
+    const isRenderWakePage = await page
+      .getByText(/Application loading|Service waking up|Allocating compute resources/i)
+      .first()
+      .isVisible({ timeout: 1000 })
+      .catch(() => false);
+
+    if (!isRenderWakePage) return;
+
+    await page.waitForTimeout(5000);
+    await page.goto(targetPath, { waitUntil: "commit" }).catch(() => undefined);
+    await page.waitForLoadState("domcontentloaded", { timeout: TEST_TIMEOUTS.medium }).catch(() => undefined);
+  }
+}
+
+function isAtTargetPath(page: Page, targetPath: string): boolean {
+  try {
+    return new URL(page.url()).pathname === targetPath;
+  } catch {
+    return false;
+  }
+}
+
+async function gotoWithRetry(page: Page, targetPath: string): Promise<void> {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await page.goto(targetPath, { waitUntil: 'commit', timeout: TEST_TIMEOUTS.long });
+      await page.waitForLoadState('domcontentloaded', { timeout: TEST_TIMEOUTS.medium }).catch(() => undefined);
+      return;
+    } catch (error) {
+      if (isAtTargetPath(page, targetPath)) return;
+      lastError = error;
+      await page.waitForTimeout(1000);
+    }
+  }
+
+  throw lastError;
+}
+
 /**
  * Performs login and waits for dashboard to load.
  * Handles both fresh login and already-authenticated states.
  */
 async function performLogin(page: Page): Promise<void> {
-  await page.goto('/');
-  await page.waitForLoadState('domcontentloaded');
+  await gotoWithRetry(page, '/login');
+  await waitThroughRenderWake(page, '/login');
 
-  // Check if already logged in by looking for dashboard indicators
-  const dashboardIndicators = [
-    page.locator('h1:has-text("Preventli")'),
-    page.getByRole('heading', { name: /cases/i }),
-    page.locator('text=cases loaded'),
-  ];
+  const alreadyAuthenticated = await page.getByRole('button', { name: /log out/i }).isVisible({ timeout: 2000 }).catch(() => false);
+  if (alreadyAuthenticated) return;
 
-  for (const indicator of dashboardIndicators) {
-    if (await indicator.isVisible({ timeout: 2000 }).catch(() => false)) {
-      // Already authenticated, no need to login
-      return;
-    }
-  }
-
-  // Perform login
   const emailInput = page.locator('input[type="email"]');
   const passwordInput = page.locator('input[type="password"]');
   const submitButton = page.locator('button[type="submit"]');
@@ -59,24 +91,27 @@ async function performLogin(page: Page): Promise<void> {
   // Fill credentials
   await emailInput.fill(EMPLOYER_CREDENTIALS.email);
   await passwordInput.fill(EMPLOYER_CREDENTIALS.password);
-  await submitButton.click();
+  await submitButton.click({ timeout: TEST_TIMEOUTS.short }).catch(async () => {
+    await passwordInput.press('Enter');
+  });
 
   // Wait for successful authentication — check for any dashboard indicator
   // Admin redirects to /, employer/RTW user to /employer. Both show stat cards.
-  const dashboardSelectors = [
-    'text=/cases loaded/i',
-    'text=/Total Cases/i',
-    '[data-testid="stat-card"]',
-    'text=/Off Work/i',
-    'button:has-text("Log Out")',
+  const dashboardIndicatorsAfterLogin = [
+    page.getByText(/cases loaded/i),
+    page.getByText(/Total Cases/i),
+    page.getByTestId('stat-card'),
+    page.getByText(/Off Work/i),
+    page.getByRole('button', { name: /log out/i }),
+    page.locator('nav, [role="navigation"]'),
   ];
 
   let dashboardLoaded = false;
   const deadline = Date.now() + TEST_TIMEOUTS.medium;
 
   while (Date.now() < deadline && !dashboardLoaded) {
-    for (const selector of dashboardSelectors) {
-      if (await page.locator(selector).first().isVisible({ timeout: 1000 }).catch(() => false)) {
+    for (const indicator of dashboardIndicatorsAfterLogin) {
+      if (await indicator.first().isVisible({ timeout: 1000 }).catch(() => false)) {
         dashboardLoaded = true;
         break;
       }

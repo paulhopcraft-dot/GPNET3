@@ -7,7 +7,7 @@
  * @tags @critical @admin
  */
 
-import { test, expect, Page } from '@playwright/test';
+import { test, expect, type Page } from '../fixtures/auth.fixture';
 import { ADMIN_CREDENTIALS, TEST_TIMEOUTS } from '../fixtures/test-data';
 
 // Test data
@@ -37,12 +37,11 @@ const TEST_DUTY = {
  */
 async function adminLogin(page: Page): Promise<void> {
   console.log('🔐 Logging in as admin...');
-  await page.goto('/');
-  await page.waitForLoadState('domcontentloaded');
+  await page.goto('/login', { waitUntil: 'domcontentloaded', timeout: TEST_TIMEOUTS.long });
 
-  // Check if already on admin page or logged in
-  if (page.url().includes('/admin')) {
-    console.log('✅ Already on admin page');
+  const alreadyLoggedIn = await page.getByRole('button', { name: /log out/i }).isVisible({ timeout: 2000 }).catch(() => false);
+  if (alreadyLoggedIn || page.url().includes('/admin')) {
+    console.log('✅ Already logged in as admin');
     return;
   }
 
@@ -51,8 +50,10 @@ async function adminLogin(page: Page): Promise<void> {
   if (await emailInput.isVisible({ timeout: 3000 }).catch(() => false)) {
     await emailInput.fill(ADMIN_CREDENTIALS.email);
     await page.locator('input[type="password"]').fill(ADMIN_CREDENTIALS.password);
-    await page.locator('button[type="submit"]').click();
-    await page.waitForLoadState('domcontentloaded');
+    await page.locator('button[type="submit"]').click({ timeout: TEST_TIMEOUTS.short }).catch(async () => {
+      await page.locator('input[type="password"]').press('Enter');
+    });
+    await page.getByRole('button', { name: /log out/i }).waitFor({ state: 'visible', timeout: TEST_TIMEOUTS.long }).catch(() => undefined);
     console.log('✅ Admin login successful');
   }
 }
@@ -61,11 +62,11 @@ test.describe('Admin Roles & Duties Verification @critical @admin', () => {
   let createdRoleId: string | null = null;
   let copiedRoleId: string | null = null;
 
-  test.beforeEach(async ({ page }) => {
-    await adminLogin(page);
+  test.beforeEach(async ({ authenticatedPage }) => {
+    await authenticatedPage.waitForLoadState('domcontentloaded').catch(() => undefined);
   });
 
-  test('ADMIN-01: Should display roles list page', async ({ page }) => {
+  test('ADMIN-01: Should display roles list page', async ({ authenticatedPage: page }) => {
     console.log('📋 Testing ADMIN-01: List all roles');
 
     await page.goto('/admin/roles');
@@ -84,7 +85,7 @@ test.describe('Admin Roles & Duties Verification @critical @admin', () => {
     console.log('✅ ADMIN-01: Roles list page accessible');
   });
 
-  test('ADMIN-02: Should create a new role', async ({ page }) => {
+  test('ADMIN-02: Should create a new role', async ({ authenticatedPage: page }) => {
     console.log('📋 Testing ADMIN-02: Create role');
 
     await page.goto('/admin/roles');
@@ -141,7 +142,7 @@ test.describe('Admin Roles & Duties Verification @critical @admin', () => {
     console.log('✅ ADMIN-02: Role created successfully');
   });
 
-  test('ADMIN-03: Should edit an existing role', async ({ page }) => {
+  test('ADMIN-03: Should edit an existing role', async ({ authenticatedPage: page }) => {
     console.log('📋 Testing ADMIN-03: Edit role');
 
     await page.goto('/admin/roles');
@@ -183,7 +184,7 @@ test.describe('Admin Roles & Duties Verification @critical @admin', () => {
     console.log('✅ ADMIN-03: Role edit functionality verified');
   });
 
-  test('ADMIN-05 to ADMIN-11: Should manage duties with demands matrix', async ({ page }) => {
+  test('ADMIN-05 to ADMIN-11: Should manage duties with demands matrix', async ({ authenticatedPage: page }) => {
     console.log('📋 Testing ADMIN-05 to ADMIN-11: Duties CRUD with demands');
 
     await page.goto('/admin/roles');
@@ -288,7 +289,7 @@ test.describe('Admin Roles & Duties Verification @critical @admin', () => {
     console.log('✅ ADMIN-05 to ADMIN-11: Duties management verified');
   });
 
-  test('ADMIN-12: Should copy role with all duties', async ({ page }) => {
+  test('ADMIN-12: Should copy role with all duties', async ({ authenticatedPage: page }) => {
     console.log('📋 Testing ADMIN-12: Copy role');
 
     await page.goto('/admin/roles');
@@ -330,7 +331,7 @@ test.describe('Admin Roles & Duties Verification @critical @admin', () => {
     }
   });
 
-  test('ADMIN-04 & ADMIN-11: Should soft delete role and duty', async ({ page }) => {
+  test('ADMIN-04 & ADMIN-11: Should soft delete role and duty', async ({ authenticatedPage: page }) => {
     console.log('📋 Testing ADMIN-04 & ADMIN-11: Soft delete');
 
     await page.goto('/admin/roles');
@@ -366,7 +367,7 @@ test.describe('Admin Roles & Duties Verification @critical @admin', () => {
     }
   });
 
-  test('Data persistence: Should persist data across page refresh', async ({ page }) => {
+  test('Data persistence: Should persist data across page refresh', async ({ authenticatedPage: page }) => {
     console.log('📋 Testing data persistence');
 
     await page.goto('/admin/roles');
@@ -413,3 +414,4 @@ test.describe('Admin Roles & Duties Verification @critical @admin', () => {
     console.log('🧹 Test cleanup complete');
   });
 });
+

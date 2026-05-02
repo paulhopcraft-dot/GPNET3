@@ -110,6 +110,22 @@ function LogoutRedirect() {
   );
 }
 
+function NotFoundPage() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background p-6">
+      <div className="max-w-md text-center">
+        <h1 className="text-3xl font-bold text-foreground">Page not found</h1>
+        <p className="mt-2 text-muted-foreground">
+          The page you requested does not exist or may have moved.
+        </p>
+        <a className="mt-6 inline-flex text-primary underline" href="/">
+          Return to dashboard
+        </a>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   // Initialize CSRF token on app mount
   useEffect(() => {
@@ -681,8 +697,8 @@ export default function App() {
                     element={<Navigate to="/employer" replace />}
                   />
 
-                  {/* Catch-all: redirect unknown paths to root (ProtectedRoute handles auth redirect) */}
-                  <Route path="*" element={<Navigate to="/" replace />} />
+                  {/* Catch-all: render NotFoundPage for unknown paths */}
+                  <Route path="*" element={<NotFoundPage />} />
                 </Routes>
               </Suspense>
               </ErrorBoundary>

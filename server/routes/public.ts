@@ -10,6 +10,10 @@ import { generateReport } from "../services/reportGenerator";
 const logger = createLogger("PublicRoutes");
 const router: Router = express.Router();
 
+function isAssessmentSubmitted(assessment: Awaited<ReturnType<typeof storage.getAssessmentByToken>>): boolean {
+  return assessment?.status === "completed" || Boolean(assessment?.questionnaireResponses);
+}
+
 /**
  * @route GET /api/public/check/:token
  * @desc Get assessment info for a worker (no auth — magic link)
@@ -24,7 +28,7 @@ router.get("/check/:token", async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Invalid or expired link" });
     }
 
-    if (assessment.status === "completed") {
+    if (isAssessmentSubmitted(assessment)) {
       return res.status(410).json({ error: "This questionnaire has already been submitted" });
     }
 

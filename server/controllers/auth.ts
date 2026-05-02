@@ -12,6 +12,7 @@ import { logAuditEvent, AuditEventTypes, getRequestMetadata } from "../services/
 import {
   generateRefreshToken,
   validateAndRotateRefreshToken,
+  getRefreshTokenFamily,
   revokeRefreshToken,
   revokeAllUserTokens,
   getUserById,
@@ -653,9 +654,7 @@ export async function getSessions(req: AuthRequest, res: Response) {
     let currentTokenFamily: string | undefined;
 
     if (refreshToken) {
-      // We can't get the family without validating, but we can use JWT to track it
-      // For now, we'll mark all as not current and let frontend figure it out
-      // A better approach would be to store the token family in the JWT
+      currentTokenFamily = await getRefreshTokenFamily(refreshToken);
     }
 
     const sessions = await getUserSessions(req.user.id, currentTokenFamily);

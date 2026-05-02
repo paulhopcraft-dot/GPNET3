@@ -10,6 +10,7 @@
 
 import { InjuryDateExtractionService } from "../server/services/injuryDateExtraction";
 import { logger } from "../server/lib/logger";
+import { pathToFileURL } from "node:url";
 
 interface PerformanceMetrics {
   totalRequests: number;
@@ -381,8 +382,12 @@ async function main() {
   await tester.runPerformanceTests();
 }
 
+const isDirectRun = process.argv[1]
+  ? import.meta.url === pathToFileURL(process.argv[1]).href
+  : false;
+
 // Run if this file is executed directly
-if (require.main === module) {
+if (isDirectRun) {
   main().catch(error => {
     console.error("Performance test failed:", error);
     process.exit(1);
