@@ -3,18 +3,11 @@ import type { IStorage } from "../storage";
 import type { WorkerCase, TreatmentPlan, CaseClinicalStatus } from "@shared/schema";
 
 // Create a shared mock function that can be configured per test
-const mockMessagesCreate = vi.fn();
+const mockCallClaude = vi.hoisted(() => vi.fn());
 
-// Mock Anthropic SDK with shared mock function
-vi.mock("@anthropic-ai/sdk", () => {
-  return {
-    default: vi.fn().mockImplementation(() => ({
-      messages: {
-        create: mockMessagesCreate,
-      },
-    })),
-  };
-});
+vi.mock("../lib/claude-cli", () => ({
+  callClaude: mockCallClaude,
+}));
 
 // Mock audit logger
 vi.mock("./auditLogger", () => ({
@@ -128,35 +121,27 @@ describe("Treatment Plan Service", () => {
 
       vi.mocked(storage.getGPNet2CaseById).mockResolvedValue(mockCase);
 
-      // Mock AI response using shared mock function
-      mockMessagesCreate.mockResolvedValue({
-        content: [
+      mockCallClaude.mockResolvedValue(JSON.stringify({
+        interventions: [
           {
-            type: "text",
-            text: JSON.stringify({
-              interventions: [
-                {
-                  type: "physiotherapy",
-                  description: "Core strengthening exercises",
-                  frequency: "3x per week",
-                  duration: "6 weeks",
-                  priority: "critical",
-                },
-              ],
-              milestones: [
-                {
-                  weekNumber: 2,
-                  description: "Pain reduction",
-                  expectedOutcome: "50% reduction in pain levels",
-                },
-              ],
-              expectedDurationWeeks: 8,
-              expectedOutcomes: ["Return to full duties", "Pain-free movement"],
-              factorsConsidered: ["Injury type: back strain", "Risk level: Medium"],
-            }),
+            type: "physiotherapy",
+            description: "Core strengthening exercises",
+            frequency: "3x per week",
+            duration: "6 weeks",
+            priority: "critical",
           },
         ],
-      });
+        milestones: [
+          {
+            weekNumber: 2,
+            description: "Pain reduction",
+            expectedOutcome: "50% reduction in pain levels",
+          },
+        ],
+        expectedDurationWeeks: 8,
+        expectedOutcomes: ["Return to full duties", "Pain-free movement"],
+        factorsConsidered: ["Injury type: back strain", "Risk level: Medium"],
+      }));
 
       // Act
       const result = await generateTreatmentPlan(storage, {
@@ -202,13 +187,15 @@ describe("Treatment Plan Service", () => {
       } as WorkerCase;
       vi.mocked(storage.getGPNet2CaseById).mockResolvedValue(mockCase);
 
-      // Mock AI timeout using shared mock function
-      mockMessagesCreate.mockRejectedValue(new Error("Timeout"));
+      mockCallClaude.mockRejectedValue(new Error("Timeout"));
 
-      // Act & Assert
-      await expect(
-        generateTreatmentPlan(storage, { caseId, organizationId, additionalContext: "" })
-      ).rejects.toThrow();
+      const result = await generateTreatmentPlan(storage, { caseId, organizationId, additionalContext: "" });
+
+      expect(result).toBeDefined();
+      expect(result.confidence).toBeLessThan(50);
+      expect(result.factorsConsidered).toContain("AI generation failed - manual review required");
+      expect(result.disclaimerText).toContain("ADVISORY ONLY");
+      expect(storage.updateClinicalStatus).toHaveBeenCalled();
     });
 
     it("should parse malformed AI JSON and return fallback plan", async () => {
@@ -222,10 +209,7 @@ describe("Treatment Plan Service", () => {
       } as WorkerCase;
       vi.mocked(storage.getGPNet2CaseById).mockResolvedValue(mockCase);
 
-      // Mock malformed AI response using shared mock function
-      mockMessagesCreate.mockResolvedValue({
-        content: [{ type: "text", text: "INVALID JSON {{{" }],
-      });
+      mockCallClaude.mockResolvedValue("INVALID JSON {{{");
 
       // Act
       const result = await generateTreatmentPlan(storage, {
@@ -270,21 +254,13 @@ describe("Treatment Plan Service", () => {
       } as unknown as WorkerCase;
       vi.mocked(storage.getGPNet2CaseById).mockResolvedValue(mockCase);
 
-      // Mock AI response for superseding using shared mock function
-      mockMessagesCreate.mockResolvedValue({
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify({
-              interventions: [],
-              milestones: [],
-              expectedDurationWeeks: 6,
-              expectedOutcomes: [],
-              factorsConsidered: [],
-            }),
-          },
-        ],
-      });
+      mockCallClaude.mockResolvedValue(JSON.stringify({
+        interventions: [],
+        milestones: [],
+        expectedDurationWeeks: 6,
+        expectedOutcomes: [],
+        factorsConsidered: [],
+      }));
 
       // Act
       const result = await generateTreatmentPlan(storage, {
@@ -317,21 +293,13 @@ describe("Treatment Plan Service", () => {
       } as WorkerCase;
       vi.mocked(storage.getGPNet2CaseById).mockResolvedValue(mockCase);
 
-      // Mock AI response for confidence score using shared mock function
-      mockMessagesCreate.mockResolvedValue({
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify({
-              interventions: [],
-              milestones: [],
-              expectedDurationWeeks: 6,
-              expectedOutcomes: [],
-              factorsConsidered: ["Detailed injury summary", "Medical constraints present"],
-            }),
-          },
-        ],
-      });
+      mockCallClaude.mockResolvedValue(JSON.stringify({
+        interventions: [],
+        milestones: [],
+        expectedDurationWeeks: 6,
+        expectedOutcomes: [],
+        factorsConsidered: ["Detailed injury summary", "Medical constraints present"],
+      }));
 
       // Act
       const result = await generateTreatmentPlan(storage, {

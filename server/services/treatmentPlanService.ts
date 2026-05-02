@@ -278,6 +278,35 @@ function createFallbackPlan(workerCase: WorkerCase): TreatmentPlan {
   };
 }
 
+async function persistTreatmentPlan(
+  storage: IStorage,
+  caseId: string,
+  organizationId: string,
+  workerCase: WorkerCase,
+  plan: TreatmentPlan
+): Promise<void> {
+  const existingStatus = workerCase.clinical_status_json || {};
+  const existingPlan = existingStatus.treatmentPlan;
+  const history = [...(existingStatus.treatmentPlanHistory || [])];
+
+  if (existingPlan && existingPlan.status === "active") {
+    history.push({
+      ...existingPlan,
+      status: "superseded",
+      supersededAt: plan.generatedAt,
+      supersededBy: plan.id,
+    });
+  }
+
+  const updatedStatus: CaseClinicalStatus = {
+    ...existingStatus,
+    treatmentPlan: plan,
+    treatmentPlanHistory: history,
+  };
+
+  await storage.updateClinicalStatus(caseId, organizationId, updatedStatus);
+}
+
 /**
  * Generate treatment plan using Claude AI
  */
@@ -319,7 +348,9 @@ export async function generateTreatmentPlan(
     });
 
     if (!rawText) {
-      return createFallbackPlan(workerCase);
+      const fallbackPlan = createFallbackPlan(workerCase);
+      await persistTreatmentPlan(storage, caseId, organizationId, workerCase, fallbackPlan);
+      return fallbackPlan;
     }
 
     let aiResponse: AITreatmentPlanResponse;
@@ -327,7 +358,9 @@ export async function generateTreatmentPlan(
       aiResponse = JSON.parse(rawText);
     } catch (parseError) {
       logger.ai.error("Treatment plan JSON parse error", { caseId }, parseError);
-      return createFallbackPlan(workerCase);
+      const fallbackPlan = createFallbackPlan(workerCase);
+      await persistTreatmentPlan(storage, caseId, organizationId, workerCase, fallbackPlan);
+      return fallbackPlan;
     }
 
     // Build treatment plan
@@ -356,30 +389,7 @@ export async function generateTreatmentPlan(
       plateauAnalysis: aiResponse.plateauAnalysis,
     };
 
-    // Supersede existing plan if present
-    const existingStatus = workerCase.clinical_status_json || {};
-    const existingPlan = existingStatus.treatmentPlan;
-    const history = existingStatus.treatmentPlanHistory || [];
-
-    if (existingPlan && existingPlan.status === "active") {
-      // Create new superseded plan object (immutable update)
-      const supersededPlan: TreatmentPlan = {
-        ...existingPlan,
-        status: "superseded",
-        supersededAt: now,
-        supersededBy: id,
-      };
-      history.push(supersededPlan);
-    }
-
-    // Update case with new plan
-    const updatedStatus: CaseClinicalStatus = {
-      ...existingStatus,
-      treatmentPlan: plan,
-      treatmentPlanHistory: history,
-    };
-
-    await storage.updateClinicalStatus(caseId, organizationId, updatedStatus);
+    await persistTreatmentPlan(storage, caseId, organizationId, workerCase, plan);
 
     // Audit log (no PII)
     await logAuditEvent({
