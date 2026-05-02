@@ -1,10 +1,6 @@
 /* Print styles for RTW Plan Output */
 @import './styles/print.css';
 
-/* Shared brand tokens with preventli.ai marketing site.
- * Additive — does not override shadcn design-system tokens. */
-@import './styles/brand-tokens.css';
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
