@@ -74,14 +74,14 @@ export default function CaseSummaryPage() {
     );
   }
 
-  const riskBadgeColor = (level: string) => {
+  const riskBadgeVariant = (level: string): "critical" | "warning" | "success" => {
     switch (level) {
       case "High":
-        return "bg-red-100 text-red-800";
+        return "critical";
       case "Medium":
-        return "bg-amber-100 text-amber-800";
+        return "warning";
       default:
-        return "bg-emerald-100 text-emerald-800";
+        return "success";
     }
   };
 
@@ -146,13 +146,7 @@ export default function CaseSummaryPage() {
 
         {/* Status Bar */}
         <div className="border border-border rounded-lg p-4 bg-muted/50 flex items-center gap-4 flex-wrap">
-          <Badge
-            className={cn(
-              workerCase.workStatus === "At work"
-                ? "bg-emerald-100 text-emerald-800"
-                : "bg-amber-100 text-amber-800"
-            )}
-          >
+          <Badge variant={workerCase.workStatus === "At work" ? "success" : "warning"}>
             {workerCase.workStatus}
           </Badge>
           <Badge
@@ -243,13 +237,13 @@ export default function CaseSummaryPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-0 space-y-2">
-                    <Badge className={cn(
+                    <Badge variant={
                       workerCase.clinicalEvidence?.isImprovingOnExpectedTimeline === true
-                        ? "bg-green-100 text-green-700"
+                        ? "success"
                         : workerCase.clinicalEvidence?.isImprovingOnExpectedTimeline === false
-                        ? "bg-amber-100 text-amber-700"
-                        : "bg-blue-100 text-blue-700"
-                    )}>
+                        ? "warning"
+                        : "info"
+                    }>
                       {workerCase.clinicalEvidence?.isImprovingOnExpectedTimeline === true ? "On Track"
                         : workerCase.clinicalEvidence?.isImprovingOnExpectedTimeline === false ? "Needs Review"
                         : "Monitoring"}
@@ -549,7 +543,7 @@ export default function CaseSummaryPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center gap-3">
-                    <Badge className={cn("text-sm px-3 py-1", riskBadgeColor(workerCase.riskLevel))}>
+                    <Badge variant={riskBadgeVariant(workerCase.riskLevel)} className="text-sm px-3 py-1">
                       {workerCase.riskLevel}
                     </Badge>
                     <span className="text-sm text-muted-foreground">
@@ -648,7 +642,7 @@ export default function CaseSummaryPage() {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="flex items-center gap-2">
-                      <Badge className={riskBadgeColor(
+                      <Badge variant={riskBadgeVariant(
                         workerCase.compliance.indicator === "Very High" || workerCase.compliance.indicator === "High"
                           ? "Low"
                           : workerCase.compliance.indicator === "Low" || workerCase.compliance.indicator === "Very Low"

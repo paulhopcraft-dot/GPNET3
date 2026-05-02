@@ -15,6 +15,15 @@ const badgeVariants = cva(
         secondary: "border-transparent bg-secondary text-secondary-foreground",
         destructive:
           "border-transparent bg-destructive text-destructive-foreground shadow-xs",
+        // Soft tonal variants — use for status / state indicators (not strong CTAs).
+        critical:
+          "border-transparent bg-destructive/10 text-destructive dark:bg-destructive/20 dark:text-destructive-foreground",
+        warning:
+          "border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-300",
+        success:
+          "border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+        info:
+          "border-transparent bg-sky-500/15 text-sky-700 dark:text-sky-300",
 
         outline: " border [border-color:var(--badge-outline)] shadow-xs",
       },
