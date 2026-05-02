@@ -8,7 +8,29 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TimelineCard } from "@/components/TimelineCard";
 import { PageSpinner } from "@/components/typography";
-import { RefreshCw } from "lucide-react";
+import {
+  RefreshCw,
+  SearchX,
+  ArrowLeft,
+  ShieldCheck,
+  TrendingUp,
+  Brain,
+  Info,
+  ClipboardList,
+  Ban,
+  FileText,
+  Shield,
+  AlertTriangle,
+  Gavel,
+  Flag,
+  Accessibility,
+  BadgeCheck,
+  ShieldPlus,
+  AlertCircle,
+  CalendarDays,
+  Users as UsersIcon,
+  Paperclip,
+} from "lucide-react";
 import type { WorkerCase, PaginatedCasesResponse, CaseLifecycleStage } from "@shared/schema";
 import { LIFECYCLE_STAGE_LABELS } from "@shared/schema";
 import { cn } from "@/lib/utils";
@@ -56,9 +78,7 @@ export default function CaseSummaryPage() {
       <PageLayout title="Case Not Found">
         <Card>
           <CardContent className="py-8 text-center">
-            <span className="material-symbols-outlined text-4xl text-muted-foreground mb-4">
-              search_off
-            </span>
+            <SearchX className="w-10 h-10 text-muted-foreground mb-4 mx-auto" />
             <p className="text-muted-foreground mb-4">
               The requested case could not be found.
             </p>
@@ -101,7 +121,7 @@ export default function CaseSummaryPage() {
         <div>
           <Link to="/cases">
             <Button variant="ghost" size="sm">
-              <span className="material-symbols-outlined text-sm mr-1">arrow_back</span>
+              <ArrowLeft className="w-4 h-4 mr-1 inline" />
               Back to Cases
             </Button>
           </Link>
@@ -203,7 +223,7 @@ export default function CaseSummaryPage() {
                 <Card>
                   <CardHeader className="pb-3">
                     <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-                      <span className="material-symbols-outlined text-lg text-primary">verified_user</span>
+                      <ShieldCheck className="w-5 h-5 text-primary" />
                       Compliance
                     </CardTitle>
                   </CardHeader>
@@ -229,7 +249,7 @@ export default function CaseSummaryPage() {
                 <Card>
                   <CardHeader className="pb-3">
                     <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-                      <span className="material-symbols-outlined text-lg text-primary">trending_up</span>
+                      <TrendingUp className="w-5 h-5 text-primary" />
                       Recovery
                     </CardTitle>
                   </CardHeader>
@@ -260,7 +280,7 @@ export default function CaseSummaryPage() {
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <CardTitle className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-primary">psychology</span>
+                        <Brain className="w-5 h-5 text-primary" />
                         AI Case Summary
                       </CardTitle>
                       <Button variant="outline" size="sm">
@@ -304,7 +324,7 @@ export default function CaseSummaryPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary">info</span>
+                    <Info className="w-5 h-5 text-primary" />
                     Case Overview
                   </CardTitle>
                 </CardHeader>
@@ -390,7 +410,7 @@ export default function CaseSummaryPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary">medical_information</span>
+                    <ClipboardList className="w-5 h-5 text-primary" />
                     Medical Constraints
                     {workerCase.medicalConstraints.lastUpdatedAt && (
                       <span className="text-xs font-normal text-muted-foreground ml-auto">
@@ -407,49 +427,49 @@ export default function CaseSummaryPage() {
                     <ul className="space-y-1 text-sm">
                       {workerCase.medicalConstraints.noLiftingOverKg !== undefined && (
                         <li className="flex items-center gap-2 text-amber-700">
-                          <span className="material-symbols-outlined text-sm">do_not_disturb_on</span>
+                          <Ban className="w-4 h-4" />
                           No lifting over {workerCase.medicalConstraints.noLiftingOverKg} kg
                         </li>
                       )}
                       {workerCase.medicalConstraints.noBending && (
                         <li className="flex items-center gap-2 text-amber-700">
-                          <span className="material-symbols-outlined text-sm">do_not_disturb_on</span>
+                          <Ban className="w-4 h-4" />
                           No bending
                         </li>
                       )}
                       {workerCase.medicalConstraints.noTwisting && (
                         <li className="flex items-center gap-2 text-amber-700">
-                          <span className="material-symbols-outlined text-sm">do_not_disturb_on</span>
+                          <Ban className="w-4 h-4" />
                           No twisting
                         </li>
                       )}
                       {workerCase.medicalConstraints.noProlongedStanding && (
                         <li className="flex items-center gap-2 text-amber-700">
-                          <span className="material-symbols-outlined text-sm">do_not_disturb_on</span>
+                          <Ban className="w-4 h-4" />
                           No prolonged standing
                         </li>
                       )}
                       {workerCase.medicalConstraints.noProlongedSitting && (
                         <li className="flex items-center gap-2 text-amber-700">
-                          <span className="material-symbols-outlined text-sm">do_not_disturb_on</span>
+                          <Ban className="w-4 h-4" />
                           No prolonged sitting
                         </li>
                       )}
                       {workerCase.medicalConstraints.noDriving && (
                         <li className="flex items-center gap-2 text-amber-700">
-                          <span className="material-symbols-outlined text-sm">do_not_disturb_on</span>
+                          <Ban className="w-4 h-4" />
                           No driving
                         </li>
                       )}
                       {workerCase.medicalConstraints.noClimbing && (
                         <li className="flex items-center gap-2 text-amber-700">
-                          <span className="material-symbols-outlined text-sm">do_not_disturb_on</span>
+                          <Ban className="w-4 h-4" />
                           No climbing
                         </li>
                       )}
                       {workerCase.medicalConstraints.otherConstraints && (
                         <li className="flex items-center gap-2 text-amber-700">
-                          <span className="material-symbols-outlined text-sm">do_not_disturb_on</span>
+                          <Ban className="w-4 h-4" />
                           {workerCase.medicalConstraints.otherConstraints}
                         </li>
                       )}
@@ -483,7 +503,7 @@ export default function CaseSummaryPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary">description</span>
+                    <FileText className="w-5 h-5 text-primary" />
                     Current Medical Certificate
                   </CardTitle>
                 </CardHeader>
@@ -534,7 +554,7 @@ export default function CaseSummaryPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary">shield</span>
+                    <Shield className="w-5 h-5 text-primary" />
                     Overall Risk Level
                   </CardTitle>
                 </CardHeader>
@@ -559,7 +579,7 @@ export default function CaseSummaryPage() {
                       <div className="flex flex-wrap gap-2">
                         {(workerCase as any).riskFlags.map((flag: string) => (
                           <Badge key={flag} variant="outline" className="text-xs border-amber-300 text-amber-700 bg-amber-50">
-                            <span className="material-symbols-outlined text-xs mr-1">warning</span>
+                            <AlertTriangle className="w-3 h-3 mr-1 inline" />
                             {flag}
                           </Badge>
                         ))}
@@ -570,7 +590,7 @@ export default function CaseSummaryPage() {
                   {/* Dispute alert */}
                   {workerCase.disputeStatus && workerCase.disputeStatus !== "none" && workerCase.disputeStatus !== "resolved" && (
                     <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-                      <span className="material-symbols-outlined text-base mt-0.5">gavel</span>
+                      <Gavel className="w-4 h-4 mt-0.5" />
                       <span><strong>Dispute active:</strong> {workerCase.disputeStatus.replace(/_/g, " ")}. Legal risk elevated — consult insurer before major case decisions.</span>
                     </div>
                   )}
@@ -578,7 +598,7 @@ export default function CaseSummaryPage() {
                   {/* Termination audit flag */}
                   {workerCase.terminationAuditFlag && (
                     <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-                      <span className="material-symbols-outlined text-base mt-0.5">flag</span>
+                      <Flag className="w-4 h-4 mt-0.5" />
                       <span><strong>Termination audit flag:</strong> {workerCase.terminationAuditFlag.replace(/_/g, " ")}. Employment action requires legal review.</span>
                     </div>
                   )}
@@ -590,7 +610,7 @@ export default function CaseSummaryPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <span className="material-symbols-outlined text-primary">accessibility</span>
+                      <Accessibility className="w-5 h-5 text-primary" />
                       Functional Capacity
                     </CardTitle>
                   </CardHeader>
@@ -633,7 +653,7 @@ export default function CaseSummaryPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <span className="material-symbols-outlined text-primary">verified</span>
+                      <BadgeCheck className="w-5 h-5 text-primary" />
                       Compliance Status
                     </CardTitle>
                   </CardHeader>
@@ -662,7 +682,7 @@ export default function CaseSummaryPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary">health_and_safety</span>
+                    <ShieldPlus className="w-5 h-5 text-primary" />
                     Mitigation Strategies
                   </CardTitle>
                 </CardHeader>
@@ -670,26 +690,26 @@ export default function CaseSummaryPage() {
                   <ul className="space-y-2 text-sm text-muted-foreground">
                     {workerCase.riskLevel === "High" && (
                       <li className="flex items-start gap-2">
-                        <span className="material-symbols-outlined text-base text-red-500 mt-0.5">priority_high</span>
+                        <AlertCircle className="w-4 h-4 text-red-500 mt-0.5" />
                         Escalate to senior case manager for review within 48 hours
                       </li>
                     )}
                     <li className="flex items-start gap-2">
-                      <span className="material-symbols-outlined text-base text-blue-500 mt-0.5">calendar_month</span>
+                      <CalendarDays className="w-4 h-4 text-blue-500 mt-0.5" />
                       Schedule next clinical review and ensure RTW plan is current
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="material-symbols-outlined text-base text-emerald-500 mt-0.5">groups</span>
+                      <UsersIcon className="w-4 h-4 text-emerald-500 mt-0.5" />
                       Coordinate with employer on suitable duties availability
                     </li>
                     {workerCase.disputeStatus && workerCase.disputeStatus !== "none" && workerCase.disputeStatus !== "resolved" && (
                       <li className="flex items-start gap-2">
-                        <span className="material-symbols-outlined text-base text-amber-500 mt-0.5">gavel</span>
+                        <Gavel className="w-4 h-4 text-amber-500 mt-0.5" />
                         Engage insurer legal team — conciliation strategy is in progress
                       </li>
                     )}
                     <li className="flex items-start gap-2">
-                      <span className="material-symbols-outlined text-base text-purple-500 mt-0.5">description</span>
+                      <FileText className="w-4 h-4 text-purple-500 mt-0.5" />
                       Ensure all compliance deadlines are documented in the case timeline
                     </li>
                   </ul>
@@ -712,7 +732,7 @@ export default function CaseSummaryPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <span className="material-symbols-outlined text-primary">attach_file</span>
+                      <Paperclip className="w-5 h-5 text-primary" />
                       Attachments
                     </CardTitle>
                   </CardHeader>
@@ -726,7 +746,7 @@ export default function CaseSummaryPage() {
                           target="_blank"
                           rel="noopener noreferrer"
                         >
-                          <span className="material-symbols-outlined text-base">description</span>
+                          <FileText className="w-4 h-4" />
                           {attachment.name}
                         </a>
                       ))}
