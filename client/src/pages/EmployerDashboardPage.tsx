@@ -237,16 +237,22 @@ function EmployerDashboardContent() {
       {/* Actions Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Critical Actions */}
-        {criticalActions.length > 0 && (
-          <Card className="lg:col-span-1 bg-card shadow-xl border-0">
-            <CardHeader className="bg-destructive/10 text-destructive border-b border-destructive/20 rounded-t-lg">
-              <CardTitle className="flex items-center space-x-2">
-                <AlertTriangle className="w-5 h-5" />
-                <span>Critical Actions</span>
-                <Badge variant="destructive" className="ml-auto">{criticalActions.length}</Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
+        <Card className="lg:col-span-1 bg-card shadow-xl border-0">
+          <CardHeader className="bg-destructive/10 text-destructive border-b border-destructive/20 rounded-t-lg">
+            <CardTitle className="flex items-center space-x-2">
+              <AlertTriangle className="w-5 h-5" />
+              <span>Critical Actions</span>
+              <Badge variant="destructive" className="ml-auto">{criticalActions.length}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            {criticalActions.length === 0 ? (
+              <div className="p-8 text-center">
+                <CheckCircle className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
+                <p className="text-sm font-medium text-foreground">All clear</p>
+                <p className="text-xs text-muted-foreground mt-1">No critical actions right now.</p>
+              </div>
+            ) : (
               <div className="max-h-96 overflow-y-auto">
                 {criticalActions.map((action, index) => (
                   <div
@@ -274,9 +280,9 @@ function EmployerDashboardContent() {
                   </div>
                 ))}
               </div>
-            </CardContent>
-          </Card>
-        )}
+            )}
+          </CardContent>
+        </Card>
 
         {/* Urgent Actions */}
         <Card className="lg:col-span-1 bg-card shadow-lg border-0">
@@ -288,7 +294,14 @@ function EmployerDashboardContent() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="max-h-96 overflow-y-auto">
+            {urgentActions.length === 0 ? (
+              <div className="p-8 text-center">
+                <CheckCircle className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
+                <p className="text-sm font-medium text-foreground">All clear</p>
+                <p className="text-xs text-muted-foreground mt-1">No urgent actions right now.</p>
+              </div>
+            ) : (
+              <div className="max-h-96 overflow-y-auto">
               {urgentActions.slice(0, 8).map((action) => (
                 <div
                   key={action.id}
@@ -321,7 +334,8 @@ function EmployerDashboardContent() {
                   </Button>
                 </div>
               )}
-            </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -335,7 +349,14 @@ function EmployerDashboardContent() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="max-h-96 overflow-y-auto">
+            {routineActions.length === 0 ? (
+              <div className="p-8 text-center">
+                <CheckCircle className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
+                <p className="text-sm font-medium text-foreground">All clear</p>
+                <p className="text-xs text-muted-foreground mt-1">No routine actions right now.</p>
+              </div>
+            ) : (
+              <div className="max-h-96 overflow-y-auto">
               {routineActions.slice(0, 6).map((action) => (
                 <div
                   key={action.id}
@@ -363,7 +384,8 @@ function EmployerDashboardContent() {
                   </Button>
                 </div>
               )}
-            </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
