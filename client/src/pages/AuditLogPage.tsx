@@ -32,7 +32,7 @@ export default function AuditLogPage() {
   const [dateRange, setDateRange] = useState("7d");
 
   const { data: paginatedData, isLoading } = useQuery<PaginatedCasesResponse>({
-    queryKey: ["/api/gpnet2/cases"],
+    queryKey: ["/api/cases"],
   });
   const cases = paginatedData?.cases ?? [];
 

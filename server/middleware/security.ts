@@ -172,7 +172,6 @@ export function shouldSkipCsrf(path: string): boolean {
     "/api/health",
     "/health",
     "/api/csrf-token", // CSRF token endpoint itself
-    "/api/gpnet2/cases", // Dashboard data endpoint
     "/api/public/", // Magic-link questionnaire — no auth, no CSRF
     "/api/chat/", // Chat is auth'd via session cookie — no CSRF needed
   ];

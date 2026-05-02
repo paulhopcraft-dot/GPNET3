@@ -36,7 +36,7 @@ test.describe('Error Handling', { tag: '@regression' }, () => {
 
   test('network error shows retry option', async ({ authenticatedPage: page, context }) => {
     // Block a specific API endpoint
-    await context.route('**/api/gpnet2/cases', route => route.abort('failed'));
+    await context.route('**/api/cases', route => route.abort('failed'));
 
     await page.goto('/cases');
     await page.waitForTimeout(3000);

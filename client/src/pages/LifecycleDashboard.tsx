@@ -63,7 +63,7 @@ const fetchEmployeeLifecycleData = async (): Promise<EmployeeLifecycle[]> => {
   const assessmentsData = await assessmentsResponse.json();
 
   // Fetch existing worker cases for employment stage data
-  const casesResponse = await fetch('/api/gpnet2/cases', {
+  const casesResponse = await fetch('/api/cases', {
     credentials: 'include'
   });
   if (!casesResponse.ok) {

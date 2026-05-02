@@ -59,7 +59,7 @@ function EmployerDashboardContent() {
   });
 
   const { data: allCasesData } = useQuery<PaginatedCasesResponse>({
-    queryKey: ['/api/gpnet2/cases'],
+    queryKey: ['/api/cases'],
     staleTime: 60_000,
   });
 

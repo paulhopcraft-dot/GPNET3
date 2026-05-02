@@ -114,9 +114,9 @@ async function testCaseManagement() {
   console.log('═══════════════════════════════════════════\n');
 
   // Get all cases
-  const casesResult = await testEndpoint('GET', '/api/gpnet2/cases');
+  const casesResult = await testEndpoint('GET', '/api/cases');
   log({
-    endpoint: '/api/gpnet2/cases',
+    endpoint: '/api/cases',
     method: 'GET',
     status: casesResult.ok ? 'PASS' : 'FAIL',
     statusCode: casesResult.status,
@@ -220,7 +220,7 @@ async function testRTWPlanner() {
   console.log('═══════════════════════════════════════════\n');
 
   // Get off-work cases
-  const cases = await testEndpoint('GET', '/api/gpnet2/cases');
+  const cases = await testEndpoint('GET', '/api/cases');
   if (cases.ok && cases.data?.cases) {
     const offWorkCase = cases.data.cases.find((c: any) => c.workStatus === 'Off work');
     
@@ -264,13 +264,13 @@ async function testPerformance() {
   // Test response times
   const times: number[] = [];
   for (let i = 0; i < 3; i++) {
-    const result = await testEndpoint('GET', '/api/gpnet2/cases');
+    const result = await testEndpoint('GET', '/api/cases');
     if (result.time) times.push(result.time);
   }
 
   const avgTime = times.reduce((a, b) => a + b, 0) / times.length;
   log({
-    endpoint: '/api/gpnet2/cases',
+    endpoint: '/api/cases',
     method: 'GET (3x avg)',
     status: avgTime < 2000 ? 'PASS' : 'FAIL',
     details: `Average response time: ${Math.round(avgTime)}ms`,

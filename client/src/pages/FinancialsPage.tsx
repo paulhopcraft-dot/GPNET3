@@ -18,7 +18,7 @@ import { isLegitimateCase } from "@shared/schema";
 
 export default function FinancialsPage() {
   const { data: paginatedData, isLoading } = useQuery<PaginatedCasesResponse>({
-    queryKey: ["/api/gpnet2/cases"],
+    queryKey: ["/api/cases"],
   });
   const cases = paginatedData?.cases ?? [];
 

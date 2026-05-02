@@ -55,7 +55,7 @@ export default function CasesDashboard() {
   const { toast } = useToast();
 
   const { data: paginatedData, isLoading } = useQuery<PaginatedCasesResponse>({
-    queryKey: ["/api/gpnet2/cases?limit=200"],
+    queryKey: ["/api/cases?limit=200"],
     refetchInterval: 120_000,
     staleTime: 60_000,
   });
@@ -79,7 +79,7 @@ export default function CasesDashboard() {
       return await response.json();
     },
     onSuccess: (data: any) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/gpnet2/cases"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
       // Only show toast if Freshdesk is configured or if manually triggered
       if (data.configured === false) {
         // Silently skip notification for unconfigured Freshdesk on initial load
