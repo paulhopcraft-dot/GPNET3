@@ -264,7 +264,7 @@ function EmployerDashboardContent() {
                         </div>
                         <p className="text-sm text-muted-foreground mb-2">{action.action}</p>
                         {!!action.daysOverdue && (
-                          <Badge className="bg-red-100 text-red-800">
+                          <Badge variant="critical">
                             {action.daysOverdue} days overdue
                           </Badge>
                         )}
@@ -305,7 +305,7 @@ function EmployerDashboardContent() {
                       </div>
                       <p className="text-sm text-muted-foreground mb-2">{action.action}</p>
                       {!!action.daysOverdue && (
-                        <Badge className="bg-amber-100 text-amber-800">
+                        <Badge variant="warning">
                           {action.daysOverdue} days overdue
                         </Badge>
                       )}
@@ -413,23 +413,25 @@ function EmployerDashboardContent() {
                       </div>
                       <div className="flex items-center gap-2">
                         {needsApproval && (
-                          <Badge className="bg-yellow-100 text-yellow-800 text-xs border border-yellow-300">RTW approval needed</Badge>
+                          <Badge variant="warning" className="text-xs">RTW approval needed</Badge>
                         )}
                         {planActive && (
-                          <Badge className="bg-emerald-100 text-emerald-800 text-xs border border-emerald-300">✓ RTW plan active</Badge>
+                          <Badge variant="success" className="text-xs">✓ RTW plan active</Badge>
                         )}
-                        <Badge className={
-                          c.workStatus === "Off work"
-                            ? "bg-amber-100 text-amber-800 text-xs"
-                            : "bg-green-100 text-green-800 text-xs"
-                        }>{c.workStatus}</Badge>
-                        <Badge className={
-                          (c.riskLevel || "").toLowerCase() === "high"
-                            ? "bg-red-100 text-red-800 text-xs"
-                            : (c.riskLevel || "").toLowerCase() === "medium"
-                            ? "bg-amber-100 text-amber-800 text-xs"
-                            : "bg-green-100 text-green-800 text-xs"
-                        }>{c.riskLevel || "Unknown"}</Badge>
+                        <Badge
+                          variant={c.workStatus === "Off work" ? "warning" : "success"}
+                          className="text-xs"
+                        >{c.workStatus}</Badge>
+                        <Badge
+                          variant={
+                            (c.riskLevel || "").toLowerCase() === "high"
+                              ? "critical"
+                              : (c.riskLevel || "").toLowerCase() === "medium"
+                              ? "warning"
+                              : "success"
+                          }
+                          className="text-xs"
+                        >{c.riskLevel || "Unknown"}</Badge>
                         <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-blue-500" />
                       </div>
                     </div>
