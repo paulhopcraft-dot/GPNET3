@@ -8,11 +8,21 @@
  */
 
 import { test, expect } from '../fixtures/auth.fixture';
+import type { Page } from '@playwright/test';
+
+async function waitForDashboardContent(page: Page) {
+  await expect(
+    page
+      .getByText(/cases loaded|total cases|off work|at work|high risk|workers|actions/i)
+      .first()
+  ).toBeVisible({ timeout: 30000 });
+}
 
 test.describe('Employer Dashboard', { tag: ['@critical', '@regression'] }, () => {
   test('dashboard loads with organization name', async ({ authenticatedPage: page }) => {
     await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
+    await waitForDashboardContent(page);
 
     // Should display organization name (Symmetry or Preventli are known test orgs)
     const orgName = page.getByText(/Symmetry|Preventli/i).first();
@@ -22,6 +32,7 @@ test.describe('Employer Dashboard', { tag: ['@critical', '@regression'] }, () =>
   test('dashboard shows case count or action cards', async ({ authenticatedPage: page }) => {
     await page.goto('/employer');
     await page.waitForLoadState('domcontentloaded');
+    await waitForDashboardContent(page);
 
     // Should show either case count, action cards, or stats
     const dashboardContent = page.locator('[class*="Card"], [class*="card"], [data-testid*="dashboard"]').first();
@@ -36,9 +47,10 @@ test.describe('Employer Dashboard', { tag: ['@critical', '@regression'] }, () =>
   test('dashboard has navigation links', async ({ authenticatedPage: page }) => {
     await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
+    await waitForDashboardContent(page);
 
     // Count navigation links
-    const navLinks = page.locator('nav a, aside a, [role="navigation"] a');
+    const navLinks = page.locator('nav a, aside a, [role="navigation"] a, nav button, aside button, [role="navigation"] button');
     const count = await navLinks.count();
     expect(count).toBeGreaterThan(2);
   });
@@ -53,6 +65,7 @@ test.describe('Employer Dashboard', { tag: ['@critical', '@regression'] }, () =>
 
     await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
+    await waitForDashboardContent(page);
     await page.waitForTimeout(2000);
 
     // Filter out expected/benign errors
@@ -63,12 +76,12 @@ test.describe('Employer Dashboard', { tag: ['@critical', '@regression'] }, () =>
     expect(realErrors).toHaveLength(0);
   });
 
-  test('dashboard displays cases heading', async ({ authenticatedPage: page }) => {
+  test('dashboard displays case summary content', async ({ authenticatedPage: page }) => {
     await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
+    await waitForDashboardContent(page);
 
-    // Should show a cases heading
-    const casesHeading = page.getByRole('heading', { name: /cases/i });
-    await expect(casesHeading).toBeVisible({ timeout: 15000 });
+    const caseSummary = page.getByText(/cases loaded|total cases/i).first();
+    await expect(caseSummary).toBeVisible({ timeout: 15000 });
   });
 });

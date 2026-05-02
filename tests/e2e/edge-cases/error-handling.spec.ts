@@ -11,11 +11,30 @@
  */
 
 import { test, expect } from '../fixtures/auth.fixture';
+import type { Page } from '@playwright/test';
+
+const caseRowsSelector = '[data-testid^="row-case-"], tbody tr';
+
+async function waitForRouteOutcome(page: Page, isExpectedOutcome: (bodyText: string, url: string) => boolean) {
+  await expect
+    .poll(
+      async () => isExpectedOutcome(await page.locator('body').innerText(), page.url()),
+      { timeout: 30_000, intervals: [500, 1_000, 2_000] }
+    )
+    .toBe(true);
+}
 
 test.describe('Error Handling', { tag: '@regression' }, () => {
   test('invalid case ID shows error gracefully', async ({ authenticatedPage: page }) => {
     await page.goto('/employer/case/invalid-case-id-12345');
     await page.waitForLoadState('domcontentloaded');
+    await waitForRouteOutcome(page, (bodyText, url) => {
+      const lowerBodyText = bodyText.toLowerCase();
+      return lowerBodyText.includes('not found') ||
+        lowerBodyText.includes('case not found') ||
+        lowerBodyText.includes('does not exist') ||
+        url.includes('/cases');
+    });
 
     // Should show error message or redirect, not crash
     const pageContent = await page.content();
@@ -127,7 +146,7 @@ test.describe('Error Handling', { tag: '@regression' }, () => {
     await page.goto('/cases');
 
     // Wait for case rows or handle empty state
-    const hasRows = await page.waitForSelector('[data-testid^="row-case-"]', { timeout: 15000 }).catch(() => null);
+    const hasRows = await page.waitForSelector(caseRowsSelector, { timeout: 15000 }).catch(() => null);
 
     if (!hasRows) {
       console.log('No case rows found - skipping recovery chart test');
@@ -135,7 +154,7 @@ test.describe('Error Handling', { tag: '@regression' }, () => {
     }
 
     // Click first case to see detail
-    await page.locator('[data-testid^="row-case-"]').first().click();
+    await page.locator(caseRowsSelector).first().click();
     await page.waitForTimeout(2000);
 
     // Look for recovery chart or timeline
@@ -189,7 +208,7 @@ test.describe('Error Handling', { tag: '@regression' }, () => {
     await page.goto('/cases');
 
     // Wait for case rows or handle empty state
-    const hasRows = await page.waitForSelector('[data-testid^="row-case-"]', { timeout: 15000 }).catch(() => null);
+    const hasRows = await page.waitForSelector(caseRowsSelector, { timeout: 15000 }).catch(() => null);
 
     if (!hasRows) {
       console.log('No case rows found - skipping certificate dots test');
@@ -197,7 +216,7 @@ test.describe('Error Handling', { tag: '@regression' }, () => {
     }
 
     // Find a case that likely has certificates (look for one with more data)
-    const caseRows = page.locator('[data-testid^="row-case-"]');
+    const caseRows = page.locator(caseRowsSelector);
     const rowCount = await caseRows.count();
 
     let foundCertDots = false;
@@ -243,7 +262,7 @@ test.describe('Error Handling', { tag: '@regression' }, () => {
 
       // Go back to cases list to try next case
       await page.goto('/cases');
-      await page.waitForSelector('[data-testid^="row-case-"]', { timeout: 10000 }).catch(() => null);
+      await page.waitForSelector(caseRowsSelector, { timeout: 10000 }).catch(() => null);
     }
 
     if (!foundCertDots) {
@@ -255,14 +274,14 @@ test.describe('Error Handling', { tag: '@regression' }, () => {
     await page.goto('/cases');
 
     // Wait for case rows or handle empty state
-    const hasRows = await page.waitForSelector('[data-testid^="row-case-"]', { timeout: 15000 }).catch(() => null);
+    const hasRows = await page.waitForSelector(caseRowsSelector, { timeout: 15000 }).catch(() => null);
 
     if (!hasRows) {
       console.log('No case rows found - skipping certificate click test');
       return;
     }
 
-    await page.locator('[data-testid^="row-case-"]').first().click();
+    await page.locator(caseRowsSelector).first().click();
     await page.waitForTimeout(2000);
 
     // Find certificate dots/markers
@@ -295,7 +314,12 @@ test.describe('Error Handling', { tag: '@regression' }, () => {
 
     // Wait for either content or timeout
     await Promise.race([
-      page.waitForSelector('[data-testid^="row-case-"], .empty-state, text=/no cases/i', { timeout: 30000 }),
+      page
+        .locator(caseRowsSelector)
+        .or(page.locator('.empty-state'))
+        .or(page.getByText(/no cases/i))
+        .first()
+        .waitFor({ state: 'visible', timeout: 30000 }),
       page.waitForTimeout(30000)
     ]);
 
@@ -311,6 +335,15 @@ test.describe('Error Handling', { tag: '@regression' }, () => {
     // Navigate to non-existent route
     await page.goto('/nonexistent-route-12345');
     await page.waitForLoadState('domcontentloaded');
+    await waitForRouteOutcome(page, (bodyText, url) => {
+      const lowerBodyText = bodyText.toLowerCase();
+      return lowerBodyText.includes('not found') ||
+        lowerBodyText.includes('404') ||
+        lowerBodyText.includes('page not found') ||
+        url.includes('/cases') ||
+        url.includes('/employer') ||
+        url.includes('/login');
+    });
 
     const pageContent = await page.content();
 

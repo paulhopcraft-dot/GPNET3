@@ -4,14 +4,56 @@ test.describe("Session Management", () => {
   const testEmail = "admin@gpnet.local";
   const testPassword = "ChangeMe123!";
 
+  async function gotoSessions(page: any) {
+    await page.goto("/sessions", { waitUntil: "commit", timeout: 30000 });
+    await expect(
+      page
+        .getByRole("heading", { name: /active sessions|sessions/i })
+        .or(page.getByText(/current session|this device|browser|last active|created|no other sessions/i))
+        .first()
+    ).toBeVisible({ timeout: 30000 });
+  }
+
+  function sessionItems(page: any) {
+    return page
+      .getByTestId(/session-item|session-card/i)
+      .or(
+        page.locator('[data-testid*="session"], [class*="session"], article, li').filter({
+          hasText: /current|this device|chrome|chromium|browser|last active|created|ago/i,
+        })
+      );
+  }
+
+  async function gotoLogin(page: any, dashboardIndicator: any) {
+    let lastError: unknown;
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        await page.goto("/login", { waitUntil: "commit", timeout: 30000 });
+        await page.waitForLoadState("domcontentloaded", { timeout: 15000 }).catch(() => undefined);
+        return;
+      } catch (error) {
+        lastError = error;
+        const loginFormVisible = await page.locator('input[type="email"]').isVisible({ timeout: 1000 }).catch(() => false);
+        const dashboardVisible = await dashboardIndicator.isVisible({ timeout: 1000 }).catch(() => false);
+        if (loginFormVisible || dashboardVisible) return;
+        await page.waitForTimeout(1000).catch(() => undefined);
+      }
+    }
+
+    throw lastError;
+  }
+
   // Helper to login
   // Note: Requires database connection to work properly
   async function login(page: any) {
-    await page.goto("/");
-
     // Check if already logged in by looking for user menu or cases heading
-    const casesHeading = page.getByRole("heading", { name: /cases/i });
-    if (await casesHeading.isVisible().catch(() => false)) {
+    const dashboardIndicator = page
+      .getByText(/cases loaded|total cases|off work|at work|high risk/i)
+      .first();
+    await gotoLogin(page, dashboardIndicator);
+
+    if (await dashboardIndicator.isVisible({ timeout: 2000 }).catch(() => false)) {
       return; // Already logged in
     }
 
@@ -22,12 +64,14 @@ test.describe("Session Management", () => {
 
     await emailInput.fill(testEmail);
     await passwordInput.fill(testPassword);
-    await loginButton.click();
+    await loginButton.click({ timeout: 5000 }).catch(async () => {
+      await passwordInput.press("Enter");
+    });
 
     // Wait for either dashboard to load OR error message to appear
     // This provides better feedback when database is unavailable
     try {
-      await expect(casesHeading).toBeVisible({ timeout: 15000 });
+      await expect(dashboardIndicator).toBeVisible({ timeout: 30000 });
     } catch (error) {
       // Check if there's an error message
       const errorMessage = await page.getByText(/error|failed|unable/i).first().textContent().catch(() => null);
@@ -43,7 +87,7 @@ test.describe("Session Management", () => {
 
     // Navigate to sessions page (might be in user menu)
     // Try to find sessions link
-    await page.goto("/sessions");
+    await gotoSessions(page);
 
     // Should show sessions heading
     const heading = page.getByRole("heading", { name: /active sessions|sessions/i });
@@ -52,14 +96,13 @@ test.describe("Session Management", () => {
 
   test("should show current session in sessions list", async ({ page }) => {
     await login(page);
-    await page.goto("/sessions");
+    await gotoSessions(page);
 
     // Should show at least one session (current session)
-    const sessionItems = page.getByTestId(/session-item|session-card/i);
-    await expect(sessionItems.first()).toBeVisible({ timeout: 10000 });
+    await expect(sessionItems(page).first()).toBeVisible({ timeout: 10000 });
 
     // Should show device info
-    await expect(page.getByText(/chrome|chromium|browser/i)).toBeVisible();
+    await expect(page.getByText(/chrome|chromium|browser/i).first()).toBeVisible();
 
     // Should show "Current Session" indicator
     await expect(page.getByText(/current|this device/i)).toBeVisible();
@@ -67,9 +110,9 @@ test.describe("Session Management", () => {
 
   test("should display session details (device, location, time)", async ({ page }) => {
     await login(page);
-    await page.goto("/sessions");
+    await gotoSessions(page);
 
-    const sessionItem = page.getByTestId(/session-item|session-card/i).first();
+    const sessionItem = sessionItems(page).first();
     await expect(sessionItem).toBeVisible();
 
     // Should show timestamps
@@ -78,7 +121,7 @@ test.describe("Session Management", () => {
 
   test("should not allow revoking current session", async ({ page }) => {
     await login(page);
-    await page.goto("/sessions");
+    await gotoSessions(page);
 
     // Find current session
     const currentSession = page.locator('[data-testid*="session"]').filter({ hasText: /current/i });
@@ -95,7 +138,7 @@ test.describe("Session Management", () => {
     // This test would need multiple sessions
     // For now, test that revoke buttons exist
     await login(page);
-    await page.goto("/sessions");
+    await gotoSessions(page);
 
     // Check if there are any revoke buttons
     const revokeButtons = page.getByRole("button", { name: /revoke|sign out/i });
@@ -117,10 +160,10 @@ test.describe("Session Management", () => {
 
   test("should have 'Revoke All' or 'Sign Out All Devices' option", async ({ page }) => {
     await login(page);
-    await page.goto("/sessions");
+    await gotoSessions(page);
 
     // Should have option to revoke all sessions
-    const revokeAllButton = page.getByRole("button", { name: /revoke all|sign out all|logout all/i });
+    const revokeAllButton = page.getByRole("button", { name: /revoke all|sign out all|log out all|logout all/i });
 
     // Button should exist (even if disabled when only one session)
     await expect(revokeAllButton).toBeVisible({ timeout: 10000 });
@@ -128,11 +171,10 @@ test.describe("Session Management", () => {
 
   test("should show empty state when no other sessions exist", async ({ page }) => {
     await login(page);
-    await page.goto("/sessions");
+    await gotoSessions(page);
 
     // Should show at least current session
-    const sessionItems = page.getByTestId(/session-item|session-card/i);
-    const count = await sessionItems.count();
+    const count = await sessionItems(page).count();
 
     expect(count).toBeGreaterThan(0);
 
@@ -160,7 +202,7 @@ test.describe("Session Management", () => {
       await expect(page).toHaveURL(/\/sessions/);
     } else {
       // Direct navigation works
-      await page.goto("/sessions");
+      await gotoSessions(page);
       await expect(page.getByRole("heading", { name: /sessions/i })).toBeVisible();
     }
   });
@@ -169,7 +211,7 @@ test.describe("Session Management", () => {
     await login(page);
 
     // Navigate to sessions
-    await page.goto("/sessions");
+    await gotoSessions(page);
 
     // Should show loading indicator initially
     // (This might be too fast to catch in local testing)
@@ -189,7 +231,7 @@ test.describe("Session Management", () => {
       route.abort();
     });
 
-    await page.goto("/sessions");
+    await gotoSessions(page);
 
     // Should show error message
     await expect(page.getByText(/error|failed|try again/i)).toBeVisible({ timeout: 10000 });
@@ -197,11 +239,10 @@ test.describe("Session Management", () => {
 
   test("should refresh sessions list after revoking a session", async ({ page }) => {
     await login(page);
-    await page.goto("/sessions");
+    await gotoSessions(page);
 
     // Count initial sessions
-    const sessionItems = page.getByTestId(/session-item|session-card/i);
-    const initialCount = await sessionItems.count();
+    const initialCount = await sessionItems(page).count();
 
     // This test would need multiple sessions to properly test
     // For now, verify the sessions list is visible

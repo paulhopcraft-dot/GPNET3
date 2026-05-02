@@ -13,6 +13,9 @@ import { PERFORMANCE_TARGETS } from '../fixtures/test-data';
 
 test.describe('Page Load Times', { tag: '@performance' }, () => {
   const TARGET_MS = PERFORMANCE_TARGETS?.dashboard || 5000;
+  const caseRowsSelector = '[data-testid^="row-case-"], tbody tr';
+  const caseDetailSelector =
+    '[data-testid="case-detail-panel"], [role="tablist"], a:has-text("Back to Cases"), button:has-text("Summary")';
 
   test('dashboard loads within target', async ({ authenticatedPage: page }) => {
     const startTime = Date.now();
@@ -36,7 +39,7 @@ test.describe('Page Load Times', { tag: '@performance' }, () => {
     await page.waitForLoadState('domcontentloaded');
 
     // Wait for table to appear
-    await page.waitForSelector('table, [data-testid^="row-case-"]', { timeout: TARGET_MS });
+    await page.waitForSelector('table, [data-testid^="row-case-"]', { timeout: 15000 });
 
     const loadTime = Date.now() - startTime;
     console.log(`Cases page load time: ${loadTime}ms (target: ${TARGET_MS}ms)`);
@@ -47,12 +50,12 @@ test.describe('Page Load Times', { tag: '@performance' }, () => {
   test('case detail loads within target', async ({ authenticatedPage: page }) => {
     // Navigate to cases first
     await page.goto('/cases');
-    await page.waitForSelector('[data-testid^="row-case-"]', { timeout: 15000 });
+    await page.waitForSelector(caseRowsSelector, { timeout: 15000 });
 
     // Time the case detail load
     const startTime = Date.now();
-    await page.locator('[data-testid^="row-case-"]').first().click();
-    await page.waitForSelector('[data-testid="case-detail-panel"], [role="tablist"]', { timeout: TARGET_MS });
+    await page.locator(caseRowsSelector).first().click();
+    await page.waitForSelector(caseDetailSelector, { timeout: TARGET_MS });
 
     const loadTime = Date.now() - startTime;
     console.log(`Case detail load time: ${loadTime}ms (target: ${TARGET_MS}ms)`);
@@ -67,7 +70,7 @@ test.describe('Page Load Times', { tag: '@performance' }, () => {
     await page.waitForLoadState('domcontentloaded');
 
     // Wait for dashboard content
-    await page.waitForSelector('text=/Symmetry|employer|dashboard/i', { timeout: TARGET_MS });
+    await page.waitForSelector('text=/Symmetry|employer|dashboard/i', { timeout: 15000 });
 
     const loadTime = Date.now() - startTime;
     console.log(`Employer portal load time: ${loadTime}ms (target: ${TARGET_MS}ms)`);

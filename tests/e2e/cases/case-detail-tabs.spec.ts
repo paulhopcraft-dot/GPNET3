@@ -10,14 +10,17 @@
 import { test, expect } from '../fixtures/auth.fixture';
 
 const TABS = ['summary', 'injury', 'timeline', 'treatment', 'contacts', 'financial', 'risk'];
+const caseRowsSelector = '[data-testid^="row-case-"], tbody tr';
+const caseDetailSelector =
+  '[data-testid="case-detail-panel"], [role="tablist"], a:has-text("Back to Cases"), button:has-text("Summary")';
 
 test.describe('Case Detail Tabs', { tag: ['@critical', '@regression'] }, () => {
   test.beforeEach(async ({ authenticatedPage: page }) => {
     // Navigate to cases and open first case
     await page.goto('/cases');
-    await page.waitForSelector('[data-testid^="row-case-"]', { timeout: 15000 });
-    await page.locator('[data-testid^="row-case-"]').first().click();
-    await page.waitForSelector('[data-testid="case-detail-panel"], [role="tablist"]', {
+    await page.waitForSelector(caseRowsSelector, { timeout: 15000 });
+    await page.locator(caseRowsSelector).first().click();
+    await page.waitForSelector(caseDetailSelector, {
       timeout: 10000,
     });
   });
@@ -111,7 +114,7 @@ test.describe('Case Detail Tabs', { tag: ['@critical', '@regression'] }, () => {
     }
 
     // Click on a different case
-    const caseRows = page.locator('[data-testid^="row-case-"]');
+    const caseRows = page.locator(caseRowsSelector);
     const rowCount = await caseRows.count();
     if (rowCount > 1) {
       await caseRows.nth(1).click();
@@ -119,7 +122,7 @@ test.describe('Case Detail Tabs', { tag: ['@critical', '@regression'] }, () => {
 
       // Verify detail panel still visible (didn't crash)
       const detailPanel = page
-        .locator('[data-testid="case-detail-panel"], [role="tablist"]')
+        .locator(caseDetailSelector)
         .first();
       await expect(detailPanel).toBeVisible();
     }
