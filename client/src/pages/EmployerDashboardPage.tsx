@@ -5,6 +5,7 @@ import { FirstTimeTour } from "@/components/FirstTimeTour";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { PageSpinner } from '@/components/typography';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -64,14 +65,7 @@ function EmployerDashboardContent() {
   });
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-96">
-        <div className="text-center space-y-4">
-          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="text-slate-600 font-medium">Loading your dashboard...</p>
-        </div>
-      </div>
-    );
+    return <PageSpinner label="Loading your dashboard..." />;
   }
 
   if (error) {
@@ -79,9 +73,9 @@ function EmployerDashboardContent() {
       <div className="flex items-center justify-center min-h-96">
         <Card className="w-full max-w-md">
           <CardContent className="text-center p-6">
-            <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-red-800 mb-2">Dashboard Unavailable</h2>
-            <p className="text-red-600">Unable to load dashboard data. Please try again.</p>
+            <AlertTriangle className="w-12 h-12 text-destructive mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-foreground mb-2">Dashboard Unavailable</h2>
+            <p className="text-muted-foreground">Unable to load dashboard data. Please try again.</p>
           </CardContent>
         </Card>
       </div>
@@ -143,12 +137,12 @@ function EmployerDashboardContent() {
 
       {/* Statistics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="bg-white shadow-lg border-0 hover:shadow-xl transition-all duration-300">
+        <Card className="bg-card shadow-lg border-0 hover:shadow-xl transition-all duration-300">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-600 mb-1">Total Cases</p>
-                <p className="text-3xl font-bold text-slate-900">{stats?.totalCases || 0}</p>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Total Cases</p>
+                <p className="text-3xl font-bold text-foreground">{stats?.totalCases || 0}</p>
               </div>
               <div className="p-3 bg-blue-100 rounded-xl">
                 <Users className="w-6 h-6 text-blue-600" />
@@ -157,11 +151,11 @@ function EmployerDashboardContent() {
           </CardContent>
         </Card>
 
-        <Card className="bg-white shadow-lg border-0 hover:shadow-xl transition-all duration-300">
+        <Card className="bg-card shadow-lg border-0 hover:shadow-xl transition-all duration-300">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-600 mb-1">At Work</p>
+                <p className="text-sm font-medium text-muted-foreground mb-1">At Work</p>
                 <p className="text-3xl font-bold text-green-700">{stats?.atWork || 0}</p>
                 <p className="text-xs text-green-600 mt-1">
                   {stats?.totalCases ? Math.round((stats.atWork / stats.totalCases) * 100) : 0}% active
@@ -174,11 +168,11 @@ function EmployerDashboardContent() {
           </CardContent>
         </Card>
 
-        <Card className="bg-white shadow-lg border-0 hover:shadow-xl transition-all duration-300">
+        <Card className="bg-card shadow-lg border-0 hover:shadow-xl transition-all duration-300">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-600 mb-1">Off Work</p>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Off Work</p>
                 <p className="text-3xl font-bold text-amber-700">{stats?.offWork || 0}</p>
                 <p className="text-xs text-amber-600 mt-1">Requiring support</p>
               </div>
@@ -189,7 +183,7 @@ function EmployerDashboardContent() {
           </CardContent>
         </Card>
 
-        <Card className="bg-white shadow-lg border-0 hover:shadow-xl transition-all duration-300">
+        <Card className="bg-card shadow-lg border-0 hover:shadow-xl transition-all duration-300">
           <CardContent className="p-6">
             {(() => {
               const activePlans = (allCasesData?.cases ?? []).filter(c => c.rtwPlanStatus === "in_progress" || c.rtwPlanStatus === "working_well").length;
@@ -197,7 +191,7 @@ function EmployerDashboardContent() {
               return activePlans > 0 ? (
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-slate-600 mb-1">RTW Plans Active</p>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">RTW Plans Active</p>
                     <p className="text-3xl font-bold text-emerald-700">{activePlans}</p>
                     <p className="text-xs text-emerald-600 mt-1">{hasCritical ? `${criticalActions.length} critical action${criticalActions.length !== 1 ? "s" : ""} pending` : "No critical actions"}</p>
                   </div>
@@ -208,7 +202,7 @@ function EmployerDashboardContent() {
               ) : (
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-slate-600 mb-1">Critical Actions</p>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Critical Actions</p>
                     <p className="text-3xl font-bold text-red-700">{criticalActions.length}</p>
                     <p className="text-xs text-red-600 mt-1">Immediate attention</p>
                   </div>
@@ -226,7 +220,7 @@ function EmployerDashboardContent() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Critical Actions */}
         {criticalActions.length > 0 && (
-          <Card className="lg:col-span-1 bg-white shadow-xl border-0">
+          <Card className="lg:col-span-1 bg-card shadow-xl border-0">
             <CardHeader className="bg-gradient-to-r from-red-500 to-red-600 text-white rounded-t-lg">
               <CardTitle className="flex items-center space-x-2">
                 <AlertTriangle className="w-5 h-5" />
@@ -239,25 +233,25 @@ function EmployerDashboardContent() {
                 {criticalActions.map((action, index) => (
                   <div
                     key={action.id}
-                    className="p-4 border-b border-slate-100 hover:bg-red-50 transition-all duration-200 cursor-pointer group"
-                    onClick={() => window.location.href = `/employer/case/${action.caseId}`}
+                    className="p-4 border-b border-border hover:bg-red-50 dark:hover:bg-red-950/20 transition-all duration-200 cursor-pointer group"
+                    onClick={() => navigate(`/employer/case/${action.caseId}`)}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center space-x-2 mb-2">
                           {getPriorityIcon(action.type)}
-                          <p className="font-semibold text-slate-900 group-hover:text-red-700">
+                          <p className="font-semibold text-foreground group-hover:text-red-700">
                             {action.workerName}
                           </p>
                         </div>
-                        <p className="text-sm text-slate-600 mb-2">{action.action}</p>
+                        <p className="text-sm text-muted-foreground mb-2">{action.action}</p>
                         {!!action.daysOverdue && (
                           <Badge className="bg-red-100 text-red-800">
                             {action.daysOverdue} days overdue
                           </Badge>
                         )}
                       </div>
-                      <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-red-600 transition-colors" />
+                      <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-red-600 transition-colors" />
                     </div>
                   </div>
                 ))}
@@ -267,7 +261,7 @@ function EmployerDashboardContent() {
         )}
 
         {/* Urgent Actions */}
-        <Card className="lg:col-span-1 bg-white shadow-lg border-0">
+        <Card className="lg:col-span-1 bg-card shadow-lg border-0">
           <CardHeader className="bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-t-lg">
             <CardTitle className="flex items-center space-x-2">
               <Clock className="w-5 h-5" />
@@ -280,25 +274,25 @@ function EmployerDashboardContent() {
               {urgentActions.slice(0, 8).map((action) => (
                 <div
                   key={action.id}
-                  className="p-4 border-b border-slate-100 hover:bg-amber-50 transition-all duration-200 cursor-pointer group"
-                  onClick={() => window.location.href = `/employer/case/${action.caseId}`}
+                  className="p-4 border-b border-border hover:bg-amber-50 dark:hover:bg-amber-950/20 transition-all duration-200 cursor-pointer group"
+                  onClick={() => navigate(`/employer/case/${action.caseId}`)}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-2 mb-2">
                         {getPriorityIcon(action.type)}
-                        <p className="font-semibold text-slate-900 group-hover:text-amber-700">
+                        <p className="font-semibold text-foreground group-hover:text-amber-700">
                           {action.workerName}
                         </p>
                       </div>
-                      <p className="text-sm text-slate-600 mb-2">{action.action}</p>
+                      <p className="text-sm text-muted-foreground mb-2">{action.action}</p>
                       {!!action.daysOverdue && (
                         <Badge className="bg-amber-100 text-amber-800">
                           {action.daysOverdue} days overdue
                         </Badge>
                       )}
                     </div>
-                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-600 transition-colors" />
+                    <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-amber-600 transition-colors" />
                   </div>
                 </div>
               ))}
@@ -314,7 +308,7 @@ function EmployerDashboardContent() {
         </Card>
 
         {/* Routine Actions */}
-        <Card className="lg:col-span-1 bg-white shadow-lg border-0">
+        <Card className="lg:col-span-1 bg-card shadow-lg border-0">
           <CardHeader className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-t-lg">
             <CardTitle className="flex items-center space-x-2">
               <CheckCircle className="w-5 h-5" />
@@ -327,20 +321,20 @@ function EmployerDashboardContent() {
               {routineActions.slice(0, 6).map((action) => (
                 <div
                   key={action.id}
-                  className="p-4 border-b border-slate-100 hover:bg-blue-50 transition-all duration-200 cursor-pointer group"
-                  onClick={() => window.location.href = `/employer/case/${action.caseId}`}
+                  className="p-4 border-b border-border hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-all duration-200 cursor-pointer group"
+                  onClick={() => navigate(`/employer/case/${action.caseId}`)}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-2 mb-2">
                         {getPriorityIcon(action.type)}
-                        <p className="font-semibold text-slate-900 group-hover:text-blue-700">
+                        <p className="font-semibold text-foreground group-hover:text-blue-700">
                           {action.workerName}
                         </p>
                       </div>
-                      <p className="text-sm text-slate-600">{action.action}</p>
+                      <p className="text-sm text-muted-foreground">{action.action}</p>
                     </div>
-                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 transition-colors" />
+                    <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-blue-600 transition-colors" />
                   </div>
                 </div>
               ))}
@@ -358,16 +352,16 @@ function EmployerDashboardContent() {
 
       {/* All Workers Roster */}
       {allCasesData && allCasesData.cases.length > 0 && (
-        <Card className="bg-white shadow-lg border-0">
+        <Card className="bg-card shadow-lg border-0">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
-              <Users className="w-5 h-5 text-slate-600" />
+              <Users className="w-5 h-5 text-muted-foreground" />
               All Workers
               <Badge variant="secondary" className="ml-1">{allCasesData.cases.length}</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-border">
               {[...allCasesData.cases]
                 .sort((a, b) => {
                   // RTW approval needed first, then Off work (longest first), then At work
@@ -384,16 +378,16 @@ function EmployerDashboardContent() {
                   return (
                     <div
                       key={c.id}
-                      className={`flex items-center justify-between px-4 py-3 hover:bg-slate-50 cursor-pointer group${needsApproval ? " bg-yellow-50 border-l-4 border-l-yellow-400" : planActive ? " bg-emerald-50/40 border-l-4 border-l-emerald-400" : ""}`}
+                      className={`flex items-center justify-between px-4 py-3 hover:bg-muted/50 cursor-pointer group${needsApproval ? " bg-yellow-50 dark:bg-yellow-950/20 border-l-4 border-l-yellow-400" : planActive ? " bg-emerald-50/40 dark:bg-emerald-950/20 border-l-4 border-l-emerald-400" : ""}`}
                       onClick={() => navigate(`/employer/case/${c.id}`)}
                     >
                       <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold ${needsApproval ? "bg-yellow-200 text-yellow-800" : planActive ? "bg-emerald-200 text-emerald-800" : "bg-slate-200 text-slate-600"}`}>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold ${needsApproval ? "bg-yellow-200 text-yellow-800" : planActive ? "bg-emerald-200 text-emerald-800" : "bg-muted text-muted-foreground"}`}>
                           {c.workerName.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-slate-900 group-hover:text-blue-700">{c.workerName}</p>
-                          <p className="text-xs text-slate-500">
+                          <p className="text-sm font-medium text-foreground group-hover:text-blue-700">{c.workerName}</p>
+                          <p className="text-xs text-muted-foreground">
                             {c.workStatus === "Off work" ? `Week ${weeksOff} off work` : `Week ${weeksOff} post-injury · At work`}
                           </p>
                         </div>
@@ -417,7 +411,7 @@ function EmployerDashboardContent() {
                             ? "bg-amber-100 text-amber-800 text-xs"
                             : "bg-green-100 text-green-800 text-xs"
                         }>{c.riskLevel || "Unknown"}</Badge>
-                        <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-blue-500" />
+                        <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-blue-500" />
                       </div>
                     </div>
                   );
@@ -428,11 +422,11 @@ function EmployerDashboardContent() {
       )}
 
       {/* Quick Actions Footer */}
-      <div className="bg-white rounded-xl shadow-lg p-6">
+      <div className="bg-card rounded-xl shadow-lg p-6">
         <div className="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
           <div>
-            <h3 className="text-lg font-semibold text-slate-900">Need help managing cases?</h3>
-            <p className="text-slate-600">Contact your case management team or access support resources</p>
+            <h3 className="text-lg font-semibold text-foreground">Need help managing cases?</h3>
+            <p className="text-muted-foreground">Contact your case management team or access support resources</p>
           </div>
           <div className="flex space-x-3">
             <Button variant="outline">

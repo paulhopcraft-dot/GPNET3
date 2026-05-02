@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../co
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../components/ui/form";
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { Loader2 } from "lucide-react";
+import { PreventliLogo } from "@/components/PreventliLogo";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -56,9 +57,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <div className="flex items-center justify-center mb-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-md bg-primary text-primary-foreground font-semibold text-lg">
-              P
-            </div>
+            <PreventliLogo className="h-12 w-auto text-foreground" />
           </div>
           <CardTitle className="text-2xl font-bold text-center">Welcome to Preventli</CardTitle>
           <CardDescription className="text-center">
