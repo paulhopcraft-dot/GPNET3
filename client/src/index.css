@@ -75,6 +75,12 @@
 
   --destructive-foreground: 0 84% 98%;
 
+  /* Info accent — used for advisory / privacy notices (e.g. mental-health
+   * disclosure block). Distinct from primary (action) and destructive
+   * (error). Healthcare-friendly muted violet. */
+  --info: 262 60% 50%;
+  --info-foreground: 262 60% 98%;
+
   --input: 220 8% 72%;
   --ring: 217 91% 48%;
   --chart-1: 217 91% 48%;
@@ -218,6 +224,9 @@
   --destructive: 0 84% 46%;
 
   --destructive-foreground: 0 84% 98%;
+
+  --info: 262 60% 62%;
+  --info-foreground: 262 60% 14%;
 
   --input: 220 8% 32%;
   --ring: 217 91% 52%;

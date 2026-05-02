@@ -351,7 +351,7 @@ export default function CaseSummaryPage() {
             <div className="space-y-4">
             {/* Phase 11.3 — Mental health privacy notice */}
             {(workerCase.aiSummary?.toLowerCase().match(/stress|anxiety|depression|psychological|mental health|burnout|ptsd/)) && (
-              <div className="flex items-start gap-3 rounded-lg border border-purple-200 bg-purple-50 p-3 text-sm text-purple-800">
+              <div className="flex items-start gap-3 rounded-lg border border-info/30 bg-info/10 p-3 text-sm text-info-foreground dark:text-info">
                 <span className="font-semibold flex-shrink-0">Mental Health Claim:</span>
                 <span>
                   This case involves a psychological/mental health injury. Diagnosis details have
