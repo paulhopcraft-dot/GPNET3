@@ -2,6 +2,7 @@ import type { WorkerCase } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Progress } from "./ui/progress";
 import { cn } from "@/lib/utils";
+import { Clock } from "lucide-react";
 
 const MILESTONES = [
   { day: 91,  label: "Day 91",  short: "13wk",  description: "80% payment step-down (s114)" },
@@ -60,7 +61,7 @@ export function MilestoneClock({ workerCase }: MilestoneClockProps) {
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-base">
-          <span className="material-symbols-outlined text-primary">schedule</span>
+          <Clock className="w-5 h-5 text-primary" />
           Compliance Milestone Clock
         </CardTitle>
       </CardHeader>
