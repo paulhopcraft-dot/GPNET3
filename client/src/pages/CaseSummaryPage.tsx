@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TimelineCard } from "@/components/TimelineCard";
+import { PageSpinner } from "@/components/typography";
 import { RefreshCw } from "lucide-react";
 import type { WorkerCase, PaginatedCasesResponse, CaseLifecycleStage } from "@shared/schema";
 import { LIFECYCLE_STAGE_LABELS } from "@shared/schema";
@@ -45,11 +46,7 @@ export default function CaseSummaryPage() {
   if (isLoading) {
     return (
       <PageLayout title="Case Summary" subtitle="Loading...">
-        <div className="flex items-center justify-center h-64">
-          <span className="material-symbols-outlined animate-spin text-4xl text-primary">
-            progress_activity
-          </span>
-        </div>
+        <PageSpinner label="Loading case summary..." />
       </PageLayout>
     );
   }
