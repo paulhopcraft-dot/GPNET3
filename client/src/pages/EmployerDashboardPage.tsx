@@ -1,5 +1,5 @@
 import { PageLayout } from "@/components/PageLayout";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type KeyboardEvent } from 'react';
 import { useAuth } from "@/hooks/useAuth";
 import { FirstTimeTour } from "@/components/FirstTimeTour";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,6 +21,24 @@ import {
   Activity
 } from 'lucide-react';
 import type { PaginatedCasesResponse } from '@shared/schema';
+
+/**
+ * Spread onto a clickable <div> to make it keyboard-operable.
+ * Activates on Enter or Space, like a real button.
+ */
+function clickableRowProps(onActivate: () => void) {
+  return {
+    role: 'button' as const,
+    tabIndex: 0,
+    onClick: onActivate,
+    onKeyDown: (e: KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        onActivate();
+      }
+    },
+  };
+}
 
 interface CaseStatistics {
   totalCases: number;
@@ -221,11 +239,11 @@ function EmployerDashboardContent() {
         {/* Critical Actions */}
         {criticalActions.length > 0 && (
           <Card className="lg:col-span-1 bg-card shadow-xl border-0">
-            <CardHeader className="bg-gradient-to-r from-red-500 to-red-600 text-white rounded-t-lg">
+            <CardHeader className="bg-destructive/10 text-destructive border-b border-destructive/20 rounded-t-lg">
               <CardTitle className="flex items-center space-x-2">
                 <AlertTriangle className="w-5 h-5" />
                 <span>Critical Actions</span>
-                <Badge className="bg-red-700 text-white">{criticalActions.length}</Badge>
+                <Badge variant="destructive" className="ml-auto">{criticalActions.length}</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
@@ -233,8 +251,8 @@ function EmployerDashboardContent() {
                 {criticalActions.map((action, index) => (
                   <div
                     key={action.id}
-                    className="p-4 border-b border-border hover:bg-red-50 dark:hover:bg-red-950/20 transition-all duration-200 cursor-pointer group"
-                    onClick={() => navigate(`/employer/case/${action.caseId}`)}
+                    className="p-4 border-b border-border hover:bg-red-50 dark:hover:bg-red-950/20 transition-all duration-200 cursor-pointer group focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    {...clickableRowProps(() => navigate(`/employer/case/${action.caseId}`))}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -262,11 +280,11 @@ function EmployerDashboardContent() {
 
         {/* Urgent Actions */}
         <Card className="lg:col-span-1 bg-card shadow-lg border-0">
-          <CardHeader className="bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-t-lg">
+          <CardHeader className="bg-amber-500/10 text-amber-700 dark:text-amber-400 border-b border-amber-500/20 rounded-t-lg">
             <CardTitle className="flex items-center space-x-2">
               <Clock className="w-5 h-5" />
               <span>Urgent Actions</span>
-              <Badge className="bg-amber-700 text-white">{urgentActions.length}</Badge>
+              <Badge className="ml-auto bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/30">{urgentActions.length}</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
@@ -274,8 +292,8 @@ function EmployerDashboardContent() {
               {urgentActions.slice(0, 8).map((action) => (
                 <div
                   key={action.id}
-                  className="p-4 border-b border-border hover:bg-amber-50 dark:hover:bg-amber-950/20 transition-all duration-200 cursor-pointer group"
-                  onClick={() => navigate(`/employer/case/${action.caseId}`)}
+                  className="p-4 border-b border-border hover:bg-amber-50 dark:hover:bg-amber-950/20 transition-all duration-200 cursor-pointer group focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  {...clickableRowProps(() => navigate(`/employer/case/${action.caseId}`))}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -309,11 +327,11 @@ function EmployerDashboardContent() {
 
         {/* Routine Actions */}
         <Card className="lg:col-span-1 bg-card shadow-lg border-0">
-          <CardHeader className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-t-lg">
+          <CardHeader className="bg-primary/10 text-primary border-b border-primary/20 rounded-t-lg">
             <CardTitle className="flex items-center space-x-2">
               <CheckCircle className="w-5 h-5" />
               <span>Routine Actions</span>
-              <Badge className="bg-blue-700 text-white">{routineActions.length}</Badge>
+              <Badge className="ml-auto bg-primary/20 text-primary border-primary/30 hover:bg-primary/30">{routineActions.length}</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
@@ -321,8 +339,8 @@ function EmployerDashboardContent() {
               {routineActions.slice(0, 6).map((action) => (
                 <div
                   key={action.id}
-                  className="p-4 border-b border-border hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-all duration-200 cursor-pointer group"
-                  onClick={() => navigate(`/employer/case/${action.caseId}`)}
+                  className="p-4 border-b border-border hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-all duration-200 cursor-pointer group focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  {...clickableRowProps(() => navigate(`/employer/case/${action.caseId}`))}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -378,8 +396,9 @@ function EmployerDashboardContent() {
                   return (
                     <div
                       key={c.id}
-                      className={`flex items-center justify-between px-4 py-3 hover:bg-muted/50 cursor-pointer group${needsApproval ? " bg-yellow-50 dark:bg-yellow-950/20 border-l-4 border-l-yellow-400" : planActive ? " bg-emerald-50/40 dark:bg-emerald-950/20 border-l-4 border-l-emerald-400" : ""}`}
-                      onClick={() => navigate(`/employer/case/${c.id}`)}
+                      className={`flex items-center justify-between px-4 py-3 hover:bg-muted/50 cursor-pointer group focus:outline-none focus-visible:ring-2 focus-visible:ring-ring${needsApproval ? " bg-yellow-50 dark:bg-yellow-950/20 border-l-4 border-l-yellow-400" : planActive ? " bg-emerald-50/40 dark:bg-emerald-950/20 border-l-4 border-l-emerald-400" : ""}`}
+                      aria-label={`Open case for ${c.workerName}`}
+                      {...clickableRowProps(() => navigate(`/employer/case/${c.id}`))}
                     >
                       <div className="flex items-center gap-3">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold ${needsApproval ? "bg-yellow-200 text-yellow-800" : planActive ? "bg-emerald-200 text-emerald-800" : "bg-muted text-muted-foreground"}`}>

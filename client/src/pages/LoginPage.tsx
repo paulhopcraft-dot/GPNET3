@@ -138,6 +138,9 @@ export default function LoginPage() {
               </Button>
             </form>
           </Form>
+          <p className="mt-6 text-center text-sm text-muted-foreground">
+            Don't have an account? Ask your employer for an invite.
+          </p>
         </CardContent>
       </Card>
     </div>
