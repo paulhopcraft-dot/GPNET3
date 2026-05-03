@@ -39,18 +39,33 @@ export default function EmployerCaseSuccessPage() {
       const response = await fetchWithCsrf(`/api/employer/cases/${id}/injury-check`, {
         method: "POST",
       });
-      if (response.ok) {
+      const data = await response.json().catch(() => ({} as Record<string, unknown>));
+
+      if (response.ok && (data as { success?: boolean }).success) {
+        const recipient = (data as { recipient?: string }).recipient;
         toast({
           title: "Injury Check Sent",
-          description: `An injury check email has been sent to ${caseData?.workerName}.`,
+          description: recipient
+            ? `Email sent to ${recipient}.`
+            : `Email sent to ${caseData?.workerName}.`,
         });
       } else {
-        throw new Error("Failed to send email");
+        const errorMsg =
+          (data as { error?: string }).error ||
+          `Failed to send injury check email (HTTP ${response.status}).`;
+        toast({
+          title: "Injury Check Failed",
+          description: errorMsg,
+          variant: "destructive",
+        });
       }
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to send injury check email. Please try again.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to send injury check email. Please try again.",
         variant: "destructive",
       });
     } finally {

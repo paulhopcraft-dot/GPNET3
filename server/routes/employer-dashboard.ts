@@ -16,6 +16,7 @@ import path from 'path';
 import fs from 'fs';
 import { HybridSummaryService } from '../services/hybridSummary';
 import { callClaude } from '../lib/claude-cli';
+import { sendEmail } from '../services/emailService';
 const hybridSummaryService = new HybridSummaryService();
 
 // Configure multer for file uploads
@@ -500,6 +501,30 @@ router.post('/cases', authorize(), upload.any(), async (req: Request, res: Respo
       summary,
     });
 
+    // Persist worker contact so downstream features (injury check, notifications)
+    // can reach the worker. Without this, getWorkerEmail() returns null and any
+    // worker-bound email silently no-ops. Only created on the new-worker path —
+    // existing-worker handling (copy from previous case) is out of scope.
+    if (formData.workerType === 'new' && formData.workerEmail) {
+      try {
+        await storage.createCaseContact({
+          caseId: newCase.id,
+          organizationId,
+          role: 'worker',
+          name: workerName,
+          email: formData.workerEmail,
+          phone: formData.workerPhone || null,
+          isPrimary: true,
+          isActive: true,
+        });
+      } catch (contactErr) {
+        // Don't fail the case creation if contact insert fails — log and continue
+        logger.error('Failed to create worker case_contact for new case', {
+          caseId: newCase.id,
+        }, contactErr);
+      }
+    }
+
     // Handle file uploads - store file references in caseAttachments table directly
     const files = req.files as Express.Multer.File[];
     if (files && files.length > 0) {
@@ -579,7 +604,7 @@ router.post('/cases', authorize(), upload.any(), async (req: Request, res: Respo
 router.post('/cases/:id/injury-check', authorize(), async (req: Request, res: Response) => {
   try {
     const organizationId = req.user?.organizationId;
-    const caseId = req.params.id;
+    const caseId = req.params.id as string;
 
     if (!organizationId) {
       return res.status(400).json({ error: 'Organization ID required' });
@@ -630,21 +655,57 @@ router.post('/cases/:id/injury-check', authorize(), async (req: Request, res: Re
 
     const emailContent = await callClaude(emailPrompt, 30_000);
 
-    // In production, this would send the email via SMTP/SendGrid/etc.
-    // For now, we'll store it as a draft and log it
-    logger.info('Injury check email generated', {
+    // Look up the worker's email from case_contacts (single source of truth).
+    const workerContacts = await storage.getCaseContactsByRole(caseId, organizationId, 'worker');
+    const primaryWorker = workerContacts.find(c => c.isPrimary) ?? workerContacts[0];
+    const recipientEmail = primaryWorker?.email?.trim();
+
+    if (!recipientEmail) {
+      logger.warn('Injury check generated but no worker email on file', {
+        caseId,
+        workerName: workerCase.workerName,
+      });
+      return res.status(422).json({
+        success: false,
+        error: 'No worker email on file for this case. Add a worker contact before sending the injury check.',
+        emailContent, // surface the generated text so HR can copy/send manually
+      });
+    }
+
+    const subject = isSerious
+      ? `Checking in — ${workerCase.company}`
+      : `How are you doing? — ${workerCase.company}`;
+
+    const sendResult = await sendEmail({
+      to: recipientEmail,
+      subject,
+      body: emailContent,
+    });
+
+    logger.info('Injury check email send attempted', {
       caseId,
       workerName: workerCase.workerName,
-      emailLength: emailContent.length,
+      recipient: recipientEmail,
+      sent: sendResult.success,
       tone: isSerious ? 'compassionate' : 'friendly',
     });
 
-    // Return the email content (frontend can display or send)
+    if (!sendResult.success) {
+      return res.status(502).json({
+        success: false,
+        error: sendResult.error || 'Email send failed',
+        recipient: recipientEmail,
+        emailContent,
+      });
+    }
+
     res.json({
       success: true,
+      recipient: recipientEmail,
+      messageId: sendResult.messageId,
       emailContent,
       tone: isSerious ? 'compassionate' : 'friendly',
-      message: 'Injury check email generated successfully',
+      message: `Injury check email sent to ${recipientEmail}`,
     });
 
   } catch (error) {
