@@ -66,15 +66,8 @@ Health check **before** an employment relationship exists. Verifies the candidat
 Work-related injury. **WorkCover claim exists.** All the WorkSafe Victoria compliance, certificates, RTW planning, termination workflow apply. Lives in `worker_cases` + `medical_certificates` + `case_actions` + the RTW tables. The historical "core" Preventli flow.
 
 ### Preventative (no claim)
-**Non-work-related** condition affecting fitness for work — e.g. a personal injury, chronic illness, mental health condition unrelated to the workplace. **No WorkCover claim.** Still needs medical management, certificates, accommodation, but outside the WorkCover compliance regime. Schema does not currently have an explicit `caseType` discriminator — likely represented as a `worker_cases` row without a `claim_number` (or similar), but **the build session must confirm how non-claim cases are stored before seeding them**. May require schema work.
+**Non-work-related** condition affecting fitness for work — e.g. a personal injury, chronic illness, mental health condition unrelated to the workplace. **No WorkCover claim.** Still needs medical management, certificates, accommodation, but outside the WorkCover compliance regime.
 
----
+**Storage decision (per Paul, 2026-05-04):** preventative cases live in the same `worker_cases` table as injury cases, distinguished by a nullable `claim_number` field — `NULL` means preventative (no claim), populated means injury (WorkCover claim).
 
-## Open question for build session
-
-How are **preventative (non-claim) cases** represented in `worker_cases` today? Possibilities:
-- Existing `worker_cases` row with no claim number / no insurer (current best guess)
-- A separate not-yet-built track (preventative may not be fully modelled)
-- A discriminator column that exists but wasn't found in the quick search
-
-Resolve with Paul during execution before writing seed data for preventative workers.
+⚠️ **Current state:** `worker_cases` does NOT yet have a `claim_number` column. The build session must add `claimNumber: text("claim_number")` (nullable) to `shared/schema.ts:821` as part of Slice 1 schema work, generate migration, and back-fill existing rows as needed (existing rows can stay NULL since they predate the distinction; or default-populate based on whatever signal currently encodes "this is an injury case" if such a signal exists).

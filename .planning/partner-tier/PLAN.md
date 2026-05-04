@@ -51,6 +51,7 @@ A WorkBetter staff member can log in to Preventli, see "WorkBetter" branding in 
 
 A1. Add `kind: text("kind").$type<'employer' | 'partner'>().notNull().default('employer')` to `organizations` in `shared/schema.ts`.
 A2. Add `'partner'` to the `UserRole` type union (line 1037) and update any role-narrowing helpers / Zod schemas that enumerate roles.
+A2b. **Add `claimNumber: text("claim_number")` (nullable)** to `workerCases` in `shared/schema.ts:821` (per Paul, 2026-05-04). NULL = preventative case, populated = injury case with WorkCover claim. Existing rows can stay NULL (or back-populated if there's an existing signal to determine claim status). See `CONTEXT.md` → "Case Tracks" → "Preventative" for rationale.
 A3. Create new table `partner_user_organizations`:
     - `userId varchar references users.id (cascade)`
     - `organizationId varchar references organizations.id (cascade)`
@@ -83,6 +84,7 @@ C1. Login response includes the user's role. Frontend already routes by role.
 C2. Add a route `/partner/clients` (the picker page) that requires `role === 'partner'`.
 C3. On successful login of a partner-role user, redirect to `/partner/clients` instead of the default employer dashboard.
 C4. On selecting a client (POST `/api/partner/active-org`), reload with the new JWT and navigate to the existing case dashboard route. From here the existing employer UI works as-is.
+C5. **Password change (per Paul, security baseline):** add a "Change password" page accessible from the partner header (and applicable to all roles, not partner-specific). Endpoint `POST /api/auth/change-password` — body `{ currentPassword, newPassword }`. Verify current password, hash new, invalidate other refresh tokens for this user. Reuse existing bcrypt config and the `passwordResetTokens`/`refreshTokens` infrastructure. Standard rate-limit. If a "change password" flow already exists for other roles, expose it to partner users — don't rebuild.
 
 #### D. Frontend — client picker
 
@@ -132,6 +134,29 @@ Total: **10 workers across both companies**, with roughly 3 pre-employment + 4 i
 - Pick Alpine MDF → same shape, different worker names.
 - All three feature areas (pre-employment, injury management, preventative) clickable and show realistic data.
 
+#### H. Live demo walkthrough (per Paul, 2026-05-04)
+
+A documented end-to-end demo script that the build session leaves runnable for Paul. The script exercises the partner-tier and produces a real artifact landing in Paul's inbox so he can play the worker side.
+
+H1. Write `.planning/partner-tier/DEMO-SCRIPT.md` with step-by-step:
+    1. Log in as `workbetter@workbetter.com.au` / `workbetter123`
+    2. Sidebar shows Alpine Health and Alpine MDF
+    3. Click Alpine Health → land in case dashboard, header reads "WorkBetter | Alpine Health"
+    4. Pick one of the Alpine Health workers (chosen during seed)
+    5. Initiate the appropriate **check** (pre-employment, injury, or preventative — pick whichever flow is most polished today; pre-employment is likely the cleanest)
+    6. The system sends a real email to `paul.hopcraft@gmail.com` with the worker-facing link
+    7. Paul clicks the link, fills out the check as the worker, submits
+    8. WorkBetter user refreshes the case → sees the submitted check, can mark complete / set clearance / etc.
+    9. Switch client → Alpine MDF → header updates, only Alpine MDF data visible
+    10. Change password → log out → log in with new password → success
+H2. The script must run against the local dev DB with the seed data from F + G. No external dependencies beyond outbound email (already configured for Preventli — confirm SMTP/SES is wired for dev or use a dev-mode email log).
+H3. If the email infra is not configured for the dev environment, the script falls back to "the link that *would* be emailed is logged to console — copy and paste it" — flag this in the script. Don't block on email infra.
+
+**Verification for H:**
+- The build session runs the script themselves end-to-end against the local DB and quotes evidence (each step's outcome) in the build session's verification message.
+- Paul receives the actual email at `paul.hopcraft@gmail.com` (or if dev email not configured, the fallback link works).
+- Each step in DEMO-SCRIPT.md has a checkbox the build session ticks during their own run.
+
 ### Verification (this is the closure criterion for Slice 1)
 
 Run all of these manually after F2. Quote the actual evidence in the build session's verification message — do not claim done from inference.
@@ -146,8 +171,10 @@ Run all of these manually after F2. Quote the actual evidence in the build sessi
 8. **Log in as an existing GPNet employer-role user (any seed account).** Behaviour is identical to before this change. Header is unchanged. Routes go to the existing dashboard. No regressions.
 9. **`npm run build` passes.** TypeScript clean.
 10. **Existing test suite passes:** `npm test`. New tests for the partner middleware + access-table scoping are nice-to-have but not required for Slice 1.
+11. **Password change works:** logged in as `workbetter@workbetter.com.au`, change password from `workbetter123` to a new value, log out, fail to log in with old password, succeed with new password.
+12. **Admin cross-org visibility (verification, not new code):** log in as the existing platform `admin` role (Paul's admin account). Confirm admin can see cases across BOTH WorkBetter's clients (Alpine Health, Alpine MDF) AND existing GPNet clients in whatever cross-org admin views exist today. If admin views are currently scoped to a single org, that's a pre-existing gap — flag it as a separate ticket, do NOT bolt cross-org admin into Slice 1.
 
-If any of 1–9 fails, the slice is not done.
+If any of 1–9, 11–12 fails, the slice is not done.
 
 ### Out of scope for Slice 1 (do not build)
 
