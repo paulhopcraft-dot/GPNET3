@@ -82,7 +82,15 @@ function clearRefreshCookie(res: Response): void {
   res.clearCookie(LEGACY_REFRESH_COOKIE_NAME, opts);
 }
 
-function generateAccessToken(userId: string, email: string, role: string, organizationId: string): string {
+// Exported so other controllers (e.g. partner.ts) can mint tokens after the
+// active organisation changes (client picker / switch client).
+export function generateAccessToken(
+  userId: string,
+  email: string,
+  role: string,
+  organizationId: string,
+  activeOrganizationId: string | null = null,
+): string {
   if (!process.env.JWT_SECRET) {
     throw new Error("JWT_SECRET not configured");
   }
@@ -93,11 +101,18 @@ function generateAccessToken(userId: string, email: string, role: string, organi
       email,
       role,
       organizationId,
+      activeOrganizationId,
       companyId: organizationId, // Backwards compatibility - keep companyId field
     },
     process.env.JWT_SECRET,
     { expiresIn: JWT_EXPIRES_IN }
   );
+}
+
+// Exported so the partner-tier router can re-set the auth cookie after
+// switching active organisation (POST/DELETE /api/partner/active-org).
+export function setAuthCookieExternal(res: Response, token: string): void {
+  setAuthCookie(res, token);
 }
 
 export async function register(req: Request, res: Response) {
@@ -210,8 +225,13 @@ export async function register(req: Request, res: Response) {
       ...getRequestMetadata(req),
     });
 
-    // Generate access token with organizationId
-    const accessToken = generateAccessToken(user.id, user.email, user.role, user.organizationId);
+    // Generate access token with organizationId. New users via invite are
+    // not partner-role in the MVP (partner-admin UI is deferred), but route
+    // through the same activeOrganizationId logic for consistency.
+    const initialActiveOrg = user.role === "partner" ? null : user.organizationId;
+    const accessToken = generateAccessToken(
+      user.id, user.email, user.role, user.organizationId, initialActiveOrg
+    );
 
     // Generate refresh token
     const refreshResult = await generateRefreshToken(user.id, req);
@@ -329,8 +349,13 @@ export async function login(req: Request, res: Response) {
       ...getRequestMetadata(req),
     });
 
-    // Generate access token with organizationId
-    const accessToken = generateAccessToken(user.id, user.email, user.role, user.organizationId);
+    // Generate access token with organizationId. Partner users start with
+    // no active client (they're redirected to the picker by the frontend);
+    // non-partner users implicitly have their home org as active.
+    const initialActiveOrg = user.role === "partner" ? null : user.organizationId;
+    const accessToken = generateAccessToken(
+      user.id, user.email, user.role, user.organizationId, initialActiveOrg
+    );
 
     // Generate refresh token
     const refreshResult = await generateRefreshToken(user.id, req);
@@ -489,8 +514,14 @@ export async function refresh(req: Request, res: Response) {
       });
     }
 
-    // Generate new access token
-    const accessToken = generateAccessToken(user.id, user.email, user.role, user.organizationId);
+    // Generate new access token. For partner users the activeOrganizationId
+    // is reset to null on refresh — they'll be sent back to the picker. This
+    // is an MVP limitation; preserving active-org across refresh is a future
+    // enhancement (would require storing it on the refresh token row).
+    const initialActiveOrg = user.role === "partner" ? null : user.organizationId;
+    const accessToken = generateAccessToken(
+      user.id, user.email, user.role, user.organizationId, initialActiveOrg
+    );
 
     // Set new cookies
     setAuthCookie(res, accessToken);
