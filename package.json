@@ -15,6 +15,7 @@
     "db:inspect": "tsx server/scripts/inspectDb.ts",
     "seed": "tsx server/seed.ts",
     "seed:workbetter": "tsx server/seed-workbetter.ts",
+    "migrate": "tsx scripts/apply-migration.ts migrations/0011_add_partner_tier.sql",
     "process:historical-dates": "tsx scripts/process-historical-injury-dates.ts",
     "test:performance": "tsx scripts/performance-test-extraction.ts",
     "test": "vitest run",
