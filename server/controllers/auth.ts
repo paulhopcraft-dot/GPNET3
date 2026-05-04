@@ -424,10 +424,18 @@ export async function me(req: AuthRequest, res: Response) {
       });
     }
 
+    // Include the resolved organisation IDs from the request (set by the
+    // auth middleware). For partner users this surfaces whether they've
+    // picked a client (activeOrganizationId !== null) so the frontend can
+    // route to the picker vs. the case dashboard.
     res.json({
       success: true,
       data: {
-        user: userResult[0],
+        user: {
+          ...userResult[0],
+          organizationId: req.user.organizationId,
+          activeOrganizationId: req.activeOrganizationId ?? null,
+        },
       },
     });
   } catch (error) {
@@ -768,6 +776,107 @@ export async function deleteSession(req: AuthRequest, res: Response) {
     res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to revoke session",
+    });
+  }
+}
+
+/**
+ * Change password (authenticated user)
+ * POST /api/auth/change-password
+ * Body: { currentPassword, newPassword }
+ *
+ * Verifies the current password, hashes and stores the new one, then
+ * revokes all refresh tokens for the user (force re-login on other devices).
+ * Available to all roles — partner-role users access it from the header.
+ */
+export async function changePassword(req: AuthRequest, res: Response) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        error: "Unauthorized",
+        message: "User not authenticated",
+      });
+    }
+
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "currentPassword and newPassword are required",
+      });
+    }
+
+    // Validate new password strength
+    const passwordValidation = validatePassword(newPassword);
+    if (!passwordValidation.valid) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "New password does not meet security requirements",
+        details: passwordValidation.errors,
+      });
+    }
+
+    if (currentPassword === newPassword) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "New password must be different from current password",
+      });
+    }
+
+    // Look up user to verify current password
+    const userResult = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, req.user.id))
+      .limit(1);
+    if (userResult.length === 0) {
+      return res.status(401).json({ error: "Unauthorized", message: "User not found" });
+    }
+    const user = userResult[0];
+
+    const isValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isValid) {
+      await logAuditEvent({
+        userId: user.id,
+        organizationId: user.organizationId,
+        eventType: "user.password_change_failed",
+        resourceType: "user",
+        resourceId: user.id,
+        metadata: { reason: "invalid_current_password" },
+        ...getRequestMetadata(req),
+      });
+      return res.status(401).json({
+        error: "Unauthorized",
+        message: "Current password is incorrect",
+      });
+    }
+
+    // Hash + store new password
+    const newHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+    await db.update(users).set({ password: newHash }).where(eq(users.id, user.id));
+
+    // Revoke all refresh tokens — other sessions on other devices must re-login
+    await revokeAllUserTokens(user.id);
+
+    await logAuditEvent({
+      userId: user.id,
+      organizationId: user.organizationId,
+      eventType: "user.password_change",
+      resourceType: "user",
+      resourceId: user.id,
+      metadata: { method: "self_service_change_password" },
+      ...getRequestMetadata(req),
+    });
+
+    res.json({
+      success: true,
+      message: "Password changed successfully. Other sessions have been signed out.",
+    });
+  } catch (error) {
+    logger.auth.error("Change password error", {}, error);
+    res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to change password",
     });
   }
 }

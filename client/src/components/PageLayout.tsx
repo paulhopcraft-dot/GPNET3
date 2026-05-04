@@ -1,15 +1,17 @@
 import { ReactNode, useState } from "react";
 import { PreventliLogo } from "@/components/PreventliLogo";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { ThemeToggle } from "./theme-toggle";
 import { ChatWidget } from "./ChatWidget";
 import { BookingModal } from "./BookingModal";
 import { NotificationBell } from "./NotificationBell";
 import { Button } from "./ui/button";
-import { Phone, LogOut, HelpCircle } from "lucide-react";
+import { Phone, LogOut, HelpCircle, KeyRound, ArrowLeftRight, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SupportModal } from "./SupportModal";
+import { fetchWithCsrf } from "@/lib/queryClient";
 
 interface PageLayoutProps {
   children: ReactNode;
@@ -40,9 +42,46 @@ const navItems = [
 
 export function PageLayout({ children, title, subtitle }: PageLayoutProps) {
   const location = useLocation();
-  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { user, logout, refreshAuth } = useAuth();
   const [bookingOpen, setBookingOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
+
+  // Partner-tier: fetch partner-org + active-client info for the header.
+  // Only runs for partner-role users; no-op for everyone else.
+  const isPartner = user?.role === "partner";
+  const partnerContextQuery = useQuery<{
+    partnerOrg: { id: string; name: string; logoUrl: string | null } | null;
+    activeOrg: { id: string; name: string; logoUrl: string | null } | null;
+  }>({
+    queryKey: ["partner", "me"],
+    queryFn: async () => {
+      const res = await fetch("/api/partner/me", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to load partner context");
+      return res.json();
+    },
+    enabled: isPartner,
+  });
+  const partnerName = partnerContextQuery.data?.partnerOrg?.name ?? "";
+  const activeClientName = partnerContextQuery.data?.activeOrg?.name ?? "";
+
+  // Partner-tier: clear active client and bounce back to picker.
+  const switchClientMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetchWithCsrf("/api/partner/active-org", {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to switch client");
+      return res.json();
+    },
+    onSuccess: async () => {
+      await refreshAuth();
+      queryClient.invalidateQueries({ queryKey: ["partner"] });
+      navigate("/partner/clients");
+    },
+  });
 
   // Extract caseId or workerId from current URL for context-aware chat
   // Match /cases/:id, /summary/:id, and /employer/case/:id
@@ -101,6 +140,13 @@ export function PageLayout({ children, title, subtitle }: PageLayoutProps) {
         </nav>
         <div className="mt-auto pt-4 border-t border-sidebar-border">
           <div className="px-3 py-2 text-xs text-sidebar-foreground/60 truncate">{user?.email}</div>
+          <Link
+            to="/change-password"
+            className="flex items-center gap-2 w-full px-3 py-2 rounded-md text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent/50 transition-colors"
+          >
+            <KeyRound className="w-4 h-4" />
+            Change password
+          </Link>
           <button
             onClick={() => setSupportOpen(true)}
             className="flex items-center gap-2 w-full px-3 py-2 rounded-md text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent/50 transition-colors"
@@ -125,6 +171,18 @@ export function PageLayout({ children, title, subtitle }: PageLayoutProps) {
               <PreventliLogo className="h-7 w-auto text-card-foreground" />
             </Link>
             <div>
+              {isPartner && (partnerName || activeClientName) && (
+                <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground" data-testid="partner-context">
+                  <Building2 className="h-3 w-3" />
+                  <span>{partnerName}</span>
+                  {activeClientName && (
+                    <>
+                      <span className="text-muted-foreground/50">|</span>
+                      <span className="text-foreground">{activeClientName}</span>
+                    </>
+                  )}
+                </p>
+              )}
               <h1 className="text-xl font-bold text-card-foreground">{title}</h1>
               {subtitle && (
                 <p className="text-sm text-muted-foreground">{subtitle}</p>
@@ -132,6 +190,18 @@ export function PageLayout({ children, title, subtitle }: PageLayoutProps) {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            {isPartner && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => switchClientMutation.mutate()}
+                disabled={switchClientMutation.isPending}
+                data-testid="switch-client"
+              >
+                <ArrowLeftRight className="w-4 h-4 mr-2" />
+                Switch client
+              </Button>
+            )}
             <Button variant="outline" size="sm" onClick={() => setBookingOpen(true)}>
               <Phone className="w-4 h-4 mr-2" />
               Book Telehealth

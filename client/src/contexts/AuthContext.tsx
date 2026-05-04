@@ -2,7 +2,7 @@ import { createContext, useState, useEffect, ReactNode, useCallback } from "reac
 import { useNavigate } from "react-router-dom";
 import { fetchWithCsrf } from "../lib/queryClient";
 
-export type UserRole = "admin" | "employer" | "clinician" | "insurer";
+export type UserRole = "admin" | "employer" | "clinician" | "insurer" | "partner";
 
 export interface User {
   id: string;
@@ -11,6 +11,11 @@ export interface User {
   subrole: string | null;
   companyId: string | null;
   insurerId: string | null;
+  organizationId?: string;
+  // Partner-tier: the picked client org id when partner user has chosen one;
+  // null for partner users who haven't picked yet; equal to organizationId
+  // for non-partner users.
+  activeOrganizationId?: string | null;
   createdAt: string;
 }
 
@@ -107,8 +112,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           error: null,
         });
 
-        // Navigate to dashboard
-        navigate("/");
+        // Navigate based on role: partner-role users go through the client
+        // picker first; everyone else lands on their role-aware dashboard.
+        if (user.role === "partner") {
+          navigate("/partner/clients");
+        } else {
+          navigate("/");
+        }
       } else {
         // Login failed
         setState(prev => ({
