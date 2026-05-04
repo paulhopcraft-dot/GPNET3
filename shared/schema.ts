@@ -1728,6 +1728,12 @@ export type InsertInsurer = z.infer<typeof insertInsurerSchema>;
 // ============================================
 // ORGANIZATIONS TABLE
 // ============================================
+export const auStateCodes = ["VIC", "NSW", "QLD", "WA", "SA", "TAS", "ACT", "NT"] as const;
+export type AuState = typeof auStateCodes[number];
+
+export const employeeCountBands = ["1-10", "11-50", "51-200", "201-500", "500+"] as const;
+export type EmployeeCountBand = typeof employeeCountBands[number];
+
 export const organizations = pgTable("organizations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
@@ -1739,6 +1745,26 @@ export const organizations = pgTable("organizations", {
   contactEmail: text("contact_email"),
   insurerId: varchar("insurer_id").references(() => insurers.id),
   isActive: boolean("is_active").notNull().default(true),
+  // Partner-tier slice 2 — additive, all nullable
+  abn: varchar("abn", { length: 11 }),
+  worksafeState: text("worksafe_state").$type<AuState>(),
+  policyNumber: text("policy_number"),
+  wicCode: varchar("wic_code", { length: 20 }),
+  addressLine1: text("address_line_1"),
+  addressLine2: text("address_line_2"),
+  suburb: text("suburb"),
+  state: text("state").$type<AuState>(),
+  postcode: varchar("postcode", { length: 4 }),
+  insurerClaimContactEmail: text("insurer_claim_contact_email"),
+  rtwCoordinatorName: text("rtw_coordinator_name"),
+  rtwCoordinatorEmail: text("rtw_coordinator_email"),
+  rtwCoordinatorPhone: varchar("rtw_coordinator_phone", { length: 50 }),
+  hrContactName: text("hr_contact_name"),
+  hrContactEmail: text("hr_contact_email"),
+  hrContactPhone: varchar("hr_contact_phone", { length: 50 }),
+  notificationEmails: text("notification_emails"), // comma-separated; trimmed + lowercased on write
+  employeeCount: text("employee_count").$type<EmployeeCountBand>(),
+  notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

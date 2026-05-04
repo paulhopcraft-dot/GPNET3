@@ -37,6 +37,35 @@ CREATE INDEX IF NOT EXISTS "partner_user_organizations_user_id_idx"
 `;
 
 /**
+ * Inline migration SQL — equivalent to migrations/0012_partner_client_setup.sql.
+ * Slice 2: rich client metadata (insurer, address, contacts, notification emails)
+ * so partner users can self-onboard new clients without engineering. All columns
+ * nullable. Idempotent.
+ */
+const PARTNER_CLIENT_SETUP_MIGRATION_SQL = `
+ALTER TABLE "organizations"
+  ADD COLUMN IF NOT EXISTS "abn" varchar(11),
+  ADD COLUMN IF NOT EXISTS "worksafe_state" text,
+  ADD COLUMN IF NOT EXISTS "policy_number" text,
+  ADD COLUMN IF NOT EXISTS "wic_code" varchar(20),
+  ADD COLUMN IF NOT EXISTS "address_line_1" text,
+  ADD COLUMN IF NOT EXISTS "address_line_2" text,
+  ADD COLUMN IF NOT EXISTS "suburb" text,
+  ADD COLUMN IF NOT EXISTS "state" text,
+  ADD COLUMN IF NOT EXISTS "postcode" varchar(4),
+  ADD COLUMN IF NOT EXISTS "insurer_claim_contact_email" text,
+  ADD COLUMN IF NOT EXISTS "rtw_coordinator_name" text,
+  ADD COLUMN IF NOT EXISTS "rtw_coordinator_email" text,
+  ADD COLUMN IF NOT EXISTS "rtw_coordinator_phone" varchar(50),
+  ADD COLUMN IF NOT EXISTS "hr_contact_name" text,
+  ADD COLUMN IF NOT EXISTS "hr_contact_email" text,
+  ADD COLUMN IF NOT EXISTS "hr_contact_phone" varchar(50),
+  ADD COLUMN IF NOT EXISTS "notification_emails" text,
+  ADD COLUMN IF NOT EXISTS "employee_count" text,
+  ADD COLUMN IF NOT EXISTS "notes" text;
+`;
+
+/**
  * WorkBetter partner-tier seed (Tasks F + G in PLAN.md).
  *
  * Creates:
@@ -160,11 +189,13 @@ async function seed(): Promise<void> {
   console.log("[seed-workbetter] Starting partner-tier seed...");
   if (minimalOnly) console.log("[seed-workbetter] --minimal mode: skipping demo workers (Task G)");
 
-  // Step 0 — apply migration inline so seed is self-contained.
+  // Step 0 — apply migrations inline so seed is self-contained.
   // Idempotent (IF NOT EXISTS); safe to run on every invocation.
-  console.log("[seed-workbetter] Applying partner-tier migration (idempotent)...");
+  console.log("[seed-workbetter] Applying partner-tier migration 0011 (idempotent)...");
   await db.execute(sql.raw(PARTNER_TIER_MIGRATION_SQL));
-  console.log("[seed-workbetter] Migration applied.");
+  console.log("[seed-workbetter] Applying partner-client-setup migration 0012 (idempotent)...");
+  await db.execute(sql.raw(PARTNER_CLIENT_SETUP_MIGRATION_SQL));
+  console.log("[seed-workbetter] Migrations applied.");
 
   // Idempotency: clean up any prior partner-tier seed rows by stable IDs.
   // Order matters because of FKs.
