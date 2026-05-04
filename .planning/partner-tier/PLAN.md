@@ -151,6 +151,15 @@ H1. Write `.planning/partner-tier/DEMO-SCRIPT.md` with step-by-step:
     10. Change password → log out → log in with new password → success
 H2. The script must run against the local dev DB with the seed data from F + G. No external dependencies beyond outbound email (already configured for Preventli — confirm SMTP/SES is wired for dev or use a dev-mode email log).
 H3. If the email infra is not configured for the dev environment, the script falls back to "the link that *would* be emailed is logged to console — copy and paste it" — flag this in the script. Don't block on email infra.
+H4. **Worker-facing form copy (per Paul, 2026-05-04):** when the worker opens the link from the email and fills out the check, the form should NOT ask "Company name" as a free-text field. The system already knows:
+    - Which partner (WorkBetter) sent this (from the case's `organizationId` chain)
+    - Which client of that partner the case belongs to (the case's `organizationId`)
+    Instead, ask "Who is your employer?" and:
+    - **Known worker / case already attached to a client org:** pre-fill the client org name (e.g. "Alpine Health"), worker confirms.
+    - **Unknown worker / case not yet attached:** present a dropdown of the partner's client orgs ("Select your employer: Alpine Health / Alpine MDF").
+    Either path, the worker NEVER types "WorkBetter" — that's the partner brand they receive the email from, not their employer. Partner identity is implicit, employer (= partner's client) is the data we capture.
+
+    Likely touches: worker-facing intake/check form components in `client/src/pages/` (find by searching for the existing "company name" field). Small copy + pre-fill logic, not a structural change. Defer to whichever check flow Task H exercises (probably pre-employment first).
 
 **Verification for H:**
 - The build session runs the script themselves end-to-end against the local DB and quotes evidence (each step's outcome) in the build session's verification message.
