@@ -103,12 +103,34 @@ E4. Add a "Switch client" link in the header that returns to `/partner/clients` 
 #### F. Seed & manual smoke
 
 F1. Add a seed script `server/seed-workbetter.ts` (gitignored env values for any secrets) that creates:
-    - One partner org: `WorkBetter` (`kind = 'partner'`)
-    - Two client orgs: `Acme Pty Ltd` and `Bravo Logistics` (`kind = 'employer'`)
-    - One partner user: `paul+workbetter@preventli.test` with `role = 'partner'`, `organizationId = workbetter.id`
-    - Two access rows: that user → Acme only (Bravo deliberately excluded to verify scoping)
-    - Two seed cases: one in Acme, one in Bravo
+    - One partner org: `WorkBetter` (`kind = 'partner'`, `logoUrl = '/assets/workbetter-logo.png'` if the file exists at `attached_assets/workbetter-logo.png`)
+    - Two client orgs: `Alpine Health` and `Alpine MDF` (`kind = 'employer'`)
+    - **Primary** partner user (per Paul, dev-only credentials): login `workbetter` (email: `workbetter@workbetter.com.au` if email-based auth is required), password `workbetter123`, `role = 'partner'`, `organizationId = workbetter.id`. Access rows: BOTH `Alpine Health` AND `Alpine MDF` (demo path — both visible in picker).
+    - **Scoping-test** partner user: `workbetter-scoped@workbetter.com.au` / `workbetter123`, `role = 'partner'`, `organizationId = workbetter.id`. Access row: `Alpine Health` only. Used in verification step 5 to prove the access table actually gates visibility.
+    - ⚠️ These credentials are **for local dev seed only**. Do NOT commit them to any production seed script. The seed file should read from env vars in any non-dev environment, or be excluded from production builds entirely.
+    - Minimal smoke-test cases: one trivial case in each client (Task G covers the realistic demo data).
 F2. Run the seed against local dev DB.
+
+#### G. Demo seed — realistic worker data (per Paul, 2026-05-04)
+
+Goal: WorkBetter's demo lands on a portal that *looks like a real consultancy already managing real workers*, not an empty shell.
+
+**Per company (Alpine Health and Alpine MDF), seed 5 workers across the three case tracks** (see `CONTEXT.md` → "Case Tracks"):
+
+| Track | Count per company | What gets seeded |
+|---|---|---|
+| **Pre-employment** | 1–2 workers | A `workers` row + a `pre_employment_assessments` row with assessment type, status (mix of pending/in-progress/cleared), components, and a clearance level. At least one with attached health-history rows. |
+| **Injury management** | 2 workers | A `workers` row + a `worker_cases` row with a claim number, at least one `medical_certificate`, at least one `case_action` open, an active RTW plan if Phase 5/6 RTW data exists, and audit events. Vary the lifecycle stage (one early, one mid-recovery). |
+| **Preventative** | 1–2 workers | A `workers` row + a non-claim case representation. **Build session must confirm with Paul how preventative (non-claim) cases are stored before writing this** — see CONTEXT.md "Open question for build session". Likely `worker_cases` with no claim number; may need schema work. |
+
+Total: **10 workers across both companies**, with roughly 3 pre-employment + 4 injury + 3 preventative split across the two companies. Realistic worker names (use any reasonable Australian-name generator), realistic injury descriptions (sprain/strain, cumulative back, mental health for injury management; common chronic conditions for preventative).
+
+**This task is the bulk of the demo prep work.** Likely L (~20%) on its own. If Slice 1 partner code (A–F) blows budget, **G is the natural cut point** — partner-tier code can ship and be smoke-tested without the full demo seed. The full G seed can run in a follow-up session before the WorkBetter demo.
+
+**Verification for G:**
+- Login as primary WorkBetter user → pick Alpine Health → see ~5 workers across the three tracks. Pre-employment list non-empty, case list non-empty, preventative list non-empty (or wherever it surfaces in the UI).
+- Pick Alpine MDF → same shape, different worker names.
+- All three feature areas (pre-employment, injury management, preventative) clickable and show realistic data.
 
 ### Verification (this is the closure criterion for Slice 1)
 
