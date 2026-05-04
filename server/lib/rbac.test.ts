@@ -60,6 +60,10 @@ describe("isEmployerRole", () => {
   it("returns false for insurer role", () => {
     expect(isEmployerRole("insurer")).toBe(false);
   });
+
+  it("returns true for partner role (employer-equivalent RBAC)", () => {
+    expect(isEmployerRole("partner")).toBe(true);
+  });
 });
 
 describe("filterCaseByRole", () => {
