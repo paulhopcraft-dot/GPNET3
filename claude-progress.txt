@@ -1,3 +1,41 @@
+## Session 117 (May 4, 2026) — Injury-check email phantom-send fixed (worktree: nostalgic-hopper-b8dcb4)
+
+### Completed
+- Mapped Preventli case-creation → injury-check pipeline end to end (employer-dashboard.ts, EmployerCaseSuccessPage, complianceDeadlines, emailService, getWorkerEmail)
+- Fixed Bug A: new-case POST now persists worker case_contacts row (line ~493+), so getWorkerEmail() can resolve the recipient. Try/catch — case creation still succeeds if contact insert fails.
+- Fixed Bug B: injury-check endpoint now actually calls sendEmail() via the existing Resend-backed services/emailService.ts. Returns 422 + generated text if no contact on file; 502 with real error on send failure; 200 with recipient + messageId on success.
+- Frontend toast on EmployerCaseSuccessPage now reflects the actual response (real recipient or real error) — no more phantom "Sent" lies.
+- Coerced req.params.id as string (root-cause fix for two pre-existing TS errors flagged by tsc --noEmit).
+- TS clean for changed files; vite build passes (2m 6s).
+- Committed 2fb187c on branch claude/nostalgic-hopper-b8dcb4. Pushed to origin.
+- Skill credentials fixed in ~/.claude (commands/preventli-test.md + clawd-commands/...): default employer login is employer@symmetry.local, not admin@gpnet.local. Committed eb1970e on ~/.claude master, pushed.
+- Session journal updated: ~/.claude/wsl-imported/sessions/session-4-preventli-web.md (Session 117 entry).
+- Sister demo agenda drafted in chat for Lisa walkthrough.
+
+### In Progress
+- None — all in-flight work committed and pushed.
+
+### Next Steps
+1. Open + merge PR https://github.com/paulhopcraft-dot/preventli/pull/new/claude/nostalgic-hopper-b8dcb4 (or point Render at the branch)
+2. Verify Resend SMTP env vars are set on the deployed Render app (SMTP_HOST=smtp.resend.com, RESEND_API_KEY, SMTP_FROM=noreply@preventli.ai). Without them sendEmail logs but doesn't deliver.
+3. Once deployed: live-test Phase 1 of Sarah Chen complex-rtw walkthrough with email-arrival verification at every CHECK item. Phase 1 keystrokes are in the session-117 chat transcript and journal entry.
+4. Continue Phases 2-6 (cert renewal, OVERDUE flag, suitable duties, non-compliance, termination).
+5. Separate task: backfill case_contacts for seeded cases (Ethan Wells, Daniel Jones, etc.) so injury-check works on legacy data.
+
+### Blockers
+- Resend env vars on Render — Paul to verify in dashboard.
+- Render branch trigger — typically watches main; may need PR + merge before redeploy.
+
+### Notes
+- 10-week RTW Plan deadline IS implemented in server/lib/complianceDeadlines.ts (RTW_PLAN_10WK rule, exact cl.4.3 citation). Surfaces ONLY in Timeline tab — UX gap, should be promoted to Summary.
+- Six other compliance deadlines also computed: s25 claim notification, 13/52/130-week payment step-downs, s242 termination protection, cert expiry within 14 days.
+- Claim-lodged gateway in new-case form bounces user out to WorkSafe Vic external link with no in-app tracking — product gap for Daniel's actual scenario (claim lodged).
+- Active worktrees: 8 (nostalgic-hopper-b8dcb4 = current; bold-pike, elated-elion, heuristic-keller, lucid-tereshkova, wonderful-aryabhata, agent-a1c3836d prunable, preventli-testing prunable). Consider pruning.
+- D:/dev/preventli main is on feature/cab0-smartlead-webhook (865519f) — that's the parent repo, not main.
+- Side prompt drafted for Paul: break Alex agent's monolithic prompt into smaller sub-tasks to avoid Claude tool-call ceiling. To run in fresh session.
+
+---
+
 ## Session 113 (May 1, 2026) — GitHub repo rename + rebrand Tier 1/2
 
 ### Completed
