@@ -161,6 +161,8 @@ H4. **Worker-facing form copy (per Paul, 2026-05-04):** when the worker opens th
 
     Likely touches: worker-facing intake/check form components in `client/src/pages/` (find by searching for the existing "company name" field). Small copy + pre-fill logic, not a structural change. Defer to whichever check flow Task H exercises (probably pre-employment first).
 
+    **Generalisation (per Paul, 2026-05-04):** the same "we already know your employer" rule applies when a DIRECT EMPLOYER (not via partner) sends a check. If Alpine Health logs in directly (employer-role) and sends a check to a worker, the worker doesn't type "Alpine Health" — it's implied from the case's `organizationId`. So the worker form should NEVER ask "Company name" as free text in either case path; only ask "Who is your employer?" as a confirm/dropdown when the system can't infer it (e.g. unclaimed pre-employment intake). The worker's **personal email** must still be captured (or confirmed if pre-known) so the system can correspond — this is non-negotiable. Build session: confirm the existing form already captures worker email; if not, add it (small).
+
 **Verification for H:**
 - The build session runs the script themselves end-to-end against the local DB and quotes evidence (each step's outcome) in the build session's verification message.
 - Paul receives the actual email at `paul.hopcraft@gmail.com` (or if dev email not configured, the fallback link works).
