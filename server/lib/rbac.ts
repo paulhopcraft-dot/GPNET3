@@ -12,11 +12,11 @@ import type { UserRole, WorkerCase, CaseClinicalStatus } from "@shared/schema";
 
 /**
  * Returns true for any role that maps to "employer" access level.
- * Keeps backwards-compat with legacy "employer" role while supporting
- * future granular roles.
+ * Partner-role users act on behalf of an employer client and get the same
+ * clinical-data filtering treatment as employer-role users.
  */
 export function isEmployerRole(role: UserRole): boolean {
-  return role === "employer";
+  return role === "employer" || role === "partner";
 }
 
 /**

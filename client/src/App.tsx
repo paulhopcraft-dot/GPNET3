@@ -76,6 +76,8 @@ const WorkersListPage = lazy(() => import("./pages/WorkersListPage"));
 const NewAssessmentPage = lazy(() => import("./pages/NewAssessmentPage"));
 const AssessmentDetailPage = lazy(() => import("./pages/AssessmentDetailPage"));
 const HelpCenterPage = lazy(() => import("./pages/HelpCenterPage"));
+const PartnerClientPicker = lazy(() => import("./pages/PartnerClientPicker"));
+const ChangePasswordPage = lazy(() => import("./pages/ChangePasswordPage"));
 
 // LogoutRedirect component - triggers logout and redirects to login
 function LogoutRedirect() {
@@ -686,6 +688,28 @@ export default function App() {
                       <ProtectedRoute>
                         <Suspense fallback={<PageLoader />}>
                           <HelpCenterPage />
+                        </Suspense>
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  {/* Partner-tier: client picker + self-service password change */}
+                  <Route
+                    path="/partner/clients"
+                    element={
+                      <ProtectedRoute>
+                        <Suspense fallback={<PageLoader />}>
+                          <PartnerClientPicker />
+                        </Suspense>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/change-password"
+                    element={
+                      <ProtectedRoute>
+                        <Suspense fallback={<PageLoader />}>
+                          <ChangePasswordPage />
                         </Suspense>
                       </ProtectedRoute>
                     }

@@ -1,5 +1,5 @@
 import express from "express";
-import { register, login, me, logout, refresh, logoutAll, forgotPassword, resetPasswordHandler, getSessions, deleteSession } from "../controllers/auth";
+import { register, login, me, logout, refresh, logoutAll, forgotPassword, resetPasswordHandler, getSessions, deleteSession, changePassword } from "../controllers/auth";
 import { authorize } from "../middleware/auth";
 
 const router = express.Router();
@@ -28,6 +28,9 @@ router.post("/forgot-password", forgotPassword);
 
 // POST /api/auth/reset-password - Reset password with token
 router.post("/reset-password", resetPasswordHandler);
+
+// POST /api/auth/change-password - Change password while logged in (any role)
+router.post("/change-password", authorize(), changePassword);
 
 // GET /api/auth/sessions - Get user's active sessions
 router.get("/sessions", authorize(), getSessions);

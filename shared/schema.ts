@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, boolean, json, jsonb, integer, numeric } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, boolean, json, jsonb, integer, numeric, primaryKey, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -833,6 +833,7 @@ export const workerCases = pgTable("worker_cases", {
   dateOfInjuryAiReasoning: text("date_of_injury_ai_reasoning"), // AI explanation when used
   dateOfInjuryReviewedBy: varchar("date_of_injury_reviewed_by"), // User ID who reviewed
   dateOfInjuryReviewedAt: timestamp("date_of_injury_reviewed_at"), // When review was completed
+  claimNumber: text("claim_number"), // NULL = preventative case (no WorkCover claim); populated = injury case
   riskLevel: text("risk_level").notNull(),
   workStatus: text("work_status").notNull(),
   hasCertificate: boolean("has_certificate").notNull().default(false),
@@ -1034,7 +1035,7 @@ export const certificateExpiryAlerts = pgTable("certificate_expiry_alerts", {
 });
 
 // Authentication Types
-export type UserRole = "admin" | "employer" | "clinician" | "insurer";
+export type UserRole = "admin" | "employer" | "clinician" | "insurer" | "partner";
 
 export interface User {
   id: string;
@@ -1054,7 +1055,7 @@ export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: text("email").notNull(), // Note: Unique constraint is (email, organization_id) - see migration 0003
   password: text("password").notNull(), // bcrypt hashed
-  role: text("role").notNull(), // admin | employer | clinician | insurer
+  role: text("role").notNull(), // admin | employer | clinician | insurer | partner
   subrole: text("subrole"), // e.g., "doctor", "physio"
   organizationId: varchar("organization_id").notNull(), // Added in migration 0003
   companyId: varchar("company_id"), // Deprecated - use organizationId
@@ -1731,6 +1732,7 @@ export const organizations = pgTable("organizations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   slug: varchar("slug", { length: 100 }).unique().notNull(),
+  kind: text("kind").$type<"employer" | "partner">().notNull().default("employer"), // 'employer' = owns its own cases (default, all existing rows); 'partner' = manages cases on behalf of others
   logoUrl: text("logo_url"),
   contactName: text("contact_name"),
   contactPhone: varchar("contact_phone", { length: 50 }),
@@ -1745,6 +1747,26 @@ export const insertOrganizationSchema = createInsertSchema(organizations);
 
 export type Organization = typeof organizations.$inferSelect;
 export type InsertOrganization = z.infer<typeof insertOrganizationSchema>;
+
+// ============================================
+// PARTNER USER ORGANIZATIONS — many-to-many access table for partner-role users
+// ============================================
+export const partnerUserOrganizations = pgTable(
+  "partner_user_organizations",
+  {
+    userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    organizationId: varchar("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    grantedAt: timestamp("granted_at").defaultNow().notNull(),
+    grantedBy: varchar("granted_by").references(() => users.id), // nullable — system seeds may have no granter
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.userId, table.organizationId] }),
+    userIdIdx: index("partner_user_organizations_user_id_idx").on(table.userId),
+  })
+);
+
+export type PartnerUserOrganization = typeof partnerUserOrganizations.$inferSelect;
+export type InsertPartnerUserOrganization = typeof partnerUserOrganizations.$inferInsert;
 
 // ============================================
 // CASE CONTACTS TABLE - Key contacts for worker cases

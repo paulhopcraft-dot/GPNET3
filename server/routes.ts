@@ -11,6 +11,7 @@ import { logger, createLogger } from "./lib/logger";
 
 const routeLogger = createLogger("Routes");
 import authRoutes from "./routes/auth";
+import partnerRoutes from "./routes/partner";
 import terminationRoutes from "./routes/termination";
 import inviteRoutes from "./routes/invites";
 import webhookRoutes from "./routes/webhooks";
@@ -66,6 +67,10 @@ const MS_PER_DAY = 1000 * 60 * 60 * 24;
 export async function registerRoutes(app: Express): Promise<void> {
   // Authentication routes
   app.use("/api/auth", authRoutes);
+
+  // Partner-tier routes (partner-role users only): client picker, active org switching, header context
+  app.use("/api/partner", partnerRoutes);
+
   app.use("/api/termination", terminationRoutes);
 
   // Admin invite routes (requires admin authentication)

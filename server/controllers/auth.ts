@@ -82,7 +82,15 @@ function clearRefreshCookie(res: Response): void {
   res.clearCookie(LEGACY_REFRESH_COOKIE_NAME, opts);
 }
 
-function generateAccessToken(userId: string, email: string, role: string, organizationId: string): string {
+// Exported so other controllers (e.g. partner.ts) can mint tokens after the
+// active organisation changes (client picker / switch client).
+export function generateAccessToken(
+  userId: string,
+  email: string,
+  role: string,
+  organizationId: string,
+  activeOrganizationId: string | null = null,
+): string {
   if (!process.env.JWT_SECRET) {
     throw new Error("JWT_SECRET not configured");
   }
@@ -93,11 +101,18 @@ function generateAccessToken(userId: string, email: string, role: string, organi
       email,
       role,
       organizationId,
+      activeOrganizationId,
       companyId: organizationId, // Backwards compatibility - keep companyId field
     },
     process.env.JWT_SECRET,
     { expiresIn: JWT_EXPIRES_IN }
   );
+}
+
+// Exported so the partner-tier router can re-set the auth cookie after
+// switching active organisation (POST/DELETE /api/partner/active-org).
+export function setAuthCookieExternal(res: Response, token: string): void {
+  setAuthCookie(res, token);
 }
 
 export async function register(req: Request, res: Response) {
@@ -210,8 +225,13 @@ export async function register(req: Request, res: Response) {
       ...getRequestMetadata(req),
     });
 
-    // Generate access token with organizationId
-    const accessToken = generateAccessToken(user.id, user.email, user.role, user.organizationId);
+    // Generate access token with organizationId. New users via invite are
+    // not partner-role in the MVP (partner-admin UI is deferred), but route
+    // through the same activeOrganizationId logic for consistency.
+    const initialActiveOrg = user.role === "partner" ? null : user.organizationId;
+    const accessToken = generateAccessToken(
+      user.id, user.email, user.role, user.organizationId, initialActiveOrg
+    );
 
     // Generate refresh token
     const refreshResult = await generateRefreshToken(user.id, req);
@@ -329,8 +349,13 @@ export async function login(req: Request, res: Response) {
       ...getRequestMetadata(req),
     });
 
-    // Generate access token with organizationId
-    const accessToken = generateAccessToken(user.id, user.email, user.role, user.organizationId);
+    // Generate access token with organizationId. Partner users start with
+    // no active client (they're redirected to the picker by the frontend);
+    // non-partner users implicitly have their home org as active.
+    const initialActiveOrg = user.role === "partner" ? null : user.organizationId;
+    const accessToken = generateAccessToken(
+      user.id, user.email, user.role, user.organizationId, initialActiveOrg
+    );
 
     // Generate refresh token
     const refreshResult = await generateRefreshToken(user.id, req);
@@ -399,10 +424,18 @@ export async function me(req: AuthRequest, res: Response) {
       });
     }
 
+    // Include the resolved organisation IDs from the request (set by the
+    // auth middleware). For partner users this surfaces whether they've
+    // picked a client (activeOrganizationId !== null) so the frontend can
+    // route to the picker vs. the case dashboard.
     res.json({
       success: true,
       data: {
-        user: userResult[0],
+        user: {
+          ...userResult[0],
+          organizationId: req.user.organizationId,
+          activeOrganizationId: req.activeOrganizationId ?? null,
+        },
       },
     });
   } catch (error) {
@@ -489,8 +522,14 @@ export async function refresh(req: Request, res: Response) {
       });
     }
 
-    // Generate new access token
-    const accessToken = generateAccessToken(user.id, user.email, user.role, user.organizationId);
+    // Generate new access token. For partner users the activeOrganizationId
+    // is reset to null on refresh — they'll be sent back to the picker. This
+    // is an MVP limitation; preserving active-org across refresh is a future
+    // enhancement (would require storing it on the refresh token row).
+    const initialActiveOrg = user.role === "partner" ? null : user.organizationId;
+    const accessToken = generateAccessToken(
+      user.id, user.email, user.role, user.organizationId, initialActiveOrg
+    );
 
     // Set new cookies
     setAuthCookie(res, accessToken);
@@ -737,6 +776,107 @@ export async function deleteSession(req: AuthRequest, res: Response) {
     res.status(500).json({
       error: "Internal Server Error",
       message: "Failed to revoke session",
+    });
+  }
+}
+
+/**
+ * Change password (authenticated user)
+ * POST /api/auth/change-password
+ * Body: { currentPassword, newPassword }
+ *
+ * Verifies the current password, hashes and stores the new one, then
+ * revokes all refresh tokens for the user (force re-login on other devices).
+ * Available to all roles — partner-role users access it from the header.
+ */
+export async function changePassword(req: AuthRequest, res: Response) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        error: "Unauthorized",
+        message: "User not authenticated",
+      });
+    }
+
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "currentPassword and newPassword are required",
+      });
+    }
+
+    // Validate new password strength
+    const passwordValidation = validatePassword(newPassword);
+    if (!passwordValidation.valid) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "New password does not meet security requirements",
+        details: passwordValidation.errors,
+      });
+    }
+
+    if (currentPassword === newPassword) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "New password must be different from current password",
+      });
+    }
+
+    // Look up user to verify current password
+    const userResult = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, req.user.id))
+      .limit(1);
+    if (userResult.length === 0) {
+      return res.status(401).json({ error: "Unauthorized", message: "User not found" });
+    }
+    const user = userResult[0];
+
+    const isValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isValid) {
+      await logAuditEvent({
+        userId: user.id,
+        organizationId: user.organizationId,
+        eventType: "user.password_change_failed",
+        resourceType: "user",
+        resourceId: user.id,
+        metadata: { reason: "invalid_current_password" },
+        ...getRequestMetadata(req),
+      });
+      return res.status(401).json({
+        error: "Unauthorized",
+        message: "Current password is incorrect",
+      });
+    }
+
+    // Hash + store new password
+    const newHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+    await db.update(users).set({ password: newHash }).where(eq(users.id, user.id));
+
+    // Revoke all refresh tokens — other sessions on other devices must re-login
+    await revokeAllUserTokens(user.id);
+
+    await logAuditEvent({
+      userId: user.id,
+      organizationId: user.organizationId,
+      eventType: "user.password_change",
+      resourceType: "user",
+      resourceId: user.id,
+      metadata: { method: "self_service_change_password" },
+      ...getRequestMetadata(req),
+    });
+
+    res.json({
+      success: true,
+      message: "Password changed successfully. Other sessions have been signed out.",
+    });
+  } catch (error) {
+    logger.auth.error("Change password error", {}, error);
+    res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to change password",
     });
   }
 }
