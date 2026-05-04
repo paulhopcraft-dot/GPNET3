@@ -1,88 +1,70 @@
-## Session 118 - 2026-05-04 - WorkBetter partner-tier PLANNING
-
-### Completed (this session)
-PLAN-ONLY session. Zero code. Five commits on `wip-partner-tier`, all pushed.
-
-- 5a79d05 docs(partner-tier): add tenancy decision, vocabulary, Slice 1 plan
-- 9e77ba9 docs(partner-tier): expand with WorkBetter demo seed (Task G)
-- 98610eb docs(partner-tier): demo (H), password change (C5), admin verify, claim_number (A2b)
-- 654d70e docs(partner-tier): worker-form 'Who is your employer?' framing (H4)
-- 40a165a docs(partner-tier): worker-form rule generalises to direct-employer path
-
-### Artifacts produced
-- docs/DECISIONS.md (appended) — Partner-Tier Tenancy Model entry. Locks
-  the data model (partner role + access table + organizations.kind
-  discriminator). Lists rejected alternatives + assumptions.
-- CONTEXT.md (new at root) — domain vocabulary: organisation/employer/
-  partner/partner-client/active-org/case tracks. Resolves preventative
-  vs injury distinction (claim_number nullable on worker_cases).
-- .planning/partner-tier/PLAN.md (new) — Slice 1 implementation plan:
-  Tasks A-H (schema -> middleware -> auth -> picker -> header -> seed
-  -> demo seed -> demo walkthrough). 12 verification steps. Slices 2-5
-  listed as deferred.
-
-### Driving customer
-WorkBetter (real prospect, HR consultancy). Two dummy clients:
-Alpine Health and Alpine MDF. Dev-only seed creds:
-workbetter@workbetter.com.au / workbetter123.
-
-### Key decisions locked
-- Tenancy: partner role + access table + organizations.kind
-- Storage: claim_number nullable on worker_cases (NULL = preventative,
-  populated = injury). Schema must add this column (Task A2b).
-- Worker-facing form: never asks "Company name" free-text — always
-  "Who is your employer?" with pre-fill from case.organizationId.
-  Generalises to direct-employer path too.
-- Worker-facing email branding stays "Preventli" in MVP (deferred to
-  Slice 2). Stated assumption — flag if WorkBetter requires sooner.
-
-### In Progress
-Nothing. Plan-only session, all artifacts committed. Build is next.
-
-### Next Steps (NEXT SESSION)
-1. /clear to reset context
-2. Open this worktree
-3. Paste the next-session prompt prepared at session 118 close
-   (also reconstructable from session-4-preventli-web.md handoff)
-4. /before-coding — should route to executing-plans
-5. Confirm 4 stated assumptions with Paul
-6. Execute Tasks A -> H per PLAN.md
-7. Run all 12 verification steps with quoted evidence
-8. Commit per task, push, open PR
-
-### Blockers / open items
-- Paul to save WorkBetter logo to attached_assets/workbetter-logo.png
-  (claude can see image in chat but cannot extract bytes to disk).
-  If absent, header is text-only — non-blocking.
-- Confirm Resend SMTP env wired in dev (for Task H demo email).
-  Falls back to console-logged link if not.
-
-### Notes
-- Drift watch: this session absorbed 7 scope additions during planning
-  (white-label, intake form, GPNet admin idea, demo seed, password
-  change, demo walkthrough, worker-form copy). Plan absorbed real
-  adds, deferred speculative ones. Build session must hold scope
-  HARD — anything new = "captured for next session, building Slice 1
-  now."
-- Future task #96 logged in
-  ~/.claude/wsl-imported/projects/-mnt-d-dev/memory/tasks_outstanding.md:
-  "Automated worker check-ins via WhatsApp/Viber/SMS"
-- Session journal at
-  ~/.claude/wsl-imported/sessions/session-4-preventli-web.md
-  has full session-118 entry.
-
----
-
-## Session 105 - 2026-03-05 (preserved from main)
+## Session 120 - 2026-05-05 - Slice 2 backend SHIPPED on branch (no PR yet)
 
 ### Completed
-- Phase 11 & 12 commit (from session 104 carryover):
-  - ContextualHelpSystem wired into CaseSummaryPage
-  - DisputeStatus, CaseDispute added to schema
-  - Related claims banner, dispute banner, mental health notice
-  - RBAC: dispute status stripped from employer view
-  - ContextualHelpSystem help topics for /cases and /employer routes
+- Slice 2 PLAN written: .planning/partner-tier/PLAN-SLICE-2.md (commit 8afa1ef)
+- Branch wip-partner-client-setup off origin/main, 4 commits ahead:
+  - 8afa1ef docs(partner): slice 2 plan
+  - ed57d04 feat(partner): slice 2 schema (19 nullable cols, migration 0012, inlined into seed)
+  - 5f80841 feat(partner): slice 2 endpoints (POST/GET/PATCH /api/partner/clients + audit)
+  - 6d3e88f test(partner): slice 2 Zod schema validation (27 tests)
+- Build green: vite build succeeded
+- Tests: 334 passed / 1 skipped (was 307 + 27 new — no regression)
+- Pre-existing tsc --noEmit errors NOT introduced by Slice 2; project gate is vite + vitest
+- Schema columns added (all nullable, additive): abn, worksafe_state, policy_number,
+  wic_code, address_line_1/2, suburb, state, postcode, insurer_claim_contact_email,
+  rtw_coordinator_{name,email,phone}, hr_contact_{name,email,phone}, notification_emails,
+  employee_count, notes
+- Decisions baked into commits:
+  - Single-creator visibility (assumption #1): client visible only to creator until Slice 5
+  - Inline migration into seed-workbetter.ts (same pattern as Slice 1, dodges Render Dockerfile)
+  - shared/partnerClient.ts (flat) instead of shared/zod/partnerClient.ts (matches repo convention)
+  - PII stripped from audit metadata; name + state kept
 
-### Notes (legacy)
-- Pre-existing TS errors only in discord-analytics.ts — not our code
-- Build: exit code 0, 3797 modules
+### In Progress (handoff to next session)
+**Slice 2 frontend (Tasks C, D, E from PLAN-SLICE-2.md)** — not started:
+1. Task C — PartnerClientPicker.tsx: add "+ Add client" button + per-client "Edit" affordance
+2. Task D — ClientSetupForm.tsx: react-hook-form + shared Zod schema, 8 visual sections
+3. Task E — Update server/seed-workbetter.ts to populate new columns for Alpine Health/MDF
+   (and add "Alpine Test Empty" fixture)
+4. Then verification steps 1–12 from spec, push, open PR
+
+### Live status
+Render rename + custom domain still in flight from Session 119:
+- App still at https://gpnet3.onrender.com
+- Cowork last had Step 1 (rename gpnet3 → preventli) — unclear if it landed
+- app.preventli.ai DNS / env-var / login-button updates still pending
+
+### Next Steps (priority order)
+1. **Slice 2 frontend** — Tasks C, D, E + verification + PR (this is the next build session)
+2. Resume Render rename runbook (Session 119 handoff)
+3. H4 worker-form copy (Slice 1 follow-up — drop "Company name" free-text in worker forms)
+4. WorkBetter logo asset serving
+5. Refresh-token activeOrganizationId persistence
+6. Admin cross-org views audit
+7. Real migration runner (Dockerfile copy migrations/ + boot-time runner)
+
+### Blockers
+None active.
+
+### Notes
+- Vitest config: shared tests must be `.spec.ts`, NOT `.test.ts` (server uses .test.ts).
+  Burned 1 cycle on this — added the rename to commit log so next session avoids it.
+- TS errors in tsc --noEmit are pre-existing Drizzle/Express type-inference issues, present
+  across auth.ts, webhooks.ts, invites.ts, etc. on main. Build (vite) and tests (vitest)
+  pass. Not Slice 2's problem.
+- Partner client form will need an insurer dropdown — server already exposes /api/insurers
+  (Slice 1 didn't touch this); confirm in next session.
+
+### Worktree state
+Build done in: D:/dev/preventli/.claude/worktrees/dreamy-banach-306719
+  Branch: wip-partner-client-setup (4 commits ahead of origin/main, not pushed)
+
+### Useful URLs
+- Prod app: https://gpnet3.onrender.com (rename in flight)
+- Marketing site: https://preventli.ai
+- PR #33: merged (Slice 1)
+- PR #35: merged (boot hardening)
+- Plan Slice 1: .planning/partner-tier/PLAN.md
+- Plan Slice 2: .planning/partner-tier/PLAN-SLICE-2.md
+- Verification (Slice 1): .planning/partner-tier/VERIFICATION.md
+- Demo runbook: .planning/partner-tier/DEMO-SCRIPT.md
