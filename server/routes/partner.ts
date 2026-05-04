@@ -10,7 +10,7 @@
  */
 import { Router, Response } from "express";
 import { z } from "zod";
-import { eq, and, count } from "drizzle-orm";
+import { eq, and, count, sql } from "drizzle-orm";
 import { db } from "../db";
 import {
   partnerUserOrganizations,
@@ -18,9 +18,14 @@ import {
   workerCases,
   users,
 } from "@shared/schema";
+import {
+  createPartnerClientSchema,
+  updatePartnerClientSchema,
+} from "@shared/partnerClient";
 import { authorize, type AuthRequest } from "../middleware/auth";
 import { generateAccessToken, setAuthCookieExternal } from "../controllers/auth";
 import { logger } from "../lib/logger";
+import { logAuditEvent, AuditEventTypes, getRequestMetadata } from "../services/auditLogger";
 
 const router = Router();
 
@@ -240,6 +245,309 @@ router.get("/me", requirePartner, async (req: AuthRequest, res: Response) => {
   } catch (err) {
     logger.api.error("[partner] GET /me failed", {}, err);
     res.status(500).json({ error: "Internal Server Error", message: "Failed to load partner context" });
+  }
+});
+
+// ============================================
+// Slice 2 — partner self-service client setup
+// ============================================
+
+/**
+ * Build a kebab-case slug from a name; append -2, -3 ... on collision.
+ * `organizations.slug` has a unique constraint, so race-induced collisions
+ * become a 23505 unique-violation we treat as 409.
+ */
+async function generateUniqueSlug(name: string): Promise<string> {
+  const base =
+    name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 80) || "client";
+
+  for (let suffix = 0; suffix < 25; suffix++) {
+    const candidate = suffix === 0 ? base : `${base}-${suffix + 1}`;
+    const existing = await db
+      .select({ id: organizations.id })
+      .from(organizations)
+      .where(eq(organizations.slug, candidate))
+      .limit(1);
+    if (existing.length === 0) return candidate;
+  }
+  // Fallback: timestamp suffix. Effectively unique.
+  return `${base}-${Date.now()}`;
+}
+
+/**
+ * Strip PII from an org row before sending to the audit log payload.
+ * Keep name + state for forensic readability; drop emails / phones / notes.
+ */
+function auditSafeOrg(org: Record<string, unknown>): Record<string, unknown> {
+  const safe: Record<string, unknown> = {};
+  const piiKeys = new Set([
+    "contactEmail",
+    "contactPhone",
+    "rtwCoordinatorEmail",
+    "rtwCoordinatorPhone",
+    "hrContactEmail",
+    "hrContactPhone",
+    "insurerClaimContactEmail",
+    "notificationEmails",
+    "notes",
+  ]);
+  for (const [k, v] of Object.entries(org)) {
+    if (!piiKeys.has(k)) safe[k] = v;
+  }
+  return safe;
+}
+
+/**
+ * POST /api/partner/clients
+ *
+ * Create a new client organisation (kind='employer'), and link it into
+ * partner_user_organizations for the calling partner user. Audit logged.
+ */
+router.post("/clients", requirePartner, async (req: AuthRequest, res: Response) => {
+  try {
+    const parsed = createPartnerClientSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "Invalid client data",
+        details: parsed.error.flatten(),
+      });
+    }
+    const userId = req.user!.id;
+    const data = parsed.data;
+
+    const slug = await generateUniqueSlug(data.name);
+
+    // Single transaction: insert org + access row.
+    const result = await db.transaction(async (tx) => {
+      const [inserted] = await tx
+        .insert(organizations)
+        .values({
+          name: data.name,
+          slug,
+          kind: "employer",
+          isActive: true,
+          logoUrl: data.logoUrl ?? null,
+          contactName: data.contactName ?? null,
+          contactEmail: data.contactEmail ?? null,
+          contactPhone: data.contactPhone ?? null,
+          insurerId: data.insurerId ?? null,
+          abn: data.abn ?? null,
+          worksafeState: data.worksafeState ?? null,
+          policyNumber: data.policyNumber ?? null,
+          wicCode: data.wicCode ?? null,
+          addressLine1: data.addressLine1 ?? null,
+          addressLine2: data.addressLine2 ?? null,
+          suburb: data.suburb ?? null,
+          state: data.state ?? null,
+          postcode: data.postcode ?? null,
+          insurerClaimContactEmail: data.insurerClaimContactEmail ?? null,
+          rtwCoordinatorName: data.rtwCoordinatorName ?? null,
+          rtwCoordinatorEmail: data.rtwCoordinatorEmail ?? null,
+          rtwCoordinatorPhone: data.rtwCoordinatorPhone ?? null,
+          hrContactName: data.hrContactName ?? null,
+          hrContactEmail: data.hrContactEmail ?? null,
+          hrContactPhone: data.hrContactPhone ?? null,
+          notificationEmails: data.notificationEmails ?? null,
+          employeeCount: data.employeeCount ?? null,
+          notes: data.notes ?? null,
+        })
+        .returning();
+
+      await tx.insert(partnerUserOrganizations).values({
+        userId,
+        organizationId: inserted.id,
+        grantedBy: userId,
+      });
+
+      return inserted;
+    });
+
+    const meta = getRequestMetadata(req);
+    await logAuditEvent({
+      userId,
+      organizationId: result.id,
+      eventType: AuditEventTypes.PARTNER_CLIENT_CREATED,
+      resourceType: "organization",
+      resourceId: result.id,
+      metadata: { client: auditSafeOrg(result) },
+      ipAddress: meta.ipAddress,
+      userAgent: meta.userAgent,
+    });
+
+    res.status(201).json({ client: result });
+  } catch (err: unknown) {
+    // Postgres unique-violation = 23505. Slug race produces this.
+    const code = (err as { code?: string })?.code;
+    if (code === "23505") {
+      return res.status(409).json({ error: "Conflict", message: "Client slug already exists; try a different name." });
+    }
+    logger.api.error("[partner] POST /clients failed", {}, err);
+    res.status(500).json({ error: "Internal Server Error", message: "Failed to create client" });
+  }
+});
+
+/**
+ * GET /api/partner/clients/:id
+ *
+ * Single client detail. Used by the edit form to pre-fill. Access-checked
+ * against partner_user_organizations.
+ */
+router.get("/clients/:id", requirePartner, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { id } = req.params;
+
+    const access = await db
+      .select({ orgId: partnerUserOrganizations.organizationId })
+      .from(partnerUserOrganizations)
+      .where(
+        and(
+          eq(partnerUserOrganizations.userId, userId),
+          eq(partnerUserOrganizations.organizationId, id),
+        ),
+      )
+      .limit(1);
+
+    if (access.length === 0) {
+      return res.status(403).json({ error: "Forbidden", message: "No access to this client." });
+    }
+
+    const rows = await db
+      .select()
+      .from(organizations)
+      .where(and(eq(organizations.id, id), eq(organizations.kind, "employer")))
+      .limit(1);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "Not Found", message: "Client not found." });
+    }
+
+    res.json({ client: rows[0] });
+  } catch (err) {
+    logger.api.error("[partner] GET /clients/:id failed", {}, err);
+    res.status(500).json({ error: "Internal Server Error", message: "Failed to load client" });
+  }
+});
+
+/**
+ * PATCH /api/partner/clients/:id
+ *
+ * Partial update. Only fields present in the body are touched. Access-checked.
+ */
+router.patch("/clients/:id", requirePartner, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { id } = req.params;
+
+    const parsed = updatePartnerClientSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "Invalid client data",
+        details: parsed.error.flatten(),
+      });
+    }
+
+    const access = await db
+      .select({ orgId: partnerUserOrganizations.organizationId })
+      .from(partnerUserOrganizations)
+      .where(
+        and(
+          eq(partnerUserOrganizations.userId, userId),
+          eq(partnerUserOrganizations.organizationId, id),
+        ),
+      )
+      .limit(1);
+
+    if (access.length === 0) {
+      return res.status(403).json({ error: "Forbidden", message: "No access to this client." });
+    }
+
+    const existingRows = await db
+      .select()
+      .from(organizations)
+      .where(and(eq(organizations.id, id), eq(organizations.kind, "employer")))
+      .limit(1);
+    if (existingRows.length === 0) {
+      return res.status(404).json({ error: "Not Found", message: "Client not found." });
+    }
+    const existing = existingRows[0];
+
+    // Build the update set from defined fields only. Empty strings collapse
+    // to null (the Zod transform on optional fields delivers `undefined` for
+    // empty input, so `undefined` here means "not in the patch").
+    const data = parsed.data;
+    const updateSet: Record<string, unknown> = { updatedAt: new Date() };
+    const fieldKeys = [
+      "name",
+      "logoUrl",
+      "contactName",
+      "contactEmail",
+      "contactPhone",
+      "insurerId",
+      "abn",
+      "worksafeState",
+      "policyNumber",
+      "wicCode",
+      "addressLine1",
+      "addressLine2",
+      "suburb",
+      "state",
+      "postcode",
+      "insurerClaimContactEmail",
+      "rtwCoordinatorName",
+      "rtwCoordinatorEmail",
+      "rtwCoordinatorPhone",
+      "hrContactName",
+      "hrContactEmail",
+      "hrContactPhone",
+      "notificationEmails",
+      "employeeCount",
+      "notes",
+    ] as const;
+    const changedFields: string[] = [];
+    for (const k of fieldKeys) {
+      if (k in data && (data as Record<string, unknown>)[k] !== undefined) {
+        updateSet[k] = (data as Record<string, unknown>)[k];
+        if ((existing as Record<string, unknown>)[k] !== updateSet[k]) {
+          changedFields.push(k);
+        }
+      }
+    }
+
+    const [updated] = await db
+      .update(organizations)
+      .set(updateSet)
+      .where(eq(organizations.id, id))
+      .returning();
+
+    if (changedFields.length > 0) {
+      const meta = getRequestMetadata(req);
+      await logAuditEvent({
+        userId,
+        organizationId: id,
+        eventType: AuditEventTypes.PARTNER_CLIENT_UPDATED,
+        resourceType: "organization",
+        resourceId: id,
+        metadata: {
+          changedFields,
+          name: updated.name,
+          state: updated.state,
+        },
+        ipAddress: meta.ipAddress,
+        userAgent: meta.userAgent,
+      });
+    }
+
+    res.json({ client: updated });
+  } catch (err) {
+    logger.api.error("[partner] PATCH /clients/:id failed", {}, err);
+    res.status(500).json({ error: "Internal Server Error", message: "Failed to update client" });
   }
 });
 
