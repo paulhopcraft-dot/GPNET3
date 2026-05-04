@@ -105,7 +105,7 @@ E4. Add a "Switch client" link in the header that returns to `/partner/clients` 
 #### F. Seed & manual smoke
 
 F1. Add a seed script `server/seed-workbetter.ts` (gitignored env values for any secrets) that creates:
-    - One partner org: `WorkBetter` (`kind = 'partner'`, `logoUrl = '/assets/workbetter-logo.png'` if the file exists at `attached_assets/workbetter-logo.png`)
+    - One partner org: `WorkBetter` (`kind = 'partner'`, `logoUrl = '/assets/workbetter-logo.jpg'` if the file exists at `attached_assets/workbetter-logo.jpg`)
     - Two client orgs: `Alpine Health` and `Alpine MDF` (`kind = 'employer'`)
     - **Primary** partner user (per Paul, dev-only credentials): login `workbetter` (email: `workbetter@workbetter.com.au` if email-based auth is required), password `workbetter123`, `role = 'partner'`, `organizationId = workbetter.id`. Access rows: BOTH `Alpine Health` AND `Alpine MDF` (demo path — both visible in picker).
     - **Scoping-test** partner user: `workbetter-scoped@workbetter.com.au` / `workbetter123`, `role = 'partner'`, `organizationId = workbetter.id`. Access row: `Alpine Health` only. Used in verification step 5 to prove the access table actually gates visibility.
