@@ -1,6 +1,6 @@
 import "dotenv/config";
 import bcrypt from "bcrypt";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import { db, pool } from "./db";
 import {
   organizations,
@@ -8,6 +8,33 @@ import {
   partnerUserOrganizations,
   workerCases,
 } from "@shared/schema";
+
+/**
+ * Inline migration SQL — equivalent to migrations/0011_add_partner_tier.sql.
+ * Embedded here so seed-workbetter is self-contained and survives Docker
+ * builds that don't copy migrations/. Idempotent (uses IF NOT EXISTS).
+ */
+const PARTNER_TIER_MIGRATION_SQL = `
+ALTER TABLE "organizations"
+  ADD COLUMN IF NOT EXISTS "kind" text DEFAULT 'employer' NOT NULL;
+
+ALTER TABLE "worker_cases"
+  ADD COLUMN IF NOT EXISTS "claim_number" text;
+
+CREATE TABLE IF NOT EXISTS "partner_user_organizations" (
+  "user_id" varchar NOT NULL,
+  "organization_id" varchar NOT NULL,
+  "granted_at" timestamp DEFAULT now() NOT NULL,
+  "granted_by" varchar,
+  CONSTRAINT "partner_user_organizations_user_id_organization_id_pk" PRIMARY KEY ("user_id", "organization_id"),
+  CONSTRAINT "partner_user_organizations_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action,
+  CONSTRAINT "partner_user_organizations_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action,
+  CONSTRAINT "partner_user_organizations_granted_by_users_id_fk" FOREIGN KEY ("granted_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action
+);
+
+CREATE INDEX IF NOT EXISTS "partner_user_organizations_user_id_idx"
+  ON "partner_user_organizations" USING btree ("user_id");
+`;
 
 /**
  * WorkBetter partner-tier seed (Tasks F + G in PLAN.md).
@@ -132,6 +159,12 @@ async function seed(): Promise<void> {
 
   console.log("[seed-workbetter] Starting partner-tier seed...");
   if (minimalOnly) console.log("[seed-workbetter] --minimal mode: skipping demo workers (Task G)");
+
+  // Step 0 — apply migration inline so seed is self-contained.
+  // Idempotent (IF NOT EXISTS); safe to run on every invocation.
+  console.log("[seed-workbetter] Applying partner-tier migration (idempotent)...");
+  await db.execute(sql.raw(PARTNER_TIER_MIGRATION_SQL));
+  console.log("[seed-workbetter] Migration applied.");
 
   // Idempotency: clean up any prior partner-tier seed rows by stable IDs.
   // Order matters because of FKs.
