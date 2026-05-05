@@ -97,6 +97,145 @@ const ALPINE_COMPANIES = [
   { id: ALPINE_MDF_ID, name: "Alpine MDF" },
 ] as const;
 
+/**
+ * WorkBetter's real client roster (extracted from their public client logo wall).
+ * Seeded as empty employer orgs so the partner workspace sidebar renders a
+ * realistic client list. No worker_cases attached — clicking one shows an
+ * empty cases panel by design.
+ *
+ * Names cleaned best-effort from filename-style source. Add/remove freely;
+ * the seed is idempotent and uses deterministic IDs (`org-wb-<slug>`).
+ */
+const WORKBETTER_CLIENT_NAMES: readonly string[] = [
+  "Abacus Energy",
+  "Australian Aerospace",
+  "Albury Wodonga Midwifery Services",
+  "Albury Wodonga Health",
+  "AWRCC Trust Fund Inc",
+  "Arboressence",
+  "Aspire",
+  "ATS",
+  "Back Straight",
+  "BWFCOP",
+  "RCB",
+  "Benny's Automotive Garage",
+  "BH",
+  "Border Just Foods",
+  "BJS",
+  "Border SSP",
+  "Bright Brewery",
+  "Bright Newsagency",
+  "Brown Hill Hotel",
+  "Byford Equipment",
+  "Centre Against Violence",
+  "Clarity & Me OT",
+  "Community Accessability",
+  "Connex",
+  "Corryong Health",
+  "Cyclone Infrabuild Wire",
+  "DAS",
+  "Enhance Physiotherapy",
+  "EDS",
+  "Exact",
+  "Falls Creek Resort",
+  "Foresight Engineering",
+  "Gateway Health",
+  "Gae Long",
+  "Grove Steel Solutions",
+  "Hargreaves Joinery",
+  "Harlo & Co",
+  "Hollywoods Cafe Wangaratta",
+  "Hume Patient Transport",
+  "Hurst Earthmoving",
+  "Indigo Power",
+  "Indigo Shire",
+  "Innovation Steel Frames & Truss",
+  "Jones Doyle",
+  "JR Mechanical",
+  "KBC",
+  "KR Hoysted",
+  "Lewis Home",
+  "Lifeline Albury Wodonga",
+  "LRAOR",
+  "Luxe Skin Clinic",
+  "Mansfield Shire Council",
+  "Mawarra Genetics",
+  "Mercy Connect",
+  "McGrorys Transport",
+  "Merriwa Industries",
+  "Mitchell Shire Council",
+  "Nellen",
+  "Net Intellect",
+  "NECMA",
+  "North East Water",
+  "O'Connell's Refrigeration & Air Conditioning",
+  "Oedema",
+  "One Mile Motors",
+  "Our Family Mobile Vet",
+  "Pastro",
+  "Peter Bowen Homes",
+  "Wodonga Turf Club",
+  "Rapid Hydraulics",
+  "RWT",
+  "ROA",
+  "Roberson",
+  "Roche",
+  "RTE Contracting",
+  "Rural City of Wangaratta",
+  "SafePak",
+  "Shine at Business",
+  "Skinsational",
+  "Smiths TMP",
+  "South Albury Trucks",
+  "SOCAP",
+  "Solar Integrity",
+  "Stanton Killeen",
+  "Stevnor",
+  "Squad",
+  "Tailgate Campers",
+  "The Centre",
+  "The Rural Woman Cooperative",
+  "TTA",
+  "Tonkin",
+  "Top Down Learning",
+  "Twenty2 Plumbing",
+  "Twin City Electrical & Solar",
+  "UHPCP",
+  "UMFC",
+  "VK Logic",
+  "Wangaratta Turf Club",
+  "Warrabilla",
+  "WAW Bank",
+  "Wodonga Beauty Room",
+  "W&E Rouse",
+  "Winton Wetlands",
+  "Wodonga Bowling Club",
+  "Wodonga Border Carpets",
+  "Women's Centre",
+  "Yarrawonga Health",
+  "Yield",
+];
+
+function slugifyClient(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/'/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+const WORKBETTER_CLIENTS = WORKBETTER_CLIENT_NAMES.map((name) => {
+  const slug = slugifyClient(name);
+  return {
+    id: `org-wb-${slug}`,
+    name,
+    slug: `wb-${slug}`,
+  };
+});
+
+const WORKBETTER_CLIENT_IDS = WORKBETTER_CLIENTS.map((c) => c.id);
+
 interface DemoCase {
   id: string;
   organizationId: string;
@@ -109,79 +248,155 @@ interface DemoCase {
   workStatus: "At work" | "Off work";
   currentStatus: string;
   nextStep: string;
+  /** Short description shown in the workspace cases table column "Injury".
+   * For non-injury tracks, describes the case type (e.g. "Pre-employment medical"). */
+  injuryDescription: string;
 }
 
+/**
+ * Demo workers — Australian-sounding names, surnames, and a realistic injury
+ * mix per company (clinical/admin for Alpine Health, factory floor for MDF).
+ * Hand-curated rather than generated so the demo reads like a real caseload.
+ */
+const ALPINE_HEALTH_WORKERS: Omit<DemoCase, "organizationId" | "company">[] = [
+  {
+    id: `case-${ALPINE_HEALTH_ID}-pre-1`,
+    workerName: "Bruce Whittaker",
+    track: "pre-employment",
+    claimNumber: null,
+    daysAgo: 5,
+    riskLevel: "Low",
+    workStatus: "At work",
+    currentStatus: "Pre-employment medical pending",
+    nextStep: "Collect questionnaire response",
+    injuryDescription: "Pre-employment medical — maintenance role",
+  },
+  {
+    id: `case-${ALPINE_HEALTH_ID}-pre-2`,
+    workerName: "Megan O'Brien",
+    track: "pre-employment",
+    claimNumber: null,
+    daysAgo: 12,
+    riskLevel: "Medium",
+    workStatus: "At work",
+    currentStatus: "GP review of pre-employment forms",
+    nextStep: "Receive doctor sign-off",
+    injuryDescription: "Pre-employment medical — allied health role",
+  },
+  {
+    id: `case-${ALPINE_HEALTH_ID}-injury-1`,
+    workerName: "Daryl Thompson",
+    track: "injury",
+    claimNumber: `WC-${ALPINE_HEALTH_ID.slice(-6).toUpperCase()}-001`,
+    daysAgo: 30,
+    riskLevel: "High",
+    workStatus: "Off work",
+    currentStatus: "Off work post-injury, awaiting RTW plan",
+    nextStep: "Schedule occupational physician review",
+    injuryDescription: "Lower back strain — patient-handling lift",
+  },
+  {
+    id: `case-${ALPINE_HEALTH_ID}-injury-2`,
+    workerName: "Sharon Cosgrove",
+    track: "injury",
+    claimNumber: `WC-${ALPINE_HEALTH_ID.slice(-6).toUpperCase()}-002`,
+    daysAgo: 60,
+    riskLevel: "Medium",
+    workStatus: "At work",
+    currentStatus: "On modified duties — graded RTW",
+    nextStep: "Review week-4 progress",
+    injuryDescription: "Right wrist tendinopathy — repetitive task",
+  },
+  {
+    id: `case-${ALPINE_HEALTH_ID}-prev-1`,
+    workerName: "Peter Donnelly",
+    track: "preventative",
+    claimNumber: null,
+    daysAgo: 7,
+    riskLevel: "Low",
+    workStatus: "At work",
+    currentStatus: "Annual preventative check scheduled",
+    nextStep: "Worker to complete wellness questionnaire",
+    injuryDescription: "Annual wellness check",
+  },
+];
+
+const ALPINE_MDF_WORKERS: Omit<DemoCase, "organizationId" | "company">[] = [
+  {
+    id: `case-${ALPINE_MDF_ID}-pre-1`,
+    workerName: "Wayne Mackenzie",
+    track: "pre-employment",
+    claimNumber: null,
+    daysAgo: 5,
+    riskLevel: "Low",
+    workStatus: "At work",
+    currentStatus: "Pre-employment medical pending",
+    nextStep: "Collect questionnaire response",
+    injuryDescription: "Pre-employment medical — production line",
+  },
+  {
+    id: `case-${ALPINE_MDF_ID}-pre-2`,
+    workerName: "Tracey Mortimer",
+    track: "pre-employment",
+    claimNumber: null,
+    daysAgo: 12,
+    riskLevel: "Medium",
+    workStatus: "At work",
+    currentStatus: "GP review of pre-employment forms",
+    nextStep: "Receive doctor sign-off",
+    injuryDescription: "Pre-employment medical — forklift operator",
+  },
+  {
+    id: `case-${ALPINE_MDF_ID}-injury-1`,
+    workerName: "Steve Henderson",
+    track: "injury",
+    claimNumber: `WC-${ALPINE_MDF_ID.slice(-6).toUpperCase()}-001`,
+    daysAgo: 30,
+    riskLevel: "High",
+    workStatus: "Off work",
+    currentStatus: "Off work post-injury, awaiting RTW plan",
+    nextStep: "Schedule occupational physician review",
+    injuryDescription: "Crush injury — right hand, panel press",
+  },
+  {
+    id: `case-${ALPINE_MDF_ID}-injury-2`,
+    workerName: "Karen Atkinson",
+    track: "injury",
+    claimNumber: `WC-${ALPINE_MDF_ID.slice(-6).toUpperCase()}-002`,
+    daysAgo: 60,
+    riskLevel: "Medium",
+    workStatus: "At work",
+    currentStatus: "On modified duties — graded RTW",
+    nextStep: "Review week-4 progress",
+    injuryDescription: "Left shoulder impingement — overhead work",
+  },
+  {
+    id: `case-${ALPINE_MDF_ID}-prev-1`,
+    workerName: "Trent Bellamy",
+    track: "preventative",
+    claimNumber: null,
+    daysAgo: 7,
+    riskLevel: "Low",
+    workStatus: "At work",
+    currentStatus: "Annual preventative check scheduled",
+    nextStep: "Worker to complete wellness questionnaire",
+    injuryDescription: "Annual wellness check — hearing screen",
+  },
+];
+
 function buildDemoCases(): DemoCase[] {
-  const cases: DemoCase[] = [];
-  for (const company of ALPINE_COMPANIES) {
-    // 2 pre-employment, 2 injury, 1 preventative per company = 5 workers
-    cases.push({
-      id: `case-${company.id}-pre-1`,
-      organizationId: company.id,
-      workerName: `${company.name} Pre-Hire 1`,
-      company: company.name,
-      track: "pre-employment",
-      claimNumber: null,
-      daysAgo: 5,
-      riskLevel: "Low",
-      workStatus: "At work",
-      currentStatus: "Pre-employment medical pending",
-      nextStep: "Collect questionnaire response",
-    });
-    cases.push({
-      id: `case-${company.id}-pre-2`,
-      organizationId: company.id,
-      workerName: `${company.name} Pre-Hire 2`,
-      company: company.name,
-      track: "pre-employment",
-      claimNumber: null,
-      daysAgo: 12,
-      riskLevel: "Medium",
-      workStatus: "At work",
-      currentStatus: "GP review of pre-employment forms",
-      nextStep: "Receive doctor sign-off",
-    });
-    cases.push({
-      id: `case-${company.id}-injury-1`,
-      organizationId: company.id,
-      workerName: `${company.name} Injured Worker A`,
-      company: company.name,
-      track: "injury",
-      claimNumber: `WC-${company.id.slice(-6).toUpperCase()}-001`,
-      daysAgo: 30,
-      riskLevel: "High",
-      workStatus: "Off work",
-      currentStatus: "Off work post-injury, awaiting RTW plan",
-      nextStep: "Schedule occupational physician review",
-    });
-    cases.push({
-      id: `case-${company.id}-injury-2`,
-      organizationId: company.id,
-      workerName: `${company.name} Injured Worker B`,
-      company: company.name,
-      track: "injury",
-      claimNumber: `WC-${company.id.slice(-6).toUpperCase()}-002`,
-      daysAgo: 60,
-      riskLevel: "Medium",
-      workStatus: "At work",
-      currentStatus: "On modified duties — graded RTW",
-      nextStep: "Review week-4 progress",
-    });
-    cases.push({
-      id: `case-${company.id}-prev-1`,
-      organizationId: company.id,
-      workerName: `${company.name} Wellness Worker`,
-      company: company.name,
-      track: "preventative",
-      claimNumber: null,
-      daysAgo: 7,
-      riskLevel: "Low",
-      workStatus: "At work",
-      currentStatus: "Annual preventative check scheduled",
-      nextStep: "Worker to complete wellness questionnaire",
-    });
-  }
-  return cases;
+  return [
+    ...ALPINE_HEALTH_WORKERS.map((w) => ({
+      ...w,
+      organizationId: ALPINE_HEALTH_ID,
+      company: "Alpine Health",
+    })),
+    ...ALPINE_MDF_WORKERS.map((w) => ({
+      ...w,
+      organizationId: ALPINE_MDF_ID,
+      company: "Alpine MDF",
+    })),
+  ];
 }
 
 async function seed(): Promise<void> {
@@ -201,8 +416,14 @@ async function seed(): Promise<void> {
   // Idempotency: clean up any prior partner-tier seed rows by stable IDs.
   // Order matters because of FKs.
   console.log("[seed-workbetter] Cleaning prior partner-tier seed rows...");
+  const allClientOrgIds = [
+    ALPINE_HEALTH_ID,
+    ALPINE_MDF_ID,
+    ALPINE_TEST_EMPTY_ID,
+    ...WORKBETTER_CLIENT_IDS,
+  ];
   await db.delete(workerCases).where(
-    inArray(workerCases.organizationId, [ALPINE_HEALTH_ID, ALPINE_MDF_ID, ALPINE_TEST_EMPTY_ID])
+    inArray(workerCases.organizationId, allClientOrgIds)
   );
   await db.delete(partnerUserOrganizations).where(
     inArray(partnerUserOrganizations.userId, [PRIMARY_PARTNER_USER_ID, SCOPED_PARTNER_USER_ID])
@@ -211,7 +432,7 @@ async function seed(): Promise<void> {
     inArray(users.id, [PRIMARY_PARTNER_USER_ID, SCOPED_PARTNER_USER_ID])
   );
   await db.delete(organizations).where(
-    inArray(organizations.id, [PARTNER_ORG_ID, ALPINE_HEALTH_ID, ALPINE_MDF_ID, ALPINE_TEST_EMPTY_ID])
+    inArray(organizations.id, [PARTNER_ORG_ID, ...allClientOrgIds])
   );
 
   console.log("[seed-workbetter] Inserting organizations...");
@@ -293,6 +514,20 @@ async function seed(): Promise<void> {
     },
   ]);
 
+  // WorkBetter's real client roster — empty employer orgs so the sidebar looks
+  // alive. Inserted in batches to keep query parameter counts under driver limits.
+  console.log(`[seed-workbetter] Inserting ${WORKBETTER_CLIENTS.length} WorkBetter clients...`);
+  const wbBatchSize = 50;
+  for (let i = 0; i < WORKBETTER_CLIENTS.length; i += wbBatchSize) {
+    const batch = WORKBETTER_CLIENTS.slice(i, i + wbBatchSize).map((c) => ({
+      id: c.id,
+      name: c.name,
+      slug: c.slug,
+      kind: "employer" as const,
+    }));
+    await db.insert(organizations).values(batch);
+  }
+
   const passwordHash = await bcrypt.hash("workbetter123", 10);
 
   console.log("[seed-workbetter] Inserting partner users...");
@@ -320,12 +555,19 @@ async function seed(): Promise<void> {
   ]);
 
   console.log("[seed-workbetter] Granting partner user access to client orgs...");
+  // Primary user gets the Alpine fixtures plus every WorkBetter client.
+  // Scoped user stays limited to Alpine Health to keep proving access enforcement.
+  const primaryGrants = [
+    ALPINE_HEALTH_ID,
+    ALPINE_MDF_ID,
+    ALPINE_TEST_EMPTY_ID,
+    ...WORKBETTER_CLIENT_IDS,
+  ].map((organizationId) => ({ userId: PRIMARY_PARTNER_USER_ID, organizationId }));
+  const grantBatchSize = 100;
+  for (let i = 0; i < primaryGrants.length; i += grantBatchSize) {
+    await db.insert(partnerUserOrganizations).values(primaryGrants.slice(i, i + grantBatchSize));
+  }
   await db.insert(partnerUserOrganizations).values([
-    // Primary user has access to all clients including the edge-case fixture.
-    { userId: PRIMARY_PARTNER_USER_ID, organizationId: ALPINE_HEALTH_ID },
-    { userId: PRIMARY_PARTNER_USER_ID, organizationId: ALPINE_MDF_ID },
-    { userId: PRIMARY_PARTNER_USER_ID, organizationId: ALPINE_TEST_EMPTY_ID },
-    // Scoped user has access to Alpine Health only — proves access enforcement.
     { userId: SCOPED_PARTNER_USER_ID, organizationId: ALPINE_HEALTH_ID },
   ]);
 
@@ -336,34 +578,34 @@ async function seed(): Promise<void> {
     {
       id: `case-${ALPINE_HEALTH_ID}-smoke`,
       organizationId: ALPINE_HEALTH_ID,
-      workerName: "Smoke Test Alpine Health",
+      workerName: "Lachlan Hughes",
       company: "Alpine Health",
       dateOfInjury: new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000),
       claimNumber: "WC-SMOKE-AH-001",
       riskLevel: "Low",
       workStatus: "At work",
       complianceIndicator: "Low",
-      currentStatus: "Smoke test case",
+      currentStatus: "Cleared for full duties — file pending close",
       nextStep: "Verify partner picker can see this case",
       owner: "WorkBetter",
       dueDate: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-      summary: "Smoke test case for Alpine Health (partner-tier verification).",
+      summary: "Right ankle sprain — slip on wet floor",
     },
     {
       id: `case-${ALPINE_MDF_ID}-smoke`,
       organizationId: ALPINE_MDF_ID,
-      workerName: "Smoke Test Alpine MDF",
+      workerName: "Jason Pritchard",
       company: "Alpine MDF",
       dateOfInjury: new Date(now.getTime() - 21 * 24 * 60 * 60 * 1000),
       claimNumber: null,
       riskLevel: "Low",
       workStatus: "At work",
       complianceIndicator: "Low",
-      currentStatus: "Smoke test case (preventative)",
+      currentStatus: "Ergonomic assessment scheduled",
       nextStep: "Verify partner picker can see this case",
       owner: "WorkBetter",
       dueDate: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-      summary: "Smoke test preventative case for Alpine MDF.",
+      summary: "Preventative ergonomic assessment — back-saver review",
     },
   ]);
 
@@ -386,14 +628,20 @@ async function seed(): Promise<void> {
         nextStep: c.nextStep,
         owner: "WorkBetter",
         dueDate: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-        summary: `${c.track} track demo case for ${c.company}.`,
+        summary: c.injuryDescription,
       }))
     );
   }
 
   // Quick read-back to confirm.
   const orgRows = await db.select().from(organizations).where(
-    inArray(organizations.id, [PARTNER_ORG_ID, ALPINE_HEALTH_ID, ALPINE_MDF_ID, ALPINE_TEST_EMPTY_ID])
+    inArray(organizations.id, [
+      PARTNER_ORG_ID,
+      ALPINE_HEALTH_ID,
+      ALPINE_MDF_ID,
+      ALPINE_TEST_EMPTY_ID,
+      ...WORKBETTER_CLIENT_IDS,
+    ])
   );
   const userRows = await db.select().from(users).where(eq(users.role, "partner"));
   const grantRows = await db.select().from(partnerUserOrganizations);
@@ -403,6 +651,7 @@ async function seed(): Promise<void> {
 
   console.log("\n[seed-workbetter] Done. Counts:");
   console.log(`  organizations (partner+clients): ${orgRows.length}`);
+  console.log(`  workbetter client orgs:          ${WORKBETTER_CLIENT_IDS.length}`);
   console.log(`  partner users:                   ${userRows.length}`);
   console.log(`  partner_user_organizations:      ${grantRows.length}`);
   console.log(`  client cases (Alpine Health/MDF): ${caseRows.length}`);

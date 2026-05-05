@@ -44,6 +44,8 @@ router.get("/clients", requirePartner, async (req: AuthRequest, res: Response) =
     const userId = req.user!.id;
 
     // Join access table with organizations to get name/logo.
+    // Sorted alphabetically because partners with many clients (50+) need a
+    // predictable scan order in the sidebar.
     const accessibleOrgs = await db
       .select({
         id: organizations.id,
@@ -56,7 +58,8 @@ router.get("/clients", requirePartner, async (req: AuthRequest, res: Response) =
         organizations,
         eq(partnerUserOrganizations.organizationId, organizations.id),
       )
-      .where(eq(partnerUserOrganizations.userId, userId));
+      .where(eq(partnerUserOrganizations.userId, userId))
+      .orderBy(organizations.name);
 
     // Open case count per org. One query per org is acceptable — a partner
     // user typically has 1–20 clients, not thousands. If this grows, switch
@@ -592,6 +595,9 @@ router.get("/cases", requirePartner, async (req: AuthRequest, res: Response) => 
         company: workerCases.company,
         riskLevel: workerCases.riskLevel,
         workStatus: workerCases.workStatus,
+        // `summary` doubles as the injury / case-type description rendered in
+        // the workspace cases table (column "Injury").
+        summary: workerCases.summary,
         currentStatus: workerCases.currentStatus,
         nextStep: workerCases.nextStep,
         dueDate: workerCases.dueDate,

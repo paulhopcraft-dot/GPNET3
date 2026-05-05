@@ -30,6 +30,8 @@ interface CaseRow {
   company: string;
   riskLevel: string;
   workStatus: string;
+  /** Injury / case-type description shown as column 3 of the cases table. */
+  summary: string;
   currentStatus: string;
   nextStep: string;
   dueDate: string;
@@ -265,7 +267,7 @@ export default function PartnerWorkspace() {
                     {selectedOrgId === ALL_CLIENTS && (
                       <th className="px-3 py-3 font-medium">Client</th>
                     )}
-                    <th className="px-3 py-3 font-medium">Risk</th>
+                    <th className="px-3 py-3 font-medium">Injury</th>
                     <th className="px-3 py-3 font-medium">Status</th>
                     <th className="px-3 py-3 font-medium">Next step</th>
                     <th className="px-3 py-3 font-medium">Due</th>
@@ -275,7 +277,15 @@ export default function PartnerWorkspace() {
                   {cases.map((c) => (
                     <tr
                       key={c.id}
-                      className="cursor-pointer border-b transition hover:bg-muted"
+                      className={cn(
+                        "cursor-pointer border-b transition hover:bg-muted",
+                        // Subtle left-border tint preserves risk signal without a column.
+                        c.riskLevel === "High"
+                          ? "border-l-4 border-l-destructive"
+                          : c.riskLevel === "Medium"
+                            ? "border-l-4 border-l-amber-500"
+                            : "border-l-4 border-l-transparent",
+                      )}
                       onClick={() => navigate(`/cases/${c.id}`)}
                       data-testid={`case-row-${c.id}`}
                     >
@@ -285,19 +295,7 @@ export default function PartnerWorkspace() {
                           {c.organizationName}
                         </td>
                       )}
-                      <td className="px-3 py-3">
-                        <Badge
-                          variant={
-                            c.riskLevel === "High"
-                              ? "destructive"
-                              : c.riskLevel === "Medium"
-                                ? "default"
-                                : "secondary"
-                          }
-                        >
-                          {c.riskLevel}
-                        </Badge>
-                      </td>
+                      <td className="px-3 py-3">{c.summary}</td>
                       <td className="px-3 py-3 text-muted-foreground">{c.currentStatus}</td>
                       <td className="px-3 py-3 text-muted-foreground">{c.nextStep}</td>
                       <td className="px-3 py-3 text-muted-foreground">{c.dueDate}</td>
