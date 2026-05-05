@@ -37,6 +37,35 @@ CREATE INDEX IF NOT EXISTS "partner_user_organizations_user_id_idx"
 `;
 
 /**
+ * Inline migration SQL — equivalent to migrations/0012_partner_client_setup.sql.
+ * Slice 2: rich client metadata (insurer, address, contacts, notification emails)
+ * so partner users can self-onboard new clients without engineering. All columns
+ * nullable. Idempotent.
+ */
+const PARTNER_CLIENT_SETUP_MIGRATION_SQL = `
+ALTER TABLE "organizations"
+  ADD COLUMN IF NOT EXISTS "abn" varchar(11),
+  ADD COLUMN IF NOT EXISTS "worksafe_state" text,
+  ADD COLUMN IF NOT EXISTS "policy_number" text,
+  ADD COLUMN IF NOT EXISTS "wic_code" varchar(20),
+  ADD COLUMN IF NOT EXISTS "address_line_1" text,
+  ADD COLUMN IF NOT EXISTS "address_line_2" text,
+  ADD COLUMN IF NOT EXISTS "suburb" text,
+  ADD COLUMN IF NOT EXISTS "state" text,
+  ADD COLUMN IF NOT EXISTS "postcode" varchar(4),
+  ADD COLUMN IF NOT EXISTS "insurer_claim_contact_email" text,
+  ADD COLUMN IF NOT EXISTS "rtw_coordinator_name" text,
+  ADD COLUMN IF NOT EXISTS "rtw_coordinator_email" text,
+  ADD COLUMN IF NOT EXISTS "rtw_coordinator_phone" varchar(50),
+  ADD COLUMN IF NOT EXISTS "hr_contact_name" text,
+  ADD COLUMN IF NOT EXISTS "hr_contact_email" text,
+  ADD COLUMN IF NOT EXISTS "hr_contact_phone" varchar(50),
+  ADD COLUMN IF NOT EXISTS "notification_emails" text,
+  ADD COLUMN IF NOT EXISTS "employee_count" text,
+  ADD COLUMN IF NOT EXISTS "notes" text;
+`;
+
+/**
  * WorkBetter partner-tier seed (Tasks F + G in PLAN.md).
  *
  * Creates:
@@ -58,6 +87,7 @@ CREATE INDEX IF NOT EXISTS "partner_user_organizations_user_id_idx"
 const PARTNER_ORG_ID = "org-workbetter";
 const ALPINE_HEALTH_ID = "org-alpine-health";
 const ALPINE_MDF_ID = "org-alpine-mdf";
+const ALPINE_TEST_EMPTY_ID = "org-alpine-test-empty";
 
 const PRIMARY_PARTNER_USER_ID = "user-workbetter-primary";
 const SCOPED_PARTNER_USER_ID = "user-workbetter-scoped";
@@ -160,17 +190,19 @@ async function seed(): Promise<void> {
   console.log("[seed-workbetter] Starting partner-tier seed...");
   if (minimalOnly) console.log("[seed-workbetter] --minimal mode: skipping demo workers (Task G)");
 
-  // Step 0 — apply migration inline so seed is self-contained.
+  // Step 0 — apply migrations inline so seed is self-contained.
   // Idempotent (IF NOT EXISTS); safe to run on every invocation.
-  console.log("[seed-workbetter] Applying partner-tier migration (idempotent)...");
+  console.log("[seed-workbetter] Applying partner-tier migration 0011 (idempotent)...");
   await db.execute(sql.raw(PARTNER_TIER_MIGRATION_SQL));
-  console.log("[seed-workbetter] Migration applied.");
+  console.log("[seed-workbetter] Applying partner-client-setup migration 0012 (idempotent)...");
+  await db.execute(sql.raw(PARTNER_CLIENT_SETUP_MIGRATION_SQL));
+  console.log("[seed-workbetter] Migrations applied.");
 
   // Idempotency: clean up any prior partner-tier seed rows by stable IDs.
   // Order matters because of FKs.
   console.log("[seed-workbetter] Cleaning prior partner-tier seed rows...");
   await db.delete(workerCases).where(
-    inArray(workerCases.organizationId, [ALPINE_HEALTH_ID, ALPINE_MDF_ID])
+    inArray(workerCases.organizationId, [ALPINE_HEALTH_ID, ALPINE_MDF_ID, ALPINE_TEST_EMPTY_ID])
   );
   await db.delete(partnerUserOrganizations).where(
     inArray(partnerUserOrganizations.userId, [PRIMARY_PARTNER_USER_ID, SCOPED_PARTNER_USER_ID])
@@ -179,7 +211,7 @@ async function seed(): Promise<void> {
     inArray(users.id, [PRIMARY_PARTNER_USER_ID, SCOPED_PARTNER_USER_ID])
   );
   await db.delete(organizations).where(
-    inArray(organizations.id, [PARTNER_ORG_ID, ALPINE_HEALTH_ID, ALPINE_MDF_ID])
+    inArray(organizations.id, [PARTNER_ORG_ID, ALPINE_HEALTH_ID, ALPINE_MDF_ID, ALPINE_TEST_EMPTY_ID])
   );
 
   console.log("[seed-workbetter] Inserting organizations...");
@@ -202,6 +234,24 @@ async function seed(): Promise<void> {
       contactName: "Alpine Health HR",
       contactEmail: "hr@alpinehealth.local",
       contactPhone: "03 9000 0002",
+      abn: "12345678901",
+      worksafeState: "VIC",
+      policyNumber: "VIC-AH-001",
+      wicCode: "861100",
+      addressLine1: "12 Mountain Road",
+      suburb: "Bright",
+      state: "VIC",
+      postcode: "3741",
+      insurerClaimContactEmail: "claims@alpinehealth.local",
+      rtwCoordinatorName: "Sam Carter",
+      rtwCoordinatorEmail: "sam@alpinehealth.local",
+      rtwCoordinatorPhone: "0400 100 100",
+      hrContactName: "Pat Yang",
+      hrContactEmail: "pat@alpinehealth.local",
+      hrContactPhone: "0400 100 200",
+      notificationEmails: "alerts@alpinehealth.local, hr@alpinehealth.local",
+      employeeCount: "201-500",
+      notes: "Regional health service operating across NE Victoria.",
     },
     {
       id: ALPINE_MDF_ID,
@@ -211,6 +261,35 @@ async function seed(): Promise<void> {
       contactName: "Alpine MDF HR",
       contactEmail: "hr@alpinemdf.local",
       contactPhone: "03 9000 0003",
+      abn: "98765432109",
+      worksafeState: "VIC",
+      policyNumber: "VIC-AMDF-002",
+      wicCode: "149200",
+      addressLine1: "44 Industrial Drive",
+      addressLine2: "Building 2",
+      suburb: "Wangaratta",
+      state: "VIC",
+      postcode: "3677",
+      insurerClaimContactEmail: "claims@alpinemdf.local",
+      rtwCoordinatorName: "Jordan Reilly",
+      rtwCoordinatorEmail: "jordan@alpinemdf.local",
+      rtwCoordinatorPhone: "0400 200 100",
+      hrContactName: "Casey Lee",
+      hrContactEmail: "casey@alpinemdf.local",
+      hrContactPhone: "0400 200 200",
+      notificationEmails: "safety@alpinemdf.local",
+      employeeCount: "51-200",
+      notes: "Manufacturer of medium-density fibreboard panels.",
+    },
+    {
+      // Edge-case fixture: no insurer, no policy, multiple notification emails.
+      // Proves the form/UI handles sparse rows correctly.
+      id: ALPINE_TEST_EMPTY_ID,
+      name: "Alpine Test Empty",
+      slug: "alpine-test-empty",
+      kind: "employer",
+      contactName: "Test Contact",
+      notificationEmails: "alert1@example.com, alert2@example.com, alert3@example.com",
     },
   ]);
 
@@ -242,9 +321,10 @@ async function seed(): Promise<void> {
 
   console.log("[seed-workbetter] Granting partner user access to client orgs...");
   await db.insert(partnerUserOrganizations).values([
-    // Primary user has access to both clients.
+    // Primary user has access to all clients including the edge-case fixture.
     { userId: PRIMARY_PARTNER_USER_ID, organizationId: ALPINE_HEALTH_ID },
     { userId: PRIMARY_PARTNER_USER_ID, organizationId: ALPINE_MDF_ID },
+    { userId: PRIMARY_PARTNER_USER_ID, organizationId: ALPINE_TEST_EMPTY_ID },
     // Scoped user has access to Alpine Health only — proves access enforcement.
     { userId: SCOPED_PARTNER_USER_ID, organizationId: ALPINE_HEALTH_ID },
   ]);
@@ -313,7 +393,7 @@ async function seed(): Promise<void> {
 
   // Quick read-back to confirm.
   const orgRows = await db.select().from(organizations).where(
-    inArray(organizations.id, [PARTNER_ORG_ID, ALPINE_HEALTH_ID, ALPINE_MDF_ID])
+    inArray(organizations.id, [PARTNER_ORG_ID, ALPINE_HEALTH_ID, ALPINE_MDF_ID, ALPINE_TEST_EMPTY_ID])
   );
   const userRows = await db.select().from(users).where(eq(users.role, "partner"));
   const grantRows = await db.select().from(partnerUserOrganizations);

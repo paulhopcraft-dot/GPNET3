@@ -59,6 +59,10 @@ export const AuditEventTypes = {
   // Compliance dashboard
   COMPLIANCE_DASHBOARD_VIEW: "compliance.dashboard.view",
   COMPLIANCE_DASHBOARD_ERROR: "compliance.dashboard.error",
+
+  // Partner-tier client management (slice 2)
+  PARTNER_CLIENT_CREATED: "partner_client_created",
+  PARTNER_CLIENT_UPDATED: "partner_client_updated",
 } as const;
 
 export type AuditEventType = typeof AuditEventTypes[keyof typeof AuditEventTypes];

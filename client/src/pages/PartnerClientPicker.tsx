@@ -1,13 +1,14 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Building2, Loader2, LogOut, ArrowRight } from "lucide-react";
+import { Building2, Loader2, LogOut, ArrowRight, Plus, Pencil } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { fetchWithCsrf } from "@/lib/queryClient";
+import { ClientSetupForm } from "@/components/partner/ClientSetupForm";
 
 interface ClientOrg {
   id: string;
@@ -34,6 +35,8 @@ export default function PartnerClientPicker() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, refreshAuth, logout } = useAuth();
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingClientId, setEditingClientId] = useState<string | undefined>(undefined);
 
   // Guard: only partner-role users belong on this page.
   useEffect(() => {
@@ -125,12 +128,24 @@ export default function PartnerClientPicker() {
       </header>
 
       <main className="mx-auto max-w-6xl px-6 py-10">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight">Pick a client</h1>
-          <p className="mt-2 text-muted-foreground">
-            Select the client organisation you want to work on. You can switch any time
-            from the header.
-          </p>
+        <div className="mb-8 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Pick a client</h1>
+            <p className="mt-2 text-muted-foreground">
+              Select the client organisation you want to work on. You can switch any time
+              from the header.
+            </p>
+          </div>
+          <Button
+            onClick={() => {
+              setEditingClientId(undefined);
+              setFormOpen(true);
+            }}
+            data-testid="add-client-button"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add client
+          </Button>
         </div>
 
         {pickClientMutation.error && (
@@ -197,12 +212,37 @@ export default function PartnerClientPicker() {
                   <Badge variant="secondary">
                     {c.openCaseCount} open case{c.openCaseCount === 1 ? "" : "s"}
                   </Badge>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingClientId(c.id);
+                        setFormOpen(true);
+                      }}
+                      data-testid={`edit-client-${c.id}`}
+                      aria-label={`Edit ${c.name}`}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                  </div>
                 </CardContent>
               </Card>
             ))}
           </div>
         )}
+
+        <ClientSetupForm
+          open={formOpen}
+          onOpenChange={(o) => {
+            setFormOpen(o);
+            if (!o) setEditingClientId(undefined);
+          }}
+          clientId={editingClientId}
+        />
 
         {pickClientMutation.isPending && (
           <div className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
