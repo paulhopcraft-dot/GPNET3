@@ -76,7 +76,7 @@ const WorkersListPage = lazy(() => import("./pages/WorkersListPage"));
 const NewAssessmentPage = lazy(() => import("./pages/NewAssessmentPage"));
 const AssessmentDetailPage = lazy(() => import("./pages/AssessmentDetailPage"));
 const HelpCenterPage = lazy(() => import("./pages/HelpCenterPage"));
-const PartnerClientPicker = lazy(() => import("./pages/PartnerClientPicker"));
+const PartnerClientPicker = lazy(() => import("./pages/PartnerWorkspace"));
 const ChangePasswordPage = lazy(() => import("./pages/ChangePasswordPage"));
 
 // LogoutRedirect component - triggers logout and redirects to login
