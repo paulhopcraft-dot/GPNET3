@@ -17,6 +17,7 @@ import {
   organizations,
   workerCases,
   users,
+  insurers,
 } from "@shared/schema";
 import {
   createPartnerClientSchema,
@@ -548,6 +549,27 @@ router.patch("/clients/:id", requirePartner, async (req: AuthRequest, res: Respo
   } catch (err) {
     logger.api.error("[partner] PATCH /clients/:id failed", {}, err);
     res.status(500).json({ error: "Internal Server Error", message: "Failed to update client" });
+  }
+});
+
+/**
+ * GET /api/partner/insurers
+ *
+ * Active insurers list for the client setup form's insurer dropdown.
+ * Partner-role users cannot reach /api/admin/insurers (admin-only),
+ * so we expose a read-only slice here.
+ */
+router.get("/insurers", requirePartner, async (_req: AuthRequest, res: Response) => {
+  try {
+    const rows = await db
+      .select({ id: insurers.id, name: insurers.name, code: insurers.code })
+      .from(insurers)
+      .where(eq(insurers.isActive, true))
+      .orderBy(insurers.name);
+    res.json({ insurers: rows });
+  } catch (err) {
+    logger.api.error("[partner] GET /insurers failed", {}, err);
+    res.status(500).json({ error: "Internal Server Error", message: "Failed to load insurers" });
   }
 });
 
