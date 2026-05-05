@@ -6,14 +6,11 @@ import { EmployerDashboardPage } from "@/pages/EmployerDashboardPage";
 export function RoleBasedDashboard() {
   const { user } = useAuth();
 
-  // Partner users: route through the client picker if they haven't picked
-  // an active client yet. Once picked, they land in the standard case
-  // dashboard for the picked client (employer-equivalent UX).
+  // Partner users always land in the partner workspace (cross-client cases
+  // list with sidebar). They drill into individual cases or filter by client
+  // from there — no per-session "pick one client" gate.
   if (user?.role === "partner") {
-    if (!user.activeOrganizationId) {
-      return <Navigate to="/partner/clients" replace />;
-    }
-    return <CasesDashboard />;
+    return <Navigate to="/partner/clients" replace />;
   }
 
   // Show employer dashboard with left sidebar navigation
