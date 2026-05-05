@@ -248,79 +248,155 @@ interface DemoCase {
   workStatus: "At work" | "Off work";
   currentStatus: string;
   nextStep: string;
+  /** Short description shown in the workspace cases table column "Injury".
+   * For non-injury tracks, describes the case type (e.g. "Pre-employment medical"). */
+  injuryDescription: string;
 }
 
+/**
+ * Demo workers — Australian-sounding names, surnames, and a realistic injury
+ * mix per company (clinical/admin for Alpine Health, factory floor for MDF).
+ * Hand-curated rather than generated so the demo reads like a real caseload.
+ */
+const ALPINE_HEALTH_WORKERS: Omit<DemoCase, "organizationId" | "company">[] = [
+  {
+    id: `case-${ALPINE_HEALTH_ID}-pre-1`,
+    workerName: "Bruce Whittaker",
+    track: "pre-employment",
+    claimNumber: null,
+    daysAgo: 5,
+    riskLevel: "Low",
+    workStatus: "At work",
+    currentStatus: "Pre-employment medical pending",
+    nextStep: "Collect questionnaire response",
+    injuryDescription: "Pre-employment medical — maintenance role",
+  },
+  {
+    id: `case-${ALPINE_HEALTH_ID}-pre-2`,
+    workerName: "Megan O'Brien",
+    track: "pre-employment",
+    claimNumber: null,
+    daysAgo: 12,
+    riskLevel: "Medium",
+    workStatus: "At work",
+    currentStatus: "GP review of pre-employment forms",
+    nextStep: "Receive doctor sign-off",
+    injuryDescription: "Pre-employment medical — allied health role",
+  },
+  {
+    id: `case-${ALPINE_HEALTH_ID}-injury-1`,
+    workerName: "Daryl Thompson",
+    track: "injury",
+    claimNumber: `WC-${ALPINE_HEALTH_ID.slice(-6).toUpperCase()}-001`,
+    daysAgo: 30,
+    riskLevel: "High",
+    workStatus: "Off work",
+    currentStatus: "Off work post-injury, awaiting RTW plan",
+    nextStep: "Schedule occupational physician review",
+    injuryDescription: "Lower back strain — patient-handling lift",
+  },
+  {
+    id: `case-${ALPINE_HEALTH_ID}-injury-2`,
+    workerName: "Sharon Cosgrove",
+    track: "injury",
+    claimNumber: `WC-${ALPINE_HEALTH_ID.slice(-6).toUpperCase()}-002`,
+    daysAgo: 60,
+    riskLevel: "Medium",
+    workStatus: "At work",
+    currentStatus: "On modified duties — graded RTW",
+    nextStep: "Review week-4 progress",
+    injuryDescription: "Right wrist tendinopathy — repetitive task",
+  },
+  {
+    id: `case-${ALPINE_HEALTH_ID}-prev-1`,
+    workerName: "Peter Donnelly",
+    track: "preventative",
+    claimNumber: null,
+    daysAgo: 7,
+    riskLevel: "Low",
+    workStatus: "At work",
+    currentStatus: "Annual preventative check scheduled",
+    nextStep: "Worker to complete wellness questionnaire",
+    injuryDescription: "Annual wellness check",
+  },
+];
+
+const ALPINE_MDF_WORKERS: Omit<DemoCase, "organizationId" | "company">[] = [
+  {
+    id: `case-${ALPINE_MDF_ID}-pre-1`,
+    workerName: "Wayne Mackenzie",
+    track: "pre-employment",
+    claimNumber: null,
+    daysAgo: 5,
+    riskLevel: "Low",
+    workStatus: "At work",
+    currentStatus: "Pre-employment medical pending",
+    nextStep: "Collect questionnaire response",
+    injuryDescription: "Pre-employment medical — production line",
+  },
+  {
+    id: `case-${ALPINE_MDF_ID}-pre-2`,
+    workerName: "Tracey Mortimer",
+    track: "pre-employment",
+    claimNumber: null,
+    daysAgo: 12,
+    riskLevel: "Medium",
+    workStatus: "At work",
+    currentStatus: "GP review of pre-employment forms",
+    nextStep: "Receive doctor sign-off",
+    injuryDescription: "Pre-employment medical — forklift operator",
+  },
+  {
+    id: `case-${ALPINE_MDF_ID}-injury-1`,
+    workerName: "Steve Henderson",
+    track: "injury",
+    claimNumber: `WC-${ALPINE_MDF_ID.slice(-6).toUpperCase()}-001`,
+    daysAgo: 30,
+    riskLevel: "High",
+    workStatus: "Off work",
+    currentStatus: "Off work post-injury, awaiting RTW plan",
+    nextStep: "Schedule occupational physician review",
+    injuryDescription: "Crush injury — right hand, panel press",
+  },
+  {
+    id: `case-${ALPINE_MDF_ID}-injury-2`,
+    workerName: "Karen Atkinson",
+    track: "injury",
+    claimNumber: `WC-${ALPINE_MDF_ID.slice(-6).toUpperCase()}-002`,
+    daysAgo: 60,
+    riskLevel: "Medium",
+    workStatus: "At work",
+    currentStatus: "On modified duties — graded RTW",
+    nextStep: "Review week-4 progress",
+    injuryDescription: "Left shoulder impingement — overhead work",
+  },
+  {
+    id: `case-${ALPINE_MDF_ID}-prev-1`,
+    workerName: "Trent Bellamy",
+    track: "preventative",
+    claimNumber: null,
+    daysAgo: 7,
+    riskLevel: "Low",
+    workStatus: "At work",
+    currentStatus: "Annual preventative check scheduled",
+    nextStep: "Worker to complete wellness questionnaire",
+    injuryDescription: "Annual wellness check — hearing screen",
+  },
+];
+
 function buildDemoCases(): DemoCase[] {
-  const cases: DemoCase[] = [];
-  for (const company of ALPINE_COMPANIES) {
-    // 2 pre-employment, 2 injury, 1 preventative per company = 5 workers
-    cases.push({
-      id: `case-${company.id}-pre-1`,
-      organizationId: company.id,
-      workerName: `${company.name} Pre-Hire 1`,
-      company: company.name,
-      track: "pre-employment",
-      claimNumber: null,
-      daysAgo: 5,
-      riskLevel: "Low",
-      workStatus: "At work",
-      currentStatus: "Pre-employment medical pending",
-      nextStep: "Collect questionnaire response",
-    });
-    cases.push({
-      id: `case-${company.id}-pre-2`,
-      organizationId: company.id,
-      workerName: `${company.name} Pre-Hire 2`,
-      company: company.name,
-      track: "pre-employment",
-      claimNumber: null,
-      daysAgo: 12,
-      riskLevel: "Medium",
-      workStatus: "At work",
-      currentStatus: "GP review of pre-employment forms",
-      nextStep: "Receive doctor sign-off",
-    });
-    cases.push({
-      id: `case-${company.id}-injury-1`,
-      organizationId: company.id,
-      workerName: `${company.name} Injured Worker A`,
-      company: company.name,
-      track: "injury",
-      claimNumber: `WC-${company.id.slice(-6).toUpperCase()}-001`,
-      daysAgo: 30,
-      riskLevel: "High",
-      workStatus: "Off work",
-      currentStatus: "Off work post-injury, awaiting RTW plan",
-      nextStep: "Schedule occupational physician review",
-    });
-    cases.push({
-      id: `case-${company.id}-injury-2`,
-      organizationId: company.id,
-      workerName: `${company.name} Injured Worker B`,
-      company: company.name,
-      track: "injury",
-      claimNumber: `WC-${company.id.slice(-6).toUpperCase()}-002`,
-      daysAgo: 60,
-      riskLevel: "Medium",
-      workStatus: "At work",
-      currentStatus: "On modified duties — graded RTW",
-      nextStep: "Review week-4 progress",
-    });
-    cases.push({
-      id: `case-${company.id}-prev-1`,
-      organizationId: company.id,
-      workerName: `${company.name} Wellness Worker`,
-      company: company.name,
-      track: "preventative",
-      claimNumber: null,
-      daysAgo: 7,
-      riskLevel: "Low",
-      workStatus: "At work",
-      currentStatus: "Annual preventative check scheduled",
-      nextStep: "Worker to complete wellness questionnaire",
-    });
-  }
-  return cases;
+  return [
+    ...ALPINE_HEALTH_WORKERS.map((w) => ({
+      ...w,
+      organizationId: ALPINE_HEALTH_ID,
+      company: "Alpine Health",
+    })),
+    ...ALPINE_MDF_WORKERS.map((w) => ({
+      ...w,
+      organizationId: ALPINE_MDF_ID,
+      company: "Alpine MDF",
+    })),
+  ];
 }
 
 async function seed(): Promise<void> {
@@ -502,34 +578,34 @@ async function seed(): Promise<void> {
     {
       id: `case-${ALPINE_HEALTH_ID}-smoke`,
       organizationId: ALPINE_HEALTH_ID,
-      workerName: "Smoke Test Alpine Health",
+      workerName: "Lachlan Hughes",
       company: "Alpine Health",
       dateOfInjury: new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000),
       claimNumber: "WC-SMOKE-AH-001",
       riskLevel: "Low",
       workStatus: "At work",
       complianceIndicator: "Low",
-      currentStatus: "Smoke test case",
+      currentStatus: "Cleared for full duties — file pending close",
       nextStep: "Verify partner picker can see this case",
       owner: "WorkBetter",
       dueDate: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-      summary: "Smoke test case for Alpine Health (partner-tier verification).",
+      summary: "Right ankle sprain — slip on wet floor",
     },
     {
       id: `case-${ALPINE_MDF_ID}-smoke`,
       organizationId: ALPINE_MDF_ID,
-      workerName: "Smoke Test Alpine MDF",
+      workerName: "Jason Pritchard",
       company: "Alpine MDF",
       dateOfInjury: new Date(now.getTime() - 21 * 24 * 60 * 60 * 1000),
       claimNumber: null,
       riskLevel: "Low",
       workStatus: "At work",
       complianceIndicator: "Low",
-      currentStatus: "Smoke test case (preventative)",
+      currentStatus: "Ergonomic assessment scheduled",
       nextStep: "Verify partner picker can see this case",
       owner: "WorkBetter",
       dueDate: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-      summary: "Smoke test preventative case for Alpine MDF.",
+      summary: "Preventative ergonomic assessment — back-saver review",
     },
   ]);
 
@@ -552,7 +628,7 @@ async function seed(): Promise<void> {
         nextStep: c.nextStep,
         owner: "WorkBetter",
         dueDate: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-        summary: `${c.track} track demo case for ${c.company}.`,
+        summary: c.injuryDescription,
       }))
     );
   }

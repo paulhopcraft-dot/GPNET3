@@ -595,6 +595,9 @@ router.get("/cases", requirePartner, async (req: AuthRequest, res: Response) => 
         company: workerCases.company,
         riskLevel: workerCases.riskLevel,
         workStatus: workerCases.workStatus,
+        // `summary` doubles as the injury / case-type description rendered in
+        // the workspace cases table (column "Injury").
+        summary: workerCases.summary,
         currentStatus: workerCases.currentStatus,
         nextStep: workerCases.nextStep,
         dueDate: workerCases.dueDate,
