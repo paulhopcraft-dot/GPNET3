@@ -553,6 +553,74 @@ router.patch("/clients/:id", requirePartner, async (req: AuthRequest, res: Respo
 });
 
 /**
+ * GET /api/partner/cases
+ *
+ * Cross-client cases list for the partner workspace. Returns every case
+ * the calling partner user can see (joined across their accessible orgs).
+ * Optional ?organizationId= filters to one org (after access check).
+ *
+ * Ordering: open cases first; then risk High > Medium > Low; then due date asc.
+ * That's the rough "next action priority" — overdue high-risk surfaces top.
+ */
+router.get("/cases", requirePartner, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const filterOrgId = typeof req.query.organizationId === "string" ? req.query.organizationId : undefined;
+
+    const accessRows = await db
+      .select({ orgId: partnerUserOrganizations.organizationId })
+      .from(partnerUserOrganizations)
+      .where(eq(partnerUserOrganizations.userId, userId));
+    const accessibleOrgIds = accessRows.map((r) => r.orgId);
+
+    if (accessibleOrgIds.length === 0) {
+      return res.json({ cases: [] });
+    }
+
+    if (filterOrgId && !accessibleOrgIds.includes(filterOrgId)) {
+      return res.status(403).json({ error: "Forbidden", message: "No access to this client." });
+    }
+
+    const targetIds = filterOrgId ? [filterOrgId] : accessibleOrgIds;
+
+    const rows = await db
+      .select({
+        id: workerCases.id,
+        organizationId: workerCases.organizationId,
+        organizationName: organizations.name,
+        workerName: workerCases.workerName,
+        company: workerCases.company,
+        riskLevel: workerCases.riskLevel,
+        workStatus: workerCases.workStatus,
+        currentStatus: workerCases.currentStatus,
+        nextStep: workerCases.nextStep,
+        dueDate: workerCases.dueDate,
+        caseStatus: workerCases.caseStatus,
+      })
+      .from(workerCases)
+      .innerJoin(organizations, eq(workerCases.organizationId, organizations.id))
+      .where(
+        and(
+          sql`${workerCases.organizationId} = ANY(${targetIds})`,
+        ),
+      );
+
+    const riskRank: Record<string, number> = { High: 0, Medium: 1, Low: 2 };
+    const sorted = rows.slice().sort((a, b) => {
+      if (a.caseStatus !== b.caseStatus) return a.caseStatus === "open" ? -1 : 1;
+      const r = (riskRank[a.riskLevel] ?? 99) - (riskRank[b.riskLevel] ?? 99);
+      if (r !== 0) return r;
+      return (a.dueDate ?? "").localeCompare(b.dueDate ?? "");
+    });
+
+    res.json({ cases: sorted });
+  } catch (err) {
+    logger.api.error("[partner] GET /cases failed", {}, err);
+    res.status(500).json({ error: "Internal Server Error", message: "Failed to load cases" });
+  }
+});
+
+/**
  * GET /api/partner/insurers
  *
  * Active insurers list for the client setup form's insurer dropdown.
