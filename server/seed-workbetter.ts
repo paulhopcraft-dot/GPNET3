@@ -97,6 +97,145 @@ const ALPINE_COMPANIES = [
   { id: ALPINE_MDF_ID, name: "Alpine MDF" },
 ] as const;
 
+/**
+ * WorkBetter's real client roster (extracted from their public client logo wall).
+ * Seeded as empty employer orgs so the partner workspace sidebar renders a
+ * realistic client list. No worker_cases attached — clicking one shows an
+ * empty cases panel by design.
+ *
+ * Names cleaned best-effort from filename-style source. Add/remove freely;
+ * the seed is idempotent and uses deterministic IDs (`org-wb-<slug>`).
+ */
+const WORKBETTER_CLIENT_NAMES: readonly string[] = [
+  "Abacus Energy",
+  "Australian Aerospace",
+  "Albury Wodonga Midwifery Services",
+  "Albury Wodonga Health",
+  "AWRCC Trust Fund Inc",
+  "Arboressence",
+  "Aspire",
+  "ATS",
+  "Back Straight",
+  "BWFCOP",
+  "RCB",
+  "Benny's Automotive Garage",
+  "BH",
+  "Border Just Foods",
+  "BJS",
+  "Border SSP",
+  "Bright Brewery",
+  "Bright Newsagency",
+  "Brown Hill Hotel",
+  "Byford Equipment",
+  "Centre Against Violence",
+  "Clarity & Me OT",
+  "Community Accessability",
+  "Connex",
+  "Corryong Health",
+  "Cyclone Infrabuild Wire",
+  "DAS",
+  "Enhance Physiotherapy",
+  "EDS",
+  "Exact",
+  "Falls Creek Resort",
+  "Foresight Engineering",
+  "Gateway Health",
+  "Gae Long",
+  "Grove Steel Solutions",
+  "Hargreaves Joinery",
+  "Harlo & Co",
+  "Hollywoods Cafe Wangaratta",
+  "Hume Patient Transport",
+  "Hurst Earthmoving",
+  "Indigo Power",
+  "Indigo Shire",
+  "Innovation Steel Frames & Truss",
+  "Jones Doyle",
+  "JR Mechanical",
+  "KBC",
+  "KR Hoysted",
+  "Lewis Home",
+  "Lifeline Albury Wodonga",
+  "LRAOR",
+  "Luxe Skin Clinic",
+  "Mansfield Shire Council",
+  "Mawarra Genetics",
+  "Mercy Connect",
+  "McGrorys Transport",
+  "Merriwa Industries",
+  "Mitchell Shire Council",
+  "Nellen",
+  "Net Intellect",
+  "NECMA",
+  "North East Water",
+  "O'Connell's Refrigeration & Air Conditioning",
+  "Oedema",
+  "One Mile Motors",
+  "Our Family Mobile Vet",
+  "Pastro",
+  "Peter Bowen Homes",
+  "Wodonga Turf Club",
+  "Rapid Hydraulics",
+  "RWT",
+  "ROA",
+  "Roberson",
+  "Roche",
+  "RTE Contracting",
+  "Rural City of Wangaratta",
+  "SafePak",
+  "Shine at Business",
+  "Skinsational",
+  "Smiths TMP",
+  "South Albury Trucks",
+  "SOCAP",
+  "Solar Integrity",
+  "Stanton Killeen",
+  "Stevnor",
+  "Squad",
+  "Tailgate Campers",
+  "The Centre",
+  "The Rural Woman Cooperative",
+  "TTA",
+  "Tonkin",
+  "Top Down Learning",
+  "Twenty2 Plumbing",
+  "Twin City Electrical & Solar",
+  "UHPCP",
+  "UMFC",
+  "VK Logic",
+  "Wangaratta Turf Club",
+  "Warrabilla",
+  "WAW Bank",
+  "Wodonga Beauty Room",
+  "W&E Rouse",
+  "Winton Wetlands",
+  "Wodonga Bowling Club",
+  "Wodonga Border Carpets",
+  "Women's Centre",
+  "Yarrawonga Health",
+  "Yield",
+];
+
+function slugifyClient(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/'/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+const WORKBETTER_CLIENTS = WORKBETTER_CLIENT_NAMES.map((name) => {
+  const slug = slugifyClient(name);
+  return {
+    id: `org-wb-${slug}`,
+    name,
+    slug: `wb-${slug}`,
+  };
+});
+
+const WORKBETTER_CLIENT_IDS = WORKBETTER_CLIENTS.map((c) => c.id);
+
 interface DemoCase {
   id: string;
   organizationId: string;
@@ -201,8 +340,14 @@ async function seed(): Promise<void> {
   // Idempotency: clean up any prior partner-tier seed rows by stable IDs.
   // Order matters because of FKs.
   console.log("[seed-workbetter] Cleaning prior partner-tier seed rows...");
+  const allClientOrgIds = [
+    ALPINE_HEALTH_ID,
+    ALPINE_MDF_ID,
+    ALPINE_TEST_EMPTY_ID,
+    ...WORKBETTER_CLIENT_IDS,
+  ];
   await db.delete(workerCases).where(
-    inArray(workerCases.organizationId, [ALPINE_HEALTH_ID, ALPINE_MDF_ID, ALPINE_TEST_EMPTY_ID])
+    inArray(workerCases.organizationId, allClientOrgIds)
   );
   await db.delete(partnerUserOrganizations).where(
     inArray(partnerUserOrganizations.userId, [PRIMARY_PARTNER_USER_ID, SCOPED_PARTNER_USER_ID])
@@ -211,7 +356,7 @@ async function seed(): Promise<void> {
     inArray(users.id, [PRIMARY_PARTNER_USER_ID, SCOPED_PARTNER_USER_ID])
   );
   await db.delete(organizations).where(
-    inArray(organizations.id, [PARTNER_ORG_ID, ALPINE_HEALTH_ID, ALPINE_MDF_ID, ALPINE_TEST_EMPTY_ID])
+    inArray(organizations.id, [PARTNER_ORG_ID, ...allClientOrgIds])
   );
 
   console.log("[seed-workbetter] Inserting organizations...");
@@ -293,6 +438,20 @@ async function seed(): Promise<void> {
     },
   ]);
 
+  // WorkBetter's real client roster — empty employer orgs so the sidebar looks
+  // alive. Inserted in batches to keep query parameter counts under driver limits.
+  console.log(`[seed-workbetter] Inserting ${WORKBETTER_CLIENTS.length} WorkBetter clients...`);
+  const wbBatchSize = 50;
+  for (let i = 0; i < WORKBETTER_CLIENTS.length; i += wbBatchSize) {
+    const batch = WORKBETTER_CLIENTS.slice(i, i + wbBatchSize).map((c) => ({
+      id: c.id,
+      name: c.name,
+      slug: c.slug,
+      kind: "employer" as const,
+    }));
+    await db.insert(organizations).values(batch);
+  }
+
   const passwordHash = await bcrypt.hash("workbetter123", 10);
 
   console.log("[seed-workbetter] Inserting partner users...");
@@ -320,12 +479,19 @@ async function seed(): Promise<void> {
   ]);
 
   console.log("[seed-workbetter] Granting partner user access to client orgs...");
+  // Primary user gets the Alpine fixtures plus every WorkBetter client.
+  // Scoped user stays limited to Alpine Health to keep proving access enforcement.
+  const primaryGrants = [
+    ALPINE_HEALTH_ID,
+    ALPINE_MDF_ID,
+    ALPINE_TEST_EMPTY_ID,
+    ...WORKBETTER_CLIENT_IDS,
+  ].map((organizationId) => ({ userId: PRIMARY_PARTNER_USER_ID, organizationId }));
+  const grantBatchSize = 100;
+  for (let i = 0; i < primaryGrants.length; i += grantBatchSize) {
+    await db.insert(partnerUserOrganizations).values(primaryGrants.slice(i, i + grantBatchSize));
+  }
   await db.insert(partnerUserOrganizations).values([
-    // Primary user has access to all clients including the edge-case fixture.
-    { userId: PRIMARY_PARTNER_USER_ID, organizationId: ALPINE_HEALTH_ID },
-    { userId: PRIMARY_PARTNER_USER_ID, organizationId: ALPINE_MDF_ID },
-    { userId: PRIMARY_PARTNER_USER_ID, organizationId: ALPINE_TEST_EMPTY_ID },
-    // Scoped user has access to Alpine Health only — proves access enforcement.
     { userId: SCOPED_PARTNER_USER_ID, organizationId: ALPINE_HEALTH_ID },
   ]);
 
@@ -393,7 +559,13 @@ async function seed(): Promise<void> {
 
   // Quick read-back to confirm.
   const orgRows = await db.select().from(organizations).where(
-    inArray(organizations.id, [PARTNER_ORG_ID, ALPINE_HEALTH_ID, ALPINE_MDF_ID, ALPINE_TEST_EMPTY_ID])
+    inArray(organizations.id, [
+      PARTNER_ORG_ID,
+      ALPINE_HEALTH_ID,
+      ALPINE_MDF_ID,
+      ALPINE_TEST_EMPTY_ID,
+      ...WORKBETTER_CLIENT_IDS,
+    ])
   );
   const userRows = await db.select().from(users).where(eq(users.role, "partner"));
   const grantRows = await db.select().from(partnerUserOrganizations);
@@ -403,6 +575,7 @@ async function seed(): Promise<void> {
 
   console.log("\n[seed-workbetter] Done. Counts:");
   console.log(`  organizations (partner+clients): ${orgRows.length}`);
+  console.log(`  workbetter client orgs:          ${WORKBETTER_CLIENT_IDS.length}`);
   console.log(`  partner users:                   ${userRows.length}`);
   console.log(`  partner_user_organizations:      ${grantRows.length}`);
   console.log(`  client cases (Alpine Health/MDF): ${caseRows.length}`);
