@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Building2, Loader2, LogOut, Plus, Pencil, Layers } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ClientSetupForm } from "@/components/partner/ClientSetupForm";
+import { apiRequest } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 
 interface ClientOrg {
@@ -42,10 +43,36 @@ const ALL_CLIENTS = "__all__";
 
 export default function PartnerWorkspace() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user, logout } = useAuth();
   const [selectedOrgId, setSelectedOrgId] = useState<string>(ALL_CLIENTS);
   const [formOpen, setFormOpen] = useState(false);
   const [editingClientId, setEditingClientId] = useState<string | undefined>(undefined);
+  const [openingCaseId, setOpeningCaseId] = useState<string | null>(null);
+
+  /**
+   * Open a case from the partner workspace by reusing the rich employer
+   * detail page. Partners' JWT activeOrganizationId is the partner org;
+   * the employer page expects it to match the case's company. So we POST
+   * /api/partner/active-org first to mint a fresh JWT scoped to the
+   * case's organization, then navigate.
+   */
+  async function openCase(caseRow: CaseRow): Promise<void> {
+    if (openingCaseId) return; // ignore double-clicks while a swap is in flight
+    setOpeningCaseId(caseRow.id);
+    try {
+      await apiRequest("POST", "/api/partner/active-org", {
+        organizationId: caseRow.organizationId,
+      });
+      // After the swap the cached cases list is for the previous org.
+      // Invalidate so /employer/case/:id refetches against the new org.
+      await queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
+      navigate(`/employer/case/${caseRow.id}`);
+    } catch (err) {
+      console.error("[partner] failed to open case", err);
+      setOpeningCaseId(null);
+    }
+  }
 
   useEffect(() => {
     if (user && user.role !== "partner") {
@@ -286,7 +313,8 @@ export default function PartnerWorkspace() {
                             ? "border-l-4 border-l-amber-500"
                             : "border-l-4 border-l-transparent",
                       )}
-                      onClick={() => navigate(`/partner/cases/${c.id}`)}
+                      onClick={() => openCase(c)}
+                      aria-busy={openingCaseId === c.id}
                       data-testid={`case-row-${c.id}`}
                     >
                       <td className="px-6 py-3 font-medium">
