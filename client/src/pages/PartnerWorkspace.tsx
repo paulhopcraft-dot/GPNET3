@@ -286,10 +286,26 @@ export default function PartnerWorkspace() {
                             ? "border-l-4 border-l-amber-500"
                             : "border-l-4 border-l-transparent",
                       )}
-                      onClick={() => navigate(`/cases/${c.id}`)}
+                      onClick={() => navigate(`/partner/cases/${c.id}`)}
                       data-testid={`case-row-${c.id}`}
                     >
-                      <td className="px-6 py-3 font-medium">{c.workerName}</td>
+                      <td className="px-6 py-3 font-medium">
+                        <div className="flex items-center gap-2">
+                          <span>{c.workerName}</span>
+                          <Badge
+                            variant={
+                              c.riskLevel === "High"
+                                ? "destructive"
+                                : c.riskLevel === "Medium"
+                                  ? "default"
+                                  : "secondary"
+                            }
+                            className="px-1.5 py-0 text-[10px] font-medium uppercase tracking-wide"
+                          >
+                            {c.riskLevel}
+                          </Badge>
+                        </div>
+                      </td>
                       {selectedOrgId === ALL_CLIENTS && (
                         <td className="px-3 py-3 text-muted-foreground">
                           {c.organizationName}
